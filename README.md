@@ -17,6 +17,15 @@ Scrim keeps recordings on your computer. Nothing is uploaded, there is no accoun
 - Full display, region and window screenshots
 - Windows, macOS and Linux support
 
+## Use cases
+
+- **Tutorials:** Show each step, with the clicks people need to copy.
+- **Product demos:** Walk customers through a feature with your face on screen.
+- **Teaching:** Record lessons students can pause and follow.
+- **Bug reports:** Show exactly what went wrong instead of describing it.
+- **Sales and support:** Answer questions with a quick, personal video.
+- **Personal:** Help family with their PC, or save a moment from your screen.
+
 ## Project status
 
 The project is currently in Phase 1: the landing page. The desktop application will be developed in later phases.
@@ -32,11 +41,63 @@ The project is currently in Phase 1: the landing page. The desktop application w
 ## Repository layout
 
 ```text
-apps/landing/   Next.js landing page, API routes, database and mail
-apps/desktop/   Electron desktop application, Phase 2 onward
-packages/core/  Pure recording, zoom, camera, export and editing logic
-packages/tokens/Shared design tokens
-docs/           Architecture, testing, releasing and ADRs
+scrim/
+├── apps/
+│   ├── landing/
+│   │   ├── prisma/
+│   │   │   ├── migrations/
+│   │   │   └── schema.prisma
+│   │   ├── public/
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── api/
+│   │   │   │   ├── privacy/
+│   │   │   │   └── page.tsx
+│   │   │   ├── components/
+│   │   │   ├── emails/
+│   │   │   ├── lib/
+│   │   │   └── server/
+│   │   ├── tests/
+│   │   ├── .env.example
+│   │   └── package.json
+│   └── desktop/
+│       ├── build/
+│       ├── src/
+│       │   ├── main/
+│       │   ├── preload/
+│       │   ├── renderer/
+│       │   └── shared/
+│       ├── tests/
+│       └── package.json
+├── packages/
+│   ├── core/
+│   │   ├── src/
+│   │   │   ├── camera/
+│   │   │   ├── edit/
+│   │   │   ├── export/
+│   │   │   ├── input/
+│   │   │   └── zoom/
+│   │   └── tests/
+│   └── tokens/
+│       ├── src/
+│       └── tests/
+├── docs/
+│   ├── adr/
+│   ├── architecture.md
+│   ├── releasing.md
+│   └── testing.md
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   └── workflows/
+├── CLAUDE.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── README.md
+├── SECURITY.md
+├── CHANGELOG.md
+├── package.json
+├── pnpm-workspace.yaml
+└── turbo.json
 ```
 
 ## Development
