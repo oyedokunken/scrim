@@ -70,6 +70,12 @@ Copy `apps/landing/.env.example` to a local environment file and use a developme
 
 The desktop application does not send recordings or recording data to a server. The landing page stores the name, email, selected system, app version, a hashed IP, a truncated user agent and timestamps for download counting and optional update notices. See the [security policy](SECURITY.md) and the privacy page in the landing app for more information.
 
+## Developer
+
+- **Name:** Oyedokun Kehinde
+- **Email:** oyedokunken@gmail.com
+- **Portfolio:** https://www.oyedokun.dev/
+
 ## License
 
 Scrim is available under the [MIT License](LICENSE).
