@@ -10,6 +10,9 @@
     "src/renderer/**/*",
     "src/shared/**/*",
     "src/recorder/page/**/*",
-    "src/recorder/protocol.ts"
+    "src/recorder/protocol.ts",
+    "tests/unit/track-recorder.test.ts",
+    "tests/unit/recorder-controller.test.ts",
+    "tests/unit/support/recorder-fakes.ts"
   ]
 }
