@@ -4,7 +4,7 @@ import { isAllowedExternalUrl } from './external-urls';
 import { settingsPatchSchema, settingsSchema } from './settings';
 
 /** A link the app may open: the Scrim repository on GitHub, nothing else. */
-export const allowedUrlSchema = z
+const allowedUrlSchema = z
   .string()
   .max(2048)
   .refine(isAllowedExternalUrl, 'That link is not allowed.');

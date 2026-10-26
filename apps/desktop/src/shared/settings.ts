@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-export const CURSOR_STYLES = ['halo-ripples', 'halo', 'ripples', 'off'] as const;
-export const SOURCE_KINDS = ['region', 'display', 'window'] as const;
+const CURSOR_STYLES = ['halo-ripples', 'halo', 'ripples', 'off'] as const;
+const SOURCE_KINDS = ['region', 'display', 'window'] as const;
 
 /** Every setting and its rule. Zoom is stored only in Phase 2 and applied at export later. */
 const fields = {

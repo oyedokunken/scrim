@@ -45,7 +45,7 @@ export function isTrustedSender(
 
 const KNOWN: ReadonlySet<string> = new Set(CHANNELS);
 
-export function isChannel(value: unknown): value is Channel {
+function isChannel(value: unknown): value is Channel {
   return typeof value === 'string' && KNOWN.has(value);
 }
 
