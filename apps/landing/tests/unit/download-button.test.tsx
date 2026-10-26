@@ -16,7 +16,8 @@ describe('DownloadButton on the server', () => {
   });
 
   it('reserves the width of the longest label with a hidden twin', () => {
-    expect(html).toContain('aria-hidden="true">Download for Windows</span>');
+    expect(html).toContain('Download for Windows</span>');
+    expect(html).toContain('aria-hidden="true"><svg');
   });
 
   it('hides the decorative icon from assistive technology', () => {

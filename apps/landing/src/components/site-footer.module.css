@@ -61,7 +61,7 @@
   padding: 0.25rem 0.75rem;
   border: 1px solid color-mix(in srgb, var(--scrim-butter) 28%, var(--scrim-black));
   border-radius: var(--scrim-radius-pill);
-  font-size: var(--text-sm);
+  font-size: var(--scrim-text-small);
   font-weight: 600;
 }
 
@@ -70,7 +70,7 @@
   padding: 0.35rem 0.875rem;
   border-radius: var(--scrim-radius-pill);
   background: color-mix(in srgb, var(--scrim-butter) 12%, var(--scrim-black));
-  font-size: var(--text-sm);
+  font-size: var(--scrim-text-small);
   font-weight: 700;
   text-decoration: none;
 }
@@ -84,7 +84,7 @@
 .columnTitle {
   margin-bottom: var(--scrim-space-3);
   color: color-mix(in srgb, var(--scrim-butter) 72%, var(--scrim-black));
-  font-size: var(--text-sm);
+  font-size: var(--scrim-text-small);
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -138,7 +138,7 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--scrim-space-3) var(--scrim-space-6);
-  font-size: var(--text-sm);
+  font-size: var(--scrim-text-small);
   color: color-mix(in srgb, var(--scrim-butter) 78%, var(--scrim-black));
 }
 

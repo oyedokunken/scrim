@@ -1,0 +1,160 @@
+.demo {
+  display: grid;
+  gap: var(--scrim-space-4);
+}
+
+/* The camera view. Its shape is fixed, so the demo never shifts the page. */
+.viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: var(--scrim-radius-lg);
+  background: var(--scrim-white);
+  /* A soft shadow made from the black, never a hard black. */
+  box-shadow: 0 1.5rem 3rem -1.5rem color-mix(in srgb, var(--scrim-black) 28%, transparent);
+  contain: layout paint;
+}
+
+/* The whole pretend screen. The camera is a transform on this element. */
+.scene {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.scene svg:first-child {
+  width: 100%;
+  height: 100%;
+}
+
+.cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  transform: translate(calc(var(--cx) * 100cqw), calc(var(--cy) * 100cqh));
+  will-change: transform;
+  pointer-events: none;
+}
+
+.halo {
+  position: absolute;
+  width: 6.5cqw;
+  height: 6.5cqw;
+  margin: -3.25cqw 0 0 -3.25cqw;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--scrim-green) 22%, transparent);
+  box-shadow: 0 0 0 0.5cqw color-mix(in srgb, var(--scrim-green) 18%, transparent);
+}
+
+.pointer {
+  position: absolute;
+  max-width: none;
+  top: 0;
+  left: 0;
+  width: 1.9cqw;
+  height: auto;
+}
+
+.ripple {
+  position: absolute;
+  width: 9cqw;
+  height: 9cqw;
+  margin: -4.5cqw 0 0 -4.5cqw;
+  border: 0.4cqw solid var(--scrim-green);
+  border-radius: 50%;
+  transform: scale(calc(0.25 + var(--p) * 1));
+  opacity: calc((1 - var(--p)) * var(--on));
+  pointer-events: none;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--scrim-space-3) var(--scrim-space-4);
+}
+
+.button,
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.125rem;
+  border: 1px solid var(--scrim-border);
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-white);
+  color: var(--scrim-black);
+  font-size: var(--scrim-text-small);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.button:hover,
+.switch:hover {
+  border-color: var(--scrim-green);
+}
+
+/* Pressed means playing. The state is also in the icon, which swaps between play and pause. */
+.button[aria-pressed='true'] {
+  background: var(--scrim-green);
+  border-color: var(--scrim-green);
+  color: var(--scrim-white);
+}
+
+.track {
+  position: relative;
+  display: inline-block;
+  width: 2.5rem;
+  height: 1.5rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-border);
+  transition: background-color 0.15s ease;
+}
+
+.thumb {
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  background: var(--scrim-white);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--scrim-black) 30%, transparent);
+  transition: transform 0.15s ease;
+}
+
+.switch[aria-checked='true'] .track {
+  background: var(--scrim-green);
+}
+
+.switch[aria-checked='true'] .thumb {
+  transform: translateX(1rem);
+}
+
+.state {
+  min-width: 1.5rem;
+  color: var(--scrim-text-secondary);
+}
+
+.caption {
+  flex: 1 1 18rem;
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-small);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track,
+  .thumb {
+    transition: none;
+  }
+}

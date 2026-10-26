@@ -1,9 +1,5 @@
-import { siteConfig } from '@/site.config';
+import { Hero } from '@/components/sections/hero';
 
 export default function HomePage() {
-  return (
-    <section style={{ padding: 'var(--gutter)' }}>
-      <h1>{siteConfig.tagline}</h1>
-    </section>
-  );
+  return <Hero />;
 }

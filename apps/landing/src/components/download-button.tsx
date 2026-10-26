@@ -27,10 +27,13 @@ export function DownloadButton({ href, className }: DownloadButtonProps) {
 
   return (
     <a href={href} className={`${styles.button} ${className ?? ''}`.trim()}>
-      <Download aria-hidden="true" size={20} strokeWidth={2.25} />
       <span className={styles.labels}>
-        <span className={styles.label}>{label}</span>
+        <span className={styles.label}>
+          <Download aria-hidden="true" size={20} strokeWidth={2.25} />
+          {label}
+        </span>
         <span className={styles.sizer} aria-hidden="true">
+          <Download aria-hidden="true" size={20} strokeWidth={2.25} />
           {WIDEST_LABEL}
         </span>
       </span>

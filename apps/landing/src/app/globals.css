@@ -11,20 +11,22 @@
 
   --font-sans: var(--font-urbanist), var(--scrim-font);
 
-  /* Type scale. Fluid steps for display sizes, fixed for reading sizes. */
-  --text-xs: 0.8125rem;
-  --text-sm: 0.9375rem;
-  --text-base: 1.0625rem;
-  --text-lg: 1.25rem;
-  --text-xl: 1.5rem;
-  --text-2xl: clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem);
-  --text-3xl: clamp(2.25rem, 1.6rem + 2.6vw, 3.5rem);
-  --text-4xl: clamp(2.75rem, 1.7rem + 4.4vw, 5rem);
-
-  --measure: 62ch;
   --page-width: 72rem;
   --gutter: clamp(1rem, 4vw, 2rem);
   --header-offset: 5.5rem;
+}
+
+/* The width every section aligns to. */
+.container {
+  width: min(100% - 2 * var(--gutter), var(--page-width));
+  margin-inline: auto;
+}
+
+/* Sections below the first screen skip rendering until they are near. The size hint keeps the
+   scrollbar steady and stops anchor links from drifting. */
+.deferred {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
 }
 
 html {
@@ -38,8 +40,8 @@ body {
   background: var(--scrim-butter);
   color: var(--scrim-black);
   font-family: var(--font-sans);
-  font-size: var(--text-base);
-  line-height: 1.6;
+  font-size: var(--scrim-text-body);
+  line-height: var(--scrim-leading-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -51,7 +53,7 @@ h3,
 h4 {
   margin: 0;
   font-weight: 800;
-  line-height: 1.08;
+  line-height: var(--scrim-leading-heading);
   letter-spacing: -0.025em;
   text-wrap: balance;
 }

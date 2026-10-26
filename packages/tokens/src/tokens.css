@@ -23,6 +23,19 @@
   --scrim-font:
     'Urbanist Variable', 'Urbanist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
+  /* Type scale. Display and headings are fluid, reading sizes are fixed. */
+  --scrim-text-display: clamp(2.75rem, 1.6rem + 5vw, 5.25rem);
+  --scrim-text-h2: clamp(2rem, 1.5rem + 2.2vw, 3.25rem);
+  --scrim-text-h3: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+  --scrim-text-body-lg: clamp(1.1875rem, 1.1rem + 0.4vw, 1.375rem);
+  --scrim-text-body: 1.0625rem;
+  --scrim-text-small: 0.9375rem;
+  --scrim-leading-display: 1.04;
+  --scrim-leading-heading: 1.12;
+  --scrim-leading-body: 1.6;
+  /* Line length for running text, kept under 70 characters. */
+  --scrim-measure: 62ch;
+
   /* Spacing, in rem. */
   --scrim-space-1: 0.25rem;
   --scrim-space-2: 0.5rem;

@@ -1,0 +1,61 @@
+.hero {
+  display: grid;
+  gap: var(--scrim-space-7);
+  padding-top: var(--scrim-space-7);
+}
+
+.copy {
+  display: grid;
+  gap: var(--scrim-space-5);
+  align-items: end;
+}
+
+.title {
+  max-width: 14ch;
+  font-size: var(--scrim-text-display);
+  line-height: var(--scrim-leading-display);
+  letter-spacing: -0.035em;
+}
+
+.aside {
+  display: grid;
+  gap: var(--scrim-space-5);
+  max-width: var(--scrim-measure);
+}
+
+.lead {
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-body-lg);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--scrim-space-3) var(--scrim-space-5);
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  color: var(--scrim-black);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--scrim-border);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+}
+
+.source:hover {
+  color: var(--scrim-green);
+  text-decoration-color: var(--scrim-green);
+}
+
+@media (min-width: 60rem) {
+  .copy {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: var(--scrim-space-8);
+  }
+}
