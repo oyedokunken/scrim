@@ -5,6 +5,7 @@ import { devDockIconPath } from './app-icon';
 import { handleAppRequest } from './app-protocol';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
+import { registerRecording } from './recording';
 import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { applyApplicationMenu } from './shell/menu';
 import { createStubRecorder } from './shell/recorder-control';
@@ -94,5 +95,6 @@ if (!app.requestSingleInstanceLock()) {
     });
     shell.start();
     await openMainWindow();
+    registerRecording({ appOrigin: target.origin });
   });
 }
