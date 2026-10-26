@@ -13,6 +13,7 @@
     "src/recorder/protocol.ts",
     "tests/unit/track-recorder.test.ts",
     "tests/unit/recorder-controller.test.ts",
-    "tests/unit/support/recorder-fakes.ts"
+    "tests/unit/support/recorder-fakes.ts",
+    "tests/unit/home-screen.test.tsx"
   ]
 }
