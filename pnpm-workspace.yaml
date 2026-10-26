@@ -44,6 +44,7 @@ catalog:
   '@commitlint/config-conventional': 21.2.3
   knip: 6.41.0
   sharp: 0.35.5
+  uiohook-napi: 1.5.5
   electron: 44.7.2
   electron-vite: 6.0.0
   electron-builder: 26.17.0
@@ -64,3 +65,5 @@ allowBuilds:
   # Download Prisma's schema engine binary, which `prisma migrate` needs.
   prisma: true
   '@prisma/engines': true
+  # Runs node-gyp-build, which loads the prebuilt binary shipped for each system.
+  uiohook-napi: true

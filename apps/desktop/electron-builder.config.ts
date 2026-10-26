@@ -8,6 +8,8 @@ const config: Configuration = {
   directories: { buildResources: 'resources', output: 'release' },
   files: ['out/**', 'package.json', 'resources/icons/**'],
   asar: true,
+  // Native modules cannot load from inside the asar archive.
+  asarUnpack: ['node_modules/uiohook-napi/**'],
   // The install folder comes from the package name, and the workspace name is scoped.
   extraMetadata: { name: 'scrim' },
   afterPack,

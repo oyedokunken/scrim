@@ -15,9 +15,13 @@
     "verify:fuses": "node build/verify-fuses.mts",
     "icons": "node scripts/icons.mts"
   },
+  "dependencies": {
+    "uiohook-napi": "catalog:"
+  },
   "devDependencies": {
     "@electron/fuses": "catalog:",
     "@playwright/test": "catalog:",
+    "@scrim/core": "workspace:*",
     "@scrim/tokens": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
@@ -31,7 +35,8 @@
     "sharp": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   },
   "author": "Oyedokun Kehinde",
   "homepage": "https://github.com/oyedokunken/scrim"
