@@ -200,6 +200,7 @@ export async function createHarness(options: HarnessOptions = {}) {
             type: 'track-started',
             kind,
             rendererNow: clock.time + rendererClockOffset + 50,
+            calledAt: clock.time + rendererClockOffset + 20,
           });
         }
         break;

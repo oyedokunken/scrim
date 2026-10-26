@@ -145,6 +145,7 @@ export function createRecordingService(options: CreateServiceOptions): Recording
     index: createSessionIndex(join(app.getPath('userData'), 'sessions.json'), realServiceFs),
     isProcessAlive: isAlive,
     log,
+    trace: !app.isPackaged && process.env['SCRIM_DEV_TRACE'] === '1',
     timers: {
       setInterval: (callback, ms) => setInterval(callback, ms),
       clearInterval: (handle) => {

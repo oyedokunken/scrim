@@ -28,6 +28,9 @@ One folder per recording, `<name>.scrim`, inside the destination folder the user
 - Time. The main process owns one clock, milliseconds since the recording started. Track start
   times, pause intervals and raw input events all use it. The recorder page clock is related to it
   by an offset and an uncertainty, measured with a ping exchange, and both are stored.
+  A track's `startedAt` is the main clock time at which its media time is zero. For video that is
+  the time `start()` was called plus a measured latency, not the recorder's late start event (see
+  ADR 0001). `capture.cursorInCapture` says whether the system cursor is part of the video.
 - `session.json` is version 1 and is validated with zod on every read and write. It is rewritten
   atomically (temp file, fsync, rename, retrying on `EPERM` and `EBUSY`) after each sync, so the
   last good copy is always whole. It records the owning process id, so recovery can tell a crash

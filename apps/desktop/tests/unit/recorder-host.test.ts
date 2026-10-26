@@ -42,8 +42,8 @@ describe('RecorderHost', () => {
     expect(offset.uncertaintyMs).toBeGreaterThan(0);
 
     const started = await host.start(['screen', 'mic']);
-    expect(started.get('screen')).toBe(5000);
-    expect(started.get('mic')).toBe(5000);
+    expect(started.get('screen')).toEqual({ startedAt: 5000, calledAt: 4900 });
+    expect(started.get('mic')).toEqual({ startedAt: 5000, calledAt: 4900 });
     expect(await host.pause()).toBe(7000);
     expect(await host.resume()).toBe(9000);
     expect(await host.stop()).toEqual([{ kind: 'screen', chunks: 3, bytes: 30 }]);
@@ -209,7 +209,7 @@ describe('recorder protocol schemas', () => {
       },
       { type: 'ports-attached', kinds: ['screen'] },
       { type: 'pong', id: 1, mainSentAt: 2, rendererNow: 3 },
-      { type: 'track-started', kind: 'mic', rendererNow: 1 },
+      { type: 'track-started', kind: 'mic', rendererNow: 1, calledAt: 0 },
       { type: 'paused', rendererNow: 1 },
       { type: 'resumed', rendererNow: 1 },
       { type: 'track-ended', kind: 'camera', rendererNow: 1 },

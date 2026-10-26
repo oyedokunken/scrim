@@ -81,7 +81,7 @@ export const responder = (): FakePage['reply'] => (command, page) => {
       break;
     case 'start':
       for (const kind of Object.keys(page.ports) as TrackKind[]) {
-        page.emit({ type: 'track-started', kind, rendererNow: 5000 });
+        page.emit({ type: 'track-started', kind, rendererNow: 5000, calledAt: 4900 });
       }
       break;
     case 'pause':

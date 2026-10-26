@@ -11,6 +11,8 @@ export class FakeRecorder implements RecorderLike {
   ondataavailable: ((event: { data: BlobLike }) => void) | null = null;
   onstart: (() => void) | null = null;
   onstop: (() => void) | null = null;
+  onpause: (() => void) | null = null;
+  onresume: (() => void) | null = null;
   onerror: ((event: unknown) => void) | null = null;
   timeslice = 0;
 
@@ -21,9 +23,11 @@ export class FakeRecorder implements RecorderLike {
   }
   pause(): void {
     this.state = 'paused';
+    this.onpause?.();
   }
   resume(): void {
     this.state = 'recording';
+    this.onresume?.();
   }
   stop(): void {
     this.state = 'inactive';

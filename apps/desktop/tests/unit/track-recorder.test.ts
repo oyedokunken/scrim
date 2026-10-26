@@ -16,9 +16,10 @@ function setup() {
     track,
     now: () => clock.time,
     post: (message) => posted.push({ message }),
-    onStarted: (at) => events.push(`started:${String(at)}`),
+    onStarted: (at, called) => events.push(`started:${String(at)}:called:${String(called)}`),
     onEnded: (at) => events.push(`ended:${String(at)}`),
     onError: (message) => events.push(`error:${message}`),
+    onTrace: (what, at) => events.push(`trace:${what}:${String(at)}`),
   });
   return { recorder, track, clock, posted, events, tr };
 }
@@ -50,7 +51,7 @@ describe('TrackRecorder', () => {
     const { recorder, events, tr } = setup();
     tr.start(1000);
     expect(recorder.timeslice).toBe(1000);
-    expect(events).toEqual(['started:1000']);
+    expect(events).toEqual(['started:1000:called:1000']);
   });
 
   it('posts numbered chunks with the data copied in, not transferred', async () => {

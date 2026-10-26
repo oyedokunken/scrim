@@ -210,14 +210,17 @@ export class RecorderController {
         post: (message) => {
           this.ports.get(kind)?.postMessage(message);
         },
-        onStarted: (rendererNow) => {
-          deps.sendEvent({ type: 'track-started', kind, rendererNow });
+        onStarted: (rendererNow, calledAt) => {
+          deps.sendEvent({ type: 'track-started', kind, rendererNow, calledAt });
         },
         onEnded: (rendererNow) => {
           deps.sendEvent({ type: 'track-ended', kind, rendererNow });
         },
         onError: (message, rendererNow) => {
           deps.sendEvent({ type: 'track-error', kind, message, rendererNow });
+        },
+        onTrace: (what, rendererNow) => {
+          deps.sendEvent({ type: 'trace', kind, what, rendererNow });
         },
       }),
     );

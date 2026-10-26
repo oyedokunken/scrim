@@ -167,7 +167,9 @@ export class RecorderHost {
   }
 
   /** Starts every recorder and resolves with the page clock time at which each one started. */
-  async start(kinds: readonly TrackKind[]): Promise<Map<TrackKind, number>> {
+  async start(
+    kinds: readonly TrackKind[],
+  ): Promise<Map<TrackKind, { startedAt: number; calledAt: number }>> {
     const waits = kinds.map((kind) =>
       this.expect(
         `the ${kind} recorder to start`,
@@ -176,9 +178,11 @@ export class RecorderHost {
       ),
     );
     this.transport.send({ type: 'start' });
-    const started = new Map<TrackKind, number>();
+    const started = new Map<TrackKind, { startedAt: number; calledAt: number }>();
     for (const event of await Promise.all(waits)) {
-      if (event.type === 'track-started') started.set(event.kind, event.rendererNow);
+      if (event.type === 'track-started') {
+        started.set(event.kind, { startedAt: event.rendererNow, calledAt: event.calledAt });
+      }
     }
     return started;
   }

@@ -54,12 +54,20 @@ export type RecorderEvent =
     }
   | { type: 'ports-attached'; kinds: TrackKind[] }
   | { type: 'pong'; id: number; mainSentAt: number; rendererNow: number }
-  | { type: 'track-started'; kind: TrackKind; rendererNow: number }
+  | {
+      type: 'track-started';
+      kind: TrackKind;
+      /** When the recorder reported that it started. A video recorder reports this late. */
+      rendererNow: number;
+      /** When `start()` was called. A video recorder's first frame is stamped near this time. */
+      calledAt: number;
+    }
   | { type: 'paused'; rendererNow: number }
   | { type: 'resumed'; rendererNow: number }
   | { type: 'track-ended'; kind: TrackKind; rendererNow: number }
   | { type: 'track-error'; kind: TrackKind; message: string; rendererNow: number }
   | { type: 'stopped'; tracks: { kind: TrackKind; chunks: number; bytes: number }[] }
+  | { type: 'trace'; kind: TrackKind; what: string; rendererNow: number }
   | { type: 'fatal'; message: string };
 
 /** One chunk on a track's port. `data` is copied: transferring it does not work over this port. */

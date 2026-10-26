@@ -6,6 +6,8 @@ export interface RecorderLike {
   ondataavailable: ((event: { data: BlobLike }) => void) | null;
   onstart: (() => void) | null;
   onstop: (() => void) | null;
+  onpause: (() => void) | null;
+  onresume: (() => void) | null;
   onerror: ((event: unknown) => void) | null;
   start(timesliceMs: number): void;
   pause(): void;
@@ -36,10 +38,12 @@ export interface TrackRecorderOptions {
    * 44). One second of footage is a megabyte or two, so the copy costs nothing that matters.
    */
   post: (message: ChunkMessage) => void;
-  onStarted: (rendererNow: number) => void;
+  onStarted: (rendererNow: number, calledAt: number) => void;
   /** The device went away or the capture ended on its own. */
   onEnded: (rendererNow: number) => void;
   onError: (message: string, rendererNow: number) => void;
+  /** Timing marks from the recorder itself, for diagnosing drift. Not part of recording. */
+  onTrace: (what: string, rendererNow: number) => void;
 }
 
 /**
@@ -56,6 +60,7 @@ export class TrackRecorder {
   private seq = 0;
   private bytes = 0;
   private startedAt = 0;
+  private calledAt = 0;
   private pausedAt: number | null = null;
   private pausedTotal = 0;
   private chain: Promise<void> = Promise.resolve();
@@ -69,11 +74,19 @@ export class TrackRecorder {
     this.track = options.track;
 
     this.recorder.ondataavailable = (event) => {
+      if (this.stopping)
+        options.onTrace(`final chunk ${String(event.data.size)} bytes`, options.now());
       this.enqueue(event.data);
     };
     this.recorder.onstart = () => {
       this.startedAt = options.now();
-      options.onStarted(this.startedAt);
+      options.onStarted(this.startedAt, this.calledAt);
+    };
+    this.recorder.onpause = () => {
+      options.onTrace('recorder paused', options.now());
+    };
+    this.recorder.onresume = () => {
+      options.onTrace('recorder resumed', options.now());
     };
     this.recorder.onerror = (event) => {
       options.onError(describe(event), options.now());
@@ -96,6 +109,7 @@ export class TrackRecorder {
   }
 
   start(timesliceMs: number): void {
+    this.calledAt = this.options.now();
     this.recorder.start(timesliceMs);
   }
 
@@ -114,10 +128,14 @@ export class TrackRecorder {
 
   /** Stops recording, waits for the last chunk to be posted, and releases the device. */
   async stop(): Promise<void> {
+    this.options.onTrace('stop requested', this.options.now());
     this.stopping = true;
     if (this.recorder.state !== 'inactive') {
       await new Promise<void>((resolve) => {
-        this.recorder.onstop = resolve;
+        this.recorder.onstop = () => {
+          this.options.onTrace('recorder stopped', this.options.now());
+          resolve();
+        };
         this.stopRecorder();
       });
     }

@@ -1,5 +1,6 @@
 import { app } from 'electron';
 import { createRecordingService } from './create-service';
+import { startMarker } from './dev-marker';
 import { readDevTrigger, runDevTrigger } from './dev-trigger';
 import type { RecordingService } from './recording-service';
 
@@ -22,6 +23,10 @@ export function registerRecording(options: { appOrigin: string }): RecordingServ
 
   const plan = readDevTrigger(process.env, app.isPackaged);
   if (plan !== undefined) {
+    const stopMarker =
+      plan.mode === 'record' && process.env['SCRIM_DEV_MARKER'] === '1'
+        ? startMarker(() => Number(process.hrtime.bigint()) / 1_000_000, console.log)
+        : undefined;
     void runDevTrigger(plan, {
       service,
       wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
@@ -29,6 +34,7 @@ export function registerRecording(options: { appOrigin: string }): RecordingServ
         console.log(message);
       },
       done: () => {
+        stopMarker?.();
         app.quit();
       },
     });

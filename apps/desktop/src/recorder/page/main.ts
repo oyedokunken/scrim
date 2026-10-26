@@ -94,6 +94,28 @@ function adaptRecorder(recorder: MediaRecorder): RecorderLike {
               callback();
             };
     },
+    get onpause(): RecorderLike['onpause'] {
+      return null;
+    },
+    set onpause(callback) {
+      recorder.onpause =
+        callback === null
+          ? null
+          : () => {
+              callback();
+            };
+    },
+    get onresume(): RecorderLike['onresume'] {
+      return null;
+    },
+    set onresume(callback) {
+      recorder.onresume =
+        callback === null
+          ? null
+          : () => {
+              callback();
+            };
+    },
     get onerror(): RecorderLike['onerror'] {
       return null;
     },

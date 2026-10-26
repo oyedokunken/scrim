@@ -44,7 +44,12 @@ export const recorderEventSchema: z.ZodType<RecorderEvent> = z.discriminatedUnio
     mainSentAt: z.number(),
     rendererNow,
   }),
-  z.strictObject({ type: z.literal('track-started'), kind: trackKindSchema, rendererNow }),
+  z.strictObject({
+    type: z.literal('track-started'),
+    kind: trackKindSchema,
+    rendererNow,
+    calledAt: z.number(),
+  }),
   z.strictObject({ type: z.literal('paused'), rendererNow }),
   z.strictObject({ type: z.literal('resumed'), rendererNow }),
   z.strictObject({ type: z.literal('track-ended'), kind: trackKindSchema, rendererNow }),
@@ -63,6 +68,12 @@ export const recorderEventSchema: z.ZodType<RecorderEvent> = z.discriminatedUnio
         bytes: z.number().int().nonnegative(),
       }),
     ),
+  }),
+  z.strictObject({
+    type: z.literal('trace'),
+    kind: trackKindSchema,
+    what: z.string(),
+    rendererNow,
   }),
   z.strictObject({ type: z.literal('fatal'), message: z.string() }),
 ]);
