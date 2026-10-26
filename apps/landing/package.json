@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@fontsource-variable/urbanist": "catalog:",
+    "@hookform/resolvers": "catalog:",
     "@prisma/adapter-pg": "catalog:",
     "@prisma/client": "catalog:",
     "@scrim/core": "workspace:*",
@@ -29,6 +30,7 @@
     "nodemailer": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "react-hook-form": "catalog:",
     "server-only": "catalog:",
     "zod": "catalog:"
   },
