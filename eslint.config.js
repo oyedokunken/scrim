@@ -179,6 +179,37 @@ export default tseslint.config(
     },
   },
   {
+    // Main and preload run in Node. The browser globals do not exist there.
+    files: ['apps/desktop/src/main/**/*.ts', 'apps/desktop/src/preload/**/*.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        { name: 'window', message: 'There is no window in the main or preload process.' },
+        { name: 'document', message: 'There is no document in the main or preload process.' },
+        { name: 'navigator', message: 'There is no navigator in the main or preload process.' },
+      ],
+    },
+  },
+  {
+    // Every e2e test launches Electron through the isolated fixture.
+    files: ['apps/desktop/tests/e2e/**/*.ts'],
+    ignores: ['apps/desktop/tests/e2e/fixtures.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@playwright/test',
+              importNames: ['_electron'],
+              message: 'Use the fixture in tests/e2e/fixtures.ts so the launch is isolated.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // The sandboxed preload imports only electron and types.
     files: ['apps/desktop/src/preload/**/*.ts'],
     rules: {

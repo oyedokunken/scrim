@@ -1,14 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "composite": true, "types": ["node"], "lib": ["ES2023", "DOM"] },
+  "compilerOptions": { "composite": true, "types": ["node"], "lib": ["ES2023"] },
   "include": [
     "electron.vite.config.ts",
     "electron-builder.config.ts",
     "vitest.config.mts",
-    "playwright.config.ts",
     "src/main/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
-    "tests/**/*"
+    "tests/unit/**/*",
+    "build/**/*"
   ]
 }
