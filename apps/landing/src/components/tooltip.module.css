@@ -2,21 +2,26 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
+  /* The icon is green by default and turns black on hover. */
   background: var(--scrim-fill-quiet-on-white);
-  color: var(--scrim-black);
   text-decoration: none;
   transition:
     background-color 0.15s ease,
     color 0.15s ease;
 }
 
-.link:hover,
-.link:focus-visible {
-  background: var(--scrim-green);
-  color: var(--scrim-white);
+/* Doubled class: it must outrank the footer's own link color, which would otherwise win. */
+.link.link {
+  color: var(--scrim-green);
+}
+
+.link.link:hover,
+.link.link:focus-visible {
+  background: color-mix(in srgb, var(--scrim-black) 14%, var(--scrim-white));
+  color: var(--scrim-black);
 }
 
 /* Green with white text, so it reads on a white card and on the black footer behind it. */

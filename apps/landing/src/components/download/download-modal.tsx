@@ -1,15 +1,18 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Download, X } from 'lucide-react';
-import { useEffect, useId, useRef, useState, type SyntheticEvent } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+import type { z } from 'zod';
 import {
   downloadRequestSchema,
-  fieldErrors,
   type DownloadResponse,
   type SystemValue,
 } from '@/lib/download-request';
 import { SYSTEMS } from '@/lib/systems';
 import { siteConfig } from '@/site.config';
+import { MaltLink } from '../malt-link';
 import { OsIcon } from '../os-icons';
 import { usePlatform } from '../use-platform';
 import styles from './download-modal.module.css';
@@ -21,16 +24,23 @@ interface DownloadModalProps {
   onClose: () => void;
 }
 
-type Arch = 'x64' | 'arm64';
-type Format = 'appimage' | 'deb';
+/** What the fields hold while the visitor types. The schema turns it into the request. */
+type FormInput = z.input<typeof downloadRequestSchema>;
+type FormOutput = z.output<typeof downloadRequestSchema>;
 
 type View =
   { kind: 'form' } | { kind: 'done'; result: DownloadResponse; os: SystemValue; firstName: string };
 
-const FIELD_ORDER = ['name', 'email', 'os'] as const;
-
 const GENERIC_ERROR =
   'Something went wrong on our side. You can still get Scrim from the Releases page.';
+
+/**
+ * Widens a value to "or nothing". The schema says the system is required, but until the visitor
+ * picks one the field really is empty, and this lets the code say so honestly.
+ */
+function orNothing<T>(value: T): T | undefined {
+  return value;
+}
 
 function systemName(os: SystemValue): string {
   return SYSTEMS.find((system) => system.os === os)?.name ?? os;
@@ -51,37 +61,47 @@ function startDownload(url: string, filename: string): void {
 
 /**
  * Asks for a name and an email before a download starts, because the site counts downloads. The
- * dialog is the browser's own, so focus stays inside it, Escape closes it and focus goes back to
- * the button that opened it. The visitor's system is picked from their computer, and they can
- * change it.
+ * form is React Hook Form with the same Zod schema the server runs, so the page and the server
+ * agree on what is valid. The dialog is the browser's own, so focus stays inside it, Escape
+ * closes it and focus goes back to the button that opened it. The visitor's system is picked from
+ * their computer, and they can change it.
  */
 export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const nameInput = useRef<HTMLInputElement>(null);
-  const emailInput = useRef<HTMLInputElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
   const introId = useId();
   const platform = usePlatform();
 
   const [view, setView] = useState<View>({ kind: 'form' });
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  // What the visitor picked. Until they pick, the system and chip come from their computer.
-  const [pickedOs, setPickedOs] = useState<SystemValue | null>(null);
-  const [pickedArch, setPickedArch] = useState<Arch | null>(null);
-  const [format, setFormat] = useState<Format>('appimage');
-  const [updatesOptIn, setUpdatesOptIn] = useState(false);
-  const [website, setWebsite] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState('');
-  const [pending, setPending] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    control,
+    setError,
+    setFocus,
+    setValue,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm<FormInput, unknown, FormOutput>({
+    resolver: zodResolver(downloadRequestSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      ...(initialOs === undefined ? {} : { os: initialOs }),
+      format: 'appimage',
+      updatesOptIn: false,
+      website: '',
+    },
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+  });
+
+  const os = orNothing(useWatch({ control, name: 'os' }));
   const detectedOs = platform !== null && platform.os !== 'unsupported' ? platform.os : null;
   const detectedArch = platform?.arch ?? 'unknown';
-  const os: SystemValue | '' = pickedOs ?? initialOs ?? detectedOs ?? '';
-  // Apple Silicon is the default for a Mac, because that is every Mac sold in recent years.
-  const arch: Arch = pickedArch ?? (detectedArch === 'x64' ? 'x64' : 'arm64');
 
   // Open and close the browser's dialog to match the `open` prop. The provider mounts a fresh
   // dialog for every opening, so the form always starts empty.
@@ -92,12 +112,23 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
     }
     if (open && !element.open) {
       element.showModal();
-      nameInput.current?.focus();
+      setFocus('name');
     }
     if (!open && element.open) {
       element.close();
     }
-  }, [open]);
+  }, [open, setFocus]);
+
+  // Pick the system from the visitor's computer, unless they or a button already chose one.
+  // Apple Silicon is the default for a Mac, because that is every Mac sold in recent years.
+  useEffect(() => {
+    if (detectedOs !== null && orNothing(getValues('os')) === undefined) {
+      setValue('os', detectedOs);
+    }
+    if (orNothing(getValues('arch')) === undefined) {
+      setValue('arch', detectedArch === 'x64' ? 'x64' : 'arm64');
+    }
+  }, [detectedOs, detectedArch, getValues, setValue]);
 
   // After success, move focus to the heading so screen readers announce it.
   useEffect(() => {
@@ -106,80 +137,54 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
     }
   }, [view.kind]);
 
-  const submit = async (event: SyntheticEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (pending) {
-      return;
-    }
+  const onValid = async (data: FormOutput) => {
     setFormError('');
+    // Only a Mac asks which chip it has. Other systems use what the browser reported.
+    const arch =
+      data.os === 'macos' ? (data.arch ?? 'arm64') : detectedArch === 'arm64' ? 'arm64' : 'x64';
+    const request = {
+      ...data,
+      arch,
+      format: data.os === 'linux' ? (data.format ?? 'appimage') : undefined,
+    };
 
-    // A Mac asks which chip it has. Other systems use what the browser reported, 64 bit Intel by default.
-    const chosenArch: Arch | undefined =
-      os === 'macos' ? arch : os === '' ? undefined : detectedArch === 'arm64' ? 'arm64' : 'x64';
-
-    const parsed = downloadRequestSchema.safeParse({
-      name,
-      email,
-      os: os === '' ? undefined : os,
-      arch: chosenArch,
-      format: os === 'linux' ? format : undefined,
-      updatesOptIn,
-      website,
-    });
-    if (!parsed.success) {
-      const found = fieldErrors(parsed.error);
-      setErrors(found);
-      const first = FIELD_ORDER.find((field) => found[field] !== undefined);
-      if (first === 'name') {
-        nameInput.current?.focus();
-      } else if (first === 'email') {
-        emailInput.current?.focus();
-      }
-      return;
-    }
-    setErrors({});
-
-    setPending(true);
     try {
       const response = await fetch('/api/downloads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify(request),
       });
-      const data = (await response.json()) as DownloadResponse & {
+      const result = (await response.json()) as DownloadResponse & {
         error?: string;
         fields?: Record<string, string>;
       };
       if (!response.ok) {
-        if (data.fields !== undefined) {
-          setErrors(data.fields);
+        for (const [field, message] of Object.entries(result.fields ?? {})) {
+          if (field === 'name' || field === 'email' || field === 'os') {
+            setError(field, { message });
+          }
         }
-        setFormError(data.error ?? GENERIC_ERROR);
+        setFormError(result.error ?? GENERIC_ERROR);
         return;
       }
       setView({
         kind: 'done',
-        result: data,
-        os: parsed.data.os,
-        firstName: parsed.data.name.split(/\s+/)[0] ?? parsed.data.name,
+        result,
+        os: data.os,
+        firstName: data.name.split(/\s+/)[0] ?? data.name,
       });
-      if (data.direct) {
-        startDownload(data.url, data.filename);
+      if (result.direct) {
+        startDownload(result.url, result.filename);
       } else {
-        window.open(data.url, '_blank', 'noopener,noreferrer');
+        window.open(result.url, '_blank', 'noopener,noreferrer');
       }
     } catch {
       setFormError(GENERIC_ERROR);
-    } finally {
-      setPending(false);
     }
   };
 
-  const fieldProps = (field: string) => ({
-    id: `${titleId}-${field}`,
-    'aria-invalid': errors[field] === undefined ? undefined : (true as const),
-    'aria-describedby': errors[field] === undefined ? undefined : `${titleId}-${field}-error`,
-  });
+  const describedBy = (field: 'name' | 'email' | 'os') =>
+    errors[field] === undefined ? undefined : `${titleId}-${field}-error`;
 
   return (
     <dialog
@@ -205,7 +210,11 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
         </button>
 
         {view.kind === 'form' ? (
-          <form noValidate onSubmit={(event) => void submit(event)} className={styles.form}>
+          <form
+            noValidate
+            onSubmit={(event) => void handleSubmit(onValid)(event)}
+            className={styles.form}
+          >
             <h2 id={titleId} className={styles.title} ref={heading} tabIndex={-1}>
               Before you download
             </h2>
@@ -213,69 +222,61 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
               We track the number of downloads, so let&rsquo;s get to know you.
             </p>
 
-            <div className={styles.field}>
-              <label htmlFor={`${titleId}-name`}>Your name</label>
-              <input
-                {...fieldProps('name')}
-                ref={nameInput}
-                type="text"
-                name="name"
-                autoComplete="name"
-                maxLength={80}
-                value={name}
-                onChange={(event) => {
-                  setName(event.target.value);
-                }}
-              />
-              {errors.name === undefined ? null : (
-                <p id={`${titleId}-name-error`} className={styles.error}>
-                  {errors.name}
-                </p>
-              )}
+            <div className={styles.row}>
+              <div className={styles.field}>
+                <label htmlFor={`${titleId}-name`}>Your name</label>
+                <input
+                  id={`${titleId}-name`}
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Ada Lovelace"
+                  aria-invalid={errors.name === undefined ? undefined : true}
+                  aria-describedby={describedBy('name')}
+                  {...register('name')}
+                />
+                {errors.name === undefined ? null : (
+                  <p id={`${titleId}-name-error`} className={styles.error}>
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor={`${titleId}-email`}>Your email</label>
+                <input
+                  id={`${titleId}-email`}
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  placeholder="you@example.com"
+                  aria-invalid={errors.email === undefined ? undefined : true}
+                  aria-describedby={describedBy('email')}
+                  {...register('email')}
+                />
+                {errors.email === undefined ? null : (
+                  <p id={`${titleId}-email-error`} className={styles.error}>
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div className={styles.field}>
-              <label htmlFor={`${titleId}-email`}>Your email</label>
-              <input
-                {...fieldProps('email')}
-                ref={emailInput}
-                type="email"
-                name="email"
-                autoComplete="email"
-                inputMode="email"
-                maxLength={254}
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                }}
-              />
-              {errors.email === undefined ? null : (
-                <p id={`${titleId}-email-error`} className={styles.error}>
-                  {errors.email}
-                </p>
-              )}
-            </div>
-
-            <fieldset className={styles.fieldset}>
+            <fieldset className={styles.fieldset} aria-describedby={describedBy('os')}>
               <legend>Your machine</legend>
               <div className={styles.choices}>
                 {SYSTEMS.map((system) => (
                   <label key={system.os} className={styles.choice}>
-                    <input
-                      type="radio"
-                      name="os"
-                      value={system.os}
-                      checked={os === system.os}
-                      onChange={() => {
-                        setPickedOs(system.os);
-                      }}
-                    />
+                    <input type="radio" value={system.os} {...register('os')} />
                     <OsIcon os={system.os} size={26} />
                     <span>{system.name}</span>
                   </label>
                 ))}
               </div>
-              {errors.os === undefined ? null : <p className={styles.error}>{errors.os}</p>}
+              {errors.os === undefined ? null : (
+                <p id={`${titleId}-os-error`} className={styles.error}>
+                  {errors.os.message}
+                </p>
+              )}
               <p className={styles.hint}>
                 {detectedOs !== null && os === detectedOs
                   ? `We picked ${systemName(detectedOs)} from your computer. Change it if that is wrong.`
@@ -290,27 +291,11 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                 <legend>Which Mac?</legend>
                 <div className={styles.inline}>
                   <label className={styles.pill}>
-                    <input
-                      type="radio"
-                      name="arch"
-                      value="arm64"
-                      checked={arch === 'arm64'}
-                      onChange={() => {
-                        setPickedArch('arm64');
-                      }}
-                    />
+                    <input type="radio" value="arm64" {...register('arch')} />
                     <span>Apple Silicon (M1 or newer)</span>
                   </label>
                   <label className={styles.pill}>
-                    <input
-                      type="radio"
-                      name="arch"
-                      value="x64"
-                      checked={arch === 'x64'}
-                      onChange={() => {
-                        setPickedArch('x64');
-                      }}
-                    />
+                    <input type="radio" value="x64" {...register('arch')} />
                     <span>Intel</span>
                   </label>
                 </div>
@@ -322,27 +307,11 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                 <legend>Which package?</legend>
                 <div className={styles.inline}>
                   <label className={styles.pill}>
-                    <input
-                      type="radio"
-                      name="format"
-                      value="appimage"
-                      checked={format === 'appimage'}
-                      onChange={() => {
-                        setFormat('appimage');
-                      }}
-                    />
+                    <input type="radio" value="appimage" {...register('format')} />
                     <span>AppImage</span>
                   </label>
                   <label className={styles.pill}>
-                    <input
-                      type="radio"
-                      name="format"
-                      value="deb"
-                      checked={format === 'deb'}
-                      onChange={() => {
-                        setFormat('deb');
-                      }}
-                    />
+                    <input type="radio" value="deb" {...register('format')} />
                     <span>deb</span>
                   </label>
                 </div>
@@ -350,14 +319,7 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
             ) : null}
 
             <label className={styles.check}>
-              <input
-                type="checkbox"
-                name="updates"
-                checked={updatesOptIn}
-                onChange={(event) => {
-                  setUpdatesOptIn(event.target.checked);
-                }}
-              />
+              <input type="checkbox" {...register('updatesOptIn')} />
               <span>Email me when a new version is out</span>
             </label>
 
@@ -365,16 +327,7 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
             <div className={styles.trap} aria-hidden="true">
               <label>
                 Website
-                <input
-                  type="text"
-                  name="website"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  value={website}
-                  onChange={(event) => {
-                    setWebsite(event.target.value);
-                  }}
-                />
+                <input type="text" tabIndex={-1} autoComplete="off" {...register('website')} />
               </label>
             </div>
 
@@ -383,17 +336,18 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                 {formError}{' '}
                 <a href={siteConfig.releasesUrl} target="_blank" rel="noopener noreferrer">
                   Open the Releases page
+                  <span className="visually-hidden"> (opens in a new tab)</span>
                 </a>
               </p>
             )}
 
-            <button type="submit" className={styles.submit} disabled={pending}>
-              {os === '' ? (
+            <button type="submit" className={styles.submit} disabled={isSubmitting}>
+              {os === undefined ? (
                 <Download aria-hidden="true" size={20} strokeWidth={2.25} />
               ) : (
                 <OsIcon os={os} size={20} />
               )}
-              {pending ? 'Starting your download...' : 'Start download'}
+              {isSubmitting ? 'Starting your download...' : 'Start download'}
             </button>
 
             <p className={styles.privacy}>
@@ -401,6 +355,7 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
               shortened browser string, only to count downloads.{' '}
               <a href="/privacy" target="_blank" rel="noopener noreferrer">
                 Read the privacy policy
+                <span className="visually-hidden"> (opens in a new tab)</span>
               </a>
               .
             </p>
@@ -432,6 +387,7 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
             >
               {view.result.direct ? 'Nothing happened? Download again' : 'Open the Releases page'}
             </a>
+            <MaltLink className={styles.support} label="Show your Support" icon="heart" />
             <button type="button" className={styles.submit} onClick={onClose}>
               Close
             </button>

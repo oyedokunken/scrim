@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { siteConfig } from '@/site.config';
+import { SiteLink } from '../site-link';
 import styles from './contribute.module.css';
 import { RunCommands } from './run-commands';
 
@@ -35,11 +36,11 @@ export function Contribute() {
         <ul className={styles.links}>
           {LINKS.map(({ icon: Icon, label, href }) => (
             <li key={href}>
-              <a href={href}>
+              <SiteLink href={href}>
                 <Icon aria-hidden="true" size={22} className={styles.linkIcon} />
                 <span>{label}</span>
                 <ArrowUpRight aria-hidden="true" size={20} className={styles.linkArrow} />
-              </a>
+              </SiteLink>
             </li>
           ))}
         </ul>

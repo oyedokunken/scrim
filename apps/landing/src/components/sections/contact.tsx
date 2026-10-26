@@ -1,5 +1,6 @@
 import { ArrowUpRight, Mail } from 'lucide-react';
 import { siteConfig } from '@/site.config';
+import { SiteLink } from '../site-link';
 import styles from './contact.module.css';
 
 export function Contact() {
@@ -26,16 +27,16 @@ export function Contact() {
         </a>
         <ul>
           <li>
-            <a href={siteConfig.issuesUrl}>
+            <SiteLink href={siteConfig.issuesUrl}>
               Open an issue on GitHub
               <ArrowUpRight aria-hidden="true" size={18} />
-            </a>
+            </SiteLink>
           </li>
           <li>
-            <a href={siteConfig.securityUrl}>
+            <SiteLink href={siteConfig.securityUrl}>
               Report a security problem privately
               <ArrowUpRight aria-hidden="true" size={18} />
-            </a>
+            </SiteLink>
           </li>
         </ul>
       </div>

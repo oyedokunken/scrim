@@ -41,6 +41,8 @@ export interface EmailJob {
   to: string;
   name: string;
   os: 'windows' | 'macos' | 'linux';
+  arch: 'x64' | 'arm64' | null;
+  updatesOptIn: boolean;
   direct: boolean;
   filename: string;
   version: string;
@@ -192,6 +194,8 @@ export async function handleDownloadRequest(
       to: request.email,
       name: request.name,
       os: request.os,
+      arch: request.arch ?? null,
+      updatesOptIn: request.updatesOptIn,
       direct: body.direct,
       filename: body.filename,
       version: body.version,

@@ -11,7 +11,7 @@
 }
 
 .title {
-  max-width: 14ch;
+  max-width: 18ch;
   font-size: var(--scrim-text-display);
   line-height: var(--scrim-leading-display);
   letter-spacing: -0.035em;

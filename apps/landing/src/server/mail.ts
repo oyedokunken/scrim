@@ -32,9 +32,10 @@ export interface SendEmailInput {
   /** Where replies go. */
   replyTo: string;
   email: RenderedEmail;
-  unsubscribeUrl: string;
+  /** Adds a List-Unsubscribe header. Leave it out for mail that is not a notice. */
+  unsubscribeUrl?: string | undefined;
   /** The logo as a PNG, attached so the HTML can show it inline. */
-  logo: Uint8Array;
+  logo?: Uint8Array | undefined;
 }
 
 /**
@@ -50,15 +51,20 @@ export async function sendEmail(mail: MailTransport, input: SendEmailInput): Pro
     subject: input.email.subject,
     text: input.email.text,
     html: input.email.html,
-    headers: { 'List-Unsubscribe': `<${input.unsubscribeUrl}>` },
-    attachments: [
-      {
-        filename: 'scrim.png',
-        content: Buffer.from(input.logo),
-        cid: LOGO_CID,
-        contentType: 'image/png',
-        contentDisposition: 'inline',
-      },
-    ],
+    ...(input.unsubscribeUrl === undefined
+      ? {}
+      : { headers: { 'List-Unsubscribe': `<${input.unsubscribeUrl}>` } }),
+    attachments:
+      input.logo === undefined
+        ? []
+        : [
+            {
+              filename: 'scrim.png',
+              content: Buffer.from(input.logo),
+              cid: LOGO_CID,
+              contentType: 'image/png',
+              contentDisposition: 'inline',
+            },
+          ],
   });
 }

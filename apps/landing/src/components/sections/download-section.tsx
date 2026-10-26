@@ -1,5 +1,6 @@
 import { ArrowUpRight } from 'lucide-react';
 import { formatReleaseDate, type ReleaseSummary } from '@/lib/release-date';
+import { SiteLink } from '../site-link';
 import styles from './download.module.css';
 import { SystemBlocks } from './system-blocks';
 
@@ -22,10 +23,10 @@ export function DownloadSection({ release }: DownloadSectionProps) {
             <p className={styles.status}>
               Version {release.version}
               {date === null ? '' : `, published on ${date}`}. Choose your system below.{' '}
-              <a href={release.url}>
+              <SiteLink href={release.url}>
                 Read the release notes
                 <ArrowUpRight aria-hidden="true" size={18} />
-              </a>
+              </SiteLink>
             </p>
           )}
         </header>

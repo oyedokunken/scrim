@@ -2,7 +2,6 @@
 export const siteConfig = {
   name: 'Scrim',
   tagline: 'Record and capture anything on your screen effortlessly',
-  heroHeadline: 'Record your screen. Zoom in on what matters.',
   description:
     'Scrim is a free, open source screen recorder for Windows, macOS and Linux. It spotlights your cursor, ripples every click, zooms in on the action and exports a clean MP4. Everything stays on your computer.',
   repoUrl: 'https://github.com/oyedokunken/scrim',

@@ -1,6 +1,7 @@
 import { ExternalLink } from 'lucide-react';
 import { siteConfig } from '@/site.config';
 import { DownloadButton } from '../download-button';
+import { SiteLink } from '../site-link';
 import { HeroDemo } from '../hero-demo/hero-demo';
 import styles from './hero.module.css';
 
@@ -9,7 +10,7 @@ export function Hero() {
     <section aria-labelledby="hero-title" className={`container ${styles.hero}`}>
       <div className={styles.copy}>
         <h1 id="hero-title" className={styles.title}>
-          {siteConfig.heroHeadline}
+          {siteConfig.tagline}
         </h1>
         <div className={styles.aside}>
           <p className={styles.lead}>
@@ -18,10 +19,10 @@ export function Hero() {
           </p>
           <div className={styles.actions}>
             <DownloadButton />
-            <a className={styles.source} href={siteConfig.repoUrl}>
+            <SiteLink className={styles.source} href={siteConfig.repoUrl}>
               View source
               <ExternalLink aria-hidden="true" size={16} />
-            </a>
+            </SiteLink>
           </div>
         </div>
       </div>

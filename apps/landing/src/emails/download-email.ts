@@ -20,6 +20,8 @@ export interface DownloadEmailInput {
   siteUrl: string;
   privacyUrl: string;
   unsubscribeUrl: string;
+  /** The owner's support page. */
+  supportUrl: string;
 }
 
 export interface RenderedEmail {
@@ -69,6 +71,8 @@ export function renderDownloadEmail(input: DownloadEmailInput): RenderedEmail {
   const gettingStarted = `Getting started on ${input.osName}`;
   const questions =
     'Reply to this email with a question, a bug or an idea. It reaches the person who builds Scrim.';
+  const support =
+    'Scrim is free, and it is built by one person. If it saves you time, you can show your support.';
   const why =
     'You are getting this email because you downloaded Scrim from our website. We keep your name, your email and a few details about the download only to count downloads, as the privacy policy explains.';
 
@@ -89,6 +93,9 @@ export function renderDownloadEmail(input: DownloadEmailInput): RenderedEmail {
     ...FEATURES.map((line) => `- ${line}`),
     '',
     questions,
+    '',
+    support,
+    `Show your support: ${input.supportUrl}`,
     '',
     '--',
     why,
@@ -168,6 +175,15 @@ export function renderDownloadEmail(input: DownloadEmailInput): RenderedEmail {
                 ${bullets(FEATURES)}
                 ${heading('Questions?')}
                 ${paragraph(escapeHtml(questions))}
+                ${heading('Show your support')}
+                ${paragraph(escapeHtml(support))}
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 0;">
+                  <tr>
+                    <td style="border:2px solid ${GREEN};border-radius:999px;">
+                      <a href="${escapeHtml(input.supportUrl)}" style="display:inline-block;padding:12px 26px;font-size:15px;font-weight:800;line-height:1.2;color:${GREEN};text-decoration:none;">Show your support</a>
+                    </td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>

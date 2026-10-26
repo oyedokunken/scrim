@@ -122,6 +122,11 @@ const FEATURES: readonly Feature[] = [
   },
 ];
 
+/** A two digit number, so the counters line up: 1 becomes 01. */
+function pad(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
 export function Features() {
   return (
     <section
@@ -147,6 +152,9 @@ export function Features() {
             style={{ '--i': index } as CSSProperties}
           >
             <div className={styles.copy}>
+              <p className={styles.count} aria-hidden="true">
+                <span>{pad(index + 1)}</span>/{pad(FEATURES.length)}
+              </p>
               <h3>{feature.title}</h3>
               <p>{feature.text}</p>
               {feature.note === undefined ? null : <p className={styles.note}>{feature.note}</p>}

@@ -2,6 +2,7 @@ import { siteConfig } from '@/site.config';
 import { BuiltBy } from './built-by';
 import { Logo } from './logo';
 import { MaltLink } from './malt-link';
+import { SiteLink } from './site-link';
 import styles from './site-footer.module.css';
 
 interface SiteFooterProps {
@@ -20,6 +21,7 @@ export function SiteFooter({ year }: SiteFooterProps) {
               Scrim records your screen, spotlights your cursor and zooms in on the action. Free,
               open source and entirely on your computer.
             </p>
+            <MaltLink className={styles.malt} label="Show your Support" icon="heart" />
           </div>
 
           <nav aria-label="Footer" className={styles.columns}>
@@ -29,7 +31,7 @@ export function SiteFooter({ year }: SiteFooterProps) {
                 <ul>
                   {links.map((link) => (
                     <li key={link.href}>
-                      <a href={link.href}>{link.label}</a>
+                      <SiteLink href={link.href}>{link.label}</SiteLink>
                     </li>
                   ))}
                 </ul>
@@ -44,9 +46,6 @@ export function SiteFooter({ year }: SiteFooterProps) {
             <li>
               <BuiltBy />
             </li>
-            <li>
-              <MaltLink className={styles.malt} />
-            </li>
           </ul>
         </div>
       </div>
@@ -54,7 +53,7 @@ export function SiteFooter({ year }: SiteFooterProps) {
       {/* Decoration only. Every link and fact above also appears as real text. The whole logo
           rises into view as the page scrolls to it, and shows in full once it has arrived. */}
       <div className={styles.mark} aria-hidden="true">
-        <svg viewBox="0 0 1000 330" focusable="false">
+        <svg viewBox="0 0 1260 330" focusable="false">
           <g transform="scale(9.375)">
             <rect width="32" height="32" rx="8" fill="var(--scrim-white)" />
             <path
@@ -66,7 +65,7 @@ export function SiteFooter({ year }: SiteFooterProps) {
             />
             <circle cx="16" cy="16" r="3.5" fill="var(--scrim-black)" />
           </g>
-          <text x="352" y="252" textLength="648" lengthAdjust="spacing" fill="var(--scrim-white)">
+          <text x="352" y="252" letterSpacing="-13" fill="var(--scrim-white)">
             Scrim
           </text>
         </svg>

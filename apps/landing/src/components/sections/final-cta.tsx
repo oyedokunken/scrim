@@ -3,6 +3,7 @@ import { siteConfig } from '@/site.config';
 import { SYSTEMS } from '@/lib/systems';
 import { DownloadTrigger } from '../download/download-provider';
 import { OsIcon } from '../os-icons';
+import { SiteLink } from '../site-link';
 import styles from './final-cta.module.css';
 
 /** One corner of the viewfinder, the same bracket as in the logo. */
@@ -81,10 +82,10 @@ export function FinalCta() {
             </span>
           </div>
 
-          <a className={styles.source} href={siteConfig.repoUrl}>
+          <SiteLink className={styles.source} href={siteConfig.repoUrl}>
             Or read the source
             <ArrowUpRight aria-hidden="true" size={18} />
-          </a>
+          </SiteLink>
         </div>
       </div>
     </section>

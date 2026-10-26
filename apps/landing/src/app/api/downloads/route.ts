@@ -5,7 +5,7 @@ import { getServerEnv } from '@/server/env';
 import { getTransport } from '@/server/mail';
 import { loadMailLogo } from '@/server/mail-logo';
 import { fetchLatestRelease } from '@/server/releases';
-import { sendDownloadEmailJob } from '@/server/send-download-email';
+import { sendDownloadEmailJob, sendOwnerNote } from '@/server/send-download-email';
 import { siteConfig } from '@/site.config';
 
 export const runtime = 'nodejs';
@@ -50,6 +50,16 @@ export async function POST(request: Request): Promise<Response> {
         });
       } catch {
         console.warn('Could not send the download email.');
+      }
+      try {
+        await sendOwnerNote(job, {
+          mail: getTransport(),
+          from: env.MAIL_FROM,
+          to: siteConfig.contactInbox,
+          siteUrl: env.SITE_URL,
+        });
+      } catch {
+        console.warn('Could not send the owner note.');
       }
     });
   }

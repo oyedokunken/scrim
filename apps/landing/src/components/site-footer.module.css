@@ -91,6 +91,19 @@
   color: color-mix(in srgb, var(--scrim-butter) 78%, var(--scrim-black));
 }
 
+/* Each line stays on its own row on a phone, and both lines center. */
+@media (max-width: 40rem) {
+  .legal {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .legal ul {
+    justify-content: center;
+  }
+}
+
 .legal ul {
   display: flex;
   flex-wrap: wrap;
@@ -147,6 +160,7 @@
 
 /* Support is a white button here too, so it reads as something to press. */
 .footer a.malt {
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;

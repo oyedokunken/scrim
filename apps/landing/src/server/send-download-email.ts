@@ -1,5 +1,7 @@
 import 'server-only';
 import { renderDownloadEmail } from '@/emails/download-email';
+import { renderOwnerEmail } from '@/emails/owner-email';
+import { siteConfig } from '@/site.config';
 import { SYSTEMS } from '@/lib/systems';
 import type { EmailJob } from './downloads';
 import type { MailTransport } from './mail';
@@ -40,6 +42,7 @@ export async function sendDownloadEmailJob(job: EmailJob, deps: SendJobDeps): Pr
     siteUrl: deps.siteUrl,
     privacyUrl: `${deps.siteUrl}/privacy`,
     unsubscribeUrl: link,
+    supportUrl: siteConfig.maltUrl,
   });
 
   await sendEmail(deps.mail, {
@@ -51,4 +54,34 @@ export async function sendDownloadEmailJob(job: EmailJob, deps: SendJobDeps): Pr
     logo: await deps.loadLogo(),
   });
   await deps.markSent(job.downloadId);
+}
+
+export interface OwnerNoteDeps {
+  mail: MailTransport;
+  from: string;
+  /** The inbox that gets the note. */
+  to: string;
+  siteUrl: string;
+  now?: () => Date;
+}
+
+const CHIPS = { x64: '64 bit Intel', arm64: 'Apple Silicon or Arm' } as const;
+
+/** Tells the owner someone downloaded Scrim. It has no logo and no unsubscribe link. */
+export async function sendOwnerNote(job: EmailJob, deps: OwnerNoteDeps): Promise<void> {
+  const system = SYSTEMS.find((candidate) => candidate.os === job.os);
+  const when = (deps.now?.() ?? new Date()).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  const email = renderOwnerEmail({
+    name: job.name,
+    email: job.to,
+    osName: system?.name ?? job.os,
+    chip: job.arch === null ? '' : CHIPS[job.arch],
+    version: job.version,
+    filename: job.filename,
+    direct: job.direct,
+    updatesOptIn: job.updatesOptIn,
+    when,
+    siteUrl: deps.siteUrl,
+  });
+  await sendEmail(deps.mail, { to: deps.to, from: deps.from, replyTo: job.to, email });
 }

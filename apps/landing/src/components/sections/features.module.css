@@ -42,6 +42,31 @@
   color: var(--scrim-text-secondary);
 }
 
+/* The card number, such as 01/08, above the heading. */
+.copy p.count {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-small);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.count span {
+  color: var(--scrim-green);
+}
+
+.count::before {
+  content: '';
+  width: 2rem;
+  height: 3px;
+  margin-right: 0.625rem;
+  border-radius: 2px;
+  background: var(--scrim-green);
+}
+
 .note {
   padding-top: var(--scrim-space-3);
   border-top: 1px solid var(--scrim-border);

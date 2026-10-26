@@ -86,10 +86,6 @@ export function BuiltBy() {
         aria-label={`Find ${siteConfig.author.handle} online`}
         hidden={!open}
       >
-        <p className={styles.caption}>
-          {siteConfig.author.name}
-          <span>{siteConfig.author.handle}</span>
-        </p>
         <ul className={styles.icons}>
           {siteConfig.socials.map((social) => (
             <li key={social.id}>
