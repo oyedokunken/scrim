@@ -36,7 +36,7 @@ interface DownloadApi {
 
 const DownloadContext = createContext<DownloadApi>({ open: () => undefined });
 
-export function useDownloadModal(): DownloadApi {
+function useDownloadModal(): DownloadApi {
   return useContext(DownloadContext);
 }
 

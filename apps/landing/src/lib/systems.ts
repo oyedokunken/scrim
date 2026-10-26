@@ -1,6 +1,6 @@
 import type { Os } from './platform';
 
-export type SupportedOs = Exclude<Os, 'unsupported'>;
+type SupportedOs = Exclude<Os, 'unsupported'>;
 
 export interface SystemInfo {
   os: SupportedOs;

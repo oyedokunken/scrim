@@ -1,5 +1,5 @@
 export type Os = 'windows' | 'macos' | 'linux' | 'unsupported';
-export type Arch = 'x64' | 'arm64' | 'unknown';
+type Arch = 'x64' | 'arm64' | 'unknown';
 
 export interface Platform {
   os: Os;

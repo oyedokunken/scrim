@@ -15,7 +15,7 @@ const releaseSchema = z.object({
   ),
 });
 
-export interface ReleaseAsset {
+interface ReleaseAsset {
   name: string;
   url: string;
   size: number;
