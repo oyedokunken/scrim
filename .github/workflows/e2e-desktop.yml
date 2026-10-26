@@ -7,6 +7,7 @@ on:
     paths:
       - 'apps/desktop/**'
       - 'packages/**'
+      - 'tools/icons.mts'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/e2e-desktop.yml'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'apps/desktop/**'
       - 'packages/**'
+      - 'tools/icons.mts'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/e2e-desktop.yml'
@@ -41,6 +43,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         working-directory: .
+
+      - name: Regenerate the icons and fail on any difference
+        working-directory: .
+        run: |
+          pnpm icons
+          git diff --exit-code -- apps/desktop/resources apps/landing/src/app/icon.svg packages/tokens/src/mark.ts
 
       - name: Typecheck and unit tests
         run: |
