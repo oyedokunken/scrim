@@ -1,6 +1,7 @@
 export {
   extensionForMime,
   inputLogFileName,
+  playableExtensionForMime,
   playableTrackFile,
   rawTrackFile,
   sanitizeName,

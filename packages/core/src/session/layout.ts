@@ -42,8 +42,17 @@ export function rawTrackFile(kind: TrackKind, mimeType: string): string {
   return `${kind}.raw.${extensionForMime(mimeType)}`;
 }
 
+/**
+ * The container of the playable copy. WebM cannot hold H.264, so an H.264 track is remuxed into
+ * mp4. VP8, VP9 and Opus stay in WebM.
+ */
+export function playableExtensionForMime(mimeType: string): 'mp4' | 'webm' {
+  const type = mimeType.toLowerCase();
+  return type.includes('h264') || type.includes('avc1') ? 'mp4' : 'webm';
+}
+
 export function playableTrackFile(kind: TrackKind, mimeType: string): string {
-  return `${kind}.${extensionForMime(mimeType)}`;
+  return `${kind}.${playableExtensionForMime(mimeType)}`;
 }
 
 /** The session folder name for a recording, `<name>.scrim`. */

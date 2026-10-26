@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extensionForMime,
   inputLogFileName,
+  playableExtensionForMime,
   playableTrackFile,
   rawTrackFile,
   sanitizeName,
@@ -35,6 +36,7 @@ const valid: SessionFile = {
   input: { status: 'recorded', file: 'input.ndjson' },
   warnings: [],
   heartbeatAt: '2026-10-26T12:00:02.000Z',
+  heartbeatElapsedMs: 2000,
   cleanClose: false,
 };
 
@@ -59,6 +61,7 @@ describe('sessionFileSchema', () => {
     ['an empty name', { ...valid, name: '' }],
     ['a name over 200 characters', { ...valid, name: 'a'.repeat(201) }],
     ['a bad date', { ...valid, heartbeatAt: 'yesterday' }],
+    ['a negative heartbeat time', { ...valid, heartbeatElapsedMs: -1 }],
     ['a pid of zero', { ...valid, pid: 0 }],
     ['an unknown field', { ...valid, extra: true }],
     ['negative bytes', { ...valid, tracks: [{ ...valid.tracks[0], bytesWritten: -1 }] }],
@@ -108,7 +111,11 @@ describe('layout names', () => {
     expect(extensionForMime('audio/webm;codecs=opus')).toBe('webm');
     expect(rawTrackFile('screen', 'video/mp4')).toBe('screen.raw.mp4');
     expect(rawTrackFile('mic', 'audio/webm;codecs=opus')).toBe('mic.raw.webm');
-    expect(playableTrackFile('camera', 'video/webm')).toBe('camera.webm');
+    expect(playableTrackFile('camera', 'video/webm;codecs=vp9')).toBe('camera.webm');
+    expect(playableTrackFile('screen', 'video/webm;codecs=h264')).toBe('screen.mp4');
+    expect(playableTrackFile('screen', 'video/mp4;codecs=avc1')).toBe('screen.mp4');
+    expect(playableExtensionForMime('video/webm;codecs=vp8')).toBe('webm');
+    expect(playableTrackFile('mic', 'audio/webm;codecs=opus')).toBe('mic.webm');
   });
 
   it('never reuses a folder name', () => {

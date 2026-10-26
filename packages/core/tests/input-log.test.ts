@@ -2,6 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   coalesceMoves,
+  createMoveCoalescer,
   formatInputLine,
   parseInputNdjson,
   rawInputEventSchema,
@@ -154,6 +155,34 @@ describe('coalesceMoves', () => {
         for (const event of out) expect(events).toContainEqual(event);
       }),
     );
+  });
+});
+
+describe('createMoveCoalescer', () => {
+  it('returns events as they should be kept, and holds a dropped move until it matters', () => {
+    const coalescer = createMoveCoalescer(120);
+    expect(coalescer.push(move(0, 1, 1))).toEqual([move(0, 1, 1)]);
+    expect(coalescer.push(move(2, 2, 2))).toEqual([]);
+    expect(coalescer.push(move(4, 3, 3))).toEqual([]);
+    expect(coalescer.push(down(5, 3, 3))).toEqual([move(4, 3, 3), down(5, 3, 3)]);
+    expect(coalescer.flush()).toEqual([]);
+  });
+
+  it('flushes the held move at the end, once', () => {
+    const coalescer = createMoveCoalescer(120);
+    coalescer.push(move(0));
+    coalescer.push(move(3, 9, 9));
+    expect(coalescer.flush()).toEqual([move(3, 9, 9)]);
+    expect(coalescer.flush()).toEqual([]);
+  });
+
+  it('gives the same result as coalescing a finished log', () => {
+    const events = Array.from({ length: 200 }, (_, i) =>
+      i % 37 === 0 ? down(i, i, i) : move(i, i, i),
+    );
+    const coalescer = createMoveCoalescer(60);
+    const streamed = [...events.flatMap((event) => coalescer.push(event)), ...coalescer.flush()];
+    expect(streamed).toEqual(coalesceMoves(events, 60));
   });
 });
 

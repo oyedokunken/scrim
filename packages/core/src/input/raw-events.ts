@@ -70,42 +70,51 @@ export function formatInputLine(event: RawInputEvent): string {
 /** Roughly 120 moves a second is more than any display shows, and keeps the log small. */
 export const DEFAULT_MOVE_HZ = 120;
 
+export interface MoveCoalescer {
+  /** Feed one event. Returns the events to keep now, in order: none, one, or two. */
+  push(event: RawInputEvent): RawInputEvent[];
+  /** Returns the last held move, if any. Call it when the stream ends or pauses. */
+  flush(): RawInputEvent[];
+}
+
 /**
- * Thins mouse moves to at most `hz` a second. Every click, release and wheel event is kept. The
- * latest move that was dropped is kept again just before a non move event and at the end, so the
- * cursor is never shown somewhere it was not when a click happens. Order is preserved.
+ * Thins mouse moves to at most `hz` a second, as a stream. Every click, release and wheel event is
+ * kept. The latest move that was dropped is kept again just before a non move event and at the
+ * end, so the cursor is never shown somewhere it was not when a click happens. Order is kept.
  */
+export function createMoveCoalescer(hz: number = DEFAULT_MOVE_HZ): MoveCoalescer {
+  const interval = 1000 / hz;
+  let lastKeptMoveAt = Number.NEGATIVE_INFINITY;
+  let pending: RawInputEvent | undefined;
+
+  const flush = (): RawInputEvent[] => {
+    if (pending === undefined) return [];
+    const held = pending;
+    pending = undefined;
+    lastKeptMoveAt = held.at;
+    return [held];
+  };
+
+  return {
+    push(event) {
+      if (event.type !== 'move') return [...flush(), event];
+      if (event.at - lastKeptMoveAt >= interval) {
+        pending = undefined;
+        lastKeptMoveAt = event.at;
+        return [event];
+      }
+      pending = event;
+      return [];
+    },
+    flush,
+  };
+}
+
+/** The same thinning for a log that is already complete. */
 export function coalesceMoves(
   events: readonly RawInputEvent[],
   hz: number = DEFAULT_MOVE_HZ,
 ): RawInputEvent[] {
-  const interval = 1000 / hz;
-  const out: RawInputEvent[] = [];
-  let lastKeptMoveAt = Number.NEGATIVE_INFINITY;
-  let pending: RawInputEvent | undefined;
-
-  const flush = (): void => {
-    if (pending !== undefined) {
-      out.push(pending);
-      lastKeptMoveAt = pending.at;
-      pending = undefined;
-    }
-  };
-
-  for (const event of events) {
-    if (event.type !== 'move') {
-      flush();
-      out.push(event);
-      continue;
-    }
-    if (event.at - lastKeptMoveAt >= interval) {
-      pending = undefined;
-      out.push(event);
-      lastKeptMoveAt = event.at;
-    } else {
-      pending = event;
-    }
-  }
-  flush();
-  return out;
+  const coalescer = createMoveCoalescer(hz);
+  return [...events.flatMap((event) => coalescer.push(event)), ...coalescer.flush()];
 }

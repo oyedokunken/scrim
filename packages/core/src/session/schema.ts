@@ -92,6 +92,8 @@ export const sessionFileSchema = z.strictObject({
   input: inputSchema,
   warnings: z.array(z.string()),
   heartbeatAt: z.iso.datetime(),
+  /** The main clock at the last heartbeat, in milliseconds, so recovery knows how far it got. */
+  heartbeatElapsedMs: nonNegative,
   cleanClose: z.boolean(),
   /** True when the session was closed by recovery after a crash. */
   recovered: z.boolean().optional(),

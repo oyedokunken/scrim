@@ -10,11 +10,12 @@ export type {
 } from './types';
 export {
   coalesceMoves,
+  createMoveCoalescer,
   DEFAULT_MOVE_HZ,
   formatInputLine,
   parseInputNdjson,
   rawInputEventSchema,
 } from './raw-events';
-export type { ParsedNdjson, RawInputEvent } from './raw-events';
+export type { MoveCoalescer, ParsedNdjson, RawInputEvent } from './raw-events';
 export { sessionLogSchema, toSessionLog } from './session-log';
 export type { SessionLog, SessionLogError, SessionLogOptions } from './session-log';
