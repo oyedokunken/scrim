@@ -59,7 +59,7 @@ test.describe('the nav lands on real sections', () => {
 
       const section = await page.locator(`#${id}`).boundingBox();
       const heading = await page.locator(`#${id} h2`).first().boundingBox();
-      const pill = await page.locator('header > div').boundingBox();
+      const pill = await page.locator('body > header > div').boundingBox();
       const viewport = page.viewportSize()?.height ?? 0;
       expect(section).not.toBeNull();
       expect(heading).not.toBeNull();
@@ -77,7 +77,7 @@ test.describe('the nav lands on real sections', () => {
     await expect(page).toHaveURL(/#contact$/);
     await settled(page);
     const heading = await page.locator('#contact h2').boundingBox();
-    const pill = await page.locator('header > div').boundingBox();
+    const pill = await page.locator('body > header > div').boundingBox();
     expect(heading?.y ?? -1).toBeGreaterThanOrEqual((pill?.y ?? 0) + (pill?.height ?? 0) - 1);
   });
 });
@@ -166,7 +166,9 @@ test.describe('the copy button', () => {
     await button.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByRole('status').filter({ hasText: 'Copied' })).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(COMMANDS);
+    expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toBe(
+      COMMANDS,
+    );
   });
 });
 
@@ -239,7 +241,9 @@ test.describe('keyboard only', () => {
         await page.keyboard.press('Enter');
         await expect(page.getByRole('status').filter({ hasText: 'Copied' })).toBeVisible();
         if (browserName === 'chromium') {
-          expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(COMMANDS);
+          expect(
+            (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n'),
+          ).toBe(COMMANDS);
         }
         copied = true;
       }
@@ -318,7 +322,7 @@ test.describe('the look', () => {
   }) => {
     await page.goto('/');
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(251, 248, 244)');
-    await expect(page.locator('header > div')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+    await expect(page.locator('body > header > div')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
     await expect(page.locator('footer')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
     await expect(page.locator('#download')).toHaveCSS('background-color', 'rgb(0, 78, 82)');
   });
@@ -406,5 +410,48 @@ test.describe('the content the owner asked for', () => {
 
   test('the nav has no About link', async ({ page }) => {
     await expect(page.getByRole('link', { name: 'About', exact: true })).toHaveCount(0);
+  });
+});
+
+test.describe('external links', () => {
+  for (const path of ['/', '/privacy']) {
+    test(`every link to another site on ${path} opens in a new tab and cannot reach back`, async ({
+      page,
+    }) => {
+      await page.goto(path);
+      const offenders = await page.evaluate(() => {
+        const bad: string[] = [];
+        document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
+          const url = new URL(link.href, location.href);
+          const external = /^https?:$/.test(url.protocol) && url.origin !== location.origin;
+          if (!external) {
+            return;
+          }
+          const rel = link.rel.split(/\s+/);
+          const ok =
+            link.target === '_blank' && rel.includes('noopener') && rel.includes('noreferrer');
+          if (!ok) {
+            bad.push(link.textContent.trim() + ' -> ' + link.href);
+          }
+        });
+        return bad;
+      });
+      expect(offenders).toEqual([]);
+    });
+  }
+
+  test('they tell screen reader users that they open in a new tab', async ({ page }) => {
+    await page.goto('/');
+    const links = page.locator('footer').getByRole('link', { name: /Source code/ });
+    await expect(links).toContainText('(opens in a new tab)');
+    await expect(
+      page.locator('#contribute').getByRole('link', { name: /Repository/ }),
+    ).toContainText('(opens in a new tab)');
+  });
+
+  test('links on this site stay in the same tab', async ({ page }) => {
+    await page.goto('/');
+    const privacy = page.locator('footer').getByRole('link', { name: 'Privacy policy' });
+    await expect(privacy).not.toHaveAttribute('target', '_blank');
   });
 });

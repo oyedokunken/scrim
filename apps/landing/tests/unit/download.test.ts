@@ -499,6 +499,8 @@ describe('handleDownloadRequest', () => {
         to: 'ada@example.com',
         name: 'Ada Lovelace',
         os: 'windows',
+        arch: null,
+        updatesOptIn: false,
         direct: true,
         filename: 'Scrim-1.2.3-x64.exe',
         version: '1.2.3',

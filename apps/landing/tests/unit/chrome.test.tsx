@@ -72,6 +72,12 @@ describe('SiteHeader', () => {
     }
   });
 
+  it('has Support once, and only inside the menu', () => {
+    expect(html.match(/>Support</g)).toHaveLength(1);
+    const menu = html.indexOf('aria-label="Mobile"');
+    expect(html.indexOf('>Support<')).toBeGreaterThan(menu);
+  });
+
   it('labels the two navigations differently', () => {
     expect(html).toContain('aria-label="Primary"');
     expect(html).toContain('aria-label="Mobile"');
@@ -113,8 +119,21 @@ describe('SiteFooter', () => {
     expect(html).not.toContain('href="#top"');
   });
 
-  it('puts the support link in the legal row', () => {
-    expect(html).toContain('<span>Support</span>');
+  it('puts a Show your Support button, with a heart, under the brand text', () => {
+    expect(html).toContain('<span>Show your Support</span>');
+    const brand = html.indexOf('entirely on your computer.');
+    const support = html.indexOf('<span>Show your Support</span>');
+    const legal = html.indexOf('All rights reserved');
+    expect(brand).toBeGreaterThan(-1);
+    expect(support).toBeGreaterThan(brand);
+    expect(support).toBeLessThan(legal);
+  });
+
+  it('has a plain legal row: the year, all rights reserved, and who built it', () => {
+    expect(html).toContain('2031 Scrim. All rights reserved.');
+    expect(html).not.toContain('MIT license</a></li><li>Built');
+    expect(html).toContain('Built by');
+    expect(html).toContain('@oyedokunken');
   });
 
   it('hides the giant wordmark from assistive technology and never uses it as the only link', () => {

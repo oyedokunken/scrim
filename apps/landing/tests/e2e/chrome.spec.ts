@@ -33,7 +33,7 @@ test('the page never scrolls sideways', async ({ page }) => {
 });
 
 test('the header is a sticky black pill with square top corners and two ears', async ({ page }) => {
-  const header = page.locator('header');
+  const header = page.locator('body > header');
   const pill = header.locator('div').first();
 
   await expect(header).toHaveCSS('position', 'sticky');
@@ -65,7 +65,7 @@ test('the header stays at the top while the page scrolls', async ({ page }) => {
 });
 
 test('the header shrinks once the page scrolls and grows back at the top', async ({ page }) => {
-  const header = page.locator('header');
+  const header = page.locator('body > header');
   const pill = header.locator('div').first();
   const scaleOf = () =>
     pill.evaluate((element) => {
@@ -93,7 +93,7 @@ test('the header shrinks once the page scrolls and grows back at the top', async
 test('the pill stays one line high at every width, with no wrapped links', async ({ page }) => {
   for (const width of [360, 375, 768, 820, 900, 959, 960, 1024, 1100, 1440]) {
     await page.setViewportSize({ width, height: 800 });
-    const pill = page.locator('header > div');
+    const pill = page.locator('body > header > div');
     const box = await pill.boundingBox();
     expect(box?.height ?? 999, `pill height at ${String(width)}px`).toBeLessThanOrEqual(64);
     const overflow = await page.evaluate(
@@ -110,43 +110,79 @@ test('the pill stays one line high at every width, with no wrapped links', async
   }
 });
 
-test.describe('the support link and the download link in the header', () => {
-  test('wide screens keep Buy me malt in the pill and show no short Download link', async ({
+test.describe('the Download button and the Support link in the header', () => {
+  test('wide screens have the Download button in the pill and no Support in it', async ({
     page,
   }) => {
     test.skip(isNarrow(page), 'This is the wide layout.');
-    const header = page.locator('header');
-    const malt = header.getByRole('link', { name: /^Buy me malt/ });
-    await expect(malt).toBeVisible();
-    await expect(malt.locator('span').first()).toHaveText('Buy me malt');
-    await expect(malt).toHaveAttribute('href', 'https://buymeamalt.com/@oyedokunken');
-    await expect(malt).toHaveAttribute('target', '_blank');
-    await expect(malt).toHaveAttribute('rel', 'noopener noreferrer');
-    await expect(header.getByRole('link', { name: 'Download', exact: true })).toHaveCount(1);
+    const header = page.locator('body > header');
+    const download = header.getByRole('link', { name: 'Download', exact: true });
+    await expect(download.last()).toBeVisible();
+    await expect(download.last().locator('svg')).toBeVisible();
+    await expect(header.getByRole('link', { name: /Support/ })).toHaveCount(0);
   });
 
-  test('narrow screens show a Download link and keep Buy me malt for the end of the menu', async ({
+  test('narrow screens have the Download button in the pill and Support at the end of the menu', async ({
     page,
   }) => {
     test.skip(!isNarrow(page), 'This is the narrow layout.');
-    const header = page.locator('header');
+    const header = page.locator('body > header');
     await expect(header.getByRole('link', { name: 'Scrim home' })).toBeVisible();
 
     const download = header.getByRole('link', { name: 'Download', exact: true });
     await expect(download.first()).toBeVisible();
-    await expect(download.first()).toHaveAttribute('href', '/#download');
-    // The logo of the visitor's system, or a plain download icon, sits beside the word.
     await expect(download.first().locator('svg')).toBeVisible();
 
-    // Buy me malt is not in the pill. It is the last item once the menu is open.
-    await expect(header.getByRole('link', { name: /^Buy me malt/ })).toHaveCount(0);
+    // Support is not in the pill. It is the last item once the menu is open.
+    await expect(header.getByRole('link', { name: /Support/ })).toHaveCount(0);
     await page.locator('summary').first().click();
     const items = page.getByRole('navigation', { name: 'Mobile' }).getByRole('link');
-    await expect(items).toHaveText([...NAV_LABELS, 'Buy me malt (opens in a new tab)']);
-    const malt = items.last();
-    await expect(malt).toHaveAttribute('href', 'https://buymeamalt.com/@oyedokunken');
-    await expect(malt).toHaveAttribute('target', '_blank');
-    await expect(malt).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(items).toHaveText([...NAV_LABELS, 'Support (opens in a new tab)']);
+    const support = items.last();
+    await expect(support).toHaveAttribute('href', 'https://buymeamalt.com/@oyedokunken');
+    await expect(support).toHaveAttribute('target', '_blank');
+    await expect(support).toHaveAttribute('rel', 'noopener noreferrer');
+    // The icon sits beside the word, in one row.
+    const box = await support.boundingBox();
+    expect(box?.height ?? 999).toBeLessThan(70);
+    const parts = await support.evaluate((element) => {
+      const icon = element.querySelector('svg')?.getBoundingClientRect();
+      const label = element.querySelector('span')?.getBoundingClientRect();
+      return {
+        iconTop: icon?.top ?? 0,
+        labelTop: label?.top ?? 0,
+        iconRight: icon?.right ?? 0,
+        labelLeft: label?.left ?? 0,
+      };
+    });
+    expect(parts.iconRight).toBeLessThanOrEqual(parts.labelLeft + 1);
+    expect(Math.abs(parts.iconTop - parts.labelTop)).toBeLessThan(12);
+  });
+
+  test('the Support button in the menu is white, so it stands out', async ({ page }) => {
+    test.skip(!isNarrow(page), 'The menu only exists on narrow screens.');
+    await page.locator('summary').first().click();
+    const support = page
+      .getByRole('navigation', { name: 'Mobile' })
+      .getByRole('link', { name: /Support/ });
+    await expect(support).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  });
+
+  test('the narrow header has room between the logo, the Download button and the menu', async ({
+    page,
+  }) => {
+    test.skip(!isNarrow(page), 'This is the narrow layout.');
+    const header = page.locator('body > header');
+    const logo = await header.getByRole('link', { name: 'Scrim home' }).boundingBox();
+    const download = await header
+      .getByRole('link', { name: 'Download', exact: true })
+      .first()
+      .boundingBox();
+    const menu = await page.locator('summary').first().boundingBox();
+    const gapOne = (download?.x ?? 0) - ((logo?.x ?? 0) + (logo?.width ?? 0));
+    const gapTwo = (menu?.x ?? 0) - ((download?.x ?? 0) + (download?.width ?? 0));
+    expect(gapOne).toBeGreaterThanOrEqual(12);
+    expect(gapTwo).toBeGreaterThanOrEqual(12);
   });
 });
 
@@ -171,7 +207,7 @@ test('the whole header is reachable by keyboard', async ({ page }) => {
   if (isNarrow(page)) {
     await page.keyboard.press('Tab');
     await expect(
-      page.locator('header').getByRole('link', { name: 'Download', exact: true }).first(),
+      page.locator('body > header').getByRole('link', { name: 'Download', exact: true }).first(),
     ).toBeFocused();
     await page.keyboard.press('Tab');
     const summary = page.locator('summary').first();
@@ -195,7 +231,9 @@ test('the whole header is reachable by keyboard', async ({ page }) => {
       ).toBeFocused();
     }
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('link', { name: /^Buy me malt/ }).first()).toBeFocused();
+    await expect(
+      page.locator('body > header').getByRole('link', { name: 'Download', exact: true }).last(),
+    ).toBeFocused();
   }
 });
 
@@ -272,7 +310,7 @@ test.describe('footer', () => {
       'href',
       'https://www.oyedokun.dev/',
     );
-    await expect(footer.getByRole('link', { name: /^Buy me malt/ })).toHaveAttribute(
+    await expect(footer.getByRole('link', { name: /^Show your Support/ })).toHaveAttribute(
       'rel',
       'noopener noreferrer',
     );
@@ -310,5 +348,52 @@ test.describe('footer', () => {
     await expect(link).toBeFocused();
     await expect(link).toHaveCSS('outline-style', 'solid');
     await expect(link).toHaveCSS('outline-color', 'rgb(251, 248, 244)');
+  });
+});
+
+test.describe('the back to top button is a recording', () => {
+  const timer = (page: Page) => backToTop(page).locator('span').last();
+  const progress = (page: Page) =>
+    backToTop(page).evaluate((element) => Number(element.style.getPropertyValue('--p')));
+
+  test('shows a time that counts up as the page scrolls', async ({ page }) => {
+    await expect(timer(page)).toHaveText('00:00');
+    await page.evaluate(() => {
+      window.scrollTo(0, 800);
+    });
+    await expect(timer(page)).toHaveText('00:08');
+    await page.evaluate(() => {
+      window.scrollTo(0, 1250);
+    });
+    await expect(timer(page)).toHaveText('00:12');
+  });
+
+  test('the red ring fills as the page scrolls and is full at the bottom', async ({ page }) => {
+    expect(await progress(page)).toBe(0);
+    await page.evaluate(() => {
+      window.scrollTo(0, 1000);
+    });
+    await expect.poll(() => progress(page)).toBeGreaterThan(0);
+    const partway = await progress(page);
+    expect(partway).toBeLessThan(1);
+
+    await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+    await expect.poll(() => progress(page)).toBeGreaterThan(0.99);
+    // The ring is drawn in the record red.
+    await expect(backToTop(page).locator('circle').last()).toHaveCSS('stroke', 'rgb(255, 59, 48)');
+  });
+
+  test('the time and the ring go back to the start at the top', async ({ page }) => {
+    await page.evaluate(() => {
+      window.scrollTo(0, 2000);
+    });
+    await expect(timer(page)).toHaveText('00:20');
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+    });
+    await expect(timer(page)).toHaveText('00:00');
+    expect(await progress(page)).toBe(0);
   });
 });

@@ -144,10 +144,10 @@ test.describe('the recording look of the demo', () => {
       .locator('section[aria-labelledby="hero-title"]')
       .getByText('Timeline')
       .locator('xpath=ancestor::div[2]');
-    for (const label of ['00:00', '00:02', '00:04', '00:06', '00:08', '00:10']) {
+    for (const label of ['00:00', '00:03', '00:06', '00:09', '00:12', '00:15', '00:18']) {
       await expect(timeline.getByText(label, { exact: true }).first()).toBeVisible();
     }
-    await expect(timeline.getByText('/ 00:10')).toBeVisible();
+    await expect(timeline.getByText('/ 00:18')).toBeVisible();
 
     // The clock moves with playback.
     await expect
@@ -168,8 +168,8 @@ test.describe('the recording look of the demo', () => {
     await expect(view).toHaveAttribute('data-playing', 'false');
     const slider = page.getByRole('slider', { name: 'Demo position' });
     await slider.focus();
-    await slider.fill('5500');
-    await expect.poll(async () => Number((await view.getAttribute('data-time')) ?? '0')).toBe(5500);
+    await slider.fill('6500');
+    await expect.poll(async () => Number((await view.getAttribute('data-time')) ?? '0')).toBe(6500);
     await expect(view).toHaveAttribute('data-scale', '2.00');
   });
 });
@@ -215,8 +215,8 @@ test.describe('without JavaScript', () => {
     const box = await view.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThan(100);
     await expect(view.locator('svg text', { hasText: 'Team tasks' }).first()).toBeAttached();
-    const button = page.locator('section[aria-labelledby="hero-title"] a[href="#download"]');
-    await expect(button).toHaveAttribute('href', '#download');
+    const button = page.locator('section[aria-labelledby="hero-title"] a[data-download-trigger]');
+    await expect(button).toHaveAttribute('href', 'https://github.com/oyedokunken/scrim/releases');
     await expect(button).toContainText('Download');
   });
 });
@@ -296,7 +296,7 @@ test.describe('the download button names the visitor system', () => {
       const page = await context.newPage();
       await page.addInitScript(noClientHints);
       await page.goto('/');
-      const button = page.locator('section a[href="#download"]').first();
+      const button = page.locator('section a[data-download-trigger]').first();
       await expect(button.locator('span > span').first()).toContainText(label, {
         useInnerText: true,
       });
@@ -316,7 +316,7 @@ test.describe('the download button names the visitor system', () => {
     await page.goto('/');
     await page.waitForTimeout(500);
     const label = page
-      .locator('section a[href="#download"]')
+      .locator('section a[data-download-trigger]')
       .first()
       .locator('span > span')
       .first();
@@ -333,11 +333,11 @@ test.describe('the download button names the visitor system', () => {
       await page.addInitScript(noClientHints);
       await page.goto('/');
       if (javaScriptEnabled) {
-        await expect(page.locator('section a[href="#download"] span > span').first()).toContainText(
-          'Download for Windows',
-        );
+        await expect(
+          page.locator('section a[data-download-trigger] span > span').first(),
+        ).toContainText('Download for Windows');
       }
-      const box = await page.locator('section a[href="#download"]').first().boundingBox();
+      const box = await page.locator('section a[data-download-trigger]').first().boundingBox();
       widths.push(box?.width ?? 0);
       await context.close();
     }
