@@ -2,7 +2,7 @@ import { FuseV1Options, FuseVersion, type FuseV1Config } from '@electron/fuses';
 
 /**
  * The Electron fuses baked into every packaged build. A snapshot test locks this object and
- * `verify-fuses.ts` reads the real binary back and compares, so a change needs review and an ADR.
+ * `verify-fuses.mts` reads the real binary back and compares, so a change needs review and an ADR.
  *
  * Keys are the fuse names that `electron-fuses read` prints.
  */

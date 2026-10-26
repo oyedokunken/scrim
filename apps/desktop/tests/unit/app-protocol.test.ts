@@ -6,6 +6,7 @@ import { contentTypeFor, handleAppRequest, resolveRendererPath } from '../../src
 import {
   APP_ENTRY_URL,
   APP_ORIGIN,
+  isAllowedDevUrl,
   originOf,
   resolveRendererTarget,
 } from '../../src/main/renderer-target';
@@ -121,6 +122,65 @@ describe('handleAppRequest', () => {
   it('answers 404 for an unknown extension even when the file exists', async () => {
     writeFileSync(join(dir, 'tool.exe'), 'x');
     expect((await get('app://scrim/tool.exe')).status).toBe(404);
+  });
+});
+
+describe('handleAppRequest methods', () => {
+  let dir: string;
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), 'scrim-app-methods-'));
+    writeFileSync(join(dir, 'index.html'), '<p>hi</p>');
+  });
+  afterAll(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const csp = "default-src 'none'";
+  const send = (method: string) =>
+    handleAppRequest(new Request('app://scrim/index.html', { method }), dir, csp);
+
+  it('serves GET with a body', async () => {
+    const response = await send('GET');
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('<p>hi</p>');
+  });
+
+  it('serves HEAD with the headers and no body', async () => {
+    const response = await send('HEAD');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+    expect(await response.text()).toBe('');
+  });
+
+  it.each(['POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])('answers 405 to %s', async (method) => {
+    const response = await send(method);
+    expect(response.status).toBe(405);
+    expect(response.headers.get('Allow')).toBe('GET, HEAD');
+    expect(response.headers.get('Content-Security-Policy')).toBe(csp);
+  });
+});
+
+describe('isAllowedDevUrl and the dev target', () => {
+  it.each([
+    ['http://localhost:5173', true],
+    ['http://localhost:5173/', true],
+    ['http://127.0.0.1:3000/index.html', true],
+    ['http://localhost', false],
+    ['http://127.0.0.1', false],
+    ['https://localhost:5173', false],
+    ['http://evil.example:5173', false],
+    ['http://localhost.evil.example:5173', false],
+    ['http://user:pw@localhost:5173', false],
+    ['http://[::1]:5173', false],
+    ['ws://localhost:5173', false],
+    ['file:///C:/x.html', false],
+    ['app://scrim/index.html', false],
+    ['', false],
+    ['nonsense', false],
+  ])('%s -> %s', (url, allowed) => {
+    expect(isAllowedDevUrl(url)).toBe(allowed);
+    const target = resolveRendererTarget({ isPackaged: false, devUrl: url });
+    expect(target.kind).toBe(allowed ? 'dev' : 'app');
+    if (!allowed) expect(target).toEqual({ kind: 'app', url: APP_ENTRY_URL, origin: APP_ORIGIN });
   });
 });
 

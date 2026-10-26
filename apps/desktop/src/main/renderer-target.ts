@@ -20,6 +20,25 @@ export function originOf(url: string): string {
 }
 
 /**
+ * A dev server URL is accepted only on the local machine with an explicit port, so a stray
+ * environment variable cannot point the window at a remote page.
+ */
+export function isAllowedDevUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'http:' &&
+      (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') &&
+      parsed.port !== '' &&
+      parsed.username === '' &&
+      parsed.password === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Where the renderer loads from, and so the one allowed origin for navigation, permissions
  * and IPC sender checks. The dev server is used only in an unpackaged app that was started
  * with a dev server URL. Everything else is served from the app protocol.
@@ -28,7 +47,7 @@ export function resolveRendererTarget(input: {
   isPackaged: boolean;
   devUrl: string | undefined;
 }): RendererTarget {
-  if (!input.isPackaged && input.devUrl) {
+  if (!input.isPackaged && input.devUrl !== undefined && isAllowedDevUrl(input.devUrl)) {
     return { kind: 'dev', url: input.devUrl, origin: originOf(input.devUrl) };
   }
   return { kind: 'app', url: APP_ENTRY_URL, origin: APP_ORIGIN };

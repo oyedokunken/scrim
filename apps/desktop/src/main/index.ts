@@ -6,6 +6,9 @@ import { hardenSession, hardenWebContents } from './harden';
 import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { createMainWindow } from './windows/main-window';
 
+// Sandbox every renderer, including any window or frame created later. Must run before ready.
+app.enableSandbox();
+
 // Must run before the app is ready. The scheme is secure and standard so the page behaves like
 // an https origin, and so the CSP and the permission checks have a real origin to match.
 protocol.registerSchemesAsPrivileged([

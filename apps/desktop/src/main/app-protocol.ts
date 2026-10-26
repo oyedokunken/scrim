@@ -86,13 +86,24 @@ export async function handleAppRequest(
   root: string,
   csp: string,
 ): Promise<Response> {
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return new Response('Method not allowed', {
+      status: 405,
+      headers: {
+        Allow: 'GET, HEAD',
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Security-Policy': csp,
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
+  }
   const resolved = resolveRendererPath(root, request.url);
   if (!resolved.ok) {
     return textResponse(resolved.status, resolved.status === 403 ? 'Forbidden' : 'Not found', csp);
   }
   try {
     const body = await readFile(resolved.file);
-    return new Response(body, {
+    return new Response(request.method === 'HEAD' ? null : body, {
       status: 200,
       headers: {
         'Content-Type': contentTypeFor(resolved.file) ?? 'application/octet-stream',

@@ -81,6 +81,10 @@ describe('isAllowedExternalUrl', () => {
     ['file:///C:/Windows/System32/calc.exe', false],
     ['javascript:alert(1)', false],
     ['nonsense', false],
+    ['https://github.com:443/oyedokunken/scrim', false],
+    ['https://github.com:8443/oyedokunken/scrim', false],
+    ['https://user@github.com/oyedokunken/scrim', false],
+    ['https://user:pass@github.com/oyedokunken/scrim', false],
   ])('%s is %s', (url, expected) => {
     expect(isAllowedExternalUrl(url)).toBe(expected);
   });
