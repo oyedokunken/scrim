@@ -1,0 +1,37 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 3.25rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.button:hover {
+  background: var(--scrim-green-hover);
+  color: var(--scrim-white);
+}
+
+/* Both labels share one grid cell, so the cell is as wide as the longer one. */
+.labels {
+  display: inline-grid;
+}
+
+.label,
+.sizer {
+  grid-area: 1 / 1;
+  justify-self: center;
+  white-space: nowrap;
+}
+
+.sizer {
+  visibility: hidden;
+}
