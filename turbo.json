@@ -8,7 +8,7 @@
     },
     "build": {
       "dependsOn": ["^build", "db:generate"],
-      "inputs": ["$TURBO_DEFAULT$", "!tests/**", "!**/*.test.*"],
+      "inputs": ["$TURBO_DEFAULT$", ".env", "!tests/**", "!**/*.test.*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"],
       "env": ["NODE_ENV", "SITE_URL", "GITHUB_REPO"]
     },
