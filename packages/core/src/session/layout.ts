@@ -4,6 +4,7 @@ import type { TrackKind } from './schema';
 export const SESSION_FILES = {
   session: 'session.json',
   input: 'input.ndjson',
+  windowBounds: 'window-bounds.ndjson',
   edits: 'edits.json',
 } as const;
 

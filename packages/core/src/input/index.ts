@@ -18,4 +18,6 @@ export {
 } from './raw-events';
 export type { MoveCoalescer, ParsedNdjson, RawInputEvent } from './raw-events';
 export { sessionLogSchema, toSessionLog } from './session-log';
+export { boundsAt, boundsSampleSchema, formatBoundsLine, parseBoundsNdjson } from './window-bounds';
+export type { BoundsSample } from './window-bounds';
 export type { SessionLog, SessionLogError, SessionLogOptions } from './session-log';

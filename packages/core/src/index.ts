@@ -1,5 +1,6 @@
 export * from './camera';
 export * from './clock';
+export * from './edit';
 export * from './input';
 export * from './result';
 export * from './session';

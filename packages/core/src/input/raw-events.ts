@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 const finite = z.number();
 const button = z.enum(['left', 'right', 'middle']);
+/** The display the cursor was on, when known. An id from the system, kept as text. */
+const display = z.string().min(1).optional();
 
 /**
  * One line of `input.ndjson`, written while recording. `at` is milliseconds on the main clock and
@@ -9,9 +11,9 @@ const button = z.enum(['left', 'right', 'middle']);
  * no key event: a line that mentions a key does not parse, so keystrokes cannot reach the log.
  */
 export const rawInputEventSchema = z.discriminatedUnion('type', [
-  z.strictObject({ type: z.literal('move'), at: finite, x: finite, y: finite }),
-  z.strictObject({ type: z.literal('down'), at: finite, x: finite, y: finite, button }),
-  z.strictObject({ type: z.literal('up'), at: finite, x: finite, y: finite, button }),
+  z.strictObject({ type: z.literal('move'), at: finite, x: finite, y: finite, display }),
+  z.strictObject({ type: z.literal('down'), at: finite, x: finite, y: finite, button, display }),
+  z.strictObject({ type: z.literal('up'), at: finite, x: finite, y: finite, button, display }),
   z.strictObject({
     type: z.literal('wheel'),
     at: finite,
@@ -19,6 +21,7 @@ export const rawInputEventSchema = z.discriminatedUnion('type', [
     y: finite,
     dx: finite,
     dy: finite,
+    display,
   }),
 ]);
 

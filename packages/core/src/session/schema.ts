@@ -65,6 +65,8 @@ export const sessionFileSchema = z.strictObject({
     displayId: z.string().optional(),
     /** The recorded area in device independent pixels on the desktop, for a region. */
     crop: rectSchema.optional(),
+    /** The same area in physical pixels of the video, which is what export cuts. */
+    cropPx: rectSchema.optional(),
     /** Top left of the recorded display or window on the desktop, in device independent pixels. */
     origin: z.strictObject({ x: z.number(), y: z.number() }),
     scaleFactor: z.number().positive(),
@@ -83,6 +85,16 @@ export const sessionFileSchema = z.strictObject({
      */
     cursorInCapture: z.boolean(),
   }),
+  /**
+   * For a window recording: whether the window's position was logged over time, in
+   * `window-bounds.ndjson`. Left out for a display or a region.
+   */
+  windowBounds: z
+    .discriminatedUnion('status', [
+      z.strictObject({ status: z.literal('recorded'), file: z.string().min(1) }),
+      z.strictObject({ status: z.literal('unavailable') }),
+    ])
+    .optional(),
   tracks: z.array(trackSchema),
   clock: z.strictObject({
     /** Milliseconds to add to a renderer `performance.now()` value to get main clock time. */

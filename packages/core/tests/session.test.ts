@@ -124,3 +124,40 @@ describe('layout names', () => {
     expect(uniqueSessionFolder('Fresh', (folder) => taken.has(folder))).toBe('Fresh.scrim');
   });
 });
+
+describe('crop and window bounds in the session file', () => {
+  it('accepts a region with its crop in device independent and physical pixels', () => {
+    const session = {
+      ...valid,
+      source: {
+        ...valid.source,
+        kind: 'region' as const,
+        crop: { x: 100, y: 50, width: 640, height: 360 },
+        cropPx: { x: 150, y: 75, width: 960, height: 540 },
+      },
+    };
+    expect(sessionFileSchema.safeParse(session).success).toBe(true);
+  });
+
+  it('accepts recorded and unavailable window bounds, and rejects anything else', () => {
+    const base = { ...valid, source: { ...valid.source, kind: 'window' as const } };
+    expect(
+      sessionFileSchema.safeParse({
+        ...base,
+        windowBounds: { status: 'recorded', file: 'window-bounds.ndjson' },
+      }).success,
+    ).toBe(true);
+    expect(
+      sessionFileSchema.safeParse({ ...base, windowBounds: { status: 'unavailable' } }).success,
+    ).toBe(true);
+    expect(
+      sessionFileSchema.safeParse({ ...base, windowBounds: { status: 'maybe' } }).success,
+    ).toBe(false);
+    expect(
+      sessionFileSchema.safeParse({
+        ...base,
+        source: { ...base.source, cropPx: { x: 0, y: 0, width: 0, height: 10 } },
+      }).success,
+    ).toBe(false);
+  });
+});

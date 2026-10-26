@@ -12,6 +12,8 @@ export interface MoveEvent {
   t: number;
   x: number;
   y: number;
+  /** The display the cursor was on, when known. */
+  display?: string | undefined;
 }
 
 /** A mouse button was pressed at a point in frame pixels. */
@@ -21,6 +23,7 @@ export interface ClickEvent {
   x: number;
   y: number;
   button: MouseButton;
+  display?: string | undefined;
 }
 
 /** A mouse button was released. */
@@ -30,6 +33,7 @@ export interface ReleaseEvent {
   x: number;
   y: number;
   button: MouseButton;
+  display?: string | undefined;
 }
 
 /** The wheel turned. Positive `dy` scrolls down and positive `dx` scrolls right. */
@@ -40,6 +44,7 @@ export interface WheelEvent {
   y: number;
   dx: number;
   dy: number;
+  display?: string | undefined;
 }
 
 /** There is no keyboard event, by design. Scrim never logs what is typed. */
