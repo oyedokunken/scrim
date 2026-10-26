@@ -1,4 +1,4 @@
-import { open, rename, rm, statfs } from 'node:fs/promises';
+import { access, mkdir, open, readFile, rename, rm, stat, statfs } from 'node:fs/promises';
 import type { FileSink } from './chunk-writer';
 
 /** A file opened for append, as a sink. The raw file is only ever appended to. */
@@ -85,3 +85,46 @@ export async function freeBytes(path: string): Promise<number> {
   const stats = await statfs(path);
   return stats.bavail * stats.bsize;
 }
+
+/** The file system calls the recording service makes, in one place, so tests can fail any of them. */
+export interface ServiceFs {
+  mkdir(path: string): Promise<void>;
+  exists(path: string): Promise<boolean>;
+  openAppend(path: string): Promise<FileSink>;
+  writeJsonAtomic(path: string, value: unknown): Promise<void>;
+  readText(path: string): Promise<string>;
+  remove(path: string): Promise<void>;
+  rename(from: string, to: string): Promise<void>;
+  /** The size of a file in bytes, or undefined when it does not exist. */
+  fileSize(path: string): Promise<number | undefined>;
+  freeBytes(path: string): Promise<number>;
+}
+
+export const realServiceFs: ServiceFs = {
+  async mkdir(path) {
+    await mkdir(path, { recursive: true });
+  },
+  async exists(path) {
+    try {
+      await access(path);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  openAppend: openAppendSink,
+  writeJsonAtomic: (path, value) => writeJsonAtomic(path, value),
+  readText: (path) => readFile(path, 'utf8'),
+  async remove(path) {
+    await rm(path, { force: true });
+  },
+  rename,
+  async fileSize(path) {
+    try {
+      return (await stat(path)).size;
+    } catch {
+      return undefined;
+    }
+  },
+  freeBytes,
+};
