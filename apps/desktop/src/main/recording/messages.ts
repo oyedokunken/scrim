@@ -133,10 +133,6 @@ export const WARNINGS = {
           ? 'Cursor effects and auto zoom are off, because Scrim does not have permission to see the mouse.'
           : 'Cursor effects and auto zoom are off for this recording, because the mouse could not be logged.',
   }),
-  cursorVisible: (): Warning => ({
-    code: 'cursor-visible',
-    message: 'The system cursor could not be hidden, so it is part of the video.',
-  }),
   writerSlow: (): Warning => ({
     code: 'writer-slow',
     message: 'The disk is writing slowly. If this continues, recording may stop.',

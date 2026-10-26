@@ -58,7 +58,7 @@ describe('a normal recording', () => {
       JSON.parse(await readFile(join(folder, 'Demo.scrim.json'), 'utf8')),
     );
     expect(log.frame).toEqual({ width: 1920, height: 1080 });
-    expect(log.events).toEqual([{ type: 'click', t: 450, x: 100, y: 100, button: 'left' }]);
+    expect(log.events).toEqual([{ type: 'click', t: 390, x: 100, y: 100, button: 'left' }]);
 
     const session = await readSessionFile(folder);
     expect(session.cleanClose).toBe(true);
@@ -68,10 +68,10 @@ describe('a normal recording', () => {
       complete: true,
       bytesWritten: 300,
       playableFile: 'screen.mp4',
-      startedAt: 50,
+      startedAt: 110,
     });
     expect(session.clock).toEqual({ rendererOffsetMs: 1000, uncertaintyMs: 0 });
-    expect(session.capture.cursor).toBe('hidden');
+    expect(session.capture.cursorInCapture).toBe(false);
     expect(session.input).toEqual({ status: 'recorded', file: 'input.ndjson' });
     expect(session.pid).toBe(4242);
     expect(await h.deps.index.list()).toEqual([]);
@@ -87,7 +87,7 @@ describe('a normal recording', () => {
     expect(types[0]).toBe('state');
     expect(types).toContain('finished');
     const finished = h.events.find((event) => event.type === 'finished');
-    expect(finished?.type === 'finished' && finished.result.durationMs).toBe(1950);
+    expect(finished?.type === 'finished' && finished.result.durationMs).toBe(1890);
     expect(finished?.type === 'finished' && finished.result.recovered).toBe(false);
     const phases = h.events.flatMap((event) =>
       event.type === 'state' ? [event.snapshot.phase] : [],
@@ -168,10 +168,10 @@ describe('pause and resume', () => {
       JSON.parse(await readFile(join(folder, 'Demo.scrim.json'), 'utf8')),
     );
     expect(log.events.map((event) => [event.type, event.t])).toEqual([
-      ['click', 950],
-      ['click', 1450],
+      ['click', 890],
+      ['click', 1390],
     ]);
-    expect(result.ok && result.value.durationMs).toBe(1450);
+    expect(result.ok && result.value.durationMs).toBe(1390);
   });
 
   it('closes a pause that is still open when the recording stops', async () => {
@@ -285,13 +285,17 @@ describe('warnings that do not stop the recording', () => {
     await h.service.stop();
   });
 
-  it('warns that the cursor is in the video when it could not be hidden', async () => {
+  it('records that the cursor is in the video, without a warning, as the system always does', async () => {
     const { h, folder } = await started({ cursor: 'shown' });
-    expect(h.service.snapshot().warnings.map((warning) => warning.code)).toContain(
-      'cursor-visible',
-    );
+    expect(h.service.snapshot().warnings).toEqual([]);
     await h.service.stop();
-    expect((await readSessionFile(folder)).capture.cursor).toBe('shown');
+    expect((await readSessionFile(folder)).capture.cursorInCapture).toBe(true);
+  });
+
+  it('records a hidden cursor only when the capture reports it hidden', async () => {
+    const { h, folder } = await started({ cursor: 'hidden' });
+    await h.service.stop();
+    expect((await readSessionFile(folder)).capture.cursorInCapture).toBe(false);
   });
 
   it('records without the mouse log and says why when the hook is unavailable', async () => {

@@ -20,7 +20,7 @@ const valid: SessionFile = {
   app: { version: '0.0.0', os: 'windows', arch: 'x64' },
   pid: 4242,
   source: { kind: 'display', displayId: '1', origin: { x: 0, y: 0 }, scaleFactor: 1.25 },
-  capture: { cursor: 'hidden' },
+  capture: { cursorInCapture: true },
   tracks: [
     {
       kind: 'screen',

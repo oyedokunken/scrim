@@ -63,6 +63,8 @@ export interface ServiceDeps {
     setInterval: (callback: () => void, ms: number) => unknown;
     clearInterval: (handle: unknown) => void;
   };
+  /** Logs timing marks for every track, to diagnose drift. Development only. */
+  trace?: boolean;
   /** Waiting limits, so tests can be quick. */
   waits?: { chunkDrainMs?: number };
 }
@@ -94,6 +96,20 @@ interface Active {
 }
 
 const HEARTBEAT_MS = 1000;
+
+/**
+ * How long after `start()` a video recorder's first frame is stamped, in milliseconds. Measured
+ * with the on screen marker over six runs on Windows: the video timeline begins 23 to 153 ms after
+ * the call (mean 92), and about a second before the recorder reports that it started. So a video
+ * track's origin is the call time plus this value, which leaves a run to run error of about
+ * plus or minus 65 ms. The microphone has no such lag, so its own report is used.
+ */
+export const VIDEO_FIRST_FRAME_LATENCY_MS = 90;
+
+/** The main clock time, since the recording began, at which a track's media time is zero. */
+export function trackOrigin(kind: TrackKind, reported: number, called: number): number {
+  return kind === 'mic' ? reported : called + VIDEO_FIRST_FRAME_LATENCY_MS;
+}
 const DISK_CHECK_EVERY_TICKS = 10;
 const TIMESLICE_MS = 1000;
 const SCREEN_BITS_PER_SECOND = 12_000_000;
@@ -185,11 +201,19 @@ export class RecordingService {
       await this.startInput(active);
 
       const kinds = [...active.writers.keys()];
+      this.mark(active, `start requested, origin hr=${active.origin.toFixed(1)}`);
       const started = await active.host.start(kinds);
       for (const track of active.session.tracks) {
-        const at = started.get(track.kind);
-        if (at !== undefined)
-          track.startedAt = Math.max(0, rendererToMain(at, active.offset) - active.origin);
+        const times = started.get(track.kind);
+        if (times === undefined) continue;
+        const reported = rendererToMain(times.startedAt, active.offset) - active.origin;
+        const called = rendererToMain(times.calledAt, active.offset) - active.origin;
+        track.startedAt = Math.max(0, trackOrigin(track.kind, reported, called));
+        this.mark(
+          active,
+          `${track.kind} start called at +${called.toFixed(0)}, reported at +${reported.toFixed(0)}, stored origin +${track.startedAt.toFixed(0)}`,
+          track.startedAt,
+        );
       }
       this.active = active;
       this.move('started');
@@ -211,7 +235,9 @@ export class RecordingService {
     const moved = this.move('pause');
     if (!moved.ok) return moved;
     try {
+      this.mark(active, 'pause requested');
       const rendererNow = await active.host.pause();
+      this.mark(active, 'pause acknowledged');
       const at = Math.max(0, rendererToMain(rendererNow, active.offset) - active.origin);
       active.pauses.push({ pausedAt: at, resumedAt: null });
       active.session.pauses = [...active.pauses];
@@ -231,7 +257,9 @@ export class RecordingService {
     const moved = this.move('resume');
     if (!moved.ok) return moved;
     try {
+      this.mark(active, 'resume requested');
       const rendererNow = await active.host.resume();
+      this.mark(active, 'resume acknowledged');
       const at = Math.max(0, rendererToMain(rendererNow, active.offset) - active.origin);
       const open = active.pauses.at(-1);
       if (open?.resumedAt === null) open.resumedAt = Math.max(at, open.pausedAt);
@@ -330,6 +358,13 @@ export class RecordingService {
     for (const listener of this.listeners) listener(event);
   }
 
+  /** A timing mark for diagnosing drift. `at` is main clock milliseconds since the start. */
+  private mark(active: Active, text: string, at?: number): void {
+    if (this.deps.trace !== true) return;
+    const time = at ?? this.deps.now() - active.origin;
+    this.deps.log(`TRACE +${time.toFixed(0)} ms ${text}`);
+  }
+
   private emitState(): void {
     this.emit({ type: 'state', snapshot: this.snapshot() });
   }
@@ -397,7 +432,7 @@ export class RecordingService {
         origin: source.origin,
         scaleFactor: source.scaleFactor,
       },
-      capture: { cursor: 'unknown' },
+      capture: { cursorInCapture: true },
       tracks: [],
       clock: { rendererOffsetMs: 0, uncertaintyMs: 0 },
       pauses: [],
@@ -463,8 +498,8 @@ export class RecordingService {
       }
     }
 
-    active.session.capture = { cursor: ready.cursor };
-    if (ready.cursor !== 'hidden') this.warn(active, WARNINGS.cursorVisible());
+    // Only a capture that reports the cursor as hidden says otherwise. An unknown state is assumed shown.
+    active.session.capture = { cursorInCapture: ready.cursor !== 'hidden' };
     if (ready.frame !== undefined) active.session.source.frame = ready.frame;
 
     for (const track of ready.tracks) {
@@ -593,6 +628,7 @@ export class RecordingService {
     switch (event.type) {
       case 'track-ended': {
         if (active.stopping) return;
+        this.mark(active, `${event.kind} track ended`);
         if (event.kind === 'screen') {
           void this.forceStop(active, makeError('display-removed'));
           return;
@@ -604,6 +640,13 @@ export class RecordingService {
         this.emitState();
         return;
       }
+      case 'trace':
+        this.mark(
+          active,
+          `${event.kind}: ${event.what}`,
+          rendererToMain(event.rendererNow, active.offset) - active.origin,
+        );
+        return;
       case 'track-error':
         this.deps.log(`The ${event.kind} recorder reported an error: ${event.message}`);
         if (event.kind === 'screen')
@@ -726,8 +769,11 @@ export class RecordingService {
     this.deps.timers.clearInterval(active.heartbeat);
     const { deps } = this;
     try {
+      this.mark(active, 'stop requested');
       const counts = await active.host.stop().catch(() => undefined);
+      this.mark(active, `recorders reported stopped ${JSON.stringify(counts ?? [])}`);
       if (counts !== undefined) await this.waitForChunks(active, counts);
+      this.mark(active, 'all chunks received');
     } catch (error) {
       deps.log(`The recorder did not stop cleanly: ${String(error)}`);
     }

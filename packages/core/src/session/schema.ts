@@ -77,8 +77,11 @@ export const sessionFileSchema = z.strictObject({
       .optional(),
   }),
   capture: z.strictObject({
-    /** Whether the system cursor was left out of the video, as asked. */
-    cursor: z.enum(['hidden', 'shown', 'unknown']),
+    /**
+     * Whether the system cursor is part of the recorded video. On Windows it always is: Chromium
+     * ignores the request to hide it (ADR 0001). False only when a capture backend hides it.
+     */
+    cursorInCapture: z.boolean(),
   }),
   tracks: z.array(trackSchema),
   clock: z.strictObject({
