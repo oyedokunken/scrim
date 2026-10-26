@@ -7,7 +7,12 @@
       "project": ["tools/**", "tests/**"]
     },
     "apps/desktop": {
-      "entry": ["electron-builder.config.ts", "tests/e2e/**/*.spec.ts"],
+      "entry": [
+        "electron-builder.config.ts",
+        "tests/e2e/**/*.spec.ts",
+        "src/renderer/src/main.tsx",
+        "src/recorder/page/main.ts"
+      ],
       "project": ["build/**", "src/**", "tests/**", "*.ts", "*.mts"],
       "ignoreDependencies": ["@scrim/tokens"]
     },

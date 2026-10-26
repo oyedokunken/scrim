@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const savedWindowStateSchema = z.object({
+const savedWindowStateSchema = z.object({
   x: z.number().int(),
   y: z.number().int(),
   width: z.number().int().positive(),

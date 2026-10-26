@@ -1,6 +1,5 @@
 .footer {
   margin-top: var(--scrim-space-8);
-  overflow: clip;
   border-radius: var(--scrim-radius-xl) var(--scrim-radius-xl) 0 0;
   background: var(--scrim-black);
   color: var(--scrim-butter);
@@ -110,12 +109,18 @@
   gap: var(--scrim-space-2) var(--scrim-space-5);
 }
 
-/* The whole logo, in white, at the foot of the page. It is not clipped. As the page scrolls to it,
-   it rises from below and fades in, where the browser can tie that to the scroll. Elsewhere it
-   simply sits there. */
+/* The whole logo, in green, at the foot of the page in its own butter section. It is not clipped.
+   As the page scrolls to it, it rises from below and fades in, where the browser can tie that to
+   the scroll. Elsewhere it simply sits there. */
+.markSection {
+  border-radius: 0 0 var(--scrim-radius-xl) var(--scrim-radius-xl);
+  background: var(--scrim-butter);
+}
+
 .mark {
   width: min(100% - 2 * var(--gutter), var(--page-width));
   margin: var(--scrim-space-7) auto 0;
+  padding-top: var(--scrim-space-6);
   padding-bottom: var(--scrim-space-6);
   user-select: none;
 }
