@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/logo.svg" alt="Scrim logo" width="96" height="96">
-</p>
-
 # Scrim
 
 Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux. It highlights the cursor, ripples every click, zooms in where you work, adds your face in a bubble, and exports an MP4 that plays everywhere.
@@ -29,16 +25,6 @@ Scrim keeps recordings on your computer. Nothing is uploaded, there is no accoun
 - **Bug reports:** Show exactly what went wrong instead of describing it.
 - **Sales and support:** Answer questions with a quick, personal video.
 - **Personal:** Help family with their PC, or save a moment from your screen.
-
-## The website
-
-The landing page is a single Next.js project in `apps/landing`. It has these sections: hero with a live auto zoom demo, features (eight stacking cards), use cases, download, FAQ, contribute and contact, then a footer.
-
-- **Download dialog.** Every Download button opens a native dialog that asks for a name and email, picks the system from the visitor's computer (always changeable), and starts the download from the latest GitHub Release. The form uses React Hook Form with the shared zod schema and prints an error under each field.
-- **Email.** Visitors get a confirmation email with the file link, first run help and a Support link. The owner gets a short note for each download. Mail is sent with Nodemailer after the response, so the visitor never waits on it.
-- **Release notices.** Optional and off by default. Every email has a one step unsubscribe, done by POST only.
-- **Links.** Every link to another site opens in a new tab.
-- **Privacy.** No analytics, no cookies, no third party scripts.
 
 ## Project status
 
@@ -120,7 +106,7 @@ Requirements:
 
 - Node.js 22.18 or newer
 - pnpm 12.15.0
-- A Postgres database (a local one, or a separate Supabase development project) and an SMTP account or mail catcher
+- Docker for the local database and mail catcher
 
 Install dependencies:
 
@@ -131,7 +117,7 @@ pnpm install
 Useful commands:
 
 ```bash
-pnpm db:generate
+pnpm db:up
 pnpm dev:landing
 pnpm check
 pnpm test
@@ -150,7 +136,7 @@ The desktop application does not send recordings or recording data to a server. 
 - **Name:** Oyedokun Kehinde
 - **Email:** oyedokunken@gmail.com
 - **Portfolio:** https://www.oyedokun.dev/
-- **Support:** https://buymeamalt.com/@oyedokunken
+- **Buy me a malt:** https://buymeamalt.com/@oyedokunken
 
 ## License
 
