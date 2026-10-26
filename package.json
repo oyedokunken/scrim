@@ -25,7 +25,8 @@
     "db:generate": "pnpm --filter @scrim/landing db:generate",
     "db:migrate": "pnpm --filter @scrim/landing db:migrate",
     "db:deploy": "pnpm --filter @scrim/landing db:deploy",
-    "db:studio": "pnpm --filter @scrim/landing db:studio"
+    "db:studio": "pnpm --filter @scrim/landing db:studio",
+    "icons": "node tools/icons.mts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [
