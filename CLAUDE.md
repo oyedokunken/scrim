@@ -6,6 +6,30 @@ Owner: Oyedokun Kehinde (GitHub: oyedokunken). Repo: github.com/oyedokunken/scri
 
 This file is the working agreement for anyone, human or AI, changing this repo. Read it fully before making changes. When a rule here conflicts with a habit or a default, the rule wins.
 
+## Build log (state of the system, 2026-10-26)
+
+Phase 1 only. `apps/desktop` does not exist yet.
+
+Done and committed:
+
+- Monorepo: pnpm 12 workspace with a catalog and a 7 day release age, turbo, strict TypeScript, ESLint boundary rules, a text guard that rejects dashes, emojis and tool names, husky with lint-staged and commitlint.
+- `packages/tokens`: palette (green, butter, black, white, record red), CSS variables, type scale, contrast tests.
+- `packages/core`: `planZoom`, `sampleCamera`, `cursorAt` and a zoom-only subpath, with property tests.
+- Landing page: live zoom hero (18 s scripted demo using the real planner), eight stacking feature cards numbered 01/08 to 08/08, use cases, download section with per system help, FAQ in two columns, contribute, contact, closing call to action, footer with the full white logo that rises on scroll, header pill that shrinks on scroll, floating back to top button styled as a recording with a timer and ring, Built by popover.
+- Download flow: native dialog, React Hook Form with the shared zod schema, system detection with spoofed user agent tests, `/api/downloads` (origin check, honeypot, rate limit, hashed IP, release lookup, Prisma record), confirmation email to the visitor and a note email to the owner (Nodemailer, sent in `after()`), unsubscribe page and `/api/unsubscribe` (POST only).
+- Privacy page, metadata, Open Graph image, sitemap, robots, manifest, icons, JSON-LD, security headers.
+- Docs: README, WIKI, CHANGELOG, SECURITY, CONTRIBUTING.
+- Tests: 436 landing unit tests, 32 token tests, root tests. E2E specs for chrome, hero, page, download, emails (screenshots on demand) with axe.
+
+Not done, or not verified:
+
+- The latest full Playwright run had failures in `download.spec.ts`, `page.spec.ts` and `chrome.spec.ts`. They are being fixed.
+- No Lighthouse run and no bundle size check since react-hook-form and zod joined the lazy dialog.
+- No integration tests against a real database and no live SMTP send. Gmail needs an app password and rewrites From unless an alias exists.
+- Missing: knip run, `docs/architecture.md`, `testing.md`, `releasing.md`, ADRs, CI workflows, issue and PR templates.
+- Open decisions below are unanswered. The scrim.app domain and hello@scrim.app are unconfirmed. The Supabase project is shared between dev and prod.
+- The privacy page does not yet mention the owner notification email.
+
 ## Current phase
 
 Phase 1 is the landing page only. Do not scaffold or touch `apps/desktop` until the owner says Phase 2 has started. The web and the desktop app are separate apps in one monorepo. They never import from each other. They share code only through `packages/*`.

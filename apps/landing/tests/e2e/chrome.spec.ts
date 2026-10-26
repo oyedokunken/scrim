@@ -397,3 +397,43 @@ test.describe('the back to top button is a recording', () => {
     expect(await progress(page)).toBe(0);
   });
 });
+
+test.describe('the Built by popover', () => {
+  test('shows the five icons in one row, green until hovered, then black', async ({ page }) => {
+    await page.goto('/');
+    const footer = page.locator('body > footer');
+    await footer.getByRole('button', { name: '@oyedokunken' }).click();
+    const icons = footer.locator('[role="group"] a');
+    await expect(icons).toHaveCount(5);
+
+    const boxes = await icons.evaluateAll((links) =>
+      links.map((link) => {
+        const box = link.getBoundingClientRect();
+        return {
+          top: Math.round(box.top),
+          left: Math.round(box.left),
+          right: Math.round(box.right),
+        };
+      }),
+    );
+    expect(new Set(boxes.map((box) => box.top)).size).toBe(1);
+    boxes.slice(1).forEach((box, index) => {
+      expect(box.left).toBeGreaterThanOrEqual(boxes[index]?.right ?? 0);
+    });
+    const viewport = page.viewportSize()?.width ?? 0;
+    expect(Math.max(...boxes.map((box) => box.right))).toBeLessThanOrEqual(viewport);
+
+    const first = icons.first();
+    await expect(first).toHaveCSS('color', 'rgb(0, 78, 82)');
+    await first.hover();
+    await expect(first).toHaveCSS('color', 'rgb(0, 0, 0)');
+    await page.screenshot({ path: 'test-results/screenshots/popover.png' });
+  });
+
+  test('centers the two legal lines on a phone', async ({ page }) => {
+    test.skip(!isNarrow(page) || (page.viewportSize()?.width ?? 0) > 640, 'Phones only.');
+    await page.goto('/');
+    const lines = page.locator('body > footer p', { hasText: 'All rights reserved' });
+    await expect(lines).toHaveCSS('text-align', 'center');
+  });
+});
