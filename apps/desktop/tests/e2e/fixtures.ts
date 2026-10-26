@@ -58,18 +58,36 @@ async function waitForDebugPort(userDataDir: string, child: ChildProcess): Promi
 interface Launched {
   page: Page;
   app: ElectronApplication | undefined;
+  userDataDir: string;
+}
+
+/**
+ * SCRIM_E2E turns on the test hook in the built app: a fake recorder on globalThis that the
+ * shell tests drive. The hook is never created in a packaged app.
+ */
+function startBuilt(userDataDir: string): Promise<ElectronApplication> {
+  return electron.launch({
+    args: [APP_DIR, `--user-data-dir=${userDataDir}`, ...sandboxFlags],
+    env: { ...process.env, SCRIM_E2E: '1' },
+  });
+}
+
+async function closeQuietly(app: ElectronApplication): Promise<void> {
+  try {
+    await app.close();
+  } catch {
+    // The app already quit, which is what several shell tests exercise.
+  }
 }
 
 async function launchBuilt(userDataDir: string, use: (value: Launched) => Promise<void>) {
-  const app = await electron.launch({
-    args: [APP_DIR, `--user-data-dir=${userDataDir}`, ...sandboxFlags],
-  });
+  const app = await startBuilt(userDataDir);
   try {
     const page = await app.firstWindow();
     await page.waitForLoadState('domcontentloaded');
-    await use({ page, app });
+    await use({ page, app, userDataDir });
   } finally {
-    await app.close();
+    await closeQuietly(app);
   }
 }
 
@@ -89,7 +107,7 @@ async function launchPackaged(userDataDir: string, use: (value: Launched) => Pro
       if (!context) throw new Error('The packaged app exposed no browser context');
       const page = context.pages()[0] ?? (await context.waitForEvent('page'));
       await page.waitForLoadState('domcontentloaded');
-      await use({ page, app: undefined });
+      await use({ page, app: undefined, userDataDir });
     } finally {
       await browser.close();
     }
@@ -103,6 +121,10 @@ interface Fixtures {
   /** The Electron main process. Skips the test when the target is the packaged app. */
   app: ElectronApplication;
   page: Page;
+  /** The folder this launch uses, for tests that start a second copy against the same one. */
+  userDataDir: string;
+  /** Starts the app again with the same user data folder, after the first one has quit. */
+  relaunch: () => Promise<ElectronApplication>;
 }
 
 export const test = base.extend<Fixtures>({
@@ -119,6 +141,22 @@ export const test = base.extend<Fixtures>({
   },
   page: async ({ launched }, use) => {
     await use(launched.page);
+  },
+  userDataDir: async ({ launched }, use) => {
+    await use(launched.userDataDir);
+  },
+  relaunch: async ({ launched }, use, testInfo) => {
+    testInfo.skip(
+      launched.app === undefined,
+      'Needs the main process, which the packaged app hides',
+    );
+    const started: ElectronApplication[] = [];
+    await use(async () => {
+      const app = await startBuilt(launched.userDataDir);
+      started.push(app);
+      return app;
+    });
+    for (const app of started) await closeQuietly(app);
   },
   app: async ({ launched }, use, testInfo) => {
     testInfo.skip(
