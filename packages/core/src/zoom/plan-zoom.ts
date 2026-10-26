@@ -55,7 +55,11 @@ function toIntervals(bursts: readonly ClickEvent[][], options: ZoomOptions): Int
       focus: { x: first.x, y: first.y },
     };
     const previous = intervals[intervals.length - 1];
-    if (previous !== undefined && next.start < previous.end + options.easeMs) {
+    // The zoom out cannot begin before the zoom in has landed, so a hold shorter than the ease
+    // still ends at start plus ease. Judging by `end` alone let the next zoom start too early.
+    const previousOut =
+      previous === undefined ? 0 : Math.max(previous.end, previous.start + options.easeMs);
+    if (previous !== undefined && next.start < previousOut + options.easeMs) {
       previous.end = Math.max(previous.end, next.end);
     } else {
       intervals.push(next);

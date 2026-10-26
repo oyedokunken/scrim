@@ -204,3 +204,22 @@ describe('subpath entry', () => {
     expect(root.sampleCamera).toBe(sampleCamera);
   });
 });
+
+describe('planZoom with a hold shorter than the ease', () => {
+  // Found by the property test: a hold of zero and an ease of 2 ms put the second zoom in before the
+  // first zoom out had finished, so keyframe times went backwards.
+  it('never plans a keyframe before the previous one', () => {
+    const keyframes = planZoom(
+      {
+        frame: { width: 2210, height: 1681 },
+        events: [
+          { type: 'click', t: 0, x: 0, y: 0, button: 'left' },
+          { type: 'click', t: 252, x: 0, y: 0, button: 'left' },
+        ],
+      },
+      { easeMs: 2, holdMs: 0, mergeWindowMs: 0 },
+    );
+    const times = keyframes.map((keyframe) => keyframe.t);
+    expect(times).toEqual([...times].sort((a, b) => a - b));
+  });
+});

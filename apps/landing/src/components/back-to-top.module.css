@@ -5,12 +5,12 @@
   z-index: 60;
   display: grid;
   place-items: center;
-  width: 4.25rem;
-  height: 4.25rem;
+  width: 3.5rem;
+  height: 3.5rem;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--scrim-white) 94%, transparent);
+  background: transparent;
   box-shadow: 0 0.5rem 1.25rem -0.25rem color-mix(in srgb, var(--scrim-black) 40%, transparent);
-  color: var(--scrim-black);
+  color: var(--scrim-butter);
   text-decoration: none;
   /* Hidden until the page scrolls. visibility also removes it from the tab order. */
   opacity: 0;
@@ -30,7 +30,7 @@
 }
 
 .button:hover {
-  color: var(--scrim-black);
+  color: var(--scrim-butter);
 }
 
 /* The ring is a recording progress ring: it fills with how far down the page you are. */
@@ -47,35 +47,40 @@
 .track,
 .progress {
   fill: none;
-  stroke-width: 4;
+  stroke-width: 6;
 }
 
 .track {
-  stroke: color-mix(in srgb, var(--scrim-record) 22%, transparent);
+  stroke: var(--scrim-green);
 }
 
 .progress {
-  stroke: var(--scrim-record);
+  stroke: var(--scrim-green);
   stroke-linecap: round;
   stroke-dasharray: 100;
   stroke-dashoffset: calc(100 - var(--p) * 100);
 }
 
-.face {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  gap: 0.0625rem;
-  color: var(--scrim-record);
+/* Inner circle - the main green circle */
+.ring::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--scrim-green);
+  transform: translate(-50%, -50%);
+  z-index: 1;
 }
 
-.time {
-  color: var(--scrim-black);
-  font-size: 0.8125rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  line-height: 1;
+.face {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  color: var(--scrim-butter);
 }
 
 .button:hover .face svg {
