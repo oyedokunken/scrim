@@ -7,3 +7,5 @@ export { FaceBubbleIllustration } from './face-bubble';
 export { TrimTimelineIllustration } from './trim-timeline';
 export { ZoomFrameIllustration } from './zoom-frame';
 export type { IllustrationProps } from './illustration';
+export { BeforeAfterIllustration } from './before-after';
+export { ShortcutsIllustration } from './shortcuts';

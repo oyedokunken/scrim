@@ -1,12 +1,12 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { MaltLink } from '@/components/malt-link';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { SuyaLink } from '@/components/suya-link';
 import { siteConfig } from '@/site.config';
 
-describe('SuyaLink', () => {
-  const html = renderToStaticMarkup(<SuyaLink />);
+describe('MaltLink', () => {
+  const html = renderToStaticMarkup(<MaltLink />);
 
   it('is a plain outbound link in a new tab with safe rel', () => {
     expect(html).toContain('href="https://buymeamalt.com/@oyedokunken"');
@@ -14,9 +14,9 @@ describe('SuyaLink', () => {
     expect(html).toContain('rel="noopener noreferrer"');
   });
 
-  it('shows the exact label Buy me suya, in one place only', () => {
-    expect(html).toContain('<span>Buy me suya</span>');
-    expect(html.replace(/href="[^"]*"/, '')).not.toMatch(/malt/i);
+  it('shows the exact label Support, from this one component', () => {
+    expect(html).toContain('<span>Support</span>');
+    expect(html).not.toMatch(/suya|Buy me/i);
   });
 
   it('says it opens in a new tab and hides the decorative heart', () => {
@@ -27,10 +27,6 @@ describe('SuyaLink', () => {
   it('loads no script or widget', () => {
     expect(html).not.toContain('<script');
     expect(html).not.toContain('<iframe');
-  });
-
-  it('can drop the heart for the footer', () => {
-    expect(renderToStaticMarkup(<SuyaLink plain />)).not.toContain('<svg');
   });
 });
 
@@ -48,6 +44,34 @@ describe('SiteHeader', () => {
     }
   });
 
+  it('names the sections the nav promises', () => {
+    expect(siteConfig.nav.map((item) => item.label)).toEqual([
+      'Features',
+      'Use cases',
+      'Download',
+      'FAQ',
+      'Contribute',
+    ]);
+  });
+
+  it('shows a short Download link, with a logo, for narrow screens', () => {
+    // It opens the download dialog, and without JavaScript it is a link to the Releases page.
+    expect(html).toContain('data-download-trigger');
+    expect(html).toContain('href="https://github.com/oyedokunken/scrim/releases"');
+    expect(html).toContain('<span>Download</span>');
+  });
+
+  it('puts Support last in the menu, after every link', () => {
+    const menu = html.slice(html.indexOf('aria-label="Mobile"'));
+    const links = siteConfig.nav.map((item) => menu.indexOf('>' + item.label + '<'));
+    const malt = menu.indexOf('>Support<');
+    expect(malt).toBeGreaterThan(-1);
+    for (const position of links) {
+      expect(position).toBeGreaterThan(-1);
+      expect(position).toBeLessThan(malt);
+    }
+  });
+
   it('labels the two navigations differently', () => {
     expect(html).toContain('aria-label="Primary"');
     expect(html).toContain('aria-label="Mobile"');
@@ -60,36 +84,40 @@ describe('SiteHeader', () => {
 });
 
 describe('SiteFooter', () => {
-  it('shows the latest version and links it to the releases page', () => {
-    const html = renderToStaticMarkup(<SiteFooter version="1.2.3" year={2026} />);
-    expect(html).toContain('Latest version 1.2.3');
-    expect(html).toContain(`href="${siteConfig.releasesUrl}"`);
-  });
+  const html = renderToStaticMarkup(<SiteFooter year={2031} />);
+  const copyright = `${String.fromCodePoint(0xa9)} 2031 Scrim.`;
 
-  it('shows Coming soon when there is no release', () => {
-    const html = renderToStaticMarkup(<SiteFooter version={null} year={2026} />);
-    expect(html).toContain('Coming soon');
-    expect(html).not.toContain('Latest version');
-    expect(html).toContain(`href="${siteConfig.releasesUrl}"`);
-  });
-
-  it('carries the trust line, the legal row and the three columns as real text', () => {
-    const html = renderToStaticMarkup(<SiteFooter version={null} year={2031} />);
-    expect(html).toContain('Recordings never leave your computer.');
-    expect(html).toContain('© 2031 Scrim.');
+  it('carries the legal row and the three columns as real text', () => {
+    expect(html).toContain(copyright);
     expect(html).toContain('MIT license');
     expect(html).toContain('Built by');
     expect(html).toContain(siteConfig.author.url);
     for (const title of Object.keys(siteConfig.footerLinks)) {
       expect(html).toContain(`>${title}</h2>`);
     }
-    for (const system of ['Windows', 'macOS', 'Linux']) {
-      expect(html).toContain(`<li>${system}</li>`);
+  });
+
+  it('no longer shows the system chips, the version chip or the trust line', () => {
+    for (const gone of [
+      'Supported systems',
+      'Coming soon',
+      'Latest version',
+      'Recordings never leave your computer.',
+    ]) {
+      expect(html).not.toContain(gone);
     }
+    expect(html).not.toContain('<li>Windows</li>');
+  });
+
+  it('no longer holds the back to top button, which now floats', () => {
+    expect(html).not.toContain('href="#top"');
+  });
+
+  it('puts the support link in the legal row', () => {
+    expect(html).toContain('<span>Support</span>');
   });
 
   it('hides the giant wordmark from assistive technology and never uses it as the only link', () => {
-    const html = renderToStaticMarkup(<SiteFooter version={null} year={2026} />);
     const mark = /<div class="[^"]*mark[^"]*" aria-hidden="true">/.exec(html);
     expect(mark).not.toBeNull();
     expect(html.slice(html.indexOf('<text'))).not.toContain('<a ');

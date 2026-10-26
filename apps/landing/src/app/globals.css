@@ -22,6 +22,22 @@
   margin-inline: auto;
 }
 
+/* Shared section rhythm. Sections are separated by space, not by boxes. */
+.section {
+  padding-block: clamp(4rem, 3rem + 5vw, 8rem);
+}
+
+.section-title {
+  font-size: var(--scrim-text-h2);
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  max-width: var(--scrim-measure);
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-body-lg);
+}
+
 /* Sections below the first screen skip rendering until they are near. The size hint keeps the
    scrollbar steady and stops anchor links from drifting. */
 .deferred {

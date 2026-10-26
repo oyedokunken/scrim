@@ -1,0 +1,58 @@
+.page {
+  display: grid;
+  gap: var(--scrim-space-5);
+  max-width: 40rem;
+  padding-block: clamp(3rem, 2rem + 4vw, 6rem) 0;
+}
+
+.title {
+  font-size: var(--scrim-text-h2);
+  letter-spacing: -0.03em;
+}
+
+.form {
+  display: grid;
+  justify-items: start;
+  gap: var(--scrim-space-4);
+}
+
+.button {
+  min-height: 3.25rem;
+  padding: 0.75rem 1.75rem;
+  border: 0;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--scrim-green-hover);
+}
+
+.button:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.done {
+  display: flex;
+  align-items: center;
+  gap: var(--scrim-space-3);
+  padding: var(--scrim-space-4) var(--scrim-space-5);
+  border-left: 4px solid var(--scrim-green);
+  background: var(--scrim-green-tint);
+  font-size: var(--scrim-text-body-lg);
+  font-weight: 700;
+}
+
+.done svg {
+  flex: none;
+  color: var(--scrim-green);
+}
+
+.error {
+  font-weight: 700;
+}

@@ -1,19 +1,15 @@
-import { ArrowUp, Lock } from 'lucide-react';
 import { siteConfig } from '@/site.config';
+import { BuiltBy } from './built-by';
 import { Logo } from './logo';
+import { MaltLink } from './malt-link';
 import styles from './site-footer.module.css';
-import { SuyaLink } from './suya-link';
 
 interface SiteFooterProps {
-  /** The latest published version, or null when there is no release yet. */
-  version: string | null;
   /** The year shown in the copyright line. */
   year: number;
 }
 
-const SYSTEMS = ['Windows', 'macOS', 'Linux'] as const;
-
-export function SiteFooter({ version, year }: SiteFooterProps) {
+export function SiteFooter({ year }: SiteFooterProps) {
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
@@ -21,17 +17,9 @@ export function SiteFooter({ version, year }: SiteFooterProps) {
           <div className={styles.brand}>
             <Logo markSize={36} />
             <p>
-              Scrim records your screen, follows your cursor and exports an MP4. Your recordings
-              stay on your computer.
+              Scrim records your screen, spotlights your cursor and zooms in on the action. Free,
+              open source and entirely on your computer.
             </p>
-            <ul className={styles.chips} aria-label="Supported systems">
-              {SYSTEMS.map((system) => (
-                <li key={system}>{system}</li>
-              ))}
-            </ul>
-            <a className={styles.version} href={siteConfig.releasesUrl}>
-              {version === null ? 'Coming soon' : `Latest version ${version}`}
-            </a>
           </div>
 
           <nav aria-label="Footer" className={styles.columns}>
@@ -50,37 +38,35 @@ export function SiteFooter({ version, year }: SiteFooterProps) {
           </nav>
         </div>
 
-        <div className={styles.trust}>
-          <p>
-            <Lock aria-hidden="true" size={18} />
-            Recordings never leave your computer.
-          </p>
-          <a href="#top" className={styles.toTop}>
-            <ArrowUp aria-hidden="true" size={16} />
-            Back to top
-          </a>
-        </div>
-
         <div className={styles.legal}>
-          <p>&copy; {year} Scrim.</p>
+          <p>&copy; {year} Scrim. All rights reserved.</p>
           <ul>
             <li>
-              <a href={siteConfig.licenseUrl}>MIT license</a>
+              <BuiltBy />
             </li>
             <li>
-              Built by <a href={siteConfig.author.url}>{siteConfig.author.name}</a>
-            </li>
-            <li>
-              <SuyaLink plain />
+              <MaltLink className={styles.malt} />
             </li>
           </ul>
         </div>
       </div>
 
-      {/* Decoration only. Every link and fact above also appears as real text. */}
+      {/* Decoration only. Every link and fact above also appears as real text. The whole logo
+          rises into view as the page scrolls to it, and shows in full once it has arrived. */}
       <div className={styles.mark} aria-hidden="true">
-        <svg viewBox="0 0 1000 400" focusable="false" preserveAspectRatio="xMidYMin meet">
-          <text x="0" y="330" textLength="1000" lengthAdjust="spacing" fill="var(--scrim-green)">
+        <svg viewBox="0 0 1000 330" focusable="false">
+          <g transform="scale(9.375)">
+            <rect width="32" height="32" rx="8" fill="var(--scrim-white)" />
+            <path
+              d="M9 13v-2a2 2 0 0 1 2-2h2M19 9h2a2 2 0 0 1 2 2v2M23 19v2a2 2 0 0 1-2 2h-2M13 23h-2a2 2 0 0 1-2-2v-2"
+              fill="none"
+              stroke="var(--scrim-black)"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <circle cx="16" cy="16" r="3.5" fill="var(--scrim-black)" />
+          </g>
+          <text x="352" y="252" textLength="648" lengthAdjust="spacing" fill="var(--scrim-white)">
             Scrim
           </text>
         </svg>

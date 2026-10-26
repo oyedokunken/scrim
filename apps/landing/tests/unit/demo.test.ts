@@ -10,8 +10,15 @@ import {
   DEMO_KEYFRAMES,
   DEMO_LOG,
   DEMO_WAYPOINTS,
+  DEMO_ZOOM_SPANS,
+  SEARCH_WORD,
   STATIC_FRAME_TIME_MS,
   buildDemoLog,
+  formatClock,
+  typedCount,
+  ramp,
+  uiStateAt,
+  zoomSpans,
 } from '@/lib/demo/script';
 import { ManualClock } from './support/manual-clock';
 
@@ -20,15 +27,15 @@ describe('the scripted demo path', () => {
     expect(buildDemoLog()).toEqual(buildDemoLog());
   });
 
-  it('has three left clicks at different places', () => {
-    expect(DEMO_CLICKS).toHaveLength(3);
+  it('has six left clicks at different places', () => {
+    expect(DEMO_CLICKS).toHaveLength(6);
     expect(DEMO_CLICKS.every((click) => click.button === 'left')).toBe(true);
-    const places = new Set(DEMO_CLICKS.map((click) => `${String(click.x)},${String(click.y)}`));
-    expect(places.size).toBe(3);
+    const places = new Set(DEMO_CLICKS.map((click) => String(click.x) + ',' + String(click.y)));
+    expect(places.size).toBe(6);
   });
 
-  it('runs for about 10 seconds and loops back to where it began', () => {
-    expect(DEMO_DURATION_MS).toBe(10_000);
+  it('runs for 18 seconds and loops back to where it began', () => {
+    expect(DEMO_DURATION_MS).toBe(18_000);
     const first = DEMO_WAYPOINTS[0];
     const last = DEMO_WAYPOINTS[DEMO_WAYPOINTS.length - 1];
     expect(last?.t).toBe(DEMO_DURATION_MS);
@@ -53,9 +60,9 @@ describe('the scripted demo path', () => {
     expect(times).toEqual([...times].sort((a, b) => a - b));
   });
 
-  it('zooms out fully only twice: after the first click, and at the end of the merged pan', () => {
+  it('zooms out fully between the zooms, and stays in across the first two clicks', () => {
     const rests = DEMO_KEYFRAMES.filter((keyframe) => keyframe.pose.scale === 1).map((k) => k.t);
-    expect(rests).toEqual([1250, 3150, 4550, 8250]);
+    expect(rests).toEqual([1250, 4950, 5750, 7650, 8150, 10_050, 10_750, 12_650, 13_750, 15_650]);
   });
 
   it('ends the loop at rest, before the cursor starts again', () => {
@@ -70,13 +77,10 @@ describe('the scripted demo path', () => {
     expect(sampleCamera(DEMO_KEYFRAMES, STATIC_FRAME_TIME_MS, DEMO_FRAME).scale).toBe(2);
   });
 
-  it('pans across to the third click instead of zooming out and back in', () => {
-    const during = sampleCamera(DEMO_KEYFRAMES, 5000, DEMO_FRAME);
-    const after = sampleCamera(DEMO_KEYFRAMES, 7500, DEMO_FRAME);
-    expect(during.scale).toBe(2);
-    expect(after.scale).toBe(2);
-    expect(after.cx).toBeGreaterThan(during.cx);
-    expect(after.cy).toBeGreaterThan(during.cy);
+  it('stays zoomed between the first two clicks instead of zooming out and back in', () => {
+    for (const t of [2000, 2600, 3000, 3600, 4200]) {
+      expect(sampleCamera(DEMO_KEYFRAMES, t, DEMO_FRAME).scale, 'at ' + String(t)).toBe(2);
+    }
   });
 
   it('never lets the view leave the frame at any time in the loop', () => {
@@ -247,5 +251,136 @@ describe('DemoPlayer', () => {
     player.play();
     player.dispose();
     expect(clock.pending).toBe(0);
+  });
+});
+
+describe('the reactions in the pretend app', () => {
+  it('ramps from 0 to 1 and clamps outside the range', () => {
+    expect(ramp(0, 100, 200)).toBe(0);
+    expect(ramp(200, 100, 200)).toBe(0.5);
+    expect(ramp(300, 100, 200)).toBe(1);
+    expect(ramp(9999, 100, 200)).toBe(1);
+  });
+
+  it('shows nothing at the start, so the loop begins clean', () => {
+    expect(uiStateAt(0)).toEqual({
+      menu: 0,
+      chip: 0,
+      checked: 0,
+      checkedMore: 0,
+      toast: 0,
+      search: 0,
+    });
+  });
+
+  it('opens the menu after the first click and closes it when an item is chosen', () => {
+    expect(uiStateAt(1400).menu).toBe(0);
+    expect(uiStateAt(2500).menu).toBe(1);
+    expect(uiStateAt(3000).menu).toBe(1);
+    expect(uiStateAt(3800).menu).toBe(0);
+  });
+
+  it('turns the Filter button green once a filter is chosen', () => {
+    expect(uiStateAt(3200).chip).toBe(0);
+    expect(uiStateAt(4000).chip).toBe(1);
+  });
+
+  it('ticks the second and third tasks after their own clicks', () => {
+    expect(uiStateAt(5900).checked).toBe(0);
+    expect(uiStateAt(7000).checked).toBe(1);
+    expect(uiStateAt(8300).checkedMore).toBe(0);
+    expect(uiStateAt(9300).checkedMore).toBe(1);
+  });
+
+  it('shows the saved message after Save and hides it again', () => {
+    expect(uiStateAt(10_900).toast).toBe(0);
+    expect(uiStateAt(11_800).toast).toBe(1);
+    expect(uiStateAt(13_400).toast).toBe(0);
+  });
+
+  it('focuses the search box after its click', () => {
+    expect(uiStateAt(13_900).search).toBe(0);
+    expect(uiStateAt(14_500).search).toBe(1);
+  });
+
+  it('tidies everything away before the loop ends, so the next loop starts clean', () => {
+    const end = uiStateAt(DEMO_DURATION_MS - 1);
+    expect(end.chip).toBe(0);
+    expect(end.checked).toBe(0);
+    expect(end.checkedMore).toBe(0);
+    expect(end.search).toBe(0);
+  });
+
+  it('keeps every reaction between 0 and 1 for the whole loop', () => {
+    for (let t = 0; t <= DEMO_DURATION_MS; t += 25) {
+      for (const value of Object.values(uiStateAt(t))) {
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it('reacts to each click, not before it', () => {
+    const [menu, choose, tick, tickMore, save, search] = DEMO_CLICKS.map((click) => click.t);
+    expect(uiStateAt((menu ?? 0) - 100).menu).toBe(0);
+    expect(uiStateAt((choose ?? 0) - 100).chip).toBe(0);
+    expect(uiStateAt((tick ?? 0) - 100).checked).toBe(0);
+    expect(uiStateAt((tickMore ?? 0) - 100).checkedMore).toBe(0);
+    expect(uiStateAt((save ?? 0) - 100).toast).toBe(0);
+    expect(uiStateAt((search ?? 0) - 100).search).toBe(0);
+  });
+});
+
+describe('the typed search word', () => {
+  it('is empty until the search box has focus', () => {
+    expect(typedCount(0)).toBe(0);
+    expect(typedCount(14_000)).toBe(0);
+  });
+
+  it('types one letter at a time and stops at the whole word', () => {
+    expect(SEARCH_WORD).toBe('release');
+    expect(typedCount(14_250)).toBe(1);
+    expect(typedCount(14_400)).toBe(2);
+    expect(typedCount(15_500)).toBe(SEARCH_WORD.length);
+    expect(typedCount(16_900)).toBe(SEARCH_WORD.length);
+  });
+
+  it('is cleared with the rest before the loop restarts', () => {
+    expect(typedCount(17_100)).toBe(0);
+    expect(typedCount(DEMO_DURATION_MS - 1)).toBe(0);
+  });
+
+  it('never goes backwards while it is typing', () => {
+    let previous = 0;
+    for (let t = 14_000; t < 17_000; t += 20) {
+      const count = typedCount(t);
+      expect(count).toBeGreaterThanOrEqual(previous);
+      previous = count;
+    }
+  });
+});
+
+describe('the timeline helpers', () => {
+  it('finds the five zoom regions the planner made', () => {
+    expect(DEMO_ZOOM_SPANS).toEqual([
+      { start: 1250, end: 4950 },
+      { start: 5750, end: 7650 },
+      { start: 8150, end: 10_050 },
+      { start: 10_750, end: 12_650 },
+      { start: 13_750, end: 15_650 },
+    ]);
+  });
+
+  it('finds none when the camera never zooms', () => {
+    expect(zoomSpans([])).toEqual([]);
+    expect(zoomSpans([{ t: 0, pose: { scale: 1, cx: 1, cy: 1 }, ease: 'inOut' }])).toEqual([]);
+  });
+
+  it('formats a recording clock as minutes and seconds', () => {
+    expect(formatClock(0)).toBe('00:00');
+    expect(formatClock(7000)).toBe('00:07');
+    expect(formatClock(7999)).toBe('00:07');
+    expect(formatClock(65_000)).toBe('01:05');
+    expect(formatClock(-5)).toBe('00:00');
   });
 });

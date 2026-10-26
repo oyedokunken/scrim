@@ -30,7 +30,7 @@ export async function renderBrandCard(): Promise<ImageResponse> {
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: 72,
-        background: '#FBF7F4',
+        background: '#FBF8F4',
         fontFamily: 'Urbanist',
       }}
     >
@@ -44,12 +44,12 @@ export async function renderBrandCard(): Promise<ImageResponse> {
             fontWeight: 800,
             letterSpacing: -6,
             lineHeight: 1,
-            color: '#2C2322',
+            color: '#000000',
           }}
         >
           {siteConfig.name}
         </div>
-        <div style={{ marginTop: 20, fontSize: 44, fontWeight: 600, color: '#105D64' }}>
+        <div style={{ marginTop: 20, fontSize: 44, fontWeight: 600, color: '#004E52' }}>
           {siteConfig.tagline}
         </div>
       </div>

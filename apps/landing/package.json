@@ -20,22 +20,24 @@
   },
   "dependencies": {
     "@fontsource-variable/urbanist": "catalog:",
+    "@prisma/adapter-pg": "catalog:",
+    "@prisma/client": "catalog:",
     "@scrim/core": "workspace:*",
     "@scrim/tokens": "workspace:*",
     "lucide-react": "catalog:",
     "next": "catalog:",
+    "nodemailer": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "server-only": "catalog:",
-    "zod": "catalog:",
-    "@prisma/adapter-pg": "catalog:",
-    "@prisma/client": "catalog:"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@axe-core/playwright": "catalog:",
     "@fontsource/urbanist": "catalog:",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
+    "@types/nodemailer": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "fast-check": "catalog:",

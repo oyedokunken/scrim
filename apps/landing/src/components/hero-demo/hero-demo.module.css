@@ -14,7 +14,7 @@
   background: var(--scrim-white);
   /* A soft shadow made from the black, never a hard black. */
   box-shadow: 0 1.5rem 3rem -1.5rem color-mix(in srgb, var(--scrim-black) 28%, transparent);
-  contain: layout paint;
+  container-type: size;
 }
 
 /* The whole pretend screen. The camera is a transform on this element. */
@@ -157,4 +157,305 @@
   .thumb {
     transition: none;
   }
+}
+
+/* The fading dots that follow the cursor, newest first. */
+.trail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1.1cqw;
+  height: 1.1cqw;
+  margin: -0.55cqw 0 0 -0.55cqw;
+  border-radius: 50%;
+  background: var(--scrim-green);
+  opacity: calc(0.4 - var(--i) * 0.075);
+  transform: translate(calc(var(--tx) * 100cqw), calc(var(--ty) * 100cqh));
+  pointer-events: none;
+}
+
+/* Recording overlays. They sit on the viewport, not the scene, so the zoom does not move them. */
+.rec,
+.zoomBadge {
+  position: absolute;
+  top: 2.2cqw;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9cqw;
+  padding: 0.7cqw 1.5cqw;
+  border-radius: var(--scrim-radius-pill);
+  background: color-mix(in srgb, var(--scrim-black) 82%, transparent);
+  color: var(--scrim-butter);
+  font-size: max(0.625rem, 1.5cqw);
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.rec {
+  left: 2.2cqw;
+}
+
+.zoomBadge {
+  right: 2.2cqw;
+  font-variant-numeric: tabular-nums;
+}
+
+.recDot {
+  width: 1.1cqw;
+  height: 1.1cqw;
+  min-width: 6px;
+  min-height: 6px;
+  border-radius: 50%;
+  background: var(--scrim-record);
+}
+
+.recLabel {
+  color: var(--scrim-record);
+  letter-spacing: 0.04em;
+}
+
+.recTime {
+  min-width: 3.2em;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .recDot {
+    animation: blink 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.face {
+  position: absolute;
+  bottom: 2.2cqw;
+  left: 2.2cqw;
+  width: 15cqw;
+  aspect-ratio: 1;
+  transform: translateY(calc(var(--bob) * 0.45cqw));
+  pointer-events: none;
+}
+
+.faceArt {
+  width: 100%;
+  height: 100%;
+  border: 0.45cqw solid var(--scrim-white);
+  border-radius: 50%;
+  box-shadow: 0 0.8cqw 2cqw -0.6cqw color-mix(in srgb, var(--scrim-black) 45%, transparent);
+  background: var(--scrim-white);
+}
+
+.mic {
+  position: absolute;
+  bottom: 0.8cqw;
+  left: calc(100% + 0.9cqw);
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35cqw;
+  height: 3.4cqw;
+  padding: 0.7cqw 1cqw;
+  box-sizing: content-box;
+  border-radius: var(--scrim-radius-pill);
+  background: color-mix(in srgb, var(--scrim-black) 82%, transparent);
+}
+
+.micBar {
+  width: 0.5cqw;
+  min-width: 2px;
+  height: 100%;
+  border-radius: 1cqw;
+  background: var(--scrim-butter);
+  transform-origin: bottom;
+}
+
+/* The timeline shows where the planner put the zoom. Dragging it moves through the recording. */
+.timeline {
+  display: grid;
+  gap: var(--scrim-space-2);
+}
+
+.timelineHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--scrim-space-3);
+}
+
+.timelineLabel {
+  font-size: var(--scrim-text-small);
+  font-weight: 800;
+}
+
+.timelineClock {
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-small);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.timelineClock span {
+  color: var(--scrim-black);
+}
+
+.timelineTrack {
+  position: relative;
+  height: 2.75rem;
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: var(--scrim-radius-md);
+  background: var(--scrim-white);
+}
+
+.zoomSpan {
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  border-radius: 0.5rem;
+  background: var(--scrim-green);
+}
+
+.clickMark {
+  position: absolute;
+  top: 50%;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin: -0.375rem 0 0 -0.375rem;
+  border: 2px solid var(--scrim-black);
+  border-radius: 50%;
+  background: var(--scrim-butter);
+  pointer-events: none;
+}
+
+.scrubber {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+.scrubber::-webkit-slider-runnable-track {
+  height: 100%;
+  background: transparent;
+}
+
+.scrubber::-webkit-slider-thumb {
+  width: 4px;
+  height: 2.75rem;
+  margin-top: -1px;
+  appearance: none;
+  border: 0;
+  border-radius: 2px;
+  background: var(--scrim-black);
+}
+
+.scrubber::-moz-range-track {
+  height: 100%;
+  background: transparent;
+}
+
+.scrubber::-moz-range-thumb {
+  width: 4px;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 2px;
+  background: var(--scrim-black);
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-small);
+}
+
+.legendSpan {
+  width: 1.5rem;
+  height: 0.75rem;
+  border-radius: 0.375rem;
+  background: var(--scrim-green);
+}
+
+/* A flag on the playhead that shows the time, like the cursor on a video editor timeline. */
+.flag {
+  position: absolute;
+  bottom: calc(100% + 0.25rem);
+  left: clamp(1.5rem, calc(var(--t) * 100%), calc(100% - 1.5rem));
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--scrim-black);
+  color: var(--scrim-butter);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1.4;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* The time ruler under the track, with a tick every second and a label every two. */
+.ruler {
+  position: relative;
+  height: 1.5rem;
+  margin-top: -0.25rem;
+}
+
+.tickMajor,
+.tickMinor {
+  position: absolute;
+  top: 0;
+  color: var(--scrim-text-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.tickMajor {
+  padding-top: 0.6rem;
+}
+
+.tickMajor::before,
+.tickMinor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 0.4rem;
+  background: var(--scrim-text-secondary);
+}
+
+.tickMinor::before {
+  height: 0.25rem;
+  opacity: 0.6;
+}
+
+/* The first and last labels stay inside the track instead of hanging over its edges. */
+.ruler > :first-child {
+  transform: none;
+}
+
+.ruler > :last-child {
+  transform: translateX(-100%);
+}
+
+.ruler > :first-child::before {
+  left: 0;
+}
+
+.ruler > :last-child::before {
+  left: 100%;
 }

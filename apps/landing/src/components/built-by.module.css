@@ -1,0 +1,96 @@
+.root {
+  position: relative;
+  display: inline-block;
+}
+
+.handle {
+  display: inline;
+  min-height: 2.75rem;
+  padding: 0 0.125rem;
+  border: 0;
+  background: none;
+  color: var(--scrim-butter);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+
+.handle:hover {
+  color: var(--scrim-white);
+}
+
+.handle[aria-expanded='true'] {
+  color: var(--scrim-white);
+}
+
+/* The card opens upward from the handle, because the handle sits at the foot of the page. */
+.panel {
+  position: absolute;
+  bottom: calc(100% + 0.75rem);
+  left: 50%;
+  z-index: 20;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.125rem 1.125rem;
+  border-radius: var(--scrim-radius-lg);
+  background: var(--scrim-white);
+  box-shadow: 0 1.25rem 2.5rem -0.75rem color-mix(in srgb, var(--scrim-black) 70%, transparent);
+  color: var(--scrim-black);
+  transform: translateX(-50%);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel:not([hidden]) {
+    animation: pop 0.18s ease-out;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.5rem);
+  }
+}
+
+.caption {
+  display: grid;
+  font-size: var(--scrim-text-small);
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.caption span {
+  color: var(--scrim-text-secondary);
+  font-weight: 600;
+}
+
+.icons {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* On a narrow screen the card hugs the left edge of the row instead of centering past the edge. */
+@media (max-width: 40rem) {
+  .panel {
+    left: 0;
+    transform: none;
+  }
+
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+  }
+}

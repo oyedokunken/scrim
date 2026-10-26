@@ -9,9 +9,9 @@ import { MarkSvg } from '@/lib/mark-svg';
 const root = path.join(import.meta.dirname, '../..');
 const read = (file: string) => readFileSync(path.join(root, file), 'utf8');
 
-const GREEN = '#105D64';
-const BUTTER = '#FBF7F4';
-const BLACK = '#2C2322';
+const GREEN = '#004E52';
+const BUTTER = '#FBF8F4';
+const BLACK = '#000000';
 
 /** Files that draw the mark itself. Inside these, only green and butter may appear. */
 const MARK_FILES = ['src/app/icon.svg', 'src/lib/mark-svg.tsx', 'src/components/logo.tsx'];

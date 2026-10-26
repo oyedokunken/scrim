@@ -124,6 +124,56 @@ test.describe('the hero demo with JavaScript', () => {
   });
 });
 
+test.describe('the recording look of the demo', () => {
+  test('the REC dot and label are red, like a recording light', async ({ page }) => {
+    await page.goto('/');
+    const rec = page.getByTestId('hero-demo').locator('span', { hasText: 'REC' }).first();
+    await expect(rec).toBeVisible();
+    await expect(rec.locator('span').first()).toHaveCSS('background-color', 'rgb(255, 59, 48)');
+    await expect(page.getByTestId('hero-demo').getByText('REC', { exact: true })).toHaveCSS(
+      'color',
+      'rgb(255, 59, 48)',
+    );
+  });
+
+  test('the timeline has a time ruler, a clock and a flag that follow playback', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const timeline = page
+      .locator('section[aria-labelledby="hero-title"]')
+      .getByText('Timeline')
+      .locator('xpath=ancestor::div[2]');
+    for (const label of ['00:00', '00:02', '00:04', '00:06', '00:08', '00:10']) {
+      await expect(timeline.getByText(label, { exact: true }).first()).toBeVisible();
+    }
+    await expect(timeline.getByText('/ 00:10')).toBeVisible();
+
+    // The clock moves with playback.
+    await expect
+      .poll(
+        async () =>
+          await timeline
+            .locator('span')
+            .filter({ hasText: /^00:0[1-9]$/ })
+            .count(),
+      )
+      .toBeGreaterThan(0);
+  });
+
+  test('dragging the timeline moves the demo to that time', async ({ page }) => {
+    await page.goto('/');
+    const view = page.getByTestId('hero-demo');
+    await page.getByRole('button', { name: 'Play demo' }).click();
+    await expect(view).toHaveAttribute('data-playing', 'false');
+    const slider = page.getByRole('slider', { name: 'Demo position' });
+    await slider.focus();
+    await slider.fill('5500');
+    await expect.poll(async () => Number((await view.getAttribute('data-time')) ?? '0')).toBe(5500);
+    await expect(view).toHaveAttribute('data-scale', '2.00');
+  });
+});
+
 test.describe('layout stability', () => {
   test('the page and the hero cause no layout shift while the demo runs', async ({ page }) => {
     await page.addInitScript(() => {

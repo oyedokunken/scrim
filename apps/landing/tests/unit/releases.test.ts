@@ -6,6 +6,7 @@ const site = { GITHUB_REPO: 'oyedokunken/scrim' };
 const release = {
   tag_name: 'v1.2.3',
   html_url: 'https://github.com/oyedokunken/scrim/releases/tag/v1.2.3',
+  published_at: '2026-11-02T09:30:00Z',
   assets: [
     {
       name: 'Scrim-1.2.3-x64.exe',
@@ -29,6 +30,7 @@ describe('fetchLatestRelease', () => {
     expect(result).toEqual({
       version: '1.2.3',
       url: release.html_url,
+      publishedAt: '2026-11-02T09:30:00Z',
       assets: [
         {
           name: 'Scrim-1.2.3-x64.exe',

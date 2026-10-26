@@ -1,18 +1,20 @@
 'use client';
 
 import { Menu, X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import styles from './site-header.module.css';
 
 interface MobileMenuProps {
   items: readonly { label: string; href: string }[];
+  /** An extra last item, set apart from the links. */
+  children?: ReactNode;
 }
 
 /**
- * The navigation below 760px, as a native disclosure. It works without JavaScript. The script
+ * The navigation below 960px, as a native disclosure. It works without JavaScript. The script
  * only adds closing on Escape, on an outside tap and after following a link.
  */
-export function MobileMenu({ items }: MobileMenuProps) {
+export function MobileMenu({ items, children }: MobileMenuProps) {
   const details = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export function MobileMenu({ items }: MobileMenuProps) {
               </a>
             </li>
           ))}
+          {children === undefined ? null : <li className={styles.menuExtra}>{children}</li>}
         </ul>
       </nav>
     </details>

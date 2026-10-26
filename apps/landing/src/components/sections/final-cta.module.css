@@ -1,0 +1,302 @@
+.wrap {
+  padding-block: clamp(2rem, 1rem + 4vw, 5rem) 0;
+}
+
+.panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(4rem, 3rem + 6vw, 9rem) clamp(1.5rem, 1rem + 5vw, 6rem);
+  border-radius: var(--scrim-radius-xl);
+  background: var(--scrim-green);
+  color: var(--scrim-butter);
+}
+
+.panel :focus-visible {
+  outline-color: var(--scrim-butter);
+}
+
+/* Viewfinder corners, the same bracket as the logo. */
+.bracket {
+  position: absolute;
+  width: clamp(1.75rem, 1.2rem + 2vw, 3rem);
+  height: auto;
+  color: var(--scrim-butter);
+  opacity: 0.85;
+}
+
+.tl {
+  top: 1.25rem;
+  left: 1.25rem;
+}
+
+.tr {
+  top: 1.25rem;
+  right: 1.25rem;
+  transform: scaleX(-1);
+}
+
+.bl {
+  bottom: 1.25rem;
+  left: 1.25rem;
+  transform: scaleY(-1);
+}
+
+.br {
+  right: 1.25rem;
+  bottom: 1.25rem;
+  transform: scale(-1);
+}
+
+.rec {
+  position: absolute;
+  top: 1.6rem;
+  left: clamp(3.5rem, 2.5rem + 3vw, 5rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--scrim-text-small);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.recDot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--scrim-butter);
+}
+
+/* Rings spread from the lower right, behind the text. */
+.rings {
+  position: absolute;
+  right: 12%;
+  bottom: 18%;
+  z-index: -1;
+  width: 0;
+  height: 0;
+}
+
+.rings span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 70vmin;
+  height: 70vmin;
+  max-width: 44rem;
+  max-height: 44rem;
+  margin: calc(min(70vmin, 44rem) / -2) 0 0 calc(min(70vmin, 44rem) / -2);
+  border: 2px solid var(--scrim-butter);
+  border-radius: 50%;
+  opacity: 0.16;
+}
+
+.rings span:nth-child(2) {
+  transform: scale(0.72);
+}
+
+.rings span:nth-child(3) {
+  transform: scale(0.46);
+}
+
+.rings span:nth-child(4) {
+  transform: scale(0.22);
+}
+
+.content {
+  display: grid;
+  justify-items: start;
+  gap: var(--scrim-space-5);
+  max-width: 52rem;
+}
+
+.title {
+  font-size: var(--scrim-text-display);
+  line-height: var(--scrim-leading-display);
+  letter-spacing: -0.035em;
+  color: var(--scrim-white);
+}
+
+.lead {
+  max-width: var(--scrim-measure);
+  font-size: var(--scrim-text-body-lg);
+}
+
+.actions {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--scrim-space-3);
+  margin-top: var(--scrim-space-3);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 3.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-butter);
+  color: var(--scrim-black);
+  font-size: 1.125rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.button:hover {
+  background: var(--scrim-white);
+  color: var(--scrim-black);
+  transform: translateY(-2px);
+}
+
+.source {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  color: var(--scrim-butter);
+  font-weight: 700;
+}
+
+.source:hover {
+  color: var(--scrim-white);
+}
+
+/* A cursor that taps the first button on a loop, with a ripple under it. */
+.tap {
+  position: absolute;
+  top: 60%;
+  left: 3.25rem;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.pointer {
+  position: absolute;
+  max-width: none;
+  top: 0;
+  left: 0;
+  width: 1.6rem;
+  height: auto;
+  filter: drop-shadow(0 0.25rem 0.5rem color-mix(in srgb, var(--scrim-black) 35%, transparent));
+}
+
+.tapRipple {
+  position: absolute;
+  top: -1.5rem;
+  left: -1.5rem;
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--scrim-green);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .recDot {
+    animation: blink 1.4s ease-in-out infinite;
+  }
+
+  .rings span {
+    animation: spread 6s ease-out infinite;
+    animation-delay: calc(var(--n, 0) * -1.5s);
+  }
+
+  .rings span:nth-child(1) {
+    --n: 0;
+  }
+
+  .rings span:nth-child(2) {
+    --n: 1;
+  }
+
+  .rings span:nth-child(3) {
+    --n: 2;
+  }
+
+  .rings span:nth-child(4) {
+    --n: 3;
+  }
+
+  .pointer {
+    animation: approach 5s ease-in-out infinite;
+  }
+
+  .tapRipple {
+    animation: tap 5s ease-out infinite;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes spread {
+  from {
+    transform: scale(0.1);
+    opacity: 0.4;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes approach {
+  0% {
+    transform: translate(5rem, 4rem);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  50% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  56% {
+    transform: translate(0, 0) scale(0.84);
+  }
+
+  64% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  90% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes tap {
+  0%,
+  54% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+
+  56% {
+    opacity: 0.9;
+  }
+
+  75%,
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}

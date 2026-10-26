@@ -10,11 +10,12 @@ test.use({ reducedMotion: 'reduce' });
 const SECTIONS: [string, string][] = [
   ['hero', 'section[aria-labelledby="hero-title"]'],
   ['features', '#features'],
-  ['who', '#who'],
+  ['use-cases', '#use-cases'],
   ['download', '#download'],
-  ['about', '#about'],
+  ['faq', '#faq'],
   ['contribute', '#contribute'],
   ['contact', '#contact'],
+  ['cta', 'section[aria-labelledby="cta-title"]'],
 ];
 
 for (const [name, selector] of SECTIONS) {

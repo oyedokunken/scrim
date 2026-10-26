@@ -1,0 +1,143 @@
+/* The one full width band of green on the page. White and butter carry the text on it. */
+.band {
+  background: var(--scrim-green);
+  color: var(--scrim-butter);
+}
+
+.inner {
+  display: grid;
+  gap: var(--scrim-space-7);
+  padding-block: clamp(4rem, 3rem + 5vw, 8rem);
+}
+
+.intro {
+  display: grid;
+  gap: var(--scrim-space-4);
+  max-width: 46rem;
+}
+
+.intro :global(.section-title) {
+  color: var(--scrim-white);
+}
+
+.status {
+  max-width: var(--scrim-measure);
+  font-size: var(--scrim-text-body-lg);
+}
+
+.status a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--scrim-white);
+  font-weight: 700;
+  text-decoration-thickness: 2px;
+}
+
+.status a:hover {
+  color: var(--scrim-butter);
+}
+
+.band :focus-visible {
+  outline-color: var(--scrim-butter);
+}
+
+.systems {
+  display: grid;
+  gap: var(--scrim-space-5);
+}
+
+.system {
+  display: grid;
+  align-content: start;
+  gap: var(--scrim-space-3);
+  padding: var(--scrim-space-6);
+  border-radius: var(--scrim-radius-lg);
+  background: var(--scrim-white);
+  color: var(--scrim-black);
+}
+
+.system[data-yours='true'] {
+  outline: 3px solid var(--scrim-butter);
+  outline-offset: 4px;
+}
+
+.systemHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--scrim-space-2);
+}
+
+.systemLogo {
+  color: var(--scrim-black);
+}
+
+.yours {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-green-tint);
+  color: var(--scrim-green);
+  font-size: var(--scrim-text-small);
+  font-weight: 800;
+}
+
+.system h3 {
+  font-size: var(--scrim-text-h3);
+  letter-spacing: -0.02em;
+}
+
+.system p {
+  color: var(--scrim-text-secondary);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  min-height: 3.25rem;
+  margin-top: var(--scrim-space-2);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.button:hover {
+  background: var(--scrim-green-hover);
+  color: var(--scrim-white);
+}
+
+.system :focus-visible {
+  outline-color: var(--scrim-green);
+}
+
+.help {
+  margin-top: var(--scrim-space-2);
+  border-top: 1px solid var(--scrim-border-on-white);
+}
+
+.help summary {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--scrim-green);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.help p {
+  padding-bottom: var(--scrim-space-3);
+  font-size: var(--scrim-text-small);
+}
+
+@media (min-width: 56rem) {
+  .systems {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+}

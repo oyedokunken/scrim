@@ -1,8 +1,8 @@
 import { MARK } from './brand';
 
 // Literal values, for image routes and icons that cannot read CSS variables.
-const MARK_GREEN = '#105D64';
-const MARK_BUTTER = '#FBF7F4';
+const MARK_GREEN = '#004E52';
+const MARK_BUTTER = '#FBF8F4';
 
 interface MarkSvgProps {
   size: number;

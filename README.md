@@ -136,7 +136,7 @@ The desktop application does not send recordings or recording data to a server. 
 - **Name:** Oyedokun Kehinde
 - **Email:** oyedokunken@gmail.com
 - **Portfolio:** https://www.oyedokun.dev/
-- **Buy me a suya:** https://buymeamalt.com/@oyedokunken
+- **Buy me malt:** https://buymeamalt.com/@oyedokunken
 
 ## License
 

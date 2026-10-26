@@ -27,7 +27,7 @@ export function renderPaddedIcon(size: number): ImageResponse {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#FBF7F4',
+        background: '#FBF8F4',
       }}
     >
       <MarkSvg size={mark} />

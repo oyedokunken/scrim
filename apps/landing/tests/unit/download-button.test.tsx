@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { DownloadButton } from '@/components/download-button';
 
 describe('DownloadButton on the server', () => {
-  const html = renderToStaticMarkup(<DownloadButton href="#download" />);
+  const html = renderToStaticMarkup(<DownloadButton />);
 
   it('reads a neutral Download that works for everyone', () => {
     expect(html).toContain('>Download</span>');
@@ -12,7 +12,8 @@ describe('DownloadButton on the server', () => {
   });
 
   it('links to where it was told to, so it works without JavaScript', () => {
-    expect(html).toContain('href="#download"');
+    expect(html).toContain('href="https://github.com/oyedokunken/scrim/releases"');
+    expect(html).toContain('data-download-trigger');
   });
 
   it('reserves the width of the longest label with a hidden twin', () => {

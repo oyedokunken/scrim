@@ -5,6 +5,7 @@ import { getSiteEnv } from './env';
 const releaseSchema = z.object({
   tag_name: z.string().min(1),
   html_url: z.url(),
+  published_at: z.string().nullable().optional(),
   assets: z.array(
     z.object({
       name: z.string(),
@@ -25,6 +26,8 @@ export interface LatestRelease {
   version: string;
   /** The release page on GitHub. */
   url: string;
+  /** When it was published, as an ISO date and time, or null when GitHub does not say. */
+  publishedAt: string | null;
   assets: ReleaseAsset[];
 }
 
@@ -79,6 +82,7 @@ export async function fetchLatestRelease(
     return {
       version: parsed.data.tag_name.replace(/^v/i, ''),
       url: parsed.data.html_url,
+      publishedAt: parsed.data.published_at ?? null,
       assets: parsed.data.assets.map((asset) => ({
         name: asset.name,
         url: asset.browser_download_url,

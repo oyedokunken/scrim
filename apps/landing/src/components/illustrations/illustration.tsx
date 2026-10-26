@@ -4,7 +4,7 @@ export interface IllustrationProps {
   /** Gives the illustration an accessible name. Without it the illustration is decorative. */
   title?: string;
   description?: string;
-  className?: string;
+  className?: string | undefined;
 }
 
 /**

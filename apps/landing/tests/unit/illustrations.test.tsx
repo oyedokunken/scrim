@@ -5,10 +5,12 @@ import { describe, expect, it } from 'vitest';
 import {
   AppWindowIllustration,
   BackdropSwatchesIllustration,
+  BeforeAfterIllustration,
   ClickRipplesIllustration,
   CursorHaloIllustration,
   ExportCardIllustration,
   FaceBubbleIllustration,
+  ShortcutsIllustration,
   TrimTimelineIllustration,
   ZoomFrameIllustration,
   type IllustrationProps,
@@ -17,10 +19,12 @@ import {
 const all: [string, ComponentType<IllustrationProps>][] = [
   ['AppWindow', AppWindowIllustration],
   ['BackdropSwatches', BackdropSwatchesIllustration],
+  ['BeforeAfter', BeforeAfterIllustration],
   ['ClickRipples', ClickRipplesIllustration],
   ['CursorHalo', CursorHaloIllustration],
   ['ExportCard', ExportCardIllustration],
   ['FaceBubble', FaceBubbleIllustration],
+  ['Shortcuts', ShortcutsIllustration],
   ['TrimTimeline', TrimTimelineIllustration],
   ['ZoomFrame', ZoomFrameIllustration],
 ];
@@ -29,9 +33,11 @@ const tokensCss = readFileSync(
   new URL('../../../../packages/tokens/src/tokens.css', import.meta.url),
   'utf8',
 );
-const definedVariables = new Set(
-  [...tokensCss.matchAll(/(--scrim-[a-z0-9-]+):/g)].map((match) => match[1]),
-);
+// The palette and spacing tokens, plus the font stack that the text in two illustrations uses.
+const definedVariables = new Set([
+  ...[...tokensCss.matchAll(/(--scrim-[a-z0-9-]+):/g)].map((match) => match[1]),
+  '--font-sans',
+]);
 
 describe.each(all)('%s illustration', (_name, Component) => {
   it('is decorative by default', () => {

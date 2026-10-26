@@ -219,6 +219,9 @@ catalogs:
     '@types/node':
       specifier: 24.19.2
       version: 24.19.2
+    '@types/nodemailer':
+      specifier: 8.0.2
+      version: 8.0.2
     '@types/react':
       specifier: 19.3.0
       version: 19.3.0
@@ -255,6 +258,9 @@ catalogs:
     next:
       specifier: 16.4.2
       version: 16.4.2
+    nodemailer:
+      specifier: 10.1.1
+      version: 10.1.1
     prettier:
       specifier: 3.9.10
       version: 3.9.10
@@ -359,6 +365,9 @@ importers:
       next:
         specifier: 'catalog:'
         version: 16.4.2(@babel/core@7.29.7)(@playwright/test@1.64.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      nodemailer:
+        specifier: 'catalog:'
+        version: 10.1.1
       react:
         specifier: 'catalog:'
         version: 19.3.1
@@ -384,6 +393,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
+      '@types/nodemailer':
+        specifier: 'catalog:'
+        version: 8.0.2
       '@types/react':
         specifier: 'catalog:'
         version: 19.3.0
@@ -1516,6 +1528,9 @@ packages:
   '@types/node@24.19.2':
     resolution: {integrity: sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==}
 
+  '@types/nodemailer@8.0.2':
+    resolution: {integrity: sha512-c7M5ox8p0nEOfbJ2E9Qcmt8/QCu/VzsiAhzBiZbvky2PhKZDHpKB3sQHBM5MEZNkCfBOaS6S9//AGPRTNB7IaA==}
+
   '@types/pg@8.23.1':
     resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
 
@@ -2369,6 +2384,10 @@ packages:
   node-releases@2.0.59:
     resolution: {integrity: sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==}
     engines: {node: '>=18'}
+
+  nodemailer@10.1.1:
+    resolution: {integrity: sha512-pbqZRoeYUO+1E8TJ/11WeY4D2EVujj1hsYjz3qff/vUFDtGnmi7p3iqzTFslYOfQ6PnjVcWxx/CIUSHCSrO/QA==}
+    engines: {node: '>=20.0.0'}
 
   obug@3.0.0:
     resolution: {integrity: sha512-5vvB5+W7ePv+p3uqxi+RcW1XAzLW0/hxt3/4X4Lc4qHudzOhmBiBwOY6DRob4WnanAEGvNcLjF+KNOufrUoEQw==}
@@ -3827,6 +3846,10 @@ snapshots:
     dependencies:
       undici-types: 7.24.6
 
+  '@types/nodemailer@8.0.2':
+    dependencies:
+      '@types/node': 24.19.2
+
   '@types/pg@8.23.1':
     dependencies:
       '@types/node': 24.19.2
@@ -4693,6 +4716,8 @@ snapshots:
       - babel-plugin-macros
 
   node-releases@2.0.59: {}
+
+  nodemailer@10.1.1: {}
 
   obug@3.0.0: {}
 

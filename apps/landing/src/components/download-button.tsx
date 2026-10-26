@@ -3,10 +3,11 @@
 import { Download } from 'lucide-react';
 import { osLabel } from '@/lib/platform';
 import styles from './download-button.module.css';
+import { useDownloadLink } from './download/download-provider';
+import { OsIcon } from './os-icons';
 import { usePlatform } from './use-platform';
 
 interface DownloadButtonProps {
-  href: string;
   /** Extra class for the surrounding context, for example spacing. */
   className?: string | undefined;
 }
@@ -15,21 +16,26 @@ interface DownloadButtonProps {
 const WIDEST_LABEL = 'Download for Windows';
 
 /**
- * A button that reads "Download" on the server and in the first paint, then names the visitor's
- * system once it is known. Its width is reserved, so nothing shifts.
+ * A button that reads "Download" on the server and in the first paint, then shows the logo and
+ * name of the visitor's system once it is known. Its width is reserved, so nothing shifts.
  */
-export function DownloadButton({ href, className }: DownloadButtonProps) {
+export function DownloadButton({ className }: DownloadButtonProps) {
+  const link = useDownloadLink();
   const platform = usePlatform();
-  const label =
-    platform === null || platform.os === 'unsupported'
-      ? 'Download'
-      : `Download for ${osLabel(platform.os)}`;
+  const known = platform !== null && platform.os !== 'unsupported' ? platform.os : null;
+  const label = known === null ? 'Download' : `Download for ${osLabel(known)}`;
+  const icon =
+    known === null ? (
+      <Download aria-hidden="true" size={20} strokeWidth={2.25} />
+    ) : (
+      <OsIcon os={known} size={20} />
+    );
 
   return (
-    <a href={href} className={`${styles.button} ${className ?? ''}`.trim()}>
+    <a {...link} className={`${styles.button} ${className ?? ''}`.trim()}>
       <span className={styles.labels}>
         <span className={styles.label}>
-          <Download aria-hidden="true" size={20} strokeWidth={2.25} />
+          {icon}
           {label}
         </span>
         <span className={styles.sizer} aria-hidden="true">
