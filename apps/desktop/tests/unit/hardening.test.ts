@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildCsp } from '../../src/main/csp';
-import { isAllowedExternalUrl } from '../../src/main/external-urls';
+import { isAllowedExternalUrl } from '../../src/shared/external-urls';
 import { isOwnUrl, isPermissionAllowed } from '../../src/main/permissions';
 
 const PACKAGED_POLICY =

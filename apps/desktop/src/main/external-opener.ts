@@ -1,5 +1,5 @@
 import { shell } from 'electron';
-import { isAllowedExternalUrl } from './external-urls';
+import { isAllowedExternalUrl } from '../shared/external-urls';
 
 export type OpenFn = (url: string) => Promise<void>;
 
