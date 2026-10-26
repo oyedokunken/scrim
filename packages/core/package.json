@@ -11,6 +11,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run --coverage"
   },
+  "dependencies": {
+    "zod": "catalog:"
+  },
   "devDependencies": {
     "@vitest/coverage-v8": "catalog:",
     "fast-check": "catalog:",
