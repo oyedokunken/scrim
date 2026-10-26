@@ -103,17 +103,46 @@ interface Active {
 const HEARTBEAT_MS = 1000;
 
 /**
- * How long after `start()` a video recorder's first frame is stamped, in milliseconds. Measured
- * with the on screen marker over six runs on Windows: the video timeline begins 23 to 153 ms after
- * the call (mean 92), and about a second before the recorder reports that it started. So a video
- * track's origin is the call time plus this value, which leaves a run to run error of about
- * plus or minus 65 ms. The microphone has no such lag, so its own report is used.
+ * How long after `start()` a video recorder's first frame is stamped, in milliseconds, used only
+ * when the frame's own capture time cannot be read. Measured with the on screen marker over six
+ * runs on Windows: the video timeline begins 23 to 153 ms after the call, mean 92, which leaves an
+ * error of about plus or minus 65 ms. Reading the frame timestamp does much better, so this is a
+ * fallback and not the way time zero is normally found.
  */
-const VIDEO_FIRST_FRAME_LATENCY_MS = 90;
+const VIDEO_FALLBACK_LATENCY_MS = 90;
 
-/** The main clock time, since the recording began, at which a track's media time is zero. */
-function trackOrigin(kind: TrackKind, reported: number, called: number): number {
-  return kind === 'mic' ? reported : called + VIDEO_FIRST_FRAME_LATENCY_MS;
+/** How far the two readings of a frame's time may differ and still be taken as the same clock. */
+const FRAME_CLOCK_MARGIN_MS = 25;
+
+/**
+ * Picks the first frame time. Two readings of the same frame exist. The raw timestamp is in
+ * milliseconds on the system's steady clock, which the main process shares, so subtracting its own
+ * clock's zero gives the time at once. The other reading goes through the page clock and an
+ * estimate of how late frames arrive, and is biased by the smallest such delay. They must agree
+ * to within the clock sync's uncertainty plus a margin. When they do, the direct one is used. When
+ * they do not, the steady clocks are not the same on this system, and the page clock one is used.
+ */
+export function chooseFirstFrame(
+  direct: number | undefined,
+  viaPageClock: number | undefined,
+  toleranceMs: number,
+): number | undefined {
+  if (viaPageClock === undefined) return undefined;
+  if (direct !== undefined && Math.abs(direct - viaPageClock) <= toleranceMs) return direct;
+  return viaPageClock;
+}
+
+/**
+ * The main clock time, since the recording began, at which a track's media time is zero. A video
+ * track's is the capture time of its first frame. The microphone has no such lag and its own start
+ * report is right.
+ */
+function trackOrigin(
+  kind: TrackKind,
+  times: { reported: number; called: number; firstFrame: number | undefined },
+): number {
+  if (kind === 'mic') return times.reported;
+  return times.firstFrame ?? times.called + VIDEO_FALLBACK_LATENCY_MS;
 }
 const DISK_CHECK_EVERY_TICKS = 10;
 const TIMESLICE_MS = 1000;
@@ -222,8 +251,14 @@ export class RecordingService {
         rendererOffsetMs: active.offset.offsetMs,
         uncertaintyMs: active.offset.uncertaintyMs,
       };
-      await this.startInput(active);
-      if (options.source.kind === 'window') await this.startBounds(active);
+      // A window moves, so a mouse position means nothing until it is placed relative to the window.
+      // Without a way to follow the window there is no honest log to keep, and the session says why.
+      const followed = options.source.kind === 'window' ? await this.startBounds(active) : true;
+      if (followed) await this.startInput(active);
+      else {
+        active.session.input = { status: 'unavailable', reason: 'window-bounds-unsupported' };
+        this.warn(active, WARNINGS.inputUnavailable('window-bounds-unsupported'));
+      }
 
       const kinds = [...active.writers.keys()];
       this.mark(active, `start requested, origin hr=${active.origin.toFixed(1)}`);
@@ -233,10 +268,23 @@ export class RecordingService {
         if (times === undefined) continue;
         const reported = rendererToMain(times.startedAt, active.offset) - active.origin;
         const called = rendererToMain(times.calledAt, active.offset) - active.origin;
-        track.startedAt = Math.max(0, trackOrigin(track.kind, reported, called));
+        const viaPageClock =
+          times.firstFrameAt === undefined
+            ? undefined
+            : rendererToMain(times.firstFrameAt, active.offset) - active.origin;
+        const direct =
+          times.firstFrameStampMs === undefined
+            ? undefined
+            : times.firstFrameStampMs - active.origin;
+        const firstFrame = chooseFirstFrame(
+          direct,
+          viaPageClock,
+          active.offset.uncertaintyMs + FRAME_CLOCK_MARGIN_MS,
+        );
+        track.startedAt = Math.max(0, trackOrigin(track.kind, { reported, called, firstFrame }));
         this.mark(
           active,
-          `${track.kind} start called at +${called.toFixed(0)}, reported at +${reported.toFixed(0)}, stored origin +${track.startedAt.toFixed(0)}`,
+          `${track.kind} start called at +${called.toFixed(0)}, reported at +${reported.toFixed(0)}, first frame ${firstFrame === undefined ? 'unknown' : `+${firstFrame.toFixed(1)}`} (direct ${direct === undefined ? 'none' : direct.toFixed(1)}, via page clock ${viaPageClock === undefined ? 'none' : viaPageClock.toFixed(1)}), stored origin +${track.startedAt.toFixed(0)}`,
           track.startedAt,
         );
       }
@@ -592,7 +640,8 @@ export class RecordingService {
     if (result.detail !== undefined) deps.log(`The mouse log is off: ${result.detail}`);
   }
 
-  private async startBounds(active: Active): Promise<void> {
+  /** Starts following the window. Returns whether its position is being logged. */
+  private async startBounds(active: Active): Promise<boolean> {
     const { deps } = this;
     const bounds = new BoundsRecorder({
       source: deps.createBoundsSource(),
@@ -606,12 +655,12 @@ export class RecordingService {
     if (result.status === 'started') {
       active.bounds = bounds;
       active.session.windowBounds = { status: 'recorded', file: SESSION_FILES.windowBounds };
-      return;
+      return true;
     }
     active.session.windowBounds = { status: 'unavailable' };
-    this.warn(active, WARNINGS.windowBoundsUnavailable());
     if (result.detail !== undefined)
       deps.log(`The window position is not followed: ${result.detail}`);
+    return false;
   }
 
   private async heartbeat(active: Active): Promise<void> {
@@ -827,7 +876,17 @@ export class RecordingService {
       this.mark(active, 'stop requested');
       const counts = await active.host.stop().catch(() => undefined);
       this.mark(active, `recorders reported stopped ${JSON.stringify(counts ?? [])}`);
-      if (counts !== undefined) await this.waitForChunks(active, counts);
+      if (counts !== undefined) {
+        for (const entry of counts) {
+          const track = active.session.tracks.find((candidate) => candidate.kind === entry.kind);
+          if (track === undefined) continue;
+          track.stoppedAt = Math.max(
+            0,
+            rendererToMain(entry.stoppedAt, active.offset) - active.origin,
+          );
+        }
+        await this.waitForChunks(active, counts);
+      }
       this.mark(active, 'all chunks received');
     } catch (error) {
       deps.log(`The recorder did not stop cleanly: ${String(error)}`);

@@ -31,13 +31,29 @@ export function startMarker(now: () => number, log: (message: string) => void): 
   // flip in the log. A steady beat would match equally well one beat early or late.
   const gaps = [600, 900, 1300, 750, 1100, 1500, 700, 1200];
   let step = 0;
-  const flip = (): void => {
+  // The log time is when the page began the frame that shows the new color, not when the command was
+  // sent. Sending is a few tens of milliseconds ahead of the screen and varies, and the video can
+  // only show a flip once it is drawn. The page reports its own clock as an epoch time, and the
+  // main process turns that into its steady clock with the pair of readings taken just after.
+  const flip = async (): Promise<void> => {
     white = !white;
-    log(`MARKER flip ${white ? 'white' : 'black'} at hr=${now().toFixed(1)}`);
-    void window.webContents.executeJavaScript(
-      `document.body.style.background='${white ? '#fff' : '#000'}'`,
+    const color = white ? '#fff' : '#000';
+    const drawnAtEpoch: unknown = await window.webContents.executeJavaScript(
+      `new Promise((resolve) => {
+        document.body.style.background = '${color}';
+        requestAnimationFrame(() => resolve(performance.timeOrigin + performance.now()));
+      })`,
     );
-    timer = setTimeout(flip, gaps[step % gaps.length]);
+    const toSteady = now() - Date.now();
+    if (typeof drawnAtEpoch === 'number') {
+      log(`MARKER flip ${white ? 'white' : 'black'} at hr=${(drawnAtEpoch + toSteady).toFixed(1)}`);
+    }
+    timer = setTimeout(
+      () => {
+        void flip();
+      },
+      gaps[step % gaps.length],
+    );
     step += 1;
   };
 
@@ -45,7 +61,9 @@ export function startMarker(now: () => number, log: (message: string) => void): 
     .loadURL('data:text/html,<body style="margin:0;background:%23000"></body>')
     .then(() => {
       window.showInactive();
-      timer = setTimeout(flip, 500);
+      timer = setTimeout(() => {
+        void flip();
+      }, 500);
     });
 
   return () => {

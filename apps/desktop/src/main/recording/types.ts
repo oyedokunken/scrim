@@ -71,7 +71,6 @@ export type Warning =
   | { code: 'camera-lost' | 'mic-lost'; message: string }
   | { code: 'camera-unavailable' | 'mic-unavailable'; message: string }
   | { code: 'input-unavailable'; message: string }
-  | { code: 'window-bounds-unavailable'; message: string }
   | { code: 'writer-slow'; message: string };
 
 export interface RecordingSnapshot {

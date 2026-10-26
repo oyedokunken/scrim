@@ -37,30 +37,47 @@ the decision.
    posts each chunk without a transfer list. A second of footage is a megabyte or two, so the copy
    is not a cost that matters.
 
-4. **A video track's time zero is the `start()` call plus about 90 ms, not the start event.** The
-   recorder reports `start` a second or so after it was started (1.16 to 1.23 s in the marker
-   runs), but the first frame is stamped close to the call. A small always on top square flipped
-   between black and white at irregular intervals while recording, with a pause in the middle,
-   and the frames where each flip appears were compared with the logged flip times. Taking the
-   start event as time zero made the video run about a second late. Taking the call time put
-   the video 23 to 153 ms early over six runs, mean 92 ms, so the stored origin is the call time
-   plus 90 ms. Within a recording the flips stay within 60 to 90 ms of each other across the
-   pause, so the pause handling is sound. The remaining error is a run to run offset of about
-   plus or minus 65 ms, which is two frames at 30 fps, not one. The microphone has no such lag
-   and uses its own start report, and its recorded length matched the clock to within 40 ms in
-   every run. If one frame of accuracy is needed, the next step is to read the capture time of
-   each frame from the track (a `MediaStreamTrackProcessor` or a video frame callback) instead of
-   using a constant.
+4. **A video track's time zero is the capture time of its first frame.** The recorder reports
+   `start` a second or so after it was started (1.2 to 1.9 s), but its first frame is stamped near
+   the call. Every video frame carries the time it was captured, on the system's steady clock. The
+   recorder page reads those with a `MediaStreamTrackProcessor`, picks the first frame seen after
+   `start()` was called, and sends its timestamp. On Windows that clock is the same one the main
+   process reads with `process.hrtime`, so the main process takes the timestamp as it is. As a
+   check, the same time is also worked out through the page clock and the clock sync, and the two
+   agreed to within 1.5 to 2.5 ms in six runs. When they disagree by more than the sync's
+   uncertainty plus 25 ms, the page clock one is used, so a system where the clocks differ still
+   works. Only when frame times cannot be read at all does the time fall back to the call plus 90
+   ms, a delay measured on one machine. The microphone has no such lag and uses its own start
+   report, and its recorded length matched the clock to within 40 ms in every run.
+
+5. **The video shows an event 37 to 89 ms after it happens.** With time zero exact, the marker test
+   still showed each flip in the video later than the page drew it: run medians of 37, 54, 80, 85,
+   89 and 63 ms, mean 68, spread within a run mostly 30 to 95 ms. That is the screen being
+   composed and captured, and no timestamp removes it. Because the cursor is part of the video, a
+   halo drawn at an event's own time would sit ahead of the real cursor by that long, so the saved
+   input log adds 68 ms to every event time and records it as `latencyMs`. With that added, the
+   run medians fall within plus or minus 31 ms, one frame at 30 fps. Single events still land up to
+   about two frames either side, because the capture is 30 frames a second. The marker is drawn
+   through the page compositor and the cursor is not, so for the cursor alone the figure is
+   probably a little high. Measuring the cursor itself needs synthetic mouse input, which this
+   machine's rules do not allow a helper script to do.
+
+6. **Variable frame rate.** A static desktop sends about one frame a second, so a screen file can
+   end a second or more before the recording did. Every track stores `stoppedAt`, the main clock
+   time at which its recorder stopped (the end of the recording for a track that never reported
+   one, as after a crash). **For Phase 3:** export must hold the last frame of a track until
+   `stoppedAt` and convert to a constant frame rate, so every track is exactly as long as
+   `trackMediaDuration(startedAt, stoppedAt, pauses)` says. Do not trust the container's own
+   duration.
 
 ## Consequences
 
 - Recording survives a hard kill. Twenty kill and recover runs in a row each produced a playable
   file of at least 3 seconds.
 - Cursor effects at export must paint over the real cursor or live with it in the frame.
-- The latency constant is measured on one machine. Other machines and other platforms need the
-  same marker test before the number is trusted. `SCRIM_DEV_MARKER=1` runs it.
-- A static screen delivers about one frame a second, so a video file can end up to a second
-  before the recording stopped. That is a property of the capture, not a clock error.
+- The display latency of 68 ms is measured on one machine. Other machines and other platforms need
+  the same marker test before the number is trusted. `SCRIM_DEV_MARKER=1` runs it, and
+  `SCRIM_DEV_TRACE=1` prints the timing marks for every track.
 - **No network at all while recording.** A net log of a recording showed one name lookup: Chromium
   asking for a host called `wpad` at startup, to find a proxy configuration. The app starts with
   `--no-proxy-server`, and the net log is then empty. An end to end test records, pauses, stops and

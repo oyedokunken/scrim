@@ -42,11 +42,19 @@ describe('RecorderHost', () => {
     expect(offset.uncertaintyMs).toBeGreaterThan(0);
 
     const started = await host.start(['screen', 'mic']);
-    expect(started.get('screen')).toEqual({ startedAt: 5000, calledAt: 4900 });
-    expect(started.get('mic')).toEqual({ startedAt: 5000, calledAt: 4900 });
+    expect(started.get('screen')).toEqual({
+      startedAt: 5000,
+      calledAt: 4900,
+      firstFrameAt: undefined,
+    });
+    expect(started.get('mic')).toEqual({
+      startedAt: 5000,
+      calledAt: 4900,
+      firstFrameAt: undefined,
+    });
     expect(await host.pause()).toBe(7000);
     expect(await host.resume()).toBe(9000);
-    expect(await host.stop()).toEqual([{ kind: 'screen', chunks: 3, bytes: 30 }]);
+    expect(await host.stop()).toEqual([{ kind: 'screen', chunks: 3, bytes: 30, stoppedAt: 9500 }]);
 
     host.close();
     expect(page.closed).toBe(true);
@@ -214,7 +222,7 @@ describe('recorder protocol schemas', () => {
       { type: 'resumed', rendererNow: 1 },
       { type: 'track-ended', kind: 'camera', rendererNow: 1 },
       { type: 'track-error', kind: 'screen', message: 'm', rendererNow: 1 },
-      { type: 'stopped', tracks: [{ kind: 'screen', chunks: 1, bytes: 2 }] },
+      { type: 'stopped', tracks: [{ kind: 'screen', chunks: 1, bytes: 2, stoppedAt: 7 }] },
       { type: 'fatal', message: 'x' },
     ];
     for (const event of events) expect(recorderEventSchema.safeParse(event).success).toBe(true);

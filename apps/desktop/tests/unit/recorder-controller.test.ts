@@ -5,6 +5,7 @@ import {
   type ControllerDeps,
   type MediaStreamLike,
 } from '../../src/recorder/page/controller';
+import { FrameClock, type FrameSource, type FrameStamp } from '../../src/recorder/page/frame-clock';
 import type { RecorderEvent } from '../../src/recorder/protocol';
 import {
   blobOf,
@@ -241,8 +242,8 @@ describe('running', () => {
     expect(ports.screen.closed).toBe(true);
     expect(ports.camera.closed).toBe(true);
     expect(last('stopped')?.tracks).toEqual([
-      { kind: 'screen', chunks: 1, bytes: 8 },
-      { kind: 'camera', chunks: 0, bytes: 0 },
+      { kind: 'screen', chunks: 1, bytes: 8, stoppedAt: 100 },
+      { kind: 'camera', chunks: 0, bytes: 0, stoppedAt: 100 },
     ]);
   });
 
@@ -267,5 +268,200 @@ describe('running', () => {
       screenBitsPerSecond: 1,
     });
     expect(ctx.last('ready')?.failed[0]?.message).toBe('exploded');
+  });
+});
+
+/** A recorder that reports `start` only when told to, as a real one does a moment late. */
+class LateStartRecorder extends FakeRecorder {
+  override start(timesliceMs: number): void {
+    this.timeslice = timesliceMs;
+    this.state = 'recording';
+  }
+}
+
+/** A frame source that hands out scripted frames, each at a chosen page time. */
+class ScriptedFrames implements FrameSource {
+  readonly cancelled: boolean[] = [];
+  private readonly queue: FrameStamp[] = [];
+  private waiting: ((frame: FrameStamp | undefined) => void) | undefined;
+  constructor(private readonly clock: { time: number }) {}
+
+  /** A frame captured at `captureMs` on the page clock, which reaches the reader `delayMs` later. */
+  push(captureMs: number, delayMs: number, zeroMs: number): void {
+    const stamp = { timestampUs: (captureMs + zeroMs) * 1000 };
+    this.clock.time = captureMs + delayMs;
+    if (this.waiting !== undefined) {
+      const resolve = this.waiting;
+      this.waiting = undefined;
+      resolve(stamp);
+    } else {
+      this.queue.push(stamp);
+    }
+  }
+
+  read(): Promise<FrameStamp | undefined> {
+    const next = this.queue.shift();
+    if (next !== undefined) return Promise.resolve(next);
+    return new Promise((resolve) => {
+      this.waiting = resolve;
+    });
+  }
+
+  cancel(): void {
+    this.cancelled.push(true);
+    this.waiting?.(undefined);
+    this.waiting = undefined;
+  }
+}
+
+// The steady clock's zero is a long way from the page clock's.
+const ZERO = 947_000_000;
+
+describe('FrameClock', () => {
+  function setup() {
+    const clock = { time: 0 };
+    const source = new ScriptedFrames(clock);
+    const frames = new FrameClock({ source, now: () => clock.time });
+    frames.begin();
+    return { clock, source, frames };
+  }
+
+  it('knows nothing until a frame has been seen after the call', async () => {
+    const { source, frames } = setup();
+    expect(frames.firstFrameAt()).toBeUndefined();
+    source.push(100, 3, ZERO);
+    await settle();
+    frames.markStart(500);
+    expect(frames.firstFrameAt()).toBeUndefined();
+  });
+
+  it('gives the capture time of the first frame seen after the call, on the page clock', async () => {
+    const { source, frames } = setup();
+    source.push(100, 3, ZERO);
+    await settle();
+    source.push(133, 2, ZERO);
+    await settle();
+    frames.markStart(150);
+    source.push(166, 4, ZERO);
+    await settle();
+    source.push(200, 2, ZERO);
+    await settle();
+    source.push(233, 1, ZERO);
+    await settle();
+    // The frame captured at 166 ms was the first seen after 150 ms. The delivery delay of the
+    // quickest frame (1 ms) is the only thing the estimate cannot see.
+    expect(frames.firstFrameAt()).toBeCloseTo(166 + 1, 6);
+  });
+
+  it('is not thrown off by frames that arrive late', async () => {
+    const { source, frames } = setup();
+    frames.markStart(0);
+    source.push(100, 40, ZERO);
+    await settle();
+    source.push(133, 2, ZERO);
+    await settle();
+    source.push(166, 35, ZERO);
+    await settle();
+    expect(frames.firstFrameAt()).toBeCloseTo(100 + 2, 6);
+  });
+
+  it('keeps the first frame after the call even when later frames follow', async () => {
+    const { source, frames } = setup();
+    frames.markStart(50);
+    source.push(80, 2, ZERO);
+    await settle();
+    source.push(113, 2, ZERO);
+    await settle();
+    expect(frames.firstFrameAt()).toBeCloseTo(82, 6);
+  });
+
+  it('stops reading and cancels the source', async () => {
+    const { source, frames } = setup();
+    frames.stop();
+    await settle();
+    expect(source.cancelled).toEqual([true]);
+  });
+
+  it('survives a source that fails to read', async () => {
+    const clock = { time: 0 };
+    const frames = new FrameClock({
+      source: { read: () => Promise.reject(new Error('gone')), cancel: () => undefined },
+      now: () => clock.time,
+    });
+    frames.begin();
+    await settle();
+    expect(frames.firstFrameAt()).toBeUndefined();
+  });
+});
+
+describe('the controller with frame timestamps', () => {
+  it('reports the first frame time for a video track and none for the microphone', async () => {
+    const clock = { time: 1000 };
+    const events: RecorderEvent[] = [];
+    const sources: ScriptedFrames[] = [];
+    const recorders: FakeRecorder[] = [];
+    const controller = new RecorderController({
+      now: () => clock.time,
+      isTypeSupported: () => true,
+      getDisplayMedia: () => Promise.resolve(new FakeStream([new FakeTrack('Screen')], [])),
+      getUserMedia: () => Promise.resolve(new FakeStream([], [new FakeTrack('Mic')])),
+      createRecorder: () => {
+        const recorder = new LateStartRecorder();
+        recorders.push(recorder);
+        return recorder;
+      },
+      sendEvent: (event) => events.push(event),
+      createFrameSource: () => {
+        const source = new ScriptedFrames(clock);
+        sources.push(source);
+        return source;
+      },
+    });
+    await controller.handle({
+      type: 'configure',
+      tracks: [{ kind: 'screen' }, { kind: 'mic' }],
+      timesliceMs: 1000,
+      screenBitsPerSecond: 1,
+    });
+    // Only the screen gets a frame source.
+    expect(sources).toHaveLength(1);
+    controller.attachPorts({ screen: new FakePort(), mic: new FakePort() });
+    sources[0]?.push(900, 2, 5_000_000);
+    await settle();
+    clock.time = 1000;
+    await controller.handle({ type: 'start' });
+    sources[0]?.push(1040, 2, 5_000_000);
+    await settle();
+    clock.time = 2200;
+    recorders[0]?.onstart?.();
+    recorders[1]?.onstart?.();
+    const started = events.filter((event) => event.type === 'track-started');
+    expect(started).toHaveLength(2);
+    const screen = started.find((event) => event.kind === 'screen');
+    const mic = started.find((event) => event.kind === 'mic');
+    expect(screen?.firstFrameAt).toBeCloseTo(1040 + 2, 6);
+    expect(mic?.firstFrameAt).toBeUndefined();
+  });
+
+  it('reports no first frame time when this browser cannot read frames', async () => {
+    const events: RecorderEvent[] = [];
+    const controller = new RecorderController({
+      now: () => 10,
+      isTypeSupported: () => true,
+      getDisplayMedia: () => Promise.resolve(new FakeStream([new FakeTrack('Screen')], [])),
+      getUserMedia: () => Promise.resolve(new FakeStream([], [])),
+      createRecorder: () => new FakeRecorder(),
+      sendEvent: (event) => events.push(event),
+    });
+    await controller.handle({
+      type: 'configure',
+      tracks: [{ kind: 'screen' }],
+      timesliceMs: 1000,
+      screenBitsPerSecond: 1,
+    });
+    controller.attachPorts({ screen: new FakePort() });
+    await controller.handle({ type: 'start' });
+    const started = events.find((event) => event.type === 'track-started');
+    expect(started?.type === 'track-started' && started.firstFrameAt).toBeUndefined();
   });
 });

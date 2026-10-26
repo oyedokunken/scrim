@@ -26,6 +26,14 @@ export interface TrackLike {
   stop(): void;
 }
 
+/** What a track recorder needs from a frame clock, so audio tracks can go without one. */
+interface FrameClockLike {
+  markStart(calledAt: number): void;
+  firstFrameAt(): number | undefined;
+  firstFrameStampMs(): number | undefined;
+  stop(): void;
+}
+
 export interface TrackRecorderOptions {
   kind: TrackKind;
   recorder: RecorderLike;
@@ -38,7 +46,13 @@ export interface TrackRecorderOptions {
    * 44). One second of footage is a megabyte or two, so the copy costs nothing that matters.
    */
   post: (message: ChunkMessage) => void;
-  onStarted: (rendererNow: number, calledAt: number) => void;
+  onStarted: (
+    rendererNow: number,
+    calledAt: number,
+    first: { at: number; stampMs: number } | undefined,
+  ) => void;
+  /** Frame timestamps for a video track. Left out for audio. */
+  frames?: FrameClockLike | undefined;
   /** The device went away or the capture ended on its own. */
   onEnded: (rendererNow: number) => void;
   onError: (message: string, rendererNow: number) => void;
@@ -66,6 +80,7 @@ export class TrackRecorder {
   private chain: Promise<void> = Promise.resolve();
   private stopping = false;
   private ended = false;
+  private stoppedTime = 0;
 
   constructor(options: TrackRecorderOptions) {
     this.options = options;
@@ -80,7 +95,13 @@ export class TrackRecorder {
     };
     this.recorder.onstart = () => {
       this.startedAt = options.now();
-      options.onStarted(this.startedAt, this.calledAt);
+      const at = options.frames?.firstFrameAt();
+      const stampMs = options.frames?.firstFrameStampMs();
+      options.onStarted(
+        this.startedAt,
+        this.calledAt,
+        at === undefined || stampMs === undefined ? undefined : { at, stampMs },
+      );
     };
     this.recorder.onpause = () => {
       options.onTrace('recorder paused', options.now());
@@ -95,7 +116,8 @@ export class TrackRecorder {
     this.track.onended = () => {
       if (this.stopping || this.ended) return;
       this.ended = true;
-      options.onEnded(options.now());
+      this.stoppedTime = options.now();
+      options.onEnded(this.stoppedTime);
       this.stopRecorder();
     };
   }
@@ -108,8 +130,14 @@ export class TrackRecorder {
     return this.ended;
   }
 
+  /** When the recorder stopped, on the page clock. Zero until it has. */
+  get stoppedAt(): number {
+    return this.stoppedTime;
+  }
+
   start(timesliceMs: number): void {
     this.calledAt = this.options.now();
+    this.options.frames?.markStart(this.calledAt);
     this.recorder.start(timesliceMs);
   }
 
@@ -133,13 +161,15 @@ export class TrackRecorder {
     if (this.recorder.state !== 'inactive') {
       await new Promise<void>((resolve) => {
         this.recorder.onstop = () => {
-          this.options.onTrace('recorder stopped', this.options.now());
+          this.stoppedTime = this.options.now();
+          this.options.onTrace('recorder stopped', this.stoppedTime);
           resolve();
         };
         this.stopRecorder();
       });
     }
     await this.chain;
+    this.options.frames?.stop();
     this.track.stop();
   }
 

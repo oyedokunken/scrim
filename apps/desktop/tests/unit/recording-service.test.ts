@@ -1,8 +1,14 @@
-import { parseInputNdjson, sessionFileSchema, sessionLogSchema } from '@scrim/core';
+import {
+  parseInputNdjson,
+  sessionFileSchema,
+  sessionLogSchema,
+  trackMediaDuration,
+} from '@scrim/core';
 import { createHash } from 'node:crypto';
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { chooseFirstFrame } from '../../src/main/recording/recording-service';
 import { createHarness, flushWork, type Harness } from './support/engine-harness';
 
 let harness: Harness | undefined;
@@ -59,7 +65,7 @@ describe('a normal recording', () => {
       JSON.parse(await readFile(join(folder, 'Demo.scrim.json'), 'utf8')),
     );
     expect(log.frame).toEqual({ width: 1920, height: 1080 });
-    expect(log.events).toEqual([{ type: 'click', t: 390, x: 100, y: 100, button: 'left' }]);
+    expect(log.events).toEqual([{ type: 'click', t: 533, x: 100, y: 100, button: 'left' }]);
 
     const session = await readSessionFile(folder);
     expect(session.cleanClose).toBe(true);
@@ -69,7 +75,8 @@ describe('a normal recording', () => {
       complete: true,
       bytesWritten: 300,
       playableFile: 'screen.mp4',
-      startedAt: 110,
+      startedAt: 35,
+      stoppedAt: 500,
     });
     expect(session.clock).toEqual({ rendererOffsetMs: 1000, uncertaintyMs: 0 });
     expect(session.capture.cursorInCapture).toBe(false);
@@ -88,7 +95,7 @@ describe('a normal recording', () => {
     expect(types[0]).toBe('state');
     expect(types).toContain('finished');
     const finished = h.events.find((event) => event.type === 'finished');
-    expect(finished?.type === 'finished' && finished.result.durationMs).toBe(1890);
+    expect(finished?.type === 'finished' && finished.result.durationMs).toBe(1965);
     expect(finished?.type === 'finished' && finished.result.recovered).toBe(false);
     const phases = h.events.flatMap((event) =>
       event.type === 'state' ? [event.snapshot.phase] : [],
@@ -169,10 +176,10 @@ describe('pause and resume', () => {
       JSON.parse(await readFile(join(folder, 'Demo.scrim.json'), 'utf8')),
     );
     expect(log.events.map((event) => [event.type, event.t])).toEqual([
-      ['click', 890],
-      ['click', 1390],
+      ['click', 1033],
+      ['click', 1533],
     ]);
-    expect(result.ok && result.value.durationMs).toBe(1390);
+    expect(result.ok && result.value.durationMs).toBe(1465);
   });
 
   it('closes a pause that is still open when the recording stops', async () => {
@@ -727,20 +734,30 @@ describe('a window recording', () => {
     expect(await readdir(folder)).not.toContain('window-bounds.ndjson');
   });
 
-  it('says so, and carries on, when the window position cannot be followed', async () => {
+  it('marks the mouse log unavailable, says why, and carries on when the window cannot be followed', async () => {
     const h = await createHarness();
     harness = h;
     h.bounds.result = { status: 'unavailable', detail: 'no native module' };
     const result = await h.service.start({ ...h.options, name: 'Win', source: target });
     expect(result.ok).toBe(true);
     const folder = result.ok ? result.value.folder : '';
-    expect(h.service.snapshot().warnings.map((warning) => warning.code)).toContain(
-      'window-bounds-unavailable',
-    );
+    const warning = h.service
+      .snapshot()
+      .warnings.find((entry) => entry.code === 'input-unavailable');
+    expect(warning?.message).toContain('window recording');
+    // The mouse hook is never started, so nothing is logged against a window it cannot place.
+    expect(h.input.listener).toBeUndefined();
     h.sendChunk('screen');
-    await h.service.stop();
-    expect((await readSessionFile(folder)).windowBounds).toEqual({ status: 'unavailable' });
-    expect(await readdir(folder)).not.toContain('window-bounds.ndjson');
+    const stopped = await h.service.stop();
+    expect(stopped.ok && stopped.value.inputLog).toBeUndefined();
+    const session = await readSessionFile(folder);
+    expect(session.input).toEqual({ status: 'unavailable', reason: 'window-bounds-unsupported' });
+    expect(session.windowBounds).toEqual({ status: 'unavailable' });
+    const names = await readdir(folder);
+    expect(names).not.toContain('window-bounds.ndjson');
+    expect(names).not.toContain('input.ndjson');
+    expect(names.some((name) => name.endsWith('.scrim.json'))).toBe(false);
+    expect(session.cleanClose).toBe(true);
   });
 
   it('does not follow a window for a display recording', async () => {
@@ -800,5 +817,75 @@ describe('raw files are never changed', () => {
     expect(result.ok).toBe(false);
     expect(sha(await readFile(join(folder, 'screen.raw.webm')))).toBe(before);
     expect((await readSessionFile(folder)).cleanClose).toBe(false);
+  });
+});
+
+describe('where each track begins and ends', () => {
+  it('starts a video track at its first frame, and the microphone at its own start report', async () => {
+    const { h, folder } = await started({}, { mic: { enabled: true } });
+    h.sendChunk('screen');
+    h.clock.time += 1000;
+    await h.service.stop();
+    const { tracks } = await readSessionFile(folder);
+    // Harness: the frame was captured 35 ms after start, the mic reported 50 ms after it.
+    expect(tracks.find((track) => track.kind === 'screen')?.startedAt).toBe(35);
+    expect(tracks.find((track) => track.kind === 'mic')?.startedAt).toBe(50);
+  });
+
+  it('falls back to the call plus a fixed delay when frame times cannot be read', async () => {
+    const { h, folder } = await started({ frameTimestamps: false });
+    h.sendChunk('screen');
+    await h.service.stop();
+    // Called 20 ms after start, plus the 90 ms fallback.
+    expect((await readSessionFile(folder)).tracks[0]?.startedAt).toBe(110);
+  });
+
+  it('stores the true stop time of every track, so a sparse screen can be held to the stop', async () => {
+    const { h, folder } = await started({}, { camera: { enabled: true }, mic: { enabled: true } });
+    h.sendChunk('screen');
+    h.clock.time += 2500;
+    await h.service.stop();
+    const session = await readSessionFile(folder);
+    for (const track of session.tracks) expect(track.stoppedAt).toBe(2500);
+    const durations = session.tracks.map((track) =>
+      trackMediaDuration(track.startedAt, track.stoppedAt ?? 0, session.pauses),
+    );
+    expect(durations).toEqual([2465, 2465, 2450]);
+  });
+
+  it('gives a track that never reported a stop the end of the recording when it is recovered', async () => {
+    const { h, folder } = await started();
+    h.sendChunk('screen', 100);
+    h.clock.time += 1800;
+    h.fireHeartbeat();
+    await flushWork();
+    h.page.die('crashed');
+    await flushWork();
+    await flushWork();
+    expect((await readSessionFile(folder)).tracks[0]?.stoppedAt).toBeUndefined();
+    await h.service.recover(folder);
+    const recovered = await readSessionFile(folder);
+    expect(recovered.tracks[0]?.stoppedAt).toBe(recovered.heartbeatElapsedMs);
+  });
+});
+
+describe('chooseFirstFrame', () => {
+  it('takes the direct reading when the two agree within the tolerance', () => {
+    expect(chooseFirstFrame(1000, 1002, 25)).toBe(1000);
+    expect(chooseFirstFrame(1000, 975, 25)).toBe(1000);
+  });
+
+  it('takes the page clock reading when the steady clocks turn out to differ', () => {
+    expect(chooseFirstFrame(1000, 1500, 25)).toBe(1500);
+    expect(chooseFirstFrame(50_000_000, 1500, 25)).toBe(1500);
+  });
+
+  it('takes the page clock reading when there is no direct one, and nothing when there is neither', () => {
+    expect(chooseFirstFrame(undefined, 1500, 25)).toBe(1500);
+    expect(chooseFirstFrame(undefined, undefined, 25)).toBeUndefined();
+  });
+
+  it('does not trust a direct reading alone, because nothing has checked it', () => {
+    expect(chooseFirstFrame(1000, undefined, 25)).toBeUndefined();
   });
 });

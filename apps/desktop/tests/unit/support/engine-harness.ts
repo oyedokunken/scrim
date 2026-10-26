@@ -69,6 +69,8 @@ export interface HarnessOptions {
   alivePids?: number[];
   /** Pixels per device independent pixel of the pretend display. */
   scaleFactor?: number;
+  /** Whether the page can read frame timestamps. When not, video time zero falls back. */
+  frameTimestamps?: boolean;
 }
 
 const ERR = (code: string): Error => Object.assign(new Error(code), { code });
@@ -231,6 +233,9 @@ export async function createHarness(options: HarnessOptions = {}) {
             kind,
             rendererNow: clock.time + rendererClockOffset + 50,
             calledAt: clock.time + rendererClockOffset + 20,
+            ...(options.frameTimestamps === false || kind === 'mic'
+              ? {}
+              : { firstFrameAt: clock.time + rendererClockOffset + 35 }),
           });
         }
         break;
@@ -247,6 +252,7 @@ export async function createHarness(options: HarnessOptions = {}) {
             kind,
             chunks: sent[kind],
             bytes: sentBytes[kind],
+            stoppedAt: clock.time + rendererClockOffset,
           })),
         });
         break;

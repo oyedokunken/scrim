@@ -23,9 +23,18 @@ declare global {
 }
 
 const streams = new WeakMap<MediaStreamLike, MediaStream>();
+const realTracks = new WeakMap<MediaTrackLike, MediaStreamTrack>();
+
+// Chromium reads frames from a track with this, which the DOM types do not describe yet.
+interface TrackProcessorConstructor {
+  new (init: { track: MediaStreamTrack }): {
+    readable: ReadableStream<{ timestamp: number; close(): void }>;
+  };
+}
+declare const MediaStreamTrackProcessor: TrackProcessorConstructor | undefined;
 
 function adaptTrack(track: MediaStreamTrack): MediaTrackLike {
-  return {
+  const adapted: MediaTrackLike = {
     get label() {
       return track.label;
     },
@@ -45,6 +54,8 @@ function adaptTrack(track: MediaStreamTrack): MediaTrackLike {
             };
     },
   };
+  realTracks.set(adapted, track);
+  return adapted;
 }
 
 function adaptStream(stream: MediaStream): MediaStreamLike {
@@ -162,6 +173,23 @@ const controller = new RecorderController({
   },
   sendEvent: (event) => {
     window.scrimRecorder.sendEvent(event);
+  },
+  createFrameSource: (track) => {
+    const real = realTracks.get(track);
+    if (real === undefined || typeof MediaStreamTrackProcessor === 'undefined') return undefined;
+    const reader = new MediaStreamTrackProcessor({ track: real }).readable.getReader();
+    return {
+      async read() {
+        const { value, done } = await reader.read();
+        if (done) return undefined;
+        const timestampUs = value.timestamp;
+        value.close();
+        return { timestampUs };
+      },
+      cancel() {
+        void reader.cancel();
+      },
+    };
   },
 });
 

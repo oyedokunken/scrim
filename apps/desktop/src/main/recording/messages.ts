@@ -124,19 +124,18 @@ export const WARNINGS = {
         ? 'The camera could not be opened, so it is not being recorded.'
         : 'The microphone could not be opened, so it is not being recorded.',
   }),
-  inputUnavailable: (reason: 'wayland' | 'permission' | 'error'): Warning => ({
+  inputUnavailable: (
+    reason: 'wayland' | 'permission' | 'error' | 'window-bounds-unsupported',
+  ): Warning => ({
     code: 'input-unavailable',
     message:
-      reason === 'wayland'
-        ? 'Cursor effects and auto zoom are off, because this desktop does not let apps see the mouse.'
-        : reason === 'permission'
-          ? 'Cursor effects and auto zoom are off, because Scrim does not have permission to see the mouse.'
-          : 'Cursor effects and auto zoom are off for this recording, because the mouse could not be logged.',
-  }),
-  windowBoundsUnavailable: (): Warning => ({
-    code: 'window-bounds-unavailable',
-    message:
-      'Scrim cannot follow this window on this computer, so cursor effects may sit in the wrong place if the window moves.',
+      reason === 'window-bounds-unsupported'
+        ? 'Cursor effects and auto zoom are off for this window recording, because Scrim cannot follow where the window is on this computer. Record the whole screen to use them.'
+        : reason === 'wayland'
+          ? 'Cursor effects and auto zoom are off, because this desktop does not let apps see the mouse.'
+          : reason === 'permission'
+            ? 'Cursor effects and auto zoom are off, because Scrim does not have permission to see the mouse.'
+            : 'Cursor effects and auto zoom are off for this recording, because the mouse could not be logged.',
   }),
   writerSlow: (): Warning => ({
     code: 'writer-slow',

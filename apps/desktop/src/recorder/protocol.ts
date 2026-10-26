@@ -59,14 +59,31 @@ export type RecorderEvent =
       kind: TrackKind;
       /** When the recorder reported that it started. A video recorder reports this late. */
       rendererNow: number;
-      /** When `start()` was called. A video recorder's first frame is stamped near this time. */
+      /** When `start()` was called. */
       calledAt: number;
+      /**
+       * When the first video frame the recorder could have taken was captured, on the page clock,
+       * read from the frame's own timestamp. That frame is the video's time zero. Missing for audio
+       * and where frame timestamps cannot be read.
+       */
+      firstFrameAt?: number | undefined;
+      /** The same frame's raw timestamp in milliseconds on the system's steady clock. */
+      firstFrameStampMs?: number | undefined;
     }
   | { type: 'paused'; rendererNow: number }
   | { type: 'resumed'; rendererNow: number }
   | { type: 'track-ended'; kind: TrackKind; rendererNow: number }
   | { type: 'track-error'; kind: TrackKind; message: string; rendererNow: number }
-  | { type: 'stopped'; tracks: { kind: TrackKind; chunks: number; bytes: number }[] }
+  | {
+      type: 'stopped';
+      tracks: {
+        kind: TrackKind;
+        chunks: number;
+        bytes: number;
+        /** When the recorder stopped, on the page clock. */
+        stoppedAt: number;
+      }[];
+    }
   | { type: 'trace'; kind: TrackKind; what: string; rendererNow: number }
   | { type: 'fatal'; message: string };
 

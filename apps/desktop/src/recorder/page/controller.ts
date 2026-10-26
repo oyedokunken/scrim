@@ -7,6 +7,7 @@ import type {
   TrackKind,
   TrackRequest,
 } from '../protocol';
+import { FrameClock, type FrameSource } from './frame-clock';
 import { pickMimeType } from './mime';
 import { TrackRecorder, type RecorderLike, type TrackLike } from './track-recorder';
 
@@ -41,6 +42,11 @@ export interface ControllerDeps {
   }): Promise<MediaStreamLike>;
   createRecorder(stream: MediaStreamLike, options: RecorderOptions): RecorderLike;
   sendEvent(event: RecorderEvent): void;
+  /**
+   * Frame timestamps for a video track, when this browser can read them. Without it, a video
+   * track's time zero falls back to the call to `start()` plus a fixed delay.
+   */
+  createFrameSource?: (track: MediaTrackLike) => FrameSource | undefined;
 }
 
 const CAMERA_BITS_PER_SECOND = 2_500_000;
@@ -200,6 +206,12 @@ export class RecorderController {
           };
     const recorder = this.deps.createRecorder(stream, options);
     const deps = this.deps;
+    const frameSource = kind === 'mic' ? undefined : deps.createFrameSource?.(media);
+    const frames =
+      frameSource === undefined
+        ? undefined
+        : new FrameClock({ source: frameSource, now: () => deps.now() });
+    frames?.begin();
     this.recorders.set(
       kind,
       new TrackRecorder({
@@ -210,8 +222,17 @@ export class RecorderController {
         post: (message) => {
           this.ports.get(kind)?.postMessage(message);
         },
-        onStarted: (rendererNow, calledAt) => {
-          deps.sendEvent({ type: 'track-started', kind, rendererNow, calledAt });
+        frames,
+        onStarted: (rendererNow, calledAt, first) => {
+          deps.sendEvent({
+            type: 'track-started',
+            kind,
+            rendererNow,
+            calledAt,
+            ...(first === undefined
+              ? {}
+              : { firstFrameAt: first.at, firstFrameStampMs: first.stampMs }),
+          });
         },
         onEnded: (rendererNow) => {
           deps.sendEvent({ type: 'track-ended', kind, rendererNow });
@@ -271,7 +292,11 @@ export class RecorderController {
     this.recorders.clear();
     this.deps.sendEvent({
       type: 'stopped',
-      tracks: stopped.map((recorder) => ({ kind: recorder.kind, ...recorder.stats })),
+      tracks: stopped.map((recorder) => ({
+        kind: recorder.kind,
+        ...recorder.stats,
+        stoppedAt: recorder.stoppedAt,
+      })),
     });
   }
 }

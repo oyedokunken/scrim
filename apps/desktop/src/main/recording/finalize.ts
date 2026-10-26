@@ -17,6 +17,17 @@ import { makeError } from './messages';
 import { ensureEditList, writeSession } from './session-store';
 import type { FinishedRecording, Outcome } from './types';
 
+/**
+ * How long after something happens the video shows it, in milliseconds. Measured with the on screen
+ * marker over six runs on Windows, now that every video track's time zero is exact: the video shows
+ * a flip 37 to 89 ms after the page drew it, run medians averaging 68. That is the screen being
+ * composed and captured, which no timestamp removes. The log adds it to every event, so a halo
+ * drawn at an event's time sits on the frame where the real cursor and the page react. The marker
+ * goes through the page compositor, which the cursor does not, so for the cursor alone this is
+ * probably a little high.
+ */
+const DISPLAY_LATENCY_MS = 68;
+
 export interface FinalizeDeps {
   fs: ServiceFs;
   run: RunProcess;
@@ -75,8 +86,10 @@ export async function finalizeSession(
   const tracks: SessionFile['tracks'] = [];
   let screenProbe: { width?: number | undefined; height?: number | undefined } | undefined;
   for (const { track, size } of sized) {
+    // A track that never reported a stop, as after a crash, is taken to have run to the end.
+    const stoppedAt = track.stoppedAt ?? endMs;
     if ((size ?? 0) === 0) {
-      tracks.push({ ...track, complete: true });
+      tracks.push({ ...track, stoppedAt, complete: true });
       continue;
     }
     const playable = playableTrackFile(track.kind, track.mimeType);
@@ -98,12 +111,18 @@ export async function finalizeSession(
         return { ok: false, error: makeError('remux-failed', result.detail) };
       }
       warnings.push(`The ${track.kind} recording could not be made playable.`);
-      tracks.push({ ...track, bytesWritten: size ?? track.bytesWritten, complete: true });
+      tracks.push({
+        ...track,
+        stoppedAt,
+        bytesWritten: size ?? track.bytesWritten,
+        complete: true,
+      });
       continue;
     }
     if (track.kind === 'screen') screenProbe = result.probe;
     tracks.push({
       ...track,
+      stoppedAt,
       bytesWritten: size ?? track.bytesWritten,
       complete: true,
       playableFile: playable,
@@ -193,6 +212,7 @@ async function convertInputLog(
   const parsed = parseInputNdjson(await fs.readText(rawPath));
   const log = toSessionLog(parsed.events, {
     windowBounds,
+    latencyMs: DISPLAY_LATENCY_MS,
     startTime: screen?.startedAt ?? 0,
     pauses: input.pauses,
     frame: { width: frame.width, height: frame.height },

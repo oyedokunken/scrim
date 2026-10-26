@@ -91,7 +91,10 @@ export const responder = (): FakePage['reply'] => (command, page) => {
       page.emit({ type: 'resumed', rendererNow: 9000 });
       break;
     case 'stop':
-      page.emit({ type: 'stopped', tracks: [{ kind: 'screen', chunks: 3, bytes: 30 }] });
+      page.emit({
+        type: 'stopped',
+        tracks: [{ kind: 'screen', chunks: 3, bytes: 30, stoppedAt: 9500 }],
+      });
       break;
   }
 };
