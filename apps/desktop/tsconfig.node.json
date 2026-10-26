@@ -14,6 +14,8 @@
     "src/preload/**/*",
     "src/shared/**/*",
     "tests/unit/**/*",
-    "build/**/*"
+    "build/**/*",
+    "scripts/**/*",
+    "../../packages/tokens/scripts/mark-source.mts"
   ]
 }

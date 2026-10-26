@@ -246,4 +246,23 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Every desktop window comes from createAppWindow, which applies the icon, the security
+    // baseline and the taskbar rule. A plain BrowserWindow would skip all three.
+    files: ['apps/desktop/src/main/**/*.ts'],
+    ignores: ['apps/desktop/src/main/windows/create-window.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ExportDefaultDeclaration',
+          message: 'Use named exports. Default exports only where a framework requires them.',
+        },
+        {
+          selector: "NewExpression[callee.name='BrowserWindow']",
+          message: 'Create windows with createAppWindow so they get the icon and the baseline.',
+        },
+      ],
+    },
+  },
 );

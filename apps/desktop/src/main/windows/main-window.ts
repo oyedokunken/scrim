@@ -1,9 +1,9 @@
-import { BrowserWindow } from 'electron';
+import type { BrowserWindow } from 'electron';
 import { join } from 'node:path';
-import { SECURE_WEB_PREFERENCES } from '../security';
+import { createAppWindow } from './create-window';
 
 export function createMainWindow(): BrowserWindow {
-  const window = new BrowserWindow({
+  const window = createAppWindow({
     width: 960,
     height: 640,
     minWidth: 720,
@@ -12,7 +12,7 @@ export function createMainWindow(): BrowserWindow {
     backgroundColor: '#FBF8F4',
     // Native frame on Windows and Linux. Hidden inset keeps the traffic lights on macOS.
     ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const } : {}),
-    webPreferences: { ...SECURE_WEB_PREFERENCES, preload: join(__dirname, '../preload/index.js') },
+    webPreferences: { preload: join(__dirname, '../preload/index.js') },
   });
   window.once('ready-to-show', () => {
     window.show();

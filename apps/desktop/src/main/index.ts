@@ -1,10 +1,15 @@
 import { app, BrowserWindow, protocol, session } from 'electron';
 import { join } from 'node:path';
+import { APP_ID, APP_NAME } from '../shared/app-id';
+import { devDockIconPath } from './app-icon';
 import { handleAppRequest } from './app-protocol';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
 import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { createMainWindow } from './windows/main-window';
+
+// Groups the taskbar buttons and keeps the icon on pinned shortcuts. Same id as the installer.
+if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 
 // Sandbox every renderer, including any window or frame created later. Must run before ready.
 app.enableSandbox();
@@ -52,6 +57,11 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(() => {
+    if (process.platform === 'darwin') {
+      app.setAboutPanelOptions({ applicationName: APP_NAME });
+      // A packaged app takes its icon from the bundle. While developing there is no bundle.
+      if (!app.isPackaged) app.dock?.setIcon(devDockIconPath(app.getAppPath()));
+    }
     session.defaultSession.protocol.handle(APP_SCHEME, (request) =>
       handleAppRequest(request, rendererRoot, appCsp),
     );
