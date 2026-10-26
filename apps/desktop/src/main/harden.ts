@@ -1,18 +1,22 @@
-import { app, session, shell, type WebContents } from 'electron';
-import { buildCsp } from './csp';
+import { session, shell, type WebContents } from 'electron';
 import { isAllowedExternalUrl } from './external-urls';
 import { isOwnUrl, isPermissionAllowed } from './permissions';
 
-/** Locks down the default session: CSP header and the permission allowlist. */
-export function hardenSession(appOrigin: string): void {
+/**
+ * Locks down the default session. The CSP for the app protocol is attached by the protocol
+ * handler itself. Only the dev server needs it added here.
+ */
+export function hardenSession(options: { appOrigin: string; devCsp: string | undefined }): void {
   const ses = session.defaultSession;
-  const csp = buildCsp({ packaged: app.isPackaged });
+  const { appOrigin, devCsp } = options;
 
-  ses.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] },
+  if (devCsp !== undefined) {
+    ses.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [devCsp] },
+      });
     });
-  });
+  }
   ses.setPermissionRequestHandler((contents, permission, callback) => {
     callback(isPermissionAllowed(permission, contents.getURL(), appOrigin));
   });
