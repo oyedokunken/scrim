@@ -12,7 +12,8 @@
     "test:e2e": "playwright test",
     "package": "electron-vite build && electron-builder --config electron-builder.config.ts",
     "package:dir": "electron-vite build && electron-builder --dir --config electron-builder.config.ts",
-    "verify:fuses": "node build/verify-fuses.mts"
+    "verify:fuses": "node build/verify-fuses.mts",
+    "icons": "node scripts/icons.mts"
   },
   "devDependencies": {
     "@electron/fuses": "catalog:",
@@ -27,6 +28,7 @@
     "electron-vite": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "sharp": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
