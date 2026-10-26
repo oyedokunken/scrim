@@ -4,10 +4,13 @@
  * from them with color-mix, so greys stay warm. A test fails if another hex appears.
  */
 :root {
-  --scrim-green: #105d64;
-  --scrim-butter: #fbf7f4;
-  --scrim-black: #2c2322;
+  --scrim-green: #004e52;
+  --scrim-butter: #fbf8f4;
+  --scrim-black: #000000;
   --scrim-white: #ffffff;
+
+  /* Signal red, only for things that say "recording": the REC dot and the back to top button. */
+  --scrim-record: #ff3b30;
 
   /* Greys: the black mixed into butter or white. */
   --scrim-text-secondary: color-mix(in srgb, var(--scrim-black) 72%, var(--scrim-butter));

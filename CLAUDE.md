@@ -23,7 +23,7 @@ Phase 1 is the landing page only. Do not scaffold or touch `apps/desktop` until 
 1. pnpm only. Never run npm or yarn. Versions are exact pins from the catalog. Never write `^` or `~` or `latest`.
 2. No emojis and no em dashes anywhere: code, comments, UI copy, docs, commit messages.
 3. No attribution to AI tools or agents, anywhere. That covers co-author trailers, "Generated with" lines, badges and credits that name any assistant (Claude, Devin and Codex are the ones in play) in commits, pull requests, issues, code comments, docs, the README and the website. This file is the only place those names appear, and only to define the rule. A commit hook and a CI check enforce it (see Conventions).
-4. Colors are green `#105D64` and butter `#FBF7F4` as the main colors, black `#2C2322` and white `#FFFFFF`, with greys derived from the black as supporting colors. Light theme only. There is no dark mode and none is to be added.
+4. Colors are green `#004E52` as the main color and butter `#FBF8F4` as the secondary color, with neutral black `#000000` and white `#FFFFFF`, and greys derived from the black as a very small supporting set, plus one signal red used only for recording indicators (owner decision, 2026-10-26, replacing the earlier palette). Light theme only. There is no dark mode and none is to be added.
 5. Font is Urbanist, self hosted through `@fontsource-variable/urbanist`. Icons are `lucide-react` only.
 6. The desktop app makes no network requests during recording, editing or export. Its only permitted network use is an optional update check against GitHub Releases.
 7. The website collects only what the download form needs: name, email, chosen system, app version, a hashed IP and a truncated user agent. No analytics, no third party scripts, no tracking cookies.
@@ -237,7 +237,7 @@ One Next.js App Router project holds everything for the website: pages, API rout
 5. About: why Scrim exists, privacy stance, who builds it.
 6. Contribute: repo link, how to run it, good first issues, link to CONTRIBUTING.md.
 7. Contact: GitHub issues and one email address. No contact form.
-8. Footer: license, source, release notes, privacy policy, Buy me a Suya link (see below).
+8. Footer: license, source, release notes, privacy policy, Buy me malt link (see below).
 
 Download is added beyond the original section list because the call to action needs a destination. FAQ is optional and decided later. Do not promote the owner's agency or any paid service on this site (see the Vercel note in Gotchas).
 
@@ -393,9 +393,9 @@ Validated at boot by `src/server/env.ts` with zod. The app fails fast with a rea
 - Do not enable Vercel Analytics or Speed Insights. The site has no analytics by rule.
 - Watch the Hobby usage limits (function invocations, data transfer, active CPU). A traffic spike on a free plan can pause the project, so keep an uptime check and know where the usage page is.
 
-### Buy me a Suya
+### Buy me malt
 
-The link points to the owner's page at `https://buymeamalt.com/@oyedokunken`, where the item is suya (checkout is handled by the platform). The URL lives in one config file, `src/site.config.ts`. It is a plain outbound link that opens in a new tab with `rel="noopener noreferrer"`. Do not embed their widget or script, because the site loads no third party scripts.
+The link points to the owner's page at `https://buymeamalt.com/@oyedokunken`, where supporters buy the owner a malt (checkout is handled by the platform). The URL lives in one config file, `src/site.config.ts`. It is a plain outbound link that opens in a new tab with `rel="noopener noreferrer"`. Do not embed their widget or script, because the site loads no third party scripts.
 
 ### Hero direction
 
@@ -417,15 +417,16 @@ Make the hero a live demonstration, not a screenshot. Run the real `planZoom` an
 
 | Name | Hex | Role |
 | --- | --- | --- |
-| Green | `#105D64` | Brand. Buttons, links, focus rings, key accents. |
-| Butter | `#FBF7F4` | Page background. The most common surface. |
-| Black | `#2C2322` | Text and structure. A warm black, so never swap in pure black. |
+| Green | `#004E52` | Brand. Buttons, links, focus rings, key accents. |
+| Butter | `#FBF8F4` | Page background. The most common surface. |
+| Black | `#000000` | Text, the header and the footer. A neutral black. |
 | White | `#FFFFFF` | Raised surfaces: cards, inputs, the download modal. |
+| Record red | `#FF3B30` | A signal color for recording indicators only: the REC dot and the back to top button. Never for text on butter, never for buttons or links. |
 
 - Green and butter are the main colors. Butter carries the page, green carries the brand, white lifts things off the page, black is for text. Greys support: they are for borders, dividers, secondary text and quiet fills, never for large areas.
-- Greys are the black mixed into butter or white with `color-mix`, so they stay warm and consistent. No separate grey hex values. Suggested steps: secondary text at 72 percent black, a border at 14 percent, a quiet fill at 8 percent.
-- A test fails if CSS introduces a hex value outside the four palette colors.
-- Contrast is tested, with these measured ratios as the floor: black on white 15.3, black on butter 14.4, green on white 7.6, green on butter 7.1, white on green 7.6, butter on green 7.1, secondary text (72 percent black) on butter 5.9. Every pair above clears WCAG AA, and most clear AAA. Never put black text on green, which is only 2.0. Use white or butter on green.
+- Greys are the black mixed into butter or white with `color-mix`, so they stay consistent. No separate grey hex values. Suggested steps: secondary text at 72 percent black, a border at 14 percent, a quiet fill at 8 percent.
+- A test fails if CSS introduces a hex value outside the palette.
+- Contrast is tested, with these measured ratios as the floor: black on white 21, black on butter 19.8, green on white 9.5, green on butter 9.0, white on green 9.5, butter on green 9.0, secondary text (72 percent black) on butter 9.0. Every pair above clears WCAG AAA. Never put black text on green, or green text on black, which are only 2.2. Use white or butter on green.
 - Type: Urbanist only. Set a deliberate scale, line length under 80 characters, sentence case.
 - Icons: lucide only, `aria-hidden` when decorative.
 - Avoid generic AI looking patterns: tracked out all caps eyebrow labels, numbered markers where the content is not a sequence, one rounded card style repeated everywhere, gradient washes, fade and slide entrances on every section, accenting a single word in a headline.

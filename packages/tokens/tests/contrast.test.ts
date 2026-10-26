@@ -8,7 +8,7 @@ describe('relativeLuminance', () => {
   });
 
   it('accepts lower case hex', () => {
-    expect(relativeLuminance('#fbf7f4')).toBeCloseTo(relativeLuminance('#FBF7F4'), 10);
+    expect(relativeLuminance('#fbf8f4')).toBeCloseTo(relativeLuminance('#FBF8F4'), 10);
   });
 
   it('rejects malformed colors', () => {

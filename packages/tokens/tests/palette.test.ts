@@ -19,9 +19,10 @@ describe('palette and tokens.css', () => {
     expect(cssValue('scrim-butter')).toBe(palette.butter);
     expect(cssValue('scrim-black')).toBe(palette.black);
     expect(cssValue('scrim-white')).toBe(palette.white);
+    expect(cssValue('scrim-record')).toBe(palette.record);
   });
 
-  it('contains no hex value outside the four palette colors', () => {
+  it('contains no hex value outside the palette', () => {
     const allowed = new Set(Object.values(palette).map((hex) => hex.toUpperCase()));
     const found = css.match(/#[0-9a-fA-F]{3,8}\b/g) ?? [];
     const stray = found.filter((hex) => !allowed.has(hex.toUpperCase()));
@@ -40,13 +41,13 @@ describe('contrast floors from the design system', () => {
   const secondaryOnButter = blendOver(black, butter, 0.72);
 
   it.each([
-    ['black on white', black, white, 15.3],
-    ['black on butter', black, butter, 14.4],
-    ['green on white', green, white, 7.6],
-    ['green on butter', green, butter, 7.1],
-    ['white on green', white, green, 7.6],
-    ['butter on green', butter, green, 7.1],
-    ['secondary text on butter', secondaryOnButter, butter, 5.9],
+    ['black on white', black, white, 21],
+    ['black on butter', black, butter, 19.8],
+    ['green on white', green, white, 9.5],
+    ['green on butter', green, butter, 9],
+    ['white on green', white, green, 9.5],
+    ['butter on green', butter, green, 9],
+    ['secondary text on butter', secondaryOnButter, butter, 9],
   ])('%s is at least %f', (_label, foreground, background, floor) => {
     // Floors are the ratios measured to one decimal, so compare after rounding.
     expect(Math.round(contrastRatio(foreground, background) * 10) / 10).toBeGreaterThanOrEqual(
@@ -69,7 +70,13 @@ describe('contrast floors from the design system', () => {
     }
   });
 
-  it('documents that black on green fails AA, so it is never used', () => {
+  it('keeps the signal red readable on black and clear enough as a graphic on white', () => {
+    expect(contrastRatio(palette.record, black)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(white, palette.record)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('documents that black on green and green on black fail AA, so neither is used for text', () => {
     expect(contrastRatio(black, green)).toBeLessThan(4.5);
+    expect(contrastRatio(green, black)).toBeLessThan(4.5);
   });
 });
