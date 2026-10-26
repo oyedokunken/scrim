@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Os {
+  WINDOWS
+  MACOS
+  LINUX
+}
+
+enum Arch {
+  X64
+  ARM64
+}
+
+model Person {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique
+  name             String
+  updatesOptIn     Boolean    @default(false)
+  unsubscribeToken String     @unique @default(uuid())
+  unsubscribedAt   DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  downloads        Download[]
+}
+
+model Download {
+  id          String    @id @default(uuid()) @db.Uuid
+  personId    String    @db.Uuid
+  person      Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  os          Os
+  arch        Arch?
+  version     String
+  ipHash      String
+  userAgent   String?
+  emailSentAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([personId])
+  @@index([createdAt])
+  @@index([ipHash, createdAt])
+}

@@ -48,3 +48,6 @@ minimumReleaseAge: 10080
 # script does.
 allowBuilds:
   sharp: true
+  # Download Prisma's schema engine binary, which `prisma migrate` needs.
+  prisma: true
+  '@prisma/engines': true

@@ -7,6 +7,8 @@ const monorepoRoot = path.join(import.meta.dirname, '../..');
 const config: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // Do not generate agent instruction files into the repo.
+  agentRules: false,
   transpilePackages: ['@scrim/tokens', '@scrim/core'],
   // The workspace packages live outside this folder, so tracing and bundling start at the root.
   outputFileTracingRoot: monorepoRoot,
