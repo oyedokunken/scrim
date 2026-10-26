@@ -9,9 +9,13 @@ import type { FinishedRecording, RecordingError } from './types';
  *   SCRIM_DEV_CAMERA=1    also record the camera
  *   SCRIM_DEV_MIC=1       also record the microphone
  *   SCRIM_DEV_PAUSE=3     pause at 3 seconds for 2 seconds, then resume
+ *   SCRIM_DEV_DEST=...    save into this folder instead of Videos\Scrim
+ *   SCRIM_DEV_RECOVER=1   instead of recording, recover every unfinished recording and quit
  */
 export interface DevTriggerPlan {
+  mode: 'record' | 'recover';
   seconds: number;
+  destination: string | undefined;
   camera: boolean;
   mic: boolean;
   /** Seconds into the recording at which to pause for two seconds. */
@@ -36,10 +40,23 @@ export function readDevTrigger(
   isPackaged: boolean,
 ): DevTriggerPlan | undefined {
   if (isPackaged) return undefined;
+  const destination = env['SCRIM_DEV_DEST'] === '' ? undefined : env['SCRIM_DEV_DEST'];
+  if (env['SCRIM_DEV_RECOVER'] === '1') {
+    return {
+      mode: 'recover',
+      seconds: 0,
+      destination,
+      camera: false,
+      mic: false,
+      pauseAt: undefined,
+    };
+  }
   const seconds = positiveInteger(env['SCRIM_DEV_RECORD']);
   if (seconds === undefined) return undefined;
   const pauseAt = positiveInteger(env['SCRIM_DEV_PAUSE']);
   return {
+    mode: 'record',
+    destination,
     seconds,
     camera: env['SCRIM_DEV_CAMERA'] === '1',
     mic: env['SCRIM_DEV_MIC'] === '1',
@@ -48,7 +65,10 @@ export function readDevTrigger(
 }
 
 export interface DevTriggerDeps {
-  service: Pick<RecordingService, 'start' | 'pause' | 'resume' | 'stop'>;
+  service: Pick<
+    RecordingService,
+    'start' | 'pause' | 'resume' | 'stop' | 'listRecoverable' | 'recover'
+  >;
   wait: (ms: number) => Promise<void>;
   log: (message: string) => void;
   /** Called once it is all over, so a dev run can quit. */
@@ -62,10 +82,15 @@ export async function runDevTrigger(plan: DevTriggerPlan, deps: DevTriggerDeps):
     log(`DEV RECORD ${step} failed: ${error.message} ${error.nextStep} (${error.code})`);
   };
   try {
+    if (plan.mode === 'recover') {
+      await recoverAll(service, log);
+      return;
+    }
     const started = await service.start({
       source: { kind: 'display' },
       camera: { enabled: plan.camera },
       mic: { enabled: plan.mic },
+      destination: plan.destination,
     });
     if (!started.ok) {
       fail('start', started.error);
@@ -101,6 +126,20 @@ export async function runDevTrigger(plan: DevTriggerPlan, deps: DevTriggerDeps):
     log(describeResult(stopped.value));
   } finally {
     deps.done();
+  }
+}
+
+async function recoverAll(
+  service: Pick<RecordingService, 'listRecoverable' | 'recover'>,
+  log: (message: string) => void,
+): Promise<void> {
+  const found = await service.listRecoverable();
+  log(`DEV RECOVER found ${String(found.length)} unfinished recording(s)`);
+  for (const session of found) {
+    const result = await service.recover(session.folder);
+    if (result.ok)
+      log(describeResult(result.value).replace('DEV RECORD finished', 'DEV RECOVER finished'));
+    else log(`DEV RECOVER failed: ${result.error.message} (${result.error.code})`);
   }
 }
 

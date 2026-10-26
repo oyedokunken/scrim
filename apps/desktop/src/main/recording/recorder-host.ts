@@ -124,7 +124,7 @@ export class RecorderHost {
   async attachPorts(
     kinds: readonly TrackKind[],
     onChunk: (chunk: ChunkMessage) => void,
-    onBadChunk: (kind: TrackKind) => void,
+    onBadChunk: (kind: TrackKind, detail: string) => void,
   ): Promise<void> {
     const reply = this.expect(
       'the chunk ports',
@@ -135,7 +135,7 @@ export class RecorderHost {
     for (const kind of kinds) {
       this.ports[kind]?.onMessage((value) => {
         const chunk = parseChunkMessage(value);
-        if (chunk === undefined || chunk.track !== kind) onBadChunk(kind);
+        if (chunk === undefined || chunk.track !== kind) onBadChunk(kind, describeValue(value));
         else onChunk(chunk);
       });
     }
@@ -293,4 +293,13 @@ export class RecorderHost {
       this.rejecters.add(fail);
     });
   }
+}
+
+/** A short description of a value that failed validation, for the log. It never includes the data. */
+function describeValue(value: unknown): string {
+  if (typeof value !== 'object' || value === null) return typeof value;
+  const fields = Object.entries(value)
+    .map(([key, entry]) => `${key}: ${Object.prototype.toString.call(entry)}`)
+    .join(', ');
+  return `{ ${fields} }`;
 }

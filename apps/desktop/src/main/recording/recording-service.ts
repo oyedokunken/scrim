@@ -501,8 +501,8 @@ export class RecordingService {
           data: new Uint8Array(chunk.data),
         });
       },
-      (kind) => {
-        deps.log(`A malformed chunk arrived on the ${kind} port and was ignored.`);
+      (kind, detail) => {
+        deps.log(`A malformed chunk arrived on the ${kind} port and was ignored: ${detail}`);
       },
     );
     return { ok: true, value: undefined };
