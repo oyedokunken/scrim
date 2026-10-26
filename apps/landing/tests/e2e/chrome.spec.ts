@@ -61,6 +61,26 @@ test('the header stays at the top while the page scrolls', async ({ page }) => {
   expect(top).toBe(0);
 });
 
+test('the pill stays one line high at every width, with no wrapped links', async ({ page }) => {
+  for (const width of [360, 375, 759, 760, 768, 820, 900, 980, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    const pill = page.locator('header > div');
+    const box = await pill.boundingBox();
+    expect(box?.height ?? 999, `pill height at ${String(width)}px`).toBeLessThanOrEqual(64);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, `overflow at ${String(width)}px`).toBeLessThanOrEqual(0);
+    const links = page.getByRole('navigation', { name: 'Primary' }).getByRole('link');
+    if (width >= 760) {
+      for (const link of await links.all()) {
+        const linkBox = await link.boundingBox();
+        expect(linkBox?.height ?? 999, `link height at ${String(width)}px`).toBeLessThanOrEqual(40);
+      }
+    }
+  }
+});
+
 test('the pill reads Scrim and keeps Buy me suya visible', async ({ page }) => {
   const header = page.locator('header');
   await expect(header.getByRole('link', { name: 'Scrim home' })).toBeVisible();
