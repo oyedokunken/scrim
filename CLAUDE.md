@@ -24,7 +24,7 @@ Phase 1 is the landing page only. Do not scaffold or touch `apps/desktop` until 
 2. No emojis and no em dashes anywhere: code, comments, UI copy, docs, commit messages.
 3. No attribution to AI tools or agents, anywhere. That covers co-author trailers, "Generated with" lines, badges and credits that name any assistant (Claude, Devin and Codex are the ones in play) in commits, pull requests, issues, code comments, docs, the README and the website. This file is the only place those names appear, and only to define the rule. A commit hook and a CI check enforce it (see Conventions).
 4. Colors are green `#004E52` as the main color and butter `#FBF8F4` as the secondary color, with neutral black `#000000` and white `#FFFFFF`, and greys derived from the black as a very small supporting set, plus one signal red used only for recording indicators (owner decision, 2026-10-26, replacing the earlier palette). Light theme only. There is no dark mode and none is to be added.
-5. Font is Urbanist, self hosted through `@fontsource-variable/urbanist`. Icons are `lucide-react` only.
+5. Font is Urbanist, self hosted through `@fontsource-variable/urbanist`. Icons are `lucide-react`, plus custom brand SVG components for operating systems and social networks, which lucide does not carry.
 6. The desktop app makes no network requests during recording, editing or export. Its only permitted network use is an optional update check against GitHub Releases.
 7. The website collects only what the download form needs: name, email, chosen system, app version, a hashed IP and a truncated user agent. No analytics, no third party scripts, no tracking cookies.
 8. Secrets never enter the repo. This is an open source project. `.env*` files are ignored except `.env.example`, and all configuration is read through one validated `env.ts`. See "Open source hygiene and secrets".
@@ -128,7 +128,7 @@ Single source of truth is the pnpm catalog. Packages reference versions as `cata
 | --- | --- |
 | Toolchain | pnpm 12.15.0, Node 22 (engines `>=22.18.0`, Prisma 7 needs it), typescript 6.0.3, turbo 2.11.8, vite 8.3.4 |
 | Desktop | electron 44.7.2, electron-vite 6.0.0, electron-builder 26.17.0, @vitejs/plugin-react 6.1.2 |
-| Web and UI | next 16.4.2, react 19.3.1, react-dom 19.3.1, @types/react 19.3.0, @types/react-dom 19.3.0, lucide-react 1.57.0, @fontsource-variable/urbanist 5.3.0 |
+| Web and UI | react-hook-form 7.90.0, @hookform/resolvers 5.9.2, @fontsource/urbanist 5.3.0, next 16.4.2, react 19.3.1, react-dom 19.3.1, @types/react 19.3.0, @types/react-dom 19.3.0, lucide-react 1.57.0, @fontsource-variable/urbanist 5.3.0 |
 | Data and mail (landing) | prisma 7.10.1, @prisma/client 7.10.1, @prisma/adapter-pg 7.10.1, nodemailer 10.1.1, @types/nodemailer 8.0.2, server-only 0.0.1 |
 | Shared | zod 4.6.7, @types/node 24.19.2 |
 | Tests | vitest 5.0.5, @vitest/coverage-v8 5.0.5, fast-check 4.10.2, @playwright/test 1.64.1, @axe-core/playwright 4.14.0, @lhci/cli 0.15.1, serve 14.2.6 |
@@ -230,6 +230,8 @@ One Next.js App Router project holds everything for the website: pages, API rout
 
 ### Sections and order
 
+Current state (owner decisions, 2026-10-26): the page has the hero (live zoom demo), features (eight stacking cards numbered 01/08 to 08/08), use cases, download (with "Need help?" first run help per system), FAQ in two columns, contribute, contact and a closing call to action, then the footer. The About section is hidden. The header pill holds the logo, five nav links and a Download button at every width. Support (the Buy me malt link) lives in the footer as "Show your Support" with a heart, in the mobile menu as "Support", and on the download success view and the confirmation email. The footer has a Built by popover with five social icons in one row, green by default and black on hover. Every link to another site opens in a new tab through `SiteLink`. The original list follows for reference.
+
 1. Hero: one sentence on what Scrim does, one Download button labelled for the visitor's system, View source link.
 2. Features: the headline claims and feature areas above, each with a real image or live demo.
 3. Who it is for: tutorials, product demos, teaching, bug reports, sales and support, personal use.
@@ -245,10 +247,10 @@ Download is added beyond the original section list because the call to action ne
 
 1. The visitor clicks Download. A modal opens. Use a native `<dialog>` opened with `showModal()` so focus trapping, Escape and the backdrop come for free.
 2. Fields: name, email, system (preselected from detection, always changeable), a checkbox "Email me when a new version is out" (unchecked by default), and a hidden honeypot field. One plain sentence says what is stored, with a link to the privacy page.
-3. The client validates with the shared zod schema, then POSTs JSON to `/api/downloads`.
+3. The client validates with React Hook Form and the shared zod schema (no HTML `required`, an error under each field, shown in red), then POSTs JSON to `/api/downloads`.
 4. The server validates again, checks origin, honeypot and rate limits, upserts the person by lower cased email, records a `Download` row, and resolves the file URL for the chosen system and architecture from the latest GitHub Release.
 5. The response is `{ url, filename, version }`. The client starts the download and shows install help for that system.
-6. After the response is sent, the server sends the confirmation email with Nodemailer, scheduled with Next's `after()` so the visitor never waits on SMTP.
+6. After the response is sent, the server sends the confirmation email to the visitor and a short note to the owner (`contactInbox` in `site.config.ts`) with Nodemailer, scheduled with Next's `after()` so nobody waits on SMTP.
 
 Failure behavior: never block a download because bookkeeping failed. If the database write or the email fails, still return the URL, log the failure without personal data, and surface it in monitoring. Validation errors and rate limits do return clear messages. Be honest in the copy: the form exists to count downloads, and release files on GitHub are public.
 
@@ -421,7 +423,7 @@ Make the hero a live demonstration, not a screenshot. Run the real `planZoom` an
 | Butter | `#FBF8F4` | Page background. The most common surface. |
 | Black | `#000000` | Text, the header and the footer. A neutral black. |
 | White | `#FFFFFF` | Raised surfaces: cards, inputs, the download modal. |
-| Record red | `#FF3B30` | A signal color for recording indicators only: the REC dot and the back to top button. Never for text on butter, never for buttons or links. |
+| Record red | `#FF3B30` | A signal color for recording indicators only: the REC dot and the back to top button. Never for text on butter, never for buttons or links. Form errors use a darker red mixed from it with black (70 percent red), which clears 4.5 to 1 on white. |
 
 - Green and butter are the main colors. Butter carries the page, green carries the brand, white lifts things off the page, black is for text. Greys support: they are for borders, dividers, secondary text and quiet fills, never for large areas.
 - Greys are the black mixed into butter or white with `color-mix`, so they stay consistent. No separate grey hex values. Suggested steps: secondary text at 72 percent black, a border at 14 percent, a quiet fill at 8 percent.

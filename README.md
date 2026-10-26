@@ -26,6 +26,16 @@ Scrim keeps recordings on your computer. Nothing is uploaded, there is no accoun
 - **Sales and support:** Answer questions with a quick, personal video.
 - **Personal:** Help family with their PC, or save a moment from your screen.
 
+## The website
+
+The landing page is a single Next.js project in `apps/landing`. It has these sections: hero with a live auto zoom demo, features (eight stacking cards), use cases, download, FAQ, contribute and contact, then a footer.
+
+- **Download dialog.** Every Download button opens a native dialog that asks for a name and email, picks the system from the visitor's computer (always changeable), and starts the download from the latest GitHub Release. The form uses React Hook Form with the shared zod schema and prints an error under each field.
+- **Email.** Visitors get a confirmation email with the file link, first run help and a Support link. The owner gets a short note for each download. Mail is sent with Nodemailer after the response, so the visitor never waits on it.
+- **Release notices.** Optional and off by default. Every email has a one step unsubscribe, done by POST only.
+- **Links.** Every link to another site opens in a new tab.
+- **Privacy.** No analytics, no cookies, no third party scripts.
+
 ## Project status
 
 The project is currently in Phase 1: the landing page. The desktop application will be developed in later phases.
@@ -106,7 +116,7 @@ Requirements:
 
 - Node.js 22.18 or newer
 - pnpm 12.15.0
-- Docker for the local database and mail catcher
+- A Postgres database (a local one, or a separate Supabase development project) and an SMTP account or mail catcher
 
 Install dependencies:
 
@@ -117,7 +127,7 @@ pnpm install
 Useful commands:
 
 ```bash
-pnpm db:up
+pnpm db:generate
 pnpm dev:landing
 pnpm check
 pnpm test
@@ -136,7 +146,7 @@ The desktop application does not send recordings or recording data to a server. 
 - **Name:** Oyedokun Kehinde
 - **Email:** oyedokunken@gmail.com
 - **Portfolio:** https://www.oyedokun.dev/
-- **Buy me malt:** https://buymeamalt.com/@oyedokunken
+- **Support:** https://buymeamalt.com/@oyedokunken
 
 ## License
 

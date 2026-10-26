@@ -24,6 +24,12 @@ Scrim is designed with these boundaries:
 
 - Recordings stay on the user's computer
 - The desktop app makes no network requests during recording, editing or export
-- Website input is validated on the client and server
+- Website input is validated on the client and server with the same zod schema
+- Download and unsubscribe requests are same origin only, JSON only and size limited, with a honeypot and a rate limit per hashed IP
+- Unsubscribing is a POST, never a GET, so link scanners cannot unsubscribe anyone
+- Email templates escape every visitor supplied value
+- The site sets a strict Content Security Policy with no `unsafe-eval`, plus HSTS and related headers
+- The site loads no analytics or third party scripts and sets no cookies
+- Every link to another site opens in a new tab with `rel="noopener noreferrer"`
 - Raw IP addresses are not stored or logged
 - Secrets and credentials must never be committed
