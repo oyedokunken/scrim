@@ -2,7 +2,7 @@ import { MARK } from '@/lib/brand';
 
 interface LogoMarkProps {
   size?: number;
-  className?: string;
+  className?: string | undefined;
 }
 
 /**
@@ -34,7 +34,7 @@ export function LogoMark({ size = 32, className }: LogoMarkProps) {
 }
 
 interface LogoProps {
-  className?: string;
+  className?: string | undefined;
   markSize?: number;
 }
 

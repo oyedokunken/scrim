@@ -32,7 +32,9 @@
     "@prisma/client": "catalog:"
   },
   "devDependencies": {
+    "@axe-core/playwright": "catalog:",
     "@fontsource/urbanist": "catalog:",
+    "@playwright/test": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

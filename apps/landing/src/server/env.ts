@@ -12,6 +12,11 @@ const siteSchema = z.object({
     .refine((value) => /^https?:\/\//.test(value), 'must start with http:// or https://')
     .transform((value) => value.replace(/\/+$/, '')),
   GITHUB_REPO: z.string().regex(/^[\w.-]+\/[\w.-]+$/, 'must look like owner/name'),
+  // Optional. Only raises GitHub rate limits for release lookups, which run during render.
+  GITHUB_TOKEN: z
+    .string()
+    .optional()
+    .transform((value) => (value === undefined || value === '' ? undefined : value)),
 });
 
 /** Everything the running server needs. */
@@ -26,10 +31,6 @@ const serverSchema = siteSchema.extend({
   SMTP_PASS: z.string().default(''),
   MAIL_FROM: z.string().min(3),
   IP_HASH_SECRET: z.string().min(32, 'must be at least 32 characters'),
-  GITHUB_TOKEN: z
-    .string()
-    .optional()
-    .transform((value) => (value === undefined || value === '' ? undefined : value)),
 });
 
 export type SiteEnv = z.infer<typeof siteSchema>;
