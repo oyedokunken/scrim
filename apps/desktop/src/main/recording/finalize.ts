@@ -1,5 +1,6 @@
 import {
   inputLogFileName,
+  parseBoundsNdjson,
   parseInputNdjson,
   playableTrackFile,
   sessionLogSchema,
@@ -13,7 +14,7 @@ import { join } from 'node:path';
 import { probeFile, remuxTrack, type FfmpegPaths, type RunProcess } from './ffmpeg';
 import type { ServiceFs } from './fs-adapter';
 import { makeError } from './messages';
-import { writeSession } from './session-store';
+import { ensureEditList, writeSession } from './session-store';
 import type { FinishedRecording, Outcome } from './types';
 
 export interface FinalizeDeps {
@@ -124,6 +125,7 @@ export async function finalizeSession(
     }
   }
 
+  await ensureEditList(fs, folder);
   const session: SessionFile = {
     ...input.session,
     tracks,
@@ -183,8 +185,14 @@ async function convertInputLog(
     return { ok: false, error: makeError('remux-failed', 'The video size is not known.') };
   }
 
+  const boundsPath = join(folder, SESSION_FILES.windowBounds);
+  const windowBounds =
+    session.windowBounds?.status === 'recorded' && (await fs.fileSize(boundsPath)) !== undefined
+      ? parseBoundsNdjson(await fs.readText(boundsPath))
+      : undefined;
   const parsed = parseInputNdjson(await fs.readText(rawPath));
   const log = toSessionLog(parsed.events, {
+    windowBounds,
     startTime: screen?.startedAt ?? 0,
     pauses: input.pauses,
     frame: { width: frame.width, height: frame.height },
@@ -202,6 +210,7 @@ async function convertInputLog(
     return { ok: false, error: makeError('unknown', 'The saved input log did not verify.') };
   }
   await fs.remove(rawPath);
+  if (windowBounds !== undefined) await fs.remove(boundsPath);
   return { ok: true, value: target };
 }
 

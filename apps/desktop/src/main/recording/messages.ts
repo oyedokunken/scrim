@@ -133,6 +133,11 @@ export const WARNINGS = {
           ? 'Cursor effects and auto zoom are off, because Scrim does not have permission to see the mouse.'
           : 'Cursor effects and auto zoom are off for this recording, because the mouse could not be logged.',
   }),
+  windowBoundsUnavailable: (): Warning => ({
+    code: 'window-bounds-unavailable',
+    message:
+      'Scrim cannot follow this window on this computer, so cursor effects may sit in the wrong place if the window moves.',
+  }),
   writerSlow: (): Warning => ({
     code: 'writer-slow',
     message: 'The disk is writing slowly. If this continues, recording may stop.',

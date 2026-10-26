@@ -193,7 +193,7 @@ describe('createHookSource', () => {
       env: {},
       load: () => Promise.resolve({ uIOhook: hook }),
       isAccessibilityTrusted: () => true,
-      toDip: (point) => ({ x: point.x / 2, y: point.y / 2 }),
+      locate: (point) => ({ x: point.x / 2, y: point.y / 2, display: point.x > 1000 ? '2' : '1' }),
       ...overrides,
     };
     return { value, hook };
@@ -218,12 +218,14 @@ describe('createHookSource', () => {
     hook.handlers.get('wheel')?.({ x: 40, y: 40, direction: 3, rotation: -1 });
     hook.handlers.get('wheel')?.({ x: 40, y: 40, direction: 4, rotation: 1 });
     expect(events).toEqual([
-      { type: 'move', x: 100, y: 50 },
-      { type: 'down', x: 100, y: 50, button: 'left' },
-      { type: 'up', x: 100, y: 50, button: 'right' },
-      { type: 'wheel', x: 20, y: 20, dx: 0, dy: -1 },
-      { type: 'wheel', x: 20, y: 20, dx: 1, dy: 0 },
+      { type: 'move', x: 100, y: 50, display: '1' },
+      { type: 'down', x: 100, y: 50, button: 'left', display: '1' },
+      { type: 'up', x: 100, y: 50, button: 'right', display: '1' },
+      { type: 'wheel', x: 20, y: 20, dx: 0, dy: -1, display: '1' },
+      { type: 'wheel', x: 20, y: 20, dx: 1, dy: 0, display: '1' },
     ]);
+    hook.handlers.get('mousedown')?.({ x: 3000, y: 10, button: 1 });
+    expect(events.at(-1)).toMatchObject({ x: 1500, display: '2' });
   });
 
   it('ignores a button it does not know', async () => {

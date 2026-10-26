@@ -6,6 +6,11 @@ import type { ProcessResult, RunProcess } from '../../../src/main/recording/ffmp
 import { realServiceFs, type ServiceFs } from '../../../src/main/recording/fs-adapter';
 import type { InputSource, UnstampedEvent } from '../../../src/main/recording/input-source';
 import { RecorderHost } from '../../../src/main/recording/recorder-host';
+import type {
+  BoundsStartResult,
+  WindowBoundsSource,
+  WindowRect,
+} from '../../../src/main/recording/window-bounds-source';
 import { RecordingService, type ServiceDeps } from '../../../src/main/recording/recording-service';
 import { createSessionIndex } from '../../../src/main/recording/session-store';
 import type {
@@ -15,6 +20,22 @@ import type {
 } from '../../../src/main/recording/types';
 import type { TrackKind } from '../../../src/recorder/protocol';
 import { FakePage } from './fake-page';
+
+class FakeBounds implements WindowBoundsSource {
+  listener: ((rect: WindowRect) => void) | undefined;
+  stopped = false;
+  result: BoundsStartResult = { status: 'started' };
+  start(onRect: (rect: WindowRect) => void): Promise<BoundsStartResult> {
+    this.listener = onRect;
+    return Promise.resolve(this.result);
+  }
+  stop(): void {
+    this.stopped = true;
+  }
+  move(x: number, y: number, width = 800, height = 600): void {
+    this.listener?.({ x, y, width, height });
+  }
+}
 
 class FakeInput implements InputSource {
   listener: ((event: UnstampedEvent) => void) | undefined;
@@ -46,6 +67,8 @@ export interface HarnessOptions {
   failedTracks?: { kind: TrackKind; reason: 'permission-denied' | 'device-missing' }[];
   cursor?: 'hidden' | 'shown' | 'unknown';
   alivePids?: number[];
+  /** Pixels per device independent pixel of the pretend display. */
+  scaleFactor?: number;
 }
 
 const ERR = (code: string): Error => Object.assign(new Error(code), { code });
@@ -58,6 +81,7 @@ export async function createHarness(options: HarnessOptions = {}) {
   const clock = { time: 100_000 };
   const page = new FakePage();
   const input = new FakeInput();
+  const bounds = new FakeBounds();
   const events: RecordingEvent[] = [];
   const alive = new Set<number>(options.alivePids ?? []);
   const openSinks = new Set<string>();
@@ -142,12 +166,18 @@ export async function createHarness(options: HarnessOptions = {}) {
         timeouts: { readyMs: 500, replyMs: 500 },
       }),
     createInputSource: () => input,
+    createBoundsSource: () => bounds,
     run,
     ffmpeg: { ffmpeg: 'ffmpeg', ffprobe: 'ffprobe' },
     resolveSource: (spec: SourceSpec) =>
       Promise.resolve({
         ok: true,
-        value: { kind: spec.kind, origin: { x: 0, y: 0 }, scaleFactor: 1 },
+        value: {
+          kind: spec.kind,
+          ...(spec.kind === 'region' ? { crop: spec.crop } : {}),
+          origin: { x: 0, y: 0 },
+          scaleFactor: options.scaleFactor ?? 1,
+        },
       }),
     setCaptureTarget: () => undefined,
     defaultDestination: () => destination,
@@ -241,6 +271,7 @@ export async function createHarness(options: HarnessOptions = {}) {
     clock,
     page,
     input,
+    bounds,
     events,
     service,
     deps,

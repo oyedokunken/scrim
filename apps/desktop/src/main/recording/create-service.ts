@@ -7,6 +7,7 @@ import { createHookSource } from './input-source';
 import { installDisplayMediaHandler, type CaptureTarget } from './display-media';
 import { resolveFfmpegPaths, runProcess } from './ffmpeg';
 import { realServiceFs } from './fs-adapter';
+import { createUnavailableBoundsSource } from './window-bounds-source';
 import { RecorderHost } from './recorder-host';
 import { openRecorderWindow } from './recorder-window';
 import { RecordingService } from './recording-service';
@@ -131,11 +132,14 @@ export function createRecordingService(options: CreateServiceOptions): Recording
           }),
         isAccessibilityTrusted: () =>
           process.platform === 'darwin' && systemPreferences.isTrustedAccessibilityClient(false),
-        toDip: (point) =>
-          process.platform === 'win32'
-            ? screen.screenToDipPoint(point)
-            : { x: point.x, y: point.y },
+        locate: (point) => {
+          // Windows reports physical pixels. The other systems already report points.
+          const dip = process.platform === 'win32' ? screen.screenToDipPoint(point) : point;
+          return { x: dip.x, y: dip.y, display: String(screen.getDisplayNearestPoint(dip).id) };
+        },
       }),
+    createBoundsSource: () =>
+      createUnavailableBoundsSource('Reading another window needs a native module.'),
     run: runProcess,
     ffmpeg: resolveFfmpegPaths({
       isPackaged: app.isPackaged,

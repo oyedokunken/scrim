@@ -1,5 +1,6 @@
 import { parseInputNdjson, sessionFileSchema, sessionLogSchema } from '@scrim/core';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createHarness, flushWork, type Harness } from './support/engine-harness';
@@ -609,5 +610,195 @@ describe('recovery', () => {
     expect(errorCode(result)).toBe('ffmpeg-missing');
     expect((await readSessionFile(folder)).cleanClose).toBe(false);
     expect((await readFile(join(folder, 'screen.raw.webm'))).byteLength).toBe(400);
+  });
+});
+
+describe('the edit list', () => {
+  it('is written empty when recording starts and left alone afterwards', async () => {
+    const { h, folder } = await started();
+    const path = join(folder, 'edits.json');
+    expect(JSON.parse(await readFile(path, 'utf8'))).toEqual({ version: 1, trim: null, cuts: [] });
+    const edited = { version: 1, trim: { startMs: 100, endMs: 900 }, cuts: [] };
+    await writeFile(path, JSON.stringify(edited));
+    h.sendChunk('screen');
+    await h.service.stop();
+    expect(JSON.parse(await readFile(path, 'utf8'))).toEqual(edited);
+  });
+
+  it('is made during recovery when it is missing', async () => {
+    const { h, folder } = await started();
+    h.sendChunk('screen', 100);
+    await flushWork();
+    h.page.die('crashed');
+    await flushWork();
+    await flushWork();
+    await rm(join(folder, 'edits.json'));
+    const result = await h.service.recover(folder);
+    expect(result.ok).toBe(true);
+    expect(JSON.parse(await readFile(join(folder, 'edits.json'), 'utf8'))).toEqual({
+      version: 1,
+      trim: null,
+      cuts: [],
+    });
+  });
+});
+
+describe('the recorded area', () => {
+  it('stores a region in device independent and physical pixels, rounding each edge', async () => {
+    const h = await createHarness({ scaleFactor: 1.5 });
+    harness = h;
+    const result = await h.service.start({
+      ...h.options,
+      name: 'Region',
+      source: { kind: 'region', crop: { x: 100.4, y: 50.6, width: 640.2, height: 360.1 } },
+    });
+    expect(result.ok).toBe(true);
+    const folder = result.ok ? result.value.folder : '';
+    h.sendChunk('screen');
+    await h.service.stop();
+    const { source } = await readSessionFile(folder);
+    expect(source.kind).toBe('region');
+    expect(source.crop).toEqual({ x: 100.4, y: 50.6, width: 640.2, height: 360.1 });
+    expect(source.scaleFactor).toBe(1.5);
+    // Left 150.6 rounds to 151. Right (100.4 + 640.2) * 1.5 = 1110.9 rounds to 1111. Width 960.
+    expect(source.cropPx).toEqual({ x: 151, y: 76, width: 960, height: 540 });
+  });
+
+  it('has no crop for a whole display', async () => {
+    const { h, folder } = await started();
+    await h.service.stop();
+    const { source } = await readSessionFile(folder);
+    expect(source.crop).toBeUndefined();
+    expect(source.cropPx).toBeUndefined();
+  });
+});
+
+describe('display ids on mouse events', () => {
+  it('carries the display of each event into the saved log', async () => {
+    const { h, folder } = await started();
+    h.sendChunk('screen');
+    h.clock.time += 300;
+    h.input.listener?.({ type: 'down', x: 10, y: 10, button: 'left', display: '2' });
+    h.input.listener?.({ type: 'move', x: 20, y: 20 });
+    await h.service.stop();
+    const log = sessionLogSchema.parse(
+      JSON.parse(await readFile(join(folder, 'Demo.scrim.json'), 'utf8')),
+    );
+    const click = log.events.find((event) => event.type === 'click');
+    const move = log.events.find((event) => event.type === 'move');
+    expect(click).toMatchObject({ display: '2' });
+    expect(move !== undefined && 'display' in move).toBe(false);
+  });
+});
+
+describe('a window recording', () => {
+  const target = { kind: 'window' as const, sourceId: 'window:42:0' };
+
+  it('follows the window and places mouse events relative to it as it moves', async () => {
+    const h = await createHarness();
+    harness = h;
+    const result = await h.service.start({ ...h.options, name: 'Win', source: target });
+    expect(result.ok).toBe(true);
+    const folder = result.ok ? result.value.folder : '';
+    h.bounds.move(100, 100);
+    h.clock.time += 200;
+    h.input.click(150, 130);
+    h.clock.time += 300;
+    h.bounds.move(300, 200);
+    h.clock.time += 100;
+    h.input.click(350, 230);
+    h.sendChunk('screen');
+    await flushWork();
+    expect((await h.service.stop()).ok).toBe(true);
+
+    const session = await readSessionFile(folder);
+    expect(session.windowBounds).toEqual({ status: 'recorded', file: 'window-bounds.ndjson' });
+    const log = sessionLogSchema.parse(
+      JSON.parse(await readFile(join(folder, 'Win.scrim.json'), 'utf8')),
+    );
+    expect(log.events.map((event) => [event.x, event.y])).toEqual([
+      [50, 30],
+      [50, 30],
+    ]);
+    expect(log.windowBounds?.map((entry) => [entry.x, entry.y])).toEqual([
+      [100, 100],
+      [300, 200],
+    ]);
+    expect(await readdir(folder)).not.toContain('window-bounds.ndjson');
+  });
+
+  it('says so, and carries on, when the window position cannot be followed', async () => {
+    const h = await createHarness();
+    harness = h;
+    h.bounds.result = { status: 'unavailable', detail: 'no native module' };
+    const result = await h.service.start({ ...h.options, name: 'Win', source: target });
+    expect(result.ok).toBe(true);
+    const folder = result.ok ? result.value.folder : '';
+    expect(h.service.snapshot().warnings.map((warning) => warning.code)).toContain(
+      'window-bounds-unavailable',
+    );
+    h.sendChunk('screen');
+    await h.service.stop();
+    expect((await readSessionFile(folder)).windowBounds).toEqual({ status: 'unavailable' });
+    expect(await readdir(folder)).not.toContain('window-bounds.ndjson');
+  });
+
+  it('does not follow a window for a display recording', async () => {
+    const { h, folder } = await started();
+    await h.service.stop();
+    expect((await readSessionFile(folder)).windowBounds).toBeUndefined();
+    expect(h.bounds.listener).toBeUndefined();
+  });
+});
+
+describe('raw files are never changed', () => {
+  const sha = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
+
+  it('holds exactly the bytes that were sent, after a normal stop', async () => {
+    const { h, folder } = await started({}, { camera: { enabled: true }, mic: { enabled: true } });
+    const sent: Record<string, Buffer[]> = { screen: [], camera: [], mic: [] };
+    for (let i = 0; i < 5; i += 1) {
+      for (const kind of ['screen', 'camera', 'mic'] as const) {
+        h.sendChunk(kind, 64 + i, 10 * i + kind.length);
+        sent[kind]?.push(Buffer.alloc(64 + i, 10 * i + kind.length));
+      }
+    }
+    await flushWork();
+    expect((await h.service.stop()).ok).toBe(true);
+    for (const kind of ['screen', 'camera', 'mic'] as const) {
+      const raw = await readFile(join(folder, `${kind}.raw.webm`));
+      expect(sha(raw)).toBe(sha(Buffer.concat(sent[kind] ?? [])));
+    }
+  });
+
+  it('is the same file after recovery as it was after the crash', async () => {
+    const { h, folder } = await started();
+    for (let i = 0; i < 4; i += 1) h.sendChunk('screen', 200, i + 1);
+    await flushWork();
+    h.page.die('crashed');
+    await flushWork();
+    await flushWork();
+    const before = sha(await readFile(join(folder, 'screen.raw.webm')));
+    expect((await h.service.recover(folder)).ok).toBe(true);
+    expect(sha(await readFile(join(folder, 'screen.raw.webm')))).toBe(before);
+  });
+
+  it('is the same file after a recovery that fails', async () => {
+    const { h, folder } = await started();
+    h.sendChunk('screen', 300, 9);
+    await flushWork();
+    h.page.die('crashed');
+    await flushWork();
+    await flushWork();
+    const before = sha(await readFile(join(folder, 'screen.raw.webm')));
+    const original = h.deps.run;
+    h.deps.run = (command, args, options) =>
+      command.includes('ffprobe')
+        ? Promise.resolve({ code: 1, stdout: '', stderr: 'invalid data' })
+        : original(command, args, options);
+    const result = await h.service.recover(folder);
+    expect(result.ok).toBe(false);
+    expect(sha(await readFile(join(folder, 'screen.raw.webm')))).toBe(before);
+    expect((await readSessionFile(folder)).cleanClose).toBe(false);
   });
 });

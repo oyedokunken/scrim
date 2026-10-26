@@ -61,3 +61,10 @@ the decision.
   same marker test before the number is trusted. `SCRIM_DEV_MARKER=1` runs it.
 - A static screen delivers about one frame a second, so a video file can end up to a second
   before the recording stopped. That is a property of the capture, not a clock error.
+- **No network at all while recording.** A net log of a recording showed one name lookup: Chromium
+  asking for a host called `wpad` at startup, to find a proxy configuration. The app starts with
+  `--no-proxy-server`, and the net log is then empty. An end to end test records, pauses, stops and
+  recovers with a net log, and fails on any request outside `app://scrim/` or any name lookup. It
+  first fetches a page from a server on the same computer and requires the log to show it, so an
+  empty log cannot pass by accident. The optional update check will need its own session if it has
+  to go through a proxy.

@@ -1,4 +1,4 @@
-import { sessionFileSchema, SESSION_FILES, type SessionFile } from '@scrim/core';
+import { emptyEditList, sessionFileSchema, SESSION_FILES, type SessionFile } from '@scrim/core';
 import { join } from 'node:path';
 import { z } from 'zod';
 import type { ServiceFs } from './fs-adapter';
@@ -27,6 +27,16 @@ export async function readSession(fs: ServiceFs, folder: string): Promise<ReadSe
 /** Rewrites `session.json` atomically, so a crash leaves the last whole copy. */
 export function writeSession(fs: ServiceFs, folder: string, session: SessionFile): Promise<void> {
   return fs.writeJsonAtomic(join(folder, SESSION_FILES.session), sessionFileSchema.parse(session));
+}
+
+/**
+ * Makes sure `edits.json` exists, empty. It is written once and never overwritten, so edits made
+ * later, in the editor, are not lost when a recording is finalized or recovered.
+ */
+export async function ensureEditList(fs: ServiceFs, folder: string): Promise<void> {
+  const file = join(folder, SESSION_FILES.edits);
+  if (await fs.exists(file)) return;
+  await fs.writeJsonAtomic(file, emptyEditList());
 }
 
 /** The folders Scrim has recorded into, so recovery can find sessions in any destination. */

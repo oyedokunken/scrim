@@ -17,9 +17,15 @@ export interface InputSource {
 
 /** A mouse event before it has a time on the main clock. */
 export type UnstampedEvent =
-  | { type: 'move'; x: number; y: number }
-  | { type: 'down' | 'up'; x: number; y: number; button: 'left' | 'right' | 'middle' }
-  | { type: 'wheel'; x: number; y: number; dx: number; dy: number };
+  | { type: 'move'; x: number; y: number; display?: string | undefined }
+  | {
+      type: 'down' | 'up';
+      x: number;
+      y: number;
+      button: 'left' | 'right' | 'middle';
+      display?: string | undefined;
+    }
+  | { type: 'wheel'; x: number; y: number; dx: number; dy: number; display?: string | undefined };
 
 /** What the hook passes to a listener. Fields a given event does not have are left out. */
 export interface HookPayload {
@@ -47,8 +53,15 @@ export interface HookSourceDeps {
   load: () => Promise<unknown>;
   /** macOS only: whether the app has the Accessibility permission the hook needs. */
   isAccessibilityTrusted: () => boolean;
-  /** Converts a hook coordinate to device independent pixels on the desktop. */
-  toDip: (point: { x: number; y: number }) => { x: number; y: number };
+  /**
+   * Converts a hook coordinate to device independent pixels on the desktop and says which display
+   * it falls on, when that is known.
+   */
+  locate: (point: { x: number; y: number }) => {
+    x: number;
+    y: number;
+    display?: string | undefined;
+  };
 }
 
 /** The hook reports buttons as 1 left, 2 right, 3 middle. Anything else is not logged. */
@@ -113,8 +126,13 @@ export function createHookSource(deps: HookSourceDeps): InputSource {
       }
 
       const emit = (event: UnstampedEvent): void => {
-        const at = deps.toDip({ x: event.x, y: event.y });
-        onEvent({ ...event, x: at.x, y: at.y });
+        const at = deps.locate({ x: event.x, y: event.y });
+        onEvent({
+          ...event,
+          x: at.x,
+          y: at.y,
+          ...(at.display === undefined ? {} : { display: at.display }),
+        });
       };
       const mouse = (type: 'down' | 'up') => (payload: HookPayload) => {
         const button = buttonName(payload.button);

@@ -17,12 +17,14 @@ import { assessDisk, DISK_FLOORS } from './disk-space';
 import type { FfmpegPaths, RunProcess } from './ffmpeg';
 import { finalizeSession } from './finalize';
 import type { ServiceFs } from './fs-adapter';
+import { BoundsRecorder } from './bounds-recorder';
 import { InputRecorder } from './input-recorder';
 import type { InputSource } from './input-source';
 import { errnoOf, errorFromFs, makeError, WARNINGS } from './messages';
 import { rendererToMain, type ClockOffset } from './clock-sync';
 import { HostFailure, type RecorderHost } from './recorder-host';
-import { readSession, writeSession, type SessionIndex } from './session-store';
+import { ensureEditList, readSession, writeSession, type SessionIndex } from './session-store';
+import type { WindowBoundsSource } from './window-bounds-source';
 import type {
   FinishedRecording,
   Outcome,
@@ -49,6 +51,8 @@ export interface ServiceDeps {
     onPageGone: (reason: string) => void;
   }) => RecorderHost;
   createInputSource: () => InputSource;
+  /** Follows a window's position, for a window recording. */
+  createBoundsSource: () => WindowBoundsSource;
   run: RunProcess;
   ffmpeg: FfmpegPaths;
   /** Works out where a display or window is on the desktop. */
@@ -78,6 +82,7 @@ interface Active {
   received: Map<TrackKind, number>;
   ended: Set<TrackKind>;
   input: InputRecorder | undefined;
+  bounds: BoundsRecorder | undefined;
   offset: ClockOffset;
   /** The main clock when `start` was called. Every time in the session is relative to it. */
   origin: number;
@@ -115,6 +120,24 @@ const TIMESLICE_MS = 1000;
 const SCREEN_BITS_PER_SECOND = 12_000_000;
 const CHUNK_DRAIN_MS = 5000;
 const WAIT_STEP_MS = 20;
+
+/**
+ * The same area in physical pixels, which is what export cuts. Each edge is rounded on its own, so
+ * neighbouring regions never leave a gap or overlap by a pixel.
+ */
+function cropInPixels(
+  crop: { x: number; y: number; width: number; height: number },
+  scale: number,
+): { x: number; y: number; width: number; height: number } {
+  const left = Math.round(crop.x * scale);
+  const top = Math.round(crop.y * scale);
+  return {
+    x: left,
+    y: top,
+    width: Math.max(1, Math.round((crop.x + crop.width) * scale) - left),
+    height: Math.max(1, Math.round((crop.y + crop.height) * scale) - top),
+  };
+}
 
 /** A dated name that is the same on every system: `Scrim 2026-10-26 18.20.05`. */
 function defaultName(date: Date): string {
@@ -187,6 +210,7 @@ export class RecordingService {
 
       active = this.createActive(folderResult.value, destination, name, resolved.value);
       await writeSession(deps.fs, active.folder, active.session);
+      await ensureEditList(deps.fs, active.folder);
       await deps.index.add(active.folder);
       deps.setCaptureTarget(options.source);
 
@@ -199,6 +223,7 @@ export class RecordingService {
         uncertaintyMs: active.offset.uncertaintyMs,
       };
       await this.startInput(active);
+      if (options.source.kind === 'window') await this.startBounds(active);
 
       const kinds = [...active.writers.keys()];
       this.mark(active, `start requested, origin hr=${active.origin.toFixed(1)}`);
@@ -428,7 +453,9 @@ export class RecordingService {
       source: {
         kind: source.kind,
         ...(source.displayId === undefined ? {} : { displayId: source.displayId }),
-        ...(source.crop === undefined ? {} : { crop: source.crop }),
+        ...(source.crop === undefined
+          ? {}
+          : { crop: source.crop, cropPx: cropInPixels(source.crop, source.scaleFactor) }),
         origin: source.origin,
         scaleFactor: source.scaleFactor,
       },
@@ -459,6 +486,7 @@ export class RecordingService {
       received: new Map(),
       ended: new Set(),
       input: undefined,
+      bounds: undefined,
       offset: { offsetMs: 0, uncertaintyMs: 0 },
       origin: deps.now(),
       pauses: [],
@@ -562,6 +590,28 @@ export class RecordingService {
     active.session.input = { status: 'unavailable', reason: result.reason };
     this.warn(active, WARNINGS.inputUnavailable(result.reason));
     if (result.detail !== undefined) deps.log(`The mouse log is off: ${result.detail}`);
+  }
+
+  private async startBounds(active: Active): Promise<void> {
+    const { deps } = this;
+    const bounds = new BoundsRecorder({
+      source: deps.createBoundsSource(),
+      clock: { now: () => deps.now() - active.origin },
+      openWriter: async () => {
+        const sink = await deps.fs.openAppend(join(active.folder, SESSION_FILES.windowBounds));
+        return new ChunkWriter({ sink, clock: { now: deps.now } });
+      },
+    });
+    const result = await bounds.start();
+    if (result.status === 'started') {
+      active.bounds = bounds;
+      active.session.windowBounds = { status: 'recorded', file: SESSION_FILES.windowBounds };
+      return;
+    }
+    active.session.windowBounds = { status: 'unavailable' };
+    this.warn(active, WARNINGS.windowBoundsUnavailable());
+    if (result.detail !== undefined)
+      deps.log(`The window position is not followed: ${result.detail}`);
   }
 
   private async heartbeat(active: Active): Promise<void> {
@@ -738,6 +788,11 @@ export class RecordingService {
       await active.input?.stop();
     } catch (error) {
       this.deps.log(`The input log did not close cleanly: ${String(error)}`);
+    }
+    try {
+      await active.bounds?.stop();
+    } catch (error) {
+      this.deps.log(`The window log did not close cleanly: ${String(error)}`);
     }
     await Promise.all(
       [...active.writers.values()].map((writer) =>

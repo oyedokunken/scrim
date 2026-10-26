@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test';
+import { createServer } from 'node:http';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -40,8 +49,13 @@ interface Running {
   exited: Promise<number | null>;
 }
 
-function launch(env: Record<string, string>, userData: string): Running {
-  const child = spawn(electronPath, [APP_DIR, `--user-data-dir=${userData}`], {
+function launch(
+  env: Record<string, string>,
+  userData: string,
+  extraArgs: string[] = [],
+  appDir = APP_DIR,
+): Running {
+  const child = spawn(electronPath, [appDir, `--user-data-dir=${userData}`, ...extraArgs], {
     env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -196,3 +210,101 @@ for (let run = 1; run <= KILL_RUNS; run += 1) {
     expect(after).toMatchObject({ cleanClose: true, recovered: true });
   });
 }
+
+interface NetLog {
+  constants: { logEventTypes: Record<string, number> };
+  events: { type: number; params?: { url?: string; host?: string } }[];
+}
+
+/** Every URL a net log saw, and how many name lookups it recorded. */
+function readNetLog(file: string): { urls: string[]; lookups: number } {
+  const log = JSON.parse(readFileSync(file, 'utf8')) as NetLog;
+  const lookupTypes = new Set(
+    Object.entries(log.constants.logEventTypes)
+      .filter(([name]) => name.includes('HOST_RESOLVER'))
+      .map(([, id]) => id),
+  );
+  const urls = log.events.flatMap((event) =>
+    event.params?.url === undefined ? [] : [event.params.url],
+  );
+  return { urls, lookups: log.events.filter((event) => lookupTypes.has(event.type)).length };
+}
+
+test('makes no network request while recording, pausing, stopping and recovering', async () => {
+  test.setTimeout(240_000);
+
+  // A control first. A throwaway app fetches a page from a server on this computer, and the net
+  // log must show it. If it does not, an empty log from Scrim would prove nothing.
+  const hits: string[] = [];
+  const server = createServer((request, response) => {
+    hits.push(request.url ?? '');
+    response.end('ok');
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  const port = typeof address === 'object' && address !== null ? address.port : 0;
+  try {
+    const probeDir = join(work, 'probe');
+    mkdirSync(probeDir);
+    writeFileSync(
+      join(probeDir, 'package.json'),
+      JSON.stringify({ name: 'probe', main: 'main.cjs' }),
+    );
+    const probeMain = [
+      "const { app, net } = require('electron');",
+      'app.whenReady().then(async () => {',
+      '  try {',
+      '    await net.fetch(process.env.PROBE_URL);',
+      '  } catch {}',
+      '  app.quit();',
+      '});',
+    ].join(String.fromCharCode(10));
+    writeFileSync(join(probeDir, 'main.cjs'), probeMain);
+    const controlLog = join(work, 'control-netlog.json');
+    const control = launch(
+      { PROBE_URL: `http://127.0.0.1:${String(port)}/probe` },
+      join(work, 'probe-user'),
+      [`--log-net-log=${controlLog}`],
+      probeDir,
+    );
+    await control.exited;
+    expect(hits, 'the control request reached the local server').toContain('/probe');
+    expect(readNetLog(controlLog).urls.join(' ')).toContain('/probe');
+  } finally {
+    server.close();
+  }
+
+  // Now Scrim: record with a pause, then run recovery, each with a net log.
+  const userData = join(work, 'user');
+  const dest = join(work, 'out');
+  const netLogs = [join(work, 'record-netlog.json'), join(work, 'recover-netlog.json')];
+
+  const record = launch(
+    { SCRIM_DEV_RECORD: '5', SCRIM_DEV_PAUSE: '2', SCRIM_DEV_DEST: dest },
+    userData,
+    [`--log-net-log=${netLogs[0] ?? ''}`],
+  );
+  try {
+    await record.waitFor('DEV RECORD finished', 90_000);
+    await record.exited;
+  } finally {
+    killHard(record.child);
+  }
+
+  const recover = launch({ SCRIM_DEV_RECOVER: '1', SCRIM_DEV_DEST: dest }, userData, [
+    `--log-net-log=${netLogs[1] ?? ''}`,
+  ]);
+  try {
+    await recover.waitFor('DEV RECOVER found', 60_000);
+    await recover.exited;
+  } finally {
+    killHard(recover.child);
+  }
+
+  for (const file of netLogs) {
+    const { urls, lookups } = readNetLog(file);
+    const outside = urls.filter((url) => !url.startsWith('app://scrim/'));
+    expect(outside, `requests outside the app in ${file}`).toEqual([]);
+    expect(lookups, 'name lookups').toBe(0);
+  }
+});
