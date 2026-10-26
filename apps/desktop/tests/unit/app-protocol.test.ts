@@ -1,8 +1,13 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { contentTypeFor, handleAppRequest, resolveRendererPath } from '../../src/main/app-protocol';
+import {
+  contentTypeFor,
+  handleAppRequest,
+  isInsideRoot,
+  resolveRendererPath,
+} from '../../src/main/app-protocol';
 import {
   APP_ENTRY_URL,
   APP_ORIGIN,
@@ -42,6 +47,10 @@ describe('resolveRendererPath', () => {
     ['unc path with backslashes', 'app://scrim/%5c%5cserver%5cshare%5cfile.js'],
     ['null byte', 'app://scrim/index.html%00.png'],
     ['bad percent encoding', 'app://scrim/%E0%A4%A.js'],
+    ['two encoded backslash dot dots', 'app://scrim/..%5c..%5csecret.txt'],
+    ['encoded backslash then dot dots', 'app://scrim/%5c..%5csecret.txt'],
+    ['lower case drive letter', 'app://scrim/c%3a/windows/win.ini'],
+    ['mixed case drive letter with backslash', 'app://scrim/c%3A%5cWindows%5cwin.ini'],
     ['wrong host', 'app://evil/index.html'],
     ['wrong scheme', 'https://scrim/index.html'],
     ['not a url', 'index.html'],
@@ -53,6 +62,10 @@ describe('resolveRendererPath', () => {
     const absolute = resolve(tmpdir(), 'outside.js');
     const result = resolveRendererPath(root, `app://scrim/${absolute}`);
     expect(result.ok).toBe(false);
+  });
+
+  it('treats a path equal to the root itself as a missing file, not an escape', () => {
+    expect(resolveRendererPath(root, 'app://scrim/.')).toEqual({ ok: false, status: 404 });
   });
 
   it('answers 404 for a file type outside the map', () => {
@@ -207,5 +220,26 @@ describe('originOf', () => {
     expect(originOf('http://localhost:5173/x?y=1')).toBe('http://localhost:5173');
     expect(originOf('file:///C:/x.html')).toBe('file://');
     expect(originOf('nope')).toBe('');
+  });
+});
+
+describe('isInsideRoot', () => {
+  const at = (...parts: string[]): string => parts.join(sep);
+  const base = at('C:', 'app', 'renderer');
+
+  it('accepts files under the root and the root itself', () => {
+    expect(isInsideRoot(base, at(base, 'index.html'), false)).toBe(true);
+    expect(isInsideRoot(base, base, false)).toBe(true);
+  });
+
+  it('rejects a sibling folder that only shares the prefix, and a parent file', () => {
+    expect(isInsideRoot(base, at('C:', 'app', 'renderer-evil', 'x.js'), true)).toBe(false);
+    expect(isInsideRoot(base, at('C:', 'app', 'x.js'), true)).toBe(false);
+  });
+
+  it('ignores case only when asked to, as on Windows', () => {
+    const shouting = at('c:', 'APP', 'Renderer', 'index.html');
+    expect(isInsideRoot(base, shouting, true)).toBe(true);
+    expect(isInsideRoot(base, shouting, false)).toBe(false);
   });
 });

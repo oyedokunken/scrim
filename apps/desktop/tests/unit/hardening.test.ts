@@ -52,6 +52,10 @@ describe('isPermissionAllowed', () => {
     ['media', 'app://other/index.html', app, false],
     ['media', 'https://scrim/index.html', app, false],
     ['media', 'file:///C:/app/out/renderer/index.html', app, false],
+    ['media', 'null', app, false],
+    ['media', '', app, false],
+    ['media', 'app://evil/', app, false],
+    ['display-capture', 'null', dev, false],
     ['media', 'https://evil.example/', app, false],
     ['openExternal', 'app://scrim/index.html', app, false],
   ])('%s from %s with origin %s is %s', (permission, url, origin, expected) => {

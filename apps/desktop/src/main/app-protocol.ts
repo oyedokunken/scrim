@@ -26,6 +26,17 @@ function hasUnsafeSegments(path: string): boolean {
   return path.split('/').some((segment) => segment === '..');
 }
 
+/**
+ * Whether a resolved file sits inside the root. Windows paths ignore case, so a request that
+ * differs from the root only by case, such as a lower case drive letter, still counts as inside.
+ */
+export function isInsideRoot(rootPath: string, file: string, caseInsensitive: boolean): boolean {
+  const fold = (value: string): string => (caseInsensitive ? value.toLowerCase() : value);
+  const root = fold(rootPath);
+  const target = fold(file);
+  return target === root || target.startsWith(root + sep);
+}
+
 export type ResolvedPath = { ok: true; file: string } | { ok: false; status: 403 | 404 };
 
 /**
@@ -64,7 +75,8 @@ export function resolveRendererPath(root: string, requestUrl: string): ResolvedP
   const relative = decoded === '/' || decoded === '' ? 'index.html' : decoded.replace(/^\/+/, '');
   const rootPath = resolve(root);
   const file = resolve(rootPath, relative);
-  if (file !== rootPath && !file.startsWith(rootPath + sep)) return { ok: false, status: 403 };
+  if (!isInsideRoot(rootPath, file, process.platform === 'win32'))
+    return { ok: false, status: 403 };
   if (contentTypeFor(file) === undefined) return { ok: false, status: 404 };
   return { ok: true, file };
 }
