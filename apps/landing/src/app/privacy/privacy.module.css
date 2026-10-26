@@ -1,0 +1,46 @@
+.page {
+  display: grid;
+  gap: var(--scrim-space-7);
+  max-width: 46rem;
+  padding-block: clamp(3rem, 2rem + 4vw, 6rem) 0;
+}
+
+.header {
+  display: grid;
+  gap: var(--scrim-space-4);
+}
+
+.title {
+  font-size: var(--scrim-text-display);
+  line-height: var(--scrim-leading-display);
+  letter-spacing: -0.035em;
+}
+
+.updated {
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-small);
+  font-weight: 700;
+}
+
+.page section {
+  display: grid;
+  gap: var(--scrim-space-3);
+  padding-top: var(--scrim-space-5);
+  border-top: 1px solid var(--scrim-border);
+}
+
+.page h2 {
+  font-size: var(--scrim-text-h3);
+  letter-spacing: -0.02em;
+}
+
+.page ul {
+  display: grid;
+  gap: var(--scrim-space-2);
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.page li::marker {
+  color: var(--scrim-green);
+}

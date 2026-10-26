@@ -1,0 +1,37 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "envMode": "strict",
+  "tasks": {
+    "db:generate": {
+      "inputs": ["prisma/schema.prisma", "prisma.config.ts"],
+      "outputs": ["src/generated/**"]
+    },
+    "build": {
+      "dependsOn": ["^build", "db:generate"],
+      "inputs": ["$TURBO_DEFAULT$", ".env", "!tests/**", "!**/*.test.*"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": ["NODE_ENV", "SITE_URL", "GITHUB_REPO"]
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck", "db:generate"]
+    },
+    "test": {
+      "dependsOn": ["db:generate"]
+    },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "test:lighthouse": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "db:up": { "cache": false, "persistent": true },
+    "db:migrate": { "cache": false },
+    "db:deploy": { "cache": false },
+    "db:studio": { "cache": false, "persistent": true },
+    "dev": { "cache": false, "persistent": true }
+  }
+}

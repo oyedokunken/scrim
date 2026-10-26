@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": ["tools/*.js", "tests/**/*.test.ts", "commitlint.config.js", "vitest.config.ts"],
+      "project": ["tools/**", "tests/**"]
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "name": "scrim",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "dev:landing": "pnpm --filter @scrim/landing dev",
+    "build": "turbo run build",
+    "lint": "eslint .",
+    "lint:text": "node tools/check-text.js",
+    "typecheck": "tsc -p tsconfig.json && turbo run typecheck",
+    "test": "turbo run test && vitest run --config vitest.config.ts",
+    "test:e2e": "turbo run test:e2e",
+    "test:lighthouse": "turbo run test:lighthouse",
+    "check": "pnpm lint && pnpm lint:text && pnpm format:check && pnpm typecheck && turbo run test build && vitest run --config vitest.config.ts",
+    "knip": "knip",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "pnpm --filter @scrim/landing db:up",
+    "db:generate": "pnpm --filter @scrim/landing db:generate",
+    "db:migrate": "pnpm --filter @scrim/landing db:migrate",
+    "db:deploy": "pnpm --filter @scrim/landing db:deploy",
+    "db:studio": "pnpm --filter @scrim/landing db:studio"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs,cjs}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml}": "prettier --write"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@eslint/js": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "globals": "catalog:",
+    "husky": "catalog:",
+    "knip": "catalog:",
+    "lint-staged": "catalog:",
+    "prettier": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,50 @@
+.useCases {
+  display: grid;
+  gap: var(--scrim-space-8);
+}
+
+.intro {
+  display: grid;
+  gap: var(--scrim-space-4);
+  max-width: 44rem;
+}
+
+/* One long list in large type, ruled like a table of contents, not a grid of cards. */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--scrim-border);
+}
+
+.item {
+  display: grid;
+  gap: var(--scrim-space-2) var(--scrim-space-5);
+  align-items: center;
+  padding-block: var(--scrim-space-5);
+  border-top: 1px solid var(--scrim-border);
+  transition: background-color 0.2s ease;
+}
+
+.item svg {
+  color: var(--scrim-green);
+}
+
+.title {
+  font-size: var(--scrim-text-h2);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.text {
+  max-width: 34ch;
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-body-lg);
+}
+
+@media (min-width: 52rem) {
+  .item {
+    grid-template-columns: 3rem minmax(0, 6fr) minmax(0, 5fr);
+    padding-block: var(--scrim-space-6);
+  }
+}

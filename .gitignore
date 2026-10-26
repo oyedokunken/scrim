@@ -1,0 +1,68 @@
+# secrets and local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.p8
+*.cer
+*.mobileprovision
+*.keystore
+secrets/
+certs/
+credentials*.json
+service-account*.json
+
+# database, dumps and local data
+*.sql.gz
+*.dump
+*.sqlite
+*.db
+.supabase/
+supabase/.temp/
+supabase/.branches/
+dev-data/
+apps/landing/src/generated/
+
+# build output and caches
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+out/
+dist/
+release/
+coverage/
+.lighthouseci/
+playwright-report/
+test-results/
+*.tsbuildinfo
+next-env.d.ts
+
+# hosting
+.vercel/
+
+# editor and OS
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# AI tool and agent state (no attribution policy)
+.claude/
+.cursor/
+.codex/
+.devin/
+.windsurf/
+.aider*
+
+# raw recordings made while developing (landing demo media is allowed)
+recordings/
+*.scrim.json
+*.webm
+*.mp4
+*.mkv
+*.mov
+!apps/landing/public/**

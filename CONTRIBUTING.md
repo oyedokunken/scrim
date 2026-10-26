@@ -14,7 +14,8 @@ Requirements:
 
 - Node.js 22.18 or newer
 - pnpm 12.15.0
-- Docker
+- A Postgres database (local, or a separate Supabase development project)
+- An SMTP account for Nodemailer, or a mail catcher such as Mailpit
 
 Use pnpm only. Install dependencies with:
 
@@ -25,11 +26,11 @@ pnpm install
 For landing page work, start the local services and configure a development environment:
 
 ```bash
-pnpm db:up
+pnpm db:generate
 pnpm dev:landing
 ```
 
-Mail is caught by Mailpit at `http://localhost:8025`. Never develop against the production database.
+Copy `apps/landing/.env.example` to `.env` and point it at a development database. A mail catcher such as Mailpit works for mail. Never develop against the production database.
 
 ## Making changes
 
@@ -48,7 +49,10 @@ Do not commit secrets, environment files, recordings, build output, database dum
 - Use named exports except where a framework requires a default export.
 - Use kebab-case filenames.
 - Use Urbanist and the shared design tokens for UI work.
-- Use Lucide icons only.
+- Use Lucide icons, plus the brand icons already in the landing app.
+- Open every link to another site through `SiteLink`, so it opens in a new tab.
+- Build forms with React Hook Form and zod. Do not use the HTML `required` attribute.
+- Show errors in the red error color, and keep the record red for recording indicators.
 - Keep the landing app and desktop app independent.
 - Do not weaken security settings, lint rules, coverage thresholds or performance budgets.
 - Do not add analytics, tracking cookies or third-party scripts.

@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ['*']
+    # Prisma 8 is a release candidate. Hold major bumps for a human decision.
+    ignore:
+      - dependency-name: prisma
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/*'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+  - package-ecosystem: docker-compose
+    directory: /apps/landing
+    schedule:
+      interval: weekly

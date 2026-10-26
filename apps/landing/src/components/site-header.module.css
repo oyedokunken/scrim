@@ -1,0 +1,244 @@
+/*
+ * The header is a black pill hanging from the top edge. Its top corners are square against the
+ * viewport, its bottom corners are rounded, and two "ears" curve from the pill into the top edge.
+ * Each ear is a 24px square. A radial gradient is transparent inside a 24px circle centered on
+ * the ear's outer bottom corner and black outside it, which leaves the inverse rounded curve.
+ */
+.wrap {
+  --ear: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding-inline: calc(var(--ear) + 0.5rem);
+  pointer-events: none;
+}
+
+.pill {
+  position: relative;
+  transform-origin: top center;
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.28s ease;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  max-width: 100%;
+  padding: 0.625rem 0.75rem 0.625rem 1.25rem;
+  border-radius: 0 0 var(--ear) var(--ear);
+  background: var(--scrim-black);
+  color: var(--scrim-butter);
+  pointer-events: auto;
+}
+
+.pill::before,
+.pill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: var(--ear);
+  height: var(--ear);
+  pointer-events: none;
+}
+
+.pill::before {
+  right: 100%;
+  background: radial-gradient(
+    circle at 0 100%,
+    transparent calc(var(--ear) - 0.5px),
+    var(--scrim-black) var(--ear)
+  );
+}
+
+.pill::after {
+  left: 100%;
+  background: radial-gradient(
+    circle at 100% 100%,
+    transparent calc(var(--ear) - 0.5px),
+    var(--scrim-black) var(--ear)
+  );
+}
+
+.pill :focus-visible {
+  outline-color: var(--scrim-butter);
+}
+
+.logo {
+  display: inline-flex;
+  color: var(--scrim-butter);
+  text-decoration: none;
+  border-radius: var(--scrim-radius-pill);
+}
+
+.logo:hover {
+  color: var(--scrim-butter);
+}
+
+.nav ul,
+.menuPanel ul {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav ul {
+  gap: 0.25rem;
+}
+
+.nav a,
+.menuPanel a {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--scrim-radius-pill);
+  color: color-mix(in srgb, var(--scrim-butter) 72%, var(--scrim-black));
+  font-size: 0.9375rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.nav a:hover,
+.nav a:focus-visible,
+.menuPanel a:hover,
+.menuPanel a:focus-visible {
+  color: var(--scrim-butter);
+  background: color-mix(in srgb, var(--scrim-butter) 12%, transparent);
+}
+
+/* The menu button and panel exist only below the breakpoint. */
+.menu {
+  display: none;
+}
+
+.menuButton {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--scrim-radius-pill);
+  background: color-mix(in srgb, var(--scrim-butter) 12%, transparent);
+  color: var(--scrim-butter);
+  cursor: pointer;
+  list-style: none;
+}
+
+.menuButton::-webkit-details-marker {
+  display: none;
+}
+
+.iconClose,
+.menu[open] .iconOpen {
+  display: none;
+}
+
+.menu[open] .iconClose {
+  display: block;
+}
+
+.menuPanel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: min(16rem, calc(100vw - 2rem));
+  padding: 0.5rem;
+  border-radius: var(--scrim-radius-lg);
+  background: var(--scrim-black);
+}
+
+.menuPanel ul {
+  flex-direction: column;
+}
+
+.menuPanel a {
+  padding: 0.75rem 1rem;
+  font-size: 1.0625rem;
+}
+
+/* The Download button is in the pill at every width. */
+.download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1.125rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-white);
+  color: var(--scrim-black);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.download:hover {
+  background: var(--scrim-butter);
+  color: var(--scrim-black);
+}
+
+/* Buy me malt is the last item in the menu, set apart from the links above it. */
+.menuExtra {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--scrim-butter) 18%, var(--scrim-black));
+}
+
+.menuPanel a.menuMalt {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-white);
+  color: var(--scrim-black);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.menuPanel a.menuMalt svg {
+  flex: none;
+  color: var(--scrim-green);
+}
+
+.menuPanel a.menuMalt:hover,
+.menuPanel a.menuMalt:focus-visible {
+  background: var(--scrim-butter);
+  color: var(--scrim-black);
+}
+
+@media (max-width: 959.98px) {
+  .pill {
+    gap: 0.875rem;
+    padding: 0.5rem 0.5rem 0.5rem 1rem;
+  }
+
+  .download {
+    margin-left: 0.25rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .menu {
+    display: block;
+  }
+}
+
+/* Once the page scrolls, the pill shrinks and lifts. A transform never changes layout, so the
+   content below does not move. */
+:global(html[data-scrolled='true']) .pill {
+  transform: scale(0.9);
+  box-shadow: 0 0.75rem 1.5rem -0.75rem color-mix(in srgb, var(--scrim-black) 60%, transparent);
+}

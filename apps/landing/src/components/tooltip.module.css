@@ -1,0 +1,74 @@
+.link {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  /* The icon is green by default and turns black on hover. */
+  background: var(--scrim-fill-quiet-on-white);
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Doubled class: it must outrank the footer's own link color, which would otherwise win. */
+.link.link {
+  color: var(--scrim-green);
+}
+
+.link.link:hover,
+.link.link:focus-visible {
+  background: color-mix(in srgb, var(--scrim-black) 14%, var(--scrim-white));
+  color: var(--scrim-black);
+}
+
+/* Green with white text, so it reads on a white card and on the black footer behind it. */
+.tip {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.5rem;
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 0.5rem 1rem -0.5rem color-mix(in srgb, var(--scrim-black) 60%, transparent);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 0.25rem);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease,
+    visibility 0s linear 0.15s;
+}
+
+.tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  border: 0.3rem solid transparent;
+  border-top-color: var(--scrim-green);
+  transform: translateX(-50%);
+}
+
+.tip[data-visible='true'] {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    transition: none;
+  }
+}

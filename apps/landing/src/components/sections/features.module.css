@@ -1,0 +1,164 @@
+.features {
+  display: grid;
+  gap: clamp(3rem, 2rem + 4vw, 6rem);
+}
+
+.intro {
+  display: grid;
+  gap: var(--scrim-space-4);
+  max-width: 48rem;
+}
+
+/* The cards. On a narrow screen they simply follow one another. */
+.stack {
+  display: grid;
+  gap: var(--scrim-space-5);
+}
+
+.card {
+  display: grid;
+  gap: var(--scrim-space-6);
+  align-items: center;
+  padding: clamp(1.5rem, 1rem + 2.5vw, 3.5rem);
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: var(--scrim-radius-xl);
+  background: var(--scrim-white);
+}
+
+/* Every second card is a light grey, so the cards read as separate without shadows. */
+.card:nth-child(even) {
+  background: var(--scrim-fill-quiet-on-white);
+}
+
+.copy {
+  display: grid;
+  align-content: center;
+  gap: var(--scrim-space-3);
+}
+
+.copy h3 {
+  font-size: var(--scrim-text-h2);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.copy p {
+  max-width: var(--scrim-measure);
+  color: var(--scrim-text-secondary);
+}
+
+/* The card number, such as 01/08, above the heading. */
+.copy p.count {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-small);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.count span {
+  color: var(--scrim-green);
+}
+
+.count::before {
+  content: '';
+  width: 2rem;
+  height: 3px;
+  margin-right: 0.625rem;
+  border-radius: 2px;
+  background: var(--scrim-green);
+}
+
+.note {
+  padding-top: var(--scrim-space-3);
+  border-top: 1px solid var(--scrim-border);
+  font-size: var(--scrim-text-small);
+}
+
+.visual {
+  display: grid;
+  align-items: center;
+}
+
+.art {
+  width: 100%;
+  height: auto;
+}
+
+.pair {
+  display: grid;
+  gap: var(--scrim-space-3);
+}
+
+/* On wide screens the picture sits beside the words, and the pictures alternate sides. The cards
+   scroll normally and alternate between white and one light grey. */
+@media (min-width: 56rem) {
+  .stack {
+    gap: var(--scrim-space-6);
+  }
+
+  .card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--scrim-space-8);
+    min-height: 24rem;
+  }
+
+  .card:nth-child(even) .visual {
+    order: -1;
+  }
+
+  .pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.also {
+  display: grid;
+  gap: var(--scrim-space-5);
+}
+
+.alsoTitle {
+  font-size: var(--scrim-text-h3);
+  letter-spacing: -0.02em;
+}
+
+.also ul {
+  display: grid;
+  gap: var(--scrim-space-5) var(--scrim-space-7);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.also li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--scrim-space-3);
+  padding-top: var(--scrim-space-4);
+  border-top: 1px solid var(--scrim-border);
+}
+
+.also li svg {
+  flex: none;
+  margin-top: 0.2rem;
+  color: var(--scrim-green);
+}
+
+.also strong {
+  font-size: var(--scrim-text-body-lg);
+  letter-spacing: -0.01em;
+}
+
+.also p {
+  margin-top: 0.25rem;
+  color: var(--scrim-text-secondary);
+}
+
+@media (min-width: 56rem) {
+  .also ul {
+    grid-template-columns: 1fr 1fr;
+  }
+}

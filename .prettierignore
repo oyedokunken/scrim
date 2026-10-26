@@ -1,0 +1,14 @@
+node_modules
+.turbo
+.next
+dist
+coverage
+.lighthouseci
+playwright-report
+test-results
+pnpm-lock.yaml
+apps/landing/src/generated
+apps/landing/prisma/migrations
+apps/landing/public
+*.ico
+CLAUDE.md

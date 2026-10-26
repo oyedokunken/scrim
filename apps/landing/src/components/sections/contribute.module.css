@@ -1,0 +1,117 @@
+.contribute {
+  display: grid;
+  gap: var(--scrim-space-8);
+}
+
+.copyColumn {
+  display: grid;
+  align-content: start;
+  gap: var(--scrim-space-5);
+}
+
+.links {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--scrim-border);
+}
+
+.links li {
+  border-top: 1px solid var(--scrim-border);
+}
+
+.links a {
+  display: flex;
+  align-items: center;
+  gap: var(--scrim-space-3);
+  min-height: 3.5rem;
+  color: var(--scrim-black);
+  font-size: var(--scrim-text-body-lg);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.links a span {
+  flex: 1;
+}
+
+.links a:hover {
+  color: var(--scrim-green);
+}
+
+.linkIcon,
+.linkArrow {
+  flex: none;
+  color: var(--scrim-green);
+}
+
+.workColumn {
+  display: grid;
+  align-content: start;
+  gap: var(--scrim-space-4);
+}
+
+.workColumn h3 {
+  font-size: var(--scrim-text-h3);
+  letter-spacing: -0.02em;
+}
+
+.run {
+  display: grid;
+  gap: var(--scrim-space-3);
+}
+
+/* The one dark block on the page, so commands read as commands. */
+.code {
+  margin: 0;
+  padding: var(--scrim-space-5);
+  /* Long lines wrap, so the block never grows a scrollbar. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: var(--scrim-radius-md);
+  background: var(--scrim-black);
+  color: var(--scrim-butter);
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: var(--scrim-text-small);
+  line-height: 1.7;
+}
+
+.copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--scrim-space-3);
+}
+
+.copyButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.125rem;
+  border: 1px solid var(--scrim-border);
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-white);
+  color: var(--scrim-black);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.copyButton:hover {
+  border-color: var(--scrim-green);
+}
+
+.copyMessage {
+  min-height: 1.5rem;
+  color: var(--scrim-green);
+  font-size: var(--scrim-text-small);
+  font-weight: 700;
+}
+
+@media (min-width: 56rem) {
+  .contribute {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--scrim-space-9);
+  }
+}

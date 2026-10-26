@@ -1,0 +1,71 @@
+.faq {
+  display: grid;
+  gap: var(--scrim-space-7);
+}
+
+.intro {
+  display: grid;
+  gap: var(--scrim-space-4);
+  max-width: 44rem;
+}
+
+/* Two independent columns on wide screens, so opening one answer never moves the other column. */
+.columns {
+  display: grid;
+  gap: 0 var(--scrim-space-8);
+  align-items: start;
+}
+
+.column {
+  border-bottom: 1px solid var(--scrim-border);
+}
+
+.item {
+  border-top: 1px solid var(--scrim-border);
+}
+
+.item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scrim-space-4);
+  min-height: 3.5rem;
+  padding-block: var(--scrim-space-4);
+  font-size: var(--scrim-text-body-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  cursor: pointer;
+  list-style: none;
+}
+
+.item summary::-webkit-details-marker {
+  display: none;
+}
+
+.item summary svg {
+  flex: none;
+  color: var(--scrim-green);
+  transition: transform 0.2s ease;
+}
+
+.item[open] summary svg {
+  transform: rotate(45deg);
+}
+
+.item p {
+  max-width: 60ch;
+  padding-bottom: var(--scrim-space-5);
+  color: var(--scrim-text-secondary);
+}
+
+@media (min-width: 56rem) {
+  .columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Both columns carry their own bottom rule, so the first needs its top rule on the next. */
+  .column + .column {
+    border-bottom: 1px solid var(--scrim-border);
+  }
+}

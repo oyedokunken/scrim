@@ -1,0 +1,50 @@
+{
+  "name": "@scrim/landing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test",
+    "test:lighthouse": "lhci autorun",
+    "db:up": "docker compose up -d --wait",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@fontsource-variable/urbanist": "catalog:",
+    "@hookform/resolvers": "catalog:",
+    "@prisma/adapter-pg": "catalog:",
+    "@prisma/client": "catalog:",
+    "@scrim/core": "workspace:*",
+    "@scrim/tokens": "workspace:*",
+    "lucide-react": "catalog:",
+    "next": "catalog:",
+    "nodemailer": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-hook-form": "catalog:",
+    "server-only": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "catalog:",
+    "@fontsource/urbanist": "catalog:",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "@types/nodemailer": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "fast-check": "catalog:",
+    "prisma": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

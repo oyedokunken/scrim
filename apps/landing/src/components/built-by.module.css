@@ -1,0 +1,104 @@
+.root {
+  position: relative;
+  display: inline-block;
+}
+
+.handle {
+  display: inline;
+  min-height: 2.75rem;
+  padding: 0 0.125rem;
+  border: 0;
+  background: none;
+  color: var(--scrim-butter);
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+
+.handle:hover {
+  color: var(--scrim-white);
+}
+
+.handle[aria-expanded='true'] {
+  color: var(--scrim-white);
+}
+
+/* The card opens upward from the handle, because the handle sits at the foot of the page. */
+.panel {
+  position: absolute;
+  bottom: calc(100% + 0.75rem);
+  left: 50%;
+  z-index: 20;
+  width: max-content;
+  padding: 0.75rem;
+  border-radius: var(--scrim-radius-lg);
+  background: var(--scrim-white);
+  box-shadow: 0 1.25rem 2.5rem -0.75rem color-mix(in srgb, var(--scrim-black) 70%, transparent);
+  color: var(--scrim-black);
+  transform: translateX(-50%);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel:not([hidden]) {
+    animation: pop 0.18s ease-out;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0.5rem);
+  }
+}
+
+/* All five sit in one row, however narrow the screen. The doubled class outranks the footer's
+   `.legal ul` rule, which lets lists wrap. */
+.icons.icons {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* On a tablet the handle sits at the right edge of the row, so the card grows leftward from it
+   instead of running past the edge of the screen. */
+@media (max-width: 64rem) {
+  .panel {
+    right: 0;
+    left: auto;
+    transform: none;
+  }
+
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+  }
+}
+
+/* On a phone the handle is centered under the legal line, so the card centers on it. */
+@media (max-width: 40rem) {
+  .panel {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translate(-50%, 0.5rem);
+    }
+  }
+}
