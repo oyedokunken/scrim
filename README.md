@@ -30,13 +30,13 @@ Scrim keeps recordings on your computer. Nothing is uploaded, there is no accoun
 
 The project is currently in Phase 1: the landing page. The desktop application will be developed in later phases.
 
-| Phase | Scope |
-| --- | --- |
-| 1 | Landing page and shared design tokens |
-| 2 | Desktop shell, capture and recovery |
-| 3 | MP4 export |
-| 4 | Recording effects and editing |
-| 5 | Shortcuts, screenshots and release automation |
+| Phase | Scope                                         |
+| ----- | --------------------------------------------- |
+| 1     | Landing page and shared design tokens         |
+| 2     | Desktop shell, capture and recovery           |
+| 3     | MP4 export                                    |
+| 4     | Recording effects and editing                 |
+| 5     | Shortcuts, screenshots and release automation |
 
 ## Repository layout
 

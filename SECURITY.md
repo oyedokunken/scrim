@@ -27,4 +27,3 @@ Scrim is designed with these boundaries:
 - Website input is validated on the client and server
 - Raw IP addresses are not stored or logged
 - Secrets and credentials must never be committed
-
