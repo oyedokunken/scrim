@@ -33,7 +33,7 @@ export interface FinalizeInput {
 }
 
 /** Closes a pause that is still open at `at`, as when a recording stops while paused or crashes. */
-export function closeOpenPause(pauses: readonly Pause[], at: number): Pause[] {
+function closeOpenPause(pauses: readonly Pause[], at: number): Pause[] {
   return pauses.map((pause) =>
     pause.resumedAt === null
       ? { pausedAt: pause.pausedAt, resumedAt: Math.max(at, pause.pausedAt) }

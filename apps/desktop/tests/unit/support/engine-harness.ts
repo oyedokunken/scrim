@@ -16,7 +16,7 @@ import type {
 import type { TrackKind } from '../../../src/recorder/protocol';
 import { FakePage } from './fake-page';
 
-export class FakeInput implements InputSource {
+class FakeInput implements InputSource {
   listener: ((event: UnstampedEvent) => void) | undefined;
   stopped = false;
   result: Awaited<ReturnType<InputSource['start']>> = { status: 'started' };
@@ -32,7 +32,7 @@ export class FakeInput implements InputSource {
   }
 }
 
-export interface Faults {
+interface Faults {
   /** Makes appends to files whose name contains this text fail with this error code. */
   appendFail?: { match: string; code: string } | undefined;
   mkdirFail?: string | undefined;

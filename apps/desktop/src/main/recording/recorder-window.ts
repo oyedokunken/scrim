@@ -13,7 +13,7 @@ export interface RecorderWindowOptions {
 }
 
 /** The recorder page, served next to the app window: `app://scrim/recorder.html` or the dev server. */
-export function recorderPageUrl(appOrigin: string): string {
+function recorderPageUrl(appOrigin: string): string {
   return `${appOrigin}/recorder.html`;
 }
 

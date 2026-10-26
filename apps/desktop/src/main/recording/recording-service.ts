@@ -12,7 +12,7 @@ import {
 } from '@scrim/core';
 import { join } from 'node:path';
 import type { RecorderEvent } from '../../recorder/protocol';
-import { ChunkWriter, type WriterFailure } from './chunk-writer';
+import { ChunkWriter, QUEUE_WARNING_BYTES, type WriterFailure } from './chunk-writer';
 import { assessDisk, DISK_FLOORS } from './disk-space';
 import type { FfmpegPaths, RunProcess } from './ffmpeg';
 import { finalizeSession } from './finalize';
@@ -104,10 +104,10 @@ const HEARTBEAT_MS = 1000;
  * track's origin is the call time plus this value, which leaves a run to run error of about
  * plus or minus 65 ms. The microphone has no such lag, so its own report is used.
  */
-export const VIDEO_FIRST_FRAME_LATENCY_MS = 90;
+const VIDEO_FIRST_FRAME_LATENCY_MS = 90;
 
 /** The main clock time, since the recording began, at which a track's media time is zero. */
-export function trackOrigin(kind: TrackKind, reported: number, called: number): number {
+function trackOrigin(kind: TrackKind, reported: number, called: number): number {
   return kind === 'mic' ? reported : called + VIDEO_FIRST_FRAME_LATENCY_MS;
 }
 const DISK_CHECK_EVERY_TICKS = 10;
@@ -117,7 +117,7 @@ const CHUNK_DRAIN_MS = 5000;
 const WAIT_STEP_MS = 20;
 
 /** A dated name that is the same on every system: `Scrim 2026-10-26 18.20.05`. */
-export function defaultName(date: Date): string {
+function defaultName(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, '0');
   return `Scrim ${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}.${pad(date.getMinutes())}.${pad(date.getSeconds())}`;
 }
@@ -580,7 +580,7 @@ export class RecordingService {
     await this.writeHeartbeat(active);
     if (active.ticks % DISK_CHECK_EVERY_TICKS === 0) await this.checkDisk(active);
     for (const writer of active.writers.values()) {
-      if (writer.stats.queuedBytes > 64 * 1024 * 1024) this.warn(active, WARNINGS.writerSlow());
+      if (writer.stats.queuedBytes > QUEUE_WARNING_BYTES) this.warn(active, WARNINGS.writerSlow());
     }
     this.emitState();
   }

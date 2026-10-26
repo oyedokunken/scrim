@@ -20,7 +20,7 @@ export interface Chunk {
   data: Uint8Array;
 }
 
-export type ChunkIssue =
+type ChunkIssue =
   | { kind: 'gap'; expected: number; got: number }
   | { kind: 'length-mismatch'; declared: number; actual: number };
 
@@ -56,7 +56,7 @@ export interface ChunkWriterOptions {
   onFailure?: (failure: WriterFailure) => void;
 }
 
-export const DEFAULT_SYNC_INTERVAL_MS = 2000;
+const DEFAULT_SYNC_INTERVAL_MS = 2000;
 /** Above this many queued bytes the UI should warn that the disk cannot keep up. */
 export const QUEUE_WARNING_BYTES = 64 * 1024 * 1024;
 

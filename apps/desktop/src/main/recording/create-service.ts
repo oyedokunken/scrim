@@ -2,6 +2,7 @@ import { app, desktopCapturer, screen, session, systemPreferences } from 'electr
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
+import type * as UiohookModule from 'uiohook-napi';
 import { createHookSource } from './input-source';
 import { installDisplayMediaHandler, type CaptureTarget } from './display-media';
 import { resolveFfmpegPaths, runProcess } from './ffmpeg';
@@ -122,7 +123,12 @@ export function createRecordingService(options: CreateServiceOptions): Recording
         env: process.env,
         // The native module is loaded only when a recording starts, and a failure to load it only
         // turns the mouse log off.
-        load: () => Promise.resolve().then((): unknown => requireHook('uiohook-napi')),
+        load: () =>
+          Promise.resolve().then((): unknown => {
+            // The type import above is what tells the tooling this native dependency is used.
+            const hook = requireHook('uiohook-napi') as typeof UiohookModule;
+            return hook;
+          }),
         isAccessibilityTrusted: () =>
           process.platform === 'darwin' && systemPreferences.isTrustedAccessibilityClient(false),
         toDip: (point) =>

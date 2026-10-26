@@ -1,7 +1,5 @@
-import type { RawInputEvent } from '@scrim/core';
-
 /** Why the mouse could not be logged. Matches the reasons the session file can hold. */
-export type InputUnavailableReason = 'wayland' | 'permission' | 'error';
+type InputUnavailableReason = 'wayland' | 'permission' | 'error';
 
 export type InputStartResult =
   | { status: 'started' }
@@ -23,8 +21,6 @@ export type UnstampedEvent =
   | { type: 'down' | 'up'; x: number; y: number; button: 'left' | 'right' | 'middle' }
   | { type: 'wheel'; x: number; y: number; dx: number; dy: number };
 
-export type StampedEvent = RawInputEvent;
-
 /** What the hook passes to a listener. Fields a given event does not have are left out. */
 export interface HookPayload {
   x: number;
@@ -35,7 +31,7 @@ export interface HookPayload {
 }
 
 /** The parts of uiohook-napi this code touches, so the real module can be swapped for a fake. */
-export interface HookModule {
+interface HookModule {
   uIOhook: {
     on(event: string, listener: (payload: HookPayload) => void): unknown;
     removeAllListeners(event?: string): unknown;

@@ -17,7 +17,13 @@ const APP_DIR = join(__dirname, '../..');
 const electronPath = createRequire(__filename)('electron') as string;
 const KILL_RUNS = Number(process.env['SCRIM_KILL_RUNS'] ?? '1');
 
-const hasFfmpeg = ['ffmpeg', 'ffprobe'].every(
+// The same variables the app reads, so a test run can point at a particular FFmpeg.
+const TOOLS = {
+  ffmpeg: process.env['SCRIM_FFMPEG'] ?? 'ffmpeg',
+  ffprobe: process.env['SCRIM_FFPROBE'] ?? 'ffprobe',
+};
+
+const hasFfmpeg = Object.values(TOOLS).every(
   (tool) => spawnSync(tool, ['-version'], { stdio: 'ignore' }).status === 0,
 );
 
@@ -99,7 +105,7 @@ async function recordThenKill(env: Record<string, string>, userData: string): Pr
 
 function probe(file: string): { codec: string | undefined; seconds: number } {
   const result = spawnSync(
-    'ffprobe',
+    TOOLS.ffprobe,
     ['-v', 'error', '-print_format', 'json', '-show_streams', '-show_format', file],
     { encoding: 'utf8' },
   );

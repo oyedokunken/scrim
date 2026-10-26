@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ChunkMessage, RecorderEvent } from './protocol';
 
-export const trackKindSchema = z.enum(['screen', 'camera', 'mic']);
+const trackKindSchema = z.enum(['screen', 'camera', 'mic']);
 
 const trackFailureReasonSchema = z.enum([
   'permission-denied',

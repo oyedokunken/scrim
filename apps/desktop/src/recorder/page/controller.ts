@@ -25,7 +25,7 @@ export interface PortLike {
   close(): void;
 }
 
-export interface RecorderOptions {
+interface RecorderOptions {
   mimeType: string;
   videoBitsPerSecond?: number;
   audioBitsPerSecond?: number;

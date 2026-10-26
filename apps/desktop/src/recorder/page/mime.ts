@@ -12,7 +12,7 @@ export const VIDEO_MIME_TYPES = [
   'video/webm;codecs=vp8',
 ] as const;
 
-export const AUDIO_MIME_TYPES = ['audio/webm;codecs=opus'] as const;
+const AUDIO_MIME_TYPES = ['audio/webm;codecs=opus'] as const;
 
 /** The first supported type for a track, or undefined when this browser supports none. */
 export function pickMimeType(

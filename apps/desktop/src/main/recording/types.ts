@@ -1,4 +1,4 @@
-import type { RecorderPhase, SessionFile, TrackKind } from '@scrim/core';
+import type { RecorderPhase, TrackKind } from '@scrim/core';
 
 /**
  * The recording service boundary. Everything the rest of the app needs from the engine is a type in
@@ -114,5 +114,3 @@ export interface RecoverableSession {
   /** Bytes of footage that reached the disk, across all tracks. */
   bytes: number;
 }
-
-export type SessionSummary = Pick<SessionFile, 'id' | 'name' | 'createdAt'>;
