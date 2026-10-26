@@ -9,7 +9,9 @@
   },
   "scripts": {
     "prepare": "husky",
+    "dev": "pnpm --filter @scrim/desktop dev",
     "dev:landing": "pnpm --filter @scrim/landing dev",
+    "package": "pnpm --filter @scrim/desktop package",
     "build": "turbo run build",
     "lint": "eslint .",
     "lint:text": "node tools/check-text.js",
