@@ -9,6 +9,11 @@ import { fetchLatestRelease } from '@/server/releases';
 import { siteConfig } from '@/site.config';
 import { urbanist } from './fonts';
 
+// Pages render the latest release in the footer, so they regenerate every 5 minutes and the chip
+// updates after a release without a redeploy. Segment config must be a literal. A test keeps this
+// equal to RELEASE_REVALIDATE_SECONDS.
+export const revalidate = 300;
+
 export function generateMetadata(): Metadata {
   const { SITE_URL } = getSiteEnv();
   const title = `${siteConfig.name} | ${siteConfig.tagline}`;
