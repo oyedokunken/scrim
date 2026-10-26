@@ -64,8 +64,9 @@ test('the header stays at the top while the page scrolls', async ({ page }) => {
 test('the pill reads Scrim and keeps Buy me suya visible', async ({ page }) => {
   const header = page.locator('header');
   await expect(header.getByRole('link', { name: 'Scrim home' })).toBeVisible();
-  const suya = header.getByRole('link', { name: /Buy me/ });
+  const suya = header.getByRole('link', { name: /^Buy me suya/ });
   await expect(suya).toBeVisible();
+  await expect(suya.locator('span').first()).toHaveText('Buy me suya');
   await expect(suya).toHaveAttribute('href', 'https://buymeamalt.com/@oyedokunken');
   await expect(suya).toHaveAttribute('target', '_blank');
   await expect(suya).toHaveAttribute('rel', 'noopener noreferrer');
@@ -97,7 +98,7 @@ test('the whole header is reachable by keyboard', async ({ page }) => {
 
   if (isNarrow(page)) {
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('link', { name: /Buy me/ }).first()).toBeFocused();
+    await expect(page.getByRole('link', { name: /^Buy me suya/ }).first()).toBeFocused();
     await page.keyboard.press('Tab');
     const summary = page.locator('summary');
     await expect(summary).toBeFocused();
@@ -120,7 +121,7 @@ test('the whole header is reachable by keyboard', async ({ page }) => {
       ).toBeFocused();
     }
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('link', { name: /Buy me/ }).first()).toBeFocused();
+    await expect(page.getByRole('link', { name: /^Buy me suya/ }).first()).toBeFocused();
   }
 });
 
@@ -159,7 +160,7 @@ test.describe('footer', () => {
       'href',
       'https://www.oyedokun.dev/',
     );
-    await expect(footer.getByRole('link', { name: /Buy me/ })).toHaveAttribute(
+    await expect(footer.getByRole('link', { name: /^Buy me suya/ })).toHaveAttribute(
       'rel',
       'noopener noreferrer',
     );

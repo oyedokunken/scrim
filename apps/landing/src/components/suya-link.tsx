@@ -15,7 +15,7 @@ export function SuyaLink({ className, plain = false }: SuyaLinkProps) {
   return (
     <a href={siteConfig.suyaUrl} target="_blank" rel="noopener noreferrer" className={className}>
       {plain ? null : <Heart aria-hidden="true" size={16} strokeWidth={2.5} />}
-      <span>Buy me a malt </span>
+      <span>Buy me suya</span>
       <span className="visually-hidden"> (opens in a new tab)</span>
     </a>
   );

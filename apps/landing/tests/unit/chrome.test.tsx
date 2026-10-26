@@ -14,6 +14,11 @@ describe('SuyaLink', () => {
     expect(html).toContain('rel="noopener noreferrer"');
   });
 
+  it('shows the exact label Buy me suya, in one place only', () => {
+    expect(html).toContain('<span>Buy me suya</span>');
+    expect(html.replace(/href="[^"]*"/, '')).not.toMatch(/malt/i);
+  });
+
   it('says it opens in a new tab and hides the decorative heart', () => {
     expect(html).toContain('(opens in a new tab)');
     expect(html).toContain('aria-hidden="true"');
