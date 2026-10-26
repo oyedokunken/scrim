@@ -1,0 +1,9 @@
+export { AppWindowIllustration } from './app-window';
+export { BackdropSwatchesIllustration } from './backdrop-swatches';
+export { ClickRipplesIllustration } from './click-ripples';
+export { CursorHaloIllustration } from './cursor-halo';
+export { ExportCardIllustration } from './export-card';
+export { FaceBubbleIllustration } from './face-bubble';
+export { TrimTimelineIllustration } from './trim-timeline';
+export { ZoomFrameIllustration } from './zoom-frame';
+export type { IllustrationProps } from './illustration';

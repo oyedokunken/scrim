@@ -32,11 +32,12 @@
     "@prisma/client": "catalog:"
   },
   "devDependencies": {
+    "@fontsource/urbanist": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "prisma": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "prisma": "catalog:"
+    "vitest": "catalog:"
   }
 }
