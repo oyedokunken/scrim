@@ -1,9 +1,24 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreBinaries": ["package"],
+  "ignoreDependencies": ["@commitlint/types"],
   "workspaces": {
     ".": {
-      "entry": ["tools/*.js", "tests/**/*.test.ts", "commitlint.config.js", "vitest.config.ts"],
+      "entry": ["tools/*.js", "tests/**/*.test.ts"],
       "project": ["tools/**", "tests/**"]
+    },
+    "apps/desktop": {
+      "entry": ["electron-builder.config.ts", "tests/e2e/**/*.spec.ts"],
+      "project": ["build/**", "src/**", "tests/**", "*.ts", "*.mts"],
+      "ignoreDependencies": ["@scrim/tokens"]
+    },
+    "apps/landing": {
+      "entry": ["tests/stubs/server-only.ts"],
+      "ignoreDependencies": [
+        "@fontsource-variable/urbanist",
+        "@fontsource/urbanist",
+        "@prisma/client"
+      ]
     }
   }
 }

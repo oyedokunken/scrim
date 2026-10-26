@@ -17,7 +17,6 @@
   "devDependencies": {
     "@electron/fuses": "catalog:",
     "@playwright/test": "catalog:",
-    "@scrim/core": "workspace:*",
     "@scrim/tokens": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
@@ -30,8 +29,7 @@
     "react-dom": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:",
-    "zod": "catalog:"
+    "vitest": "catalog:"
   },
   "author": "Oyedokun Kehinde",
   "homepage": "https://github.com/oyedokunken/scrim"
