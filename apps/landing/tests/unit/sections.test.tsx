@@ -62,8 +62,8 @@ describe('the home page sections', () => {
   });
 
   it('uses the new headline and the new supporting line in the hero', () => {
-    expect(html).toContain('Record and capture anything on your screen effortlessly');
-    expect(siteConfig.tagline).toBe('Record and capture anything on your screen effortlessly');
+    expect(html).toContain('Record anything on your screen effortlessly');
+    expect(siteConfig.tagline).toBe('Record anything on your screen effortlessly');
     expect(html).toContain('With Scrim, you can record your screen');
     expect(html).toContain('all on your computer.');
     expect(html).not.toContain('Screen capture that stays on your computer');

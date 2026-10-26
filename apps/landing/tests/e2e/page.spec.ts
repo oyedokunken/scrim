@@ -274,7 +274,7 @@ test.describe('keyboard only', () => {
 
 test.describe('metadata and structured data', () => {
   for (const [path, title] of [
-    ['/', 'Scrim | Record and capture anything on your screen effortlessly'],
+    ['/', 'Scrim | Record anything on your screen effortlessly'],
     ['/privacy', 'Privacy policy | Scrim'],
   ] as const) {
     test(`${path} has the Open Graph, Twitter and canonical tags`, async ({ page, request }) => {
