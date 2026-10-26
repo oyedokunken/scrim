@@ -161,3 +161,14 @@ describe('crop and window bounds in the session file', () => {
     ).toBe(false);
   });
 });
+
+describe('input that cannot follow a window', () => {
+  it('accepts window-bounds-unsupported as a reason the mouse log is unavailable', () => {
+    const session = {
+      ...valid,
+      source: { ...valid.source, kind: 'window' as const },
+      input: { status: 'unavailable', reason: 'window-bounds-unsupported' },
+    };
+    expect(sessionFileSchema.safeParse(session).success).toBe(true);
+  });
+});

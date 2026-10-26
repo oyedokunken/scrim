@@ -5,6 +5,7 @@ import {
   isPaused,
   nextPhase,
   toMediaTime,
+  trackMediaDuration,
   validatePauses,
   type Pause,
   type RecorderEvent,
@@ -245,5 +246,17 @@ describe('recorder phase reducer', () => {
     expect(isActive('idle')).toBe(false);
     expect(isActive('stopped')).toBe(false);
     expect(isActive('failed')).toBe(false);
+  });
+});
+
+describe('trackMediaDuration', () => {
+  it('is the time from zero to the stop with paused time left out', () => {
+    expect(trackMediaDuration(1000, 11_000, [])).toBe(10_000);
+    expect(trackMediaDuration(1000, 11_000, [{ pausedAt: 3000, resumedAt: 5000 }])).toBe(8000);
+  });
+
+  it('is zero for a track that stopped before it started, and ends at a pause that is still open', () => {
+    expect(trackMediaDuration(5000, 4000, [])).toBe(0);
+    expect(trackMediaDuration(0, 9000, [{ pausedAt: 2000, resumedAt: null }])).toBe(2000);
   });
 });

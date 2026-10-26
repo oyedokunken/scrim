@@ -74,3 +74,16 @@ export function isPaused(mainTime: number, pauses: readonly Pause[]): boolean {
       mainTime > pause.pausedAt && (pause.resumedAt === null || mainTime < pause.resumedAt),
   );
 }
+
+/**
+ * How long a track's media is, in milliseconds: from its time zero to the moment it stopped, with
+ * paused time left out. This is the length the track should have once its last frame is held until
+ * the stop, whatever its last real frame says.
+ */
+export function trackMediaDuration(
+  startedAt: number,
+  stoppedAt: number,
+  pauses: readonly Pause[],
+): number {
+  return toMediaTime(stoppedAt, startedAt, pauses);
+}

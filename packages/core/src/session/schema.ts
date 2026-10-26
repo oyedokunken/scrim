@@ -35,6 +35,12 @@ const trackSchema = z.strictObject({
   /** True once the writer finished and closed the raw file. */
   complete: z.boolean(),
   endedReason: trackEndReasonSchema.optional(),
+  /**
+   * When the track stopped, in milliseconds on the main clock. A screen on a static desktop sends
+   * about one frame a second, so its last frame can be well before this. Export holds the last
+   * frame until this time, so every track ends when the recording did.
+   */
+  stoppedAt: nonNegative.optional(),
   /** The playable copy made by remuxing, once it exists and has been checked. */
   playableFile: z.string().min(1).optional(),
 });
@@ -43,7 +49,7 @@ const inputSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('recorded'), file: z.string().min(1) }),
   z.strictObject({
     status: z.literal('unavailable'),
-    reason: z.enum(['wayland', 'permission', 'error']),
+    reason: z.enum(['wayland', 'permission', 'error', 'window-bounds-unsupported']),
   }),
 ]);
 

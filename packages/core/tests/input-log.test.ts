@@ -295,3 +295,40 @@ describe('toSessionLog', () => {
     );
   });
 });
+
+describe('toSessionLog with a display latency', () => {
+  const base = {
+    startTime: 0,
+    pauses: [],
+    frame: { width: 800, height: 600 },
+    origin: { x: 0, y: 0 },
+    scale: 1,
+  };
+  const raw: RawInputEvent[] = [
+    { type: 'down', at: 100, x: 1, y: 1, button: 'left' },
+    { type: 'move', at: 200, x: 2, y: 2 },
+  ];
+
+  it('adds the latency to every event time and records that it did', () => {
+    const result = toSessionLog(raw, { ...base, latencyMs: 70 });
+    expect(result.ok && result.value.events.map((event) => event.t)).toEqual([170, 270]);
+    expect(result.ok && result.value.latencyMs).toBe(70);
+  });
+
+  it('shifts window positions the same way', () => {
+    const result = toSessionLog([], {
+      ...base,
+      latencyMs: 70,
+      windowBounds: [{ at: 50, x: 1, y: 1, width: 10, height: 10 }],
+    });
+    expect(result.ok && result.value.windowBounds?.[0]?.t).toBe(120);
+  });
+
+  it('leaves times alone and the field out with no latency, and ignores a negative one', () => {
+    const none = toSessionLog(raw, base);
+    expect(none.ok && none.value.events[0]?.t).toBe(100);
+    expect(none.ok && 'latencyMs' in none.value).toBe(false);
+    const negative = toSessionLog(raw, { ...base, latencyMs: -50 });
+    expect(negative.ok && negative.value.events[0]?.t).toBe(100);
+  });
+});
