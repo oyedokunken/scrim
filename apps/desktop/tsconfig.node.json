@@ -1,6 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "composite": true, "types": ["node"], "lib": ["ES2023"] },
+  "compilerOptions": {
+    "composite": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "lib": ["ES2023"]
+  },
   "include": [
     "electron.vite.config.ts",
     "electron-builder.config.ts",
