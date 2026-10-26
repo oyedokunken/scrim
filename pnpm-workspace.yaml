@@ -43,6 +43,11 @@ catalog:
   '@commitlint/cli': 21.2.3
   '@commitlint/config-conventional': 21.2.3
   knip: 6.41.0
+  electron: 44.7.2
+  electron-vite: 6.0.0
+  electron-builder: 26.17.0
+  '@vitejs/plugin-react': 6.1.2
+  '@electron/fuses': 2.1.3
 
 # Minutes. 7 days.
 minimumReleaseAge: 10080
@@ -50,6 +55,10 @@ minimumReleaseAge: 10080
 # pnpm 12 syntax for install scripts. Add an entry only after reading what the
 # script does.
 allowBuilds:
+  electron: true
+  esbuild: true
+  unrs-resolver: true
+  electron-winstaller: false
   sharp: true
   # Download Prisma's schema engine binary, which `prisma migrate` needs.
   prisma: true

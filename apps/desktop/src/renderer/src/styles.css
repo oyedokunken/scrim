@@ -1,0 +1,12 @@
+@import '@scrim/tokens/tokens.css';
+
+body {
+  margin: 0;
+  background: var(--scrim-butter);
+  color: var(--scrim-black);
+  font-family: system-ui, sans-serif;
+}
+
+main {
+  padding: 2rem;
+}
