@@ -21,3 +21,10 @@ export function windowIconPath(platform: NodeJS.Platform, appPath: string): stri
 export function devDockIconPath(appPath: string): string {
   return join(appPath, 'resources', 'icons', 'icon-mac-512.png');
 }
+
+/** The icon shown in message boxes on Windows and Linux. macOS shows the app icon by itself. */
+export function dialogIconPath(platform: NodeJS.Platform, appPath: string): string | undefined {
+  return platform === 'darwin'
+    ? undefined
+    : join(appPath, 'resources', 'icons', 'linux', '256x256.png');
+}
