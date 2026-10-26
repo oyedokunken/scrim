@@ -22,3 +22,4 @@ Any change to these needs an ADR.
 - User recordings are never served through `app://`. Playback needs a separate read-only scheme that is scoped to session folders.
 - WebAssembly needs a `.wasm` content type, `'wasm-unsafe-eval'` in the policy, and an ADR before it is added.
 - Links to the operating system privacy settings (M5) use a dedicated channel with fixed URLs. They do not widen the external link allowlist.
+- No UI library that injects `<style>` tags at runtime (most CSS-in-JS libraries do). The packaged policy is `style-src 'self'`, so those styles would be blocked. Use plain CSS files, CSS modules or a build time extractor, and check the packaged build, because the dev server allows inline styles and hides the problem.
