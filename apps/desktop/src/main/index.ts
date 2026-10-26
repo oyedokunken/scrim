@@ -5,6 +5,7 @@ import { devDockIconPath } from './app-icon';
 import { handleAppRequest } from './app-protocol';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
+import { createAppLogger, startIpc } from './ipc/start';
 import { registerRecording } from './recording';
 import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { applyApplicationMenu } from './shell/menu';
@@ -93,6 +94,9 @@ if (!app.requestSingleInstanceLock()) {
       appOrigin: target.origin,
       devCsp: target.kind === 'dev' ? buildCsp({ packaged: false }) : undefined,
     });
+    const logger = createAppLogger();
+    logger.info('app.start', { version: app.getVersion(), platform: process.platform });
+    await startIpc({ appOrigin: target.origin, logger });
     shell.start();
     await openMainWindow();
     registerRecording({ appOrigin: target.origin });

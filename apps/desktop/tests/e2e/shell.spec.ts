@@ -36,6 +36,10 @@ async function stubDialog(app: ElectronApplication, response: number): Promise<v
 }
 
 async function startRecordingAndClose(app: ElectronApplication): Promise<void> {
+  // Closing before the window has finished showing lets the late show undo a hide.
+  await expect
+    .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible()))
+    .toBe(true);
   await app.evaluate(({ BrowserWindow }) => {
     (globalThis as Probe).__scrimRecorder?.setRecording(true);
     BrowserWindow.getAllWindows()[0]?.close();
