@@ -1,0 +1,34 @@
+{
+  "name": "@scrim/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Scrim desktop app",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "package": "electron-vite build && electron-builder --config electron-builder.config.ts"
+  },
+  "devDependencies": {
+    "@electron/fuses": "catalog:",
+    "@playwright/test": "catalog:",
+    "@scrim/core": "workspace:*",
+    "@scrim/tokens": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "electron": "catalog:",
+    "electron-builder": "catalog:",
+    "electron-vite": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "zod": "catalog:"
+  }
+}

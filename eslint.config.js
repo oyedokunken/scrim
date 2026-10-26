@@ -20,6 +20,8 @@ export default tseslint.config(
       '**/.next/**',
       '**/.turbo/**',
       '**/dist/**',
+      '**/out/**',
+      '**/release/**',
       '**/coverage/**',
       '**/.lighthouseci/**',
       '**/playwright-report/**',
@@ -62,7 +64,7 @@ export default tseslint.config(
   {
     // Framework entry points that must use a default export.
     files: [
-      '**/*.config.{js,ts,mjs}',
+      '**/*.config.{js,ts,mjs,mts}',
       'apps/landing/src/app/**/{page,layout,error,not-found,loading,opengraph-image,twitter-image,apple-icon,manifest,robots,sitemap}.{ts,tsx}',
     ],
     rules: { 'no-restricted-syntax': 'off' },
@@ -139,6 +141,75 @@ export default tseslint.config(
               message: 'Client reachable code must not import src/server.',
             },
             { group: ['nodemailer', '@prisma/*', '**/generated/prisma*', 'pg'] },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The desktop app never imports the website.
+    files: ['apps/desktop/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        { patterns: [{ group: ['**/apps/landing/**', '@scrim/landing', '@scrim/landing/*'] }] },
+      ],
+    },
+  },
+  {
+    // The renderer is untrusted web content: no Node, no Electron, nothing from main or preload.
+    files: ['apps/desktop/src/renderer/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            ...nodeBuiltins,
+            {
+              group: ['electron', 'electron/*'],
+              message: 'The renderer talks to main through window.scrim.',
+            },
+            {
+              group: ['**/main/*', '**/preload/*'],
+              message: 'The renderer imports nothing from main or preload.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The sandboxed preload imports only electron and types.
+    files: ['apps/desktop/src/preload/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            ...nodeBuiltins,
+            {
+              group: ['**/main/*', '**/renderer/*'],
+              message: 'Preload imports only electron and types.',
+            },
+            { regex: '^zod', message: 'Do not import zod in the sandboxed preload.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // `shared` is environment neutral.
+    files: ['apps/desktop/src/shared/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            ...nodeBuiltins,
+            {
+              group: ['electron', 'electron/*', 'react', 'react-dom'],
+              message: 'shared is environment neutral.',
+            },
           ],
         },
       ],
