@@ -1,0 +1,44 @@
+/*
+ * Scrim design tokens. Light theme only.
+ * The four hex values below are the whole palette. Every other color is derived
+ * from them with color-mix, so greys stay warm. A test fails if another hex appears.
+ */
+:root {
+  --scrim-green: #105d64;
+  --scrim-butter: #fbf7f4;
+  --scrim-black: #2c2322;
+  --scrim-white: #ffffff;
+
+  /* Greys: the black mixed into butter or white. */
+  --scrim-text-secondary: color-mix(in srgb, var(--scrim-black) 72%, var(--scrim-butter));
+  --scrim-border: color-mix(in srgb, var(--scrim-black) 14%, var(--scrim-butter));
+  --scrim-border-on-white: color-mix(in srgb, var(--scrim-black) 14%, var(--scrim-white));
+  --scrim-fill-quiet: color-mix(in srgb, var(--scrim-black) 8%, var(--scrim-butter));
+  --scrim-fill-quiet-on-white: color-mix(in srgb, var(--scrim-black) 8%, var(--scrim-white));
+
+  /* Green states, derived so they never leave the palette. */
+  --scrim-green-hover: color-mix(in srgb, var(--scrim-green) 88%, var(--scrim-black));
+  --scrim-green-tint: color-mix(in srgb, var(--scrim-green) 10%, var(--scrim-butter));
+
+  --scrim-font:
+    'Urbanist Variable', 'Urbanist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Spacing, in rem. */
+  --scrim-space-1: 0.25rem;
+  --scrim-space-2: 0.5rem;
+  --scrim-space-3: 0.75rem;
+  --scrim-space-4: 1rem;
+  --scrim-space-5: 1.5rem;
+  --scrim-space-6: 2rem;
+  --scrim-space-7: 3rem;
+  --scrim-space-8: 4rem;
+  --scrim-space-9: 6rem;
+  --scrim-space-10: 8rem;
+
+  /* Radii. */
+  --scrim-radius-sm: 0.5rem;
+  --scrim-radius-md: 0.875rem;
+  --scrim-radius-lg: 1.5rem;
+  --scrim-radius-xl: 2rem;
+  --scrim-radius-pill: 999px;
+}

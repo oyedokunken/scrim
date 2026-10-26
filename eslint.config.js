@@ -113,7 +113,7 @@ export default tseslint.config(
     rules: {
       'no-restricted-imports': [
         'error',
-        { patterns: [{ group: ['*'], message: 'tokens has no runtime dependencies.' }] },
+        { patterns: [{ regex: '^[^.]', message: 'tokens has no runtime dependencies.' }] },
       ],
     },
   },
