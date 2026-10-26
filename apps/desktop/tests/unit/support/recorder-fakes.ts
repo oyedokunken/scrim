@@ -78,10 +78,10 @@ export class FakeStream implements MediaStreamLike {
 }
 
 export class FakePort implements PortLike {
-  readonly posted: { message: ChunkMessage; transfer: ArrayBuffer[] }[] = [];
+  readonly posted: { message: ChunkMessage }[] = [];
   closed = false;
-  postMessage(message: ChunkMessage, transfer: ArrayBuffer[]): void {
-    this.posted.push({ message, transfer });
+  postMessage(message: ChunkMessage): void {
+    this.posted.push({ message });
   }
   close(): void {
     this.closed = true;

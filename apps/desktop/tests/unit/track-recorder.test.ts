@@ -8,14 +8,14 @@ function setup() {
   const recorder = new FakeRecorder();
   const track = new FakeTrack();
   const clock = { time: 1000 };
-  const posted: { message: ChunkMessage; transfer: ArrayBuffer[] }[] = [];
+  const posted: { message: ChunkMessage }[] = [];
   const events: string[] = [];
   const tr = new TrackRecorder({
     kind: 'screen',
     recorder,
     track,
     now: () => clock.time,
-    post: (message, transfer) => posted.push({ message, transfer }),
+    post: (message) => posted.push({ message }),
     onStarted: (at) => events.push(`started:${String(at)}`),
     onEnded: (at) => events.push(`ended:${String(at)}`),
     onError: (message) => events.push(`error:${message}`),
@@ -53,7 +53,7 @@ describe('TrackRecorder', () => {
     expect(events).toEqual(['started:1000']);
   });
 
-  it('posts numbered chunks with the buffer in the transfer list', async () => {
+  it('posts numbered chunks with the data copied in, not transferred', async () => {
     const { recorder, posted, clock, tr } = setup();
     tr.start(1000);
     clock.time = 2000;
@@ -64,7 +64,7 @@ describe('TrackRecorder', () => {
     expect(posted.map((entry) => entry.message.seq)).toEqual([0, 1]);
     expect(posted.map((entry) => entry.message.byteLength)).toEqual([10, 20]);
     expect(posted.map((entry) => entry.message.mediaTimeMs)).toEqual([1000, 2000]);
-    expect(posted[0]?.transfer[0]).toBe(posted[0]?.message.data);
+    expect(posted[0]?.message.data.byteLength).toBe(10);
     expect(tr.stats).toEqual({ chunks: 2, bytes: 30 });
   });
 

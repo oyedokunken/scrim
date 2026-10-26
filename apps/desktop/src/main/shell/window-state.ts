@@ -11,7 +11,7 @@ const savedWindowStateSchema = z.object({
 });
 export type SavedWindowState = z.infer<typeof savedWindowStateSchema>;
 
-export interface Rect {
+interface Rect {
   x: number;
   y: number;
   width: number;

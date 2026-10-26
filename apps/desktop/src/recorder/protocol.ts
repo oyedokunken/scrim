@@ -62,7 +62,7 @@ export type RecorderEvent =
   | { type: 'stopped'; tracks: { kind: TrackKind; chunks: number; bytes: number }[] }
   | { type: 'fatal'; message: string };
 
-/** One chunk on a track's port. `data` travels in the transfer list, so it is moved, not copied. */
+/** One chunk on a track's port. `data` is copied: transferring it does not work over this port. */
 export interface ChunkMessage {
   track: TrackKind;
   seq: number;

@@ -21,7 +21,7 @@ export interface MediaStreamLike {
 }
 
 export interface PortLike {
-  postMessage(message: ChunkMessage, transfer: ArrayBuffer[]): void;
+  postMessage(message: ChunkMessage): void;
   close(): void;
 }
 
@@ -207,8 +207,8 @@ export class RecorderController {
         recorder,
         track: media,
         now: () => deps.now(),
-        post: (message, transfer) => {
-          this.ports.get(kind)?.postMessage(message, transfer);
+        post: (message) => {
+          this.ports.get(kind)?.postMessage(message);
         },
         onStarted: (rendererNow) => {
           deps.sendEvent({ type: 'track-started', kind, rendererNow });

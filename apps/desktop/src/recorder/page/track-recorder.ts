@@ -30,8 +30,12 @@ export interface TrackRecorderOptions {
   track: TrackLike;
   /** Milliseconds from `performance.now()`. */
   now: () => number;
-  /** Sends a chunk to main on this track's port. The buffer is in the transfer list. */
-  post: (message: ChunkMessage, transfer: ArrayBuffer[]) => void;
+  /**
+   * Sends a chunk to main on this track's port. The buffer is copied, not transferred: a message
+   * whose buffer is in the transfer list arrives in the main process as null (measured in Electron
+   * 44). One second of footage is a megabyte or two, so the copy costs nothing that matters.
+   */
+  post: (message: ChunkMessage) => void;
   onStarted: (rendererNow: number) => void;
   /** The device went away or the capture ended on its own. */
   onEnded: (rendererNow: number) => void;
@@ -137,10 +141,13 @@ export class TrackRecorder {
       .then(() => blob.arrayBuffer())
       .then((data) => {
         this.bytes += data.byteLength;
-        this.options.post(
-          { track: this.kind, seq, byteLength: data.byteLength, mediaTimeMs, data },
-          [data],
-        );
+        this.options.post({
+          track: this.kind,
+          seq,
+          byteLength: data.byteLength,
+          mediaTimeMs,
+          data,
+        });
       })
       .catch((error: unknown) => {
         this.options.onError(describe(error), this.options.now());
