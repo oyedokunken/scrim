@@ -10,6 +10,12 @@ const TASKS = [
   { title: 'Book the review meeting', tag: 'Later' },
 ] as const;
 
+const PEOPLE = [
+  { initial: 'A', tint: 'var(--scrim-green)', ink: 'var(--scrim-butter)' },
+  { initial: 'M', tint: 'var(--scrim-green-tint)', ink: 'var(--scrim-green)' },
+  { initial: 'K', tint: 'var(--scrim-black)', ink: 'var(--scrim-butter)' },
+] as const;
+
 const MENU_ITEMS = ['All tasks', 'Due today', 'Assigned to me', 'Completed'] as const;
 
 const ROW_TOP = 250;
@@ -87,6 +93,29 @@ export function MockWindow() {
         >
           Team tasks
         </text>
+
+        {PEOPLE.map((person, index) => (
+          <g key={person.initial}>
+            <circle
+              cx={1196 + index * 22}
+              cy="28"
+              r="15"
+              fill={person.tint}
+              stroke="var(--scrim-fill-quiet-on-white)"
+              strokeWidth="3"
+            />
+            <text
+              x={1196 + index * 22}
+              y="33"
+              textAnchor="middle"
+              fontSize="13"
+              fontWeight="800"
+              fill={person.ink}
+            >
+              {person.initial}
+            </text>
+          </g>
+        ))}
 
         {/* Toolbar */}
         <rect y="56" width={width} height="64" fill="var(--scrim-white)" />
@@ -215,6 +244,50 @@ export function MockWindow() {
           </g>
         ))}
 
+        {[
+          { index: 0, count: '12' },
+          { index: 1, count: '4' },
+        ].map((badge) => (
+          <g key={badge.count}>
+            <rect
+              x="190"
+              y={158 + badge.index * 56}
+              width="38"
+              height="28"
+              rx="14"
+              fill={badge.index === 1 ? 'var(--scrim-green)' : 'var(--scrim-border-on-white)'}
+            />
+            <text
+              x="209"
+              y={178 + badge.index * 56}
+              textAnchor="middle"
+              fontSize="15"
+              fontWeight="800"
+              fill={badge.index === 1 ? 'var(--scrim-butter)' : 'var(--scrim-black)'}
+            >
+              {badge.count}
+            </text>
+          </g>
+        ))}
+        <path d="M20 624H240" stroke="var(--scrim-border-on-white)" strokeWidth="2" />
+        <circle cx="46" cy="665" r="20" fill="var(--scrim-green)" />
+        <text
+          x="46"
+          y="671"
+          textAnchor="middle"
+          fontSize="17"
+          fontWeight="800"
+          fill="var(--scrim-butter)"
+        >
+          A
+        </text>
+        <text x="80" y="659" fontSize="18" fontWeight="800" fill="var(--scrim-black)">
+          Ada Lovelace
+        </text>
+        <text x="80" y="681" fontSize="15" fontWeight="600" fill="var(--scrim-text-secondary)">
+          Product team
+        </text>
+
         {/* Content */}
         <text
           x="320"
@@ -226,6 +299,101 @@ export function MockWindow() {
         >
           Team tasks
         </text>
+        {/* Dashboard summary: three numbers and a progress bar. The Done count and the bar move
+            as the tasks are ticked off. */}
+        {[
+          { x: 640, label: 'Open', value: '12' },
+          { x: 840, label: 'Due today', value: '4' },
+          { x: 1040, label: 'Done', value: null },
+        ].map((stat) => (
+          <g key={stat.label}>
+            <rect
+              x={stat.x}
+              y="150"
+              width="190"
+              height="64"
+              rx="16"
+              fill="var(--scrim-white)"
+              stroke="var(--scrim-border-on-white)"
+              strokeWidth="2"
+            />
+            <text
+              x={stat.x + 20}
+              y="176"
+              fontSize="15"
+              fontWeight="700"
+              fill="var(--scrim-text-secondary)"
+            >
+              {stat.label}
+            </text>
+            {stat.value === null ? (
+              <>
+                <text
+                  x={stat.x + 20}
+                  y="204"
+                  fontSize="26"
+                  fontWeight="800"
+                  fill="var(--scrim-green)"
+                  style={{ opacity: 'calc(1 - var(--checked))' }}
+                >
+                  28
+                </text>
+                <text
+                  x={stat.x + 20}
+                  y="204"
+                  fontSize="26"
+                  fontWeight="800"
+                  fill="var(--scrim-green)"
+                  style={{ opacity: 'calc(var(--checked) - var(--checkedMore))' }}
+                >
+                  29
+                </text>
+                <text
+                  x={stat.x + 20}
+                  y="204"
+                  fontSize="26"
+                  fontWeight="800"
+                  fill="var(--scrim-green)"
+                  style={{ opacity: 'var(--checkedMore)' }}
+                >
+                  30
+                </text>
+              </>
+            ) : (
+              <text
+                x={stat.x + 20}
+                y="204"
+                fontSize="26"
+                fontWeight="800"
+                fill="var(--scrim-black)"
+              >
+                {stat.value}
+              </text>
+            )}
+          </g>
+        ))}
+        <rect
+          x="320"
+          y="226"
+          width="910"
+          height="8"
+          rx="4"
+          fill="var(--scrim-fill-quiet-on-white)"
+        />
+        <rect
+          x="320"
+          y="226"
+          width="910"
+          height="8"
+          rx="4"
+          fill="var(--scrim-green)"
+          style={{
+            transformBox: 'fill-box',
+            transformOrigin: 'left center',
+            transform: 'scaleX(calc(0.62 + 0.05 * var(--checked) + 0.05 * var(--checkedMore)))',
+          }}
+        />
+
         {TASKS.map((task, index) => {
           const top = ROW_TOP + index * ROW_STEP;
           return (
@@ -268,6 +436,17 @@ export function MockWindow() {
                 fill="var(--scrim-text-secondary)"
               >
                 {task.tag}
+              </text>
+              <circle cx="1068" cy={top + 36} r="15" fill={PEOPLE[index % 3]?.tint} />
+              <text
+                x="1068"
+                y={top + 42}
+                textAnchor="middle"
+                fontSize="15"
+                fontWeight="800"
+                fill={PEOPLE[index % 3]?.ink}
+              >
+                {PEOPLE[index % 3]?.initial}
               </text>
             </g>
           );

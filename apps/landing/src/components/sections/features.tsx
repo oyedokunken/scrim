@@ -7,7 +7,7 @@ import {
   SquareSplitHorizontal,
   type LucideIcon,
 } from 'lucide-react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   AppWindowIllustration,
   BackdropSwatchesIllustration,
@@ -143,14 +143,10 @@ export function Features() {
         </p>
       </header>
 
-      {/* On wide screens each card sticks near the top and the next one slides over it. */}
+      {/* The cards scroll normally and alternate between white and a light grey. */}
       <div className={styles.stack}>
         {FEATURES.map((feature, index) => (
-          <article
-            key={feature.title}
-            className={styles.card}
-            style={{ '--i': index } as CSSProperties}
-          >
+          <article key={feature.title} className={styles.card}>
             <div className={styles.copy}>
               <p className={styles.count} aria-hidden="true">
                 <span>{pad(index + 1)}</span>/{pad(FEATURES.length)}

@@ -25,6 +25,11 @@
   background: var(--scrim-white);
 }
 
+/* Every second card is a light grey, so the cards read as separate without shadows. */
+.card:nth-child(even) {
+  background: var(--scrim-fill-quiet-on-white);
+}
+
 .copy {
   display: grid;
   align-content: center;
@@ -88,29 +93,19 @@
   gap: var(--scrim-space-3);
 }
 
-/*
- * On wide screens the cards stack. Each one sticks a little lower than the one before, so as you
- * scroll the next card slides up over the last and the earlier ones stay visible as a pile.
- * The cards are opaque, so what is underneath never shows through.
- */
+/* On wide screens the picture sits beside the words, and the pictures alternate sides. The cards
+   scroll normally and alternate between white and one light grey. */
 @media (min-width: 56rem) {
   .stack {
-    gap: clamp(3rem, 14vh, 8rem);
-    padding-bottom: var(--scrim-space-6);
+    gap: var(--scrim-space-6);
   }
 
   .card {
-    position: sticky;
-    top: calc(var(--header-offset) + var(--i) * 1rem);
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: var(--scrim-space-8);
     min-height: 24rem;
-    box-shadow:
-      0 -1.25rem 2rem -1.5rem color-mix(in srgb, var(--scrim-black) 30%, transparent),
-      0 1.5rem 3rem -2rem color-mix(in srgb, var(--scrim-black) 25%, transparent);
   }
 
-  /* The pictures alternate sides. */
   .card:nth-child(even) .visual {
     order: -1;
   }

@@ -191,9 +191,7 @@ describe('the feature cards', () => {
     ]);
   });
 
-  it('gives each card its place in the stack', () => {
-    for (let index = 0; index < 8; index += 1) {
-      expect(html).toContain(`--i:${String(index)}`);
-    }
+  it('does not stack the cards, so they scroll normally', () => {
+    expect(html).not.toContain('--i:');
   });
 });
