@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { exportRecording } from '../../src/main/export/exporter';
-import { cursorPaintFor, styleFromSettings } from '../../src/main/export/look';
+import { cursorPaintFor } from '../../src/main/export/look';
+import { renderStyleFromSettings } from '../../src/shared/render-style';
 import { runProcess } from '../../src/main/recording/ffmpeg';
 import { DEFAULT_SETTINGS } from '../../src/shared/settings';
 import { testFfmpeg } from './support/export-fixture';
@@ -36,7 +37,11 @@ describe.skipIf(folder === undefined || outputDir === undefined || tools === und
             micGain: 1,
             shadow: true,
           },
-          style: styleFromSettings({ ...DEFAULT_SETTINGS, cameraOn: true, backgroundId: 'dots' }),
+          style: renderStyleFromSettings({
+            ...DEFAULT_SETTINGS,
+            cameraOn: true,
+            backgroundId: 'dots',
+          }),
           paint: cursorPaintFor('brand'),
         },
         {

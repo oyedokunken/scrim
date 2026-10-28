@@ -7,7 +7,8 @@ import { Compositor } from '../../src/main/export/compositor';
 import { bitrateFor, encoderArgs, saferPreset } from '../../src/main/export/encoders';
 import { screenFilter, uniqueOutputPath } from '../../src/main/export/exporter';
 import { FrameCursor, FrameReader } from '../../src/main/export/frames';
-import { cursorPaintFor, micGainFor, styleFromSettings } from '../../src/main/export/look';
+import { cursorPaintFor, micGainFor } from '../../src/main/export/look';
+import { renderStyleFromSettings } from '../../src/shared/render-style';
 import { buildBase } from '../../src/main/export/raster';
 import { rebaseSession } from '../../src/main/export/source';
 import { DEFAULT_SETTINGS } from '../../src/shared/settings';
@@ -197,7 +198,7 @@ describe('bubble track', () => {
 
 describe('settings to look', () => {
   it('maps every setting that changes the picture', () => {
-    const style = styleFromSettings({
+    const style = renderStyleFromSettings({
       ...DEFAULT_SETTINGS,
       backgroundId: 'none',
       zoomLevel: 2.4,

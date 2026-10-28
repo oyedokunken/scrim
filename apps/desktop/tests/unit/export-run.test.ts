@@ -2,7 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { readdirSync, rmSync } from 'node:fs';
 import { afterAll, describe, expect, it } from 'vitest';
 import { exportRecording } from '../../src/main/export/exporter';
-import { cursorPaintFor, styleFromSettings } from '../../src/main/export/look';
+import { cursorPaintFor } from '../../src/main/export/look';
+import { renderStyleFromSettings } from '../../src/shared/render-style';
 import { runProcess } from '../../src/main/recording/ffmpeg';
 import { DEFAULT_SETTINGS } from '../../src/shared/settings';
 import type { ExportRequest } from '../../src/main/export/types';
@@ -28,7 +29,7 @@ function requestFor(fixture: Fixture, overrides: Partial<ExportRequest> = {}): E
       micGain: 1,
       shadow: true,
     },
-    style: styleFromSettings({ ...DEFAULT_SETTINGS, cameraOn: true }),
+    style: renderStyleFromSettings({ ...DEFAULT_SETTINGS, cameraOn: true }),
     paint: cursorPaintFor('brand'),
     ...overrides,
   };
