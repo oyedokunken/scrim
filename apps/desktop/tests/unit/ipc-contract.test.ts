@@ -103,3 +103,28 @@ describe('outputs', () => {
     expect(contract['folder:choose'].output.safeParse(5).success).toBe(false);
   });
 });
+
+describe('the screenshot and close events', () => {
+  it('screenshot:taken carries a path, or why it could not be saved', () => {
+    const schema = events['screenshot:taken'];
+    expect(schema.safeParse({ path: 'C:/p/a.png', width: 10, height: 5 }).success).toBe(true);
+    expect(
+      schema.safeParse({ saveError: { message: 'm', nextStep: 'n' }, width: 10, height: 5 })
+        .success,
+    ).toBe(true);
+    expect(schema.safeParse({ width: 10, height: 5, extra: 1 }).success).toBe(false);
+    expect(schema.safeParse({ saveError: { message: 'm' }, width: 10, height: 5 }).success).toBe(
+      false,
+    );
+  });
+
+  it('window:close-requested and its answer are strict', () => {
+    expect(events['window:close-requested'].safeParse({ trayAvailable: true }).success).toBe(true);
+    expect(events['window:close-requested'].safeParse({}).success).toBe(false);
+    const answer = contract['window:close-answer'].input;
+    for (const value of ['shown', 'keep', 'stop', 'cancel']) {
+      expect(answer.safeParse({ answer: value }).success).toBe(true);
+    }
+    expect(answer.safeParse({ answer: 'discard' }).success).toBe(false);
+  });
+});

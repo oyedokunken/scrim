@@ -1,6 +1,7 @@
-import { Camera, Copy, FolderOpen, Pencil, Save, Trash2 } from 'lucide-react';
+import { Copy, FolderOpen, Pencil, Save, Share2, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, ConfirmDialog, useToast } from '../../ui';
+import { useCanShare } from '../hooks';
 
 export interface ScreenshotResultProps {
   path: string;
@@ -8,7 +9,7 @@ export interface ScreenshotResultProps {
   height: number;
   /** Opens the editor for this screenshot. */
   onEdit: () => void;
-  /** Back to taking one. Called after the screenshot is deleted too. */
+  /** Called after the screenshot is deleted, which returns to taking one. */
   onDone: () => void;
 }
 
@@ -21,6 +22,7 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
   const toast = useToast();
   const [loaded, setLoaded] = useState<{ path: string; dataUrl: string | null } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const canShare = useCanShare();
 
   useEffect(() => {
     let alive = true;
@@ -138,9 +140,18 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
         >
           Delete
         </Button>
-        <Button icon={<Camera size={16} strokeWidth={1.75} />} onClick={onDone}>
-          Take another
-        </Button>
+        {canShare ? (
+          <Button
+            icon={<Share2 size={16} strokeWidth={1.75} />}
+            onClick={() => {
+              void window.scrim.invoke('image:share', { path }).catch(() => {
+                toast('Scrim could not open the share sheet. Try again.');
+              });
+            }}
+          >
+            Share
+          </Button>
+        ) : null}
       </div>
 
       <ConfirmDialog

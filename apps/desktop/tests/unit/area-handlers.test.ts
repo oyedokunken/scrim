@@ -77,6 +77,32 @@ describe('toBridgeAreaOutcome', () => {
     expect(areaOutcomeSchema.safeParse(out).success).toBe(true);
   });
 
+  it('passes on why a screenshot could not be saved, without the technical detail', () => {
+    const out = toBridgeAreaOutcome({
+      ok: true,
+      mode: 'screenshot',
+      result: {
+        copied: true,
+        width: 10,
+        height: 5,
+        saveError: {
+          code: 'folder-not-writable',
+          message: 'Windows blocked it.',
+          nextStep: 'Allow Scrim.',
+          detail: 'EPERM C:/secret',
+        },
+      },
+    });
+    expect(out).toMatchObject({
+      result: {
+        copied: true,
+        saveError: { message: 'Windows blocked it.', nextStep: 'Allow Scrim.' },
+      },
+    });
+    expect(JSON.stringify(out)).not.toContain('secret');
+    expect(areaOutcomeSchema.safeParse(out).success).toBe(true);
+  });
+
   it('keeps the size and path of a screenshot', () => {
     const out = toBridgeAreaOutcome({
       ok: true,

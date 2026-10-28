@@ -40,6 +40,8 @@ export interface HandlerDeps {
   openPath: (path: string) => Promise<string>;
   /** Opens a link only if the allowlist accepts it, and says whether it did. */
   openExternal: (url: string) => Promise<boolean>;
+  /** The page's answer to the close question. */
+  closeAnswer: (answer: 'shown' | 'keep' | 'stop' | 'cancel') => void;
   /** The shortcuts another program owns. */
   shortcutStatus: () => readonly ShortcutId[];
   /** Lets go of the shortcuts, or takes them back, while the settings page chooses a key. */
@@ -88,6 +90,9 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       const keys = SHORTCUT_IDS.map((id) => acceleratorsOf(next)[id].toLowerCase());
       if (new Set(keys).size !== keys.length) throw new Error('shortcuts must differ');
       return deps.settings.set(patch);
+    },
+    'window:close-answer': ({ answer }) => {
+      deps.closeAnswer(answer);
     },
     'shortcuts:status': () => ({ unavailable: [...deps.shortcutStatus()] }),
     'shortcuts:suspend': ({ suspended }) => {

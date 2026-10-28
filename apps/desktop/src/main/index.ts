@@ -15,7 +15,8 @@ import { handleAppRequest } from './app-protocol';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
 import { screenshotFolderOf } from './ipc/handlers';
-import { broadcastScreenshotTaken, createAppLogger, startIpc } from './ipc/start';
+import { broadcastScreenshotTaken, createAppLogger, sendCloseRequest, startIpc } from './ipc/start';
+import { createCloseAsker } from './shell/close-asker';
 import { registerRecording } from './recording';
 import { createPillController } from './recording/pill-controller';
 import { createBubbleController } from './recording/bubble-controller';
@@ -95,7 +96,12 @@ if (!app.requestSingleInstanceLock()) {
   const fake = createStubRecorder();
   if (useFakeRecorder) (globalThis as { __scrimRecorder?: unknown }).__scrimRecorder = fake;
   const recorder = useFakeRecorder ? fake : control;
+  // The close question shows in the app's own dialog, and falls back to the system box if the page cannot.
+  const closeAsker = createCloseAsker({
+    send: (trayAvailable) => sendCloseRequest(target.origin, trayAvailable),
+  });
   const shell = createShell({
+    askInApp: (trayAvailable) => closeAsker.ask(trayAvailable),
     recorder,
     platform: process.platform,
     appPath: app.getAppPath(),
@@ -255,10 +261,18 @@ if (!app.requestSingleInstanceLock()) {
       run: async (request) => {
         const outcome = await picker.run(request);
         if (!(outcome.ok && outcome.mode === 'record')) shell.show();
-        if (outcome.ok && outcome.mode === 'screenshot' && outcome.result.path !== undefined) {
+        if (outcome.ok && outcome.mode === 'screenshot') {
           // The result view opens in the main window for the button and for the shortcut alike.
           broadcastScreenshotTaken(target.origin, {
-            path: outcome.result.path,
+            ...(outcome.result.path === undefined ? {} : { path: outcome.result.path }),
+            ...(outcome.result.saveError === undefined
+              ? {}
+              : {
+                  saveError: {
+                    message: outcome.result.saveError.message,
+                    nextStep: outcome.result.saveError.nextStep,
+                  },
+                }),
             width: outcome.result.width,
             height: outcome.result.height,
           });
@@ -281,6 +295,9 @@ if (!app.requestSingleInstanceLock()) {
         shortcutsRef.current?.apply(acceleratorsOf(next));
       },
       shortcutStatus: () => shortcutsRef.current?.unavailable() ?? [],
+      closeAnswer: (answer) => {
+        closeAsker.answer(answer);
+      },
       shortcutsSuspend: (suspended) => {
         shortcutsRef.current?.suspend(suspended);
       },

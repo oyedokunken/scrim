@@ -49,6 +49,7 @@ export async function startIpc(options: {
   onSettingsChanged?: (settings: Settings) => void;
   shortcutStatus: () => readonly ShortcutId[];
   shortcutsSuspend: (suspended: boolean) => void;
+  closeAnswer: (answer: 'shown' | 'keep' | 'stop' | 'cancel') => void;
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
 
@@ -100,6 +101,7 @@ export async function startIpc(options: {
       share: null,
       shortcutStatus: options.shortcutStatus,
       shortcutsSuspend: options.shortcutsSuspend,
+      closeAnswer: options.closeAnswer,
       legacy: {
         count: async () =>
           (
@@ -270,4 +272,15 @@ export function broadcastScreenshotTaken(
   for (const window of BrowserWindow.getAllWindows()) {
     sendEvent(window.webContents, appOrigin, 'screenshot:taken', shot);
   }
+}
+
+/** Asks every window of ours to show the close question. False when none could take it. */
+export function sendCloseRequest(appOrigin: string, trayAvailable: boolean): boolean {
+  let sent = false;
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (sendEvent(window.webContents, appOrigin, 'window:close-requested', { trayAvailable })) {
+      sent = true;
+    }
+  }
+  return sent;
 }

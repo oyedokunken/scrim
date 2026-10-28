@@ -13,6 +13,7 @@ export const CHANNELS = [
   'shell:show-in-folder',
   'logs:open-folder',
   'shortcuts:status',
+  'window:close-answer',
   'shortcuts:suspend',
   'legacy:count',
   'legacy:move',
@@ -56,5 +57,6 @@ export const EVENT_CHANNELS = [
   'recording:error',
   'recording:finished',
   'screenshot:taken',
+  'window:close-requested',
 ] as const;
 export type EventChannel = (typeof EVENT_CHANNELS)[number];

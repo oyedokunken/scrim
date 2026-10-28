@@ -1,4 +1,5 @@
 import { ToastProvider } from '../ui';
+import { CloseQuestion } from './shell/close-question';
 import { routeFromHash } from './routes';
 import { ControlScreen, MainScreen } from './screens';
 
@@ -9,6 +10,7 @@ export function App() {
   ) : (
     <ToastProvider>
       <MainScreen />
+      <CloseQuestion />
     </ToastProvider>
   );
 }

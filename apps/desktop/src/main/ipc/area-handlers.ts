@@ -50,6 +50,14 @@ export function toBridgeAreaOutcome(outcome: AreaOutcome): BridgeAreaOutcome {
           mode: 'screenshot',
           result: {
             ...(outcome.result.path === undefined ? {} : { path: outcome.result.path }),
+            ...(outcome.result.saveError === undefined
+              ? {}
+              : {
+                  saveError: {
+                    message: outcome.result.saveError.message,
+                    nextStep: outcome.result.saveError.nextStep,
+                  },
+                }),
             copied: outcome.result.copied,
             width: outcome.result.width,
             height: outcome.result.height,

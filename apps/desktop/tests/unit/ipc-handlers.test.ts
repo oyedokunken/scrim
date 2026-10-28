@@ -50,6 +50,7 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
     },
     share: null,
     shortcutStatus: () => [],
+    closeAnswer: vi.fn(),
     shortcutsSuspend: vi.fn(),
     legacy: {
       count: vi.fn(() => Promise.resolve(2)),
@@ -171,6 +172,12 @@ describe('the handlers', () => {
   it('says which shortcuts another program owns', () => {
     const { handlers } = setup({ shortcutStatus: () => ['stop'] });
     expect(handlers['shortcuts:status'](undefined)).toEqual({ unavailable: ['stop'] });
+  });
+
+  it('passes the answer to the close question on', () => {
+    const { handlers, deps } = setup();
+    void handlers['window:close-answer']({ answer: 'stop' });
+    expect(deps.closeAnswer).toHaveBeenCalledWith('stop');
   });
 
   it('suspends the global shortcuts while a key is chosen', () => {

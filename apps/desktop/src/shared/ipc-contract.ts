@@ -48,6 +48,11 @@ export const contract = {
   },
   'shell:show-in-folder': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
   'logs:open-folder': { input: z.void(), output: z.void() },
+  /** The answer to the close question, which the page shows in its own dialog. `shown` says it is on screen. */
+  'window:close-answer': {
+    input: z.object({ answer: z.enum(['shown', 'keep', 'stop', 'cancel']) }).strict(),
+    output: z.void(),
+  },
   /** The global shortcuts that another program already owns, so the settings page can say so. */
   'shortcuts:status': {
     input: z.void(),
@@ -100,10 +105,17 @@ export const events = {
   'recording:warning': warningSchema,
   'recording:error': recordingErrorSchema,
   'recording:finished': finishedSchema,
+  /** The window was closed during a recording. The page asks what to do in its own dialog. */
+  'window:close-requested': z.object({ trayAvailable: z.boolean() }).strict(),
   /** After every capture, whether it came from the button or the shortcut. */
   'screenshot:taken': z
     .object({
-      path: pathSchema,
+      /** Missing when the picture was copied but could not be saved. */
+      path: pathSchema.optional(),
+      saveError: z
+        .object({ message: z.string().max(500), nextStep: z.string().max(500) })
+        .strict()
+        .optional(),
       width: z.number().int().positive(),
       height: z.number().int().positive(),
     })

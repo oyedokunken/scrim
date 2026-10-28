@@ -24,6 +24,7 @@ function setup(overrides: Partial<Handlers> = {}) {
     'shell:open-external': () => undefined,
     'shell:show-in-folder': () => undefined,
     'logs:open-folder': () => undefined,
+    'window:close-answer': () => undefined,
     'shortcuts:status': () => ({ unavailable: [] }),
     'shortcuts:suspend': () => undefined,
     'legacy:count': () => 0,

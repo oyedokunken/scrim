@@ -129,6 +129,11 @@ export const recordingNameSchema = z.string().min(1).max(200);
 const screenshotResultSchema = z
   .object({
     path: pathSchema.optional(),
+    /** Set when the picture could not be saved to the folder, such as when Windows protects it. */
+    saveError: z
+      .object({ message: z.string().max(500), nextStep: z.string().max(500) })
+      .strict()
+      .optional(),
     copied: z.boolean(),
     width: z.number().int().positive(),
     height: z.number().int().positive(),

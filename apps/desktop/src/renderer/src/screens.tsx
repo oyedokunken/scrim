@@ -145,11 +145,33 @@ export function MainScreen() {
     }
   }, []);
 
+  /** A saved capture opens its result. One that was copied but could not be saved says why. */
+  const acceptShot = useCallback(
+    (taken: {
+      path?: string | undefined;
+      saveError?: { message: string; nextStep: string } | undefined;
+      width: number;
+      height: number;
+    }): void => {
+      if (taken.path !== undefined) {
+        setShot({ path: taken.path, width: taken.width, height: taken.height });
+        setShotError(null);
+      } else if (taken.saveError !== undefined) {
+        setShot(null);
+        setShotError({
+          message: `Copied to the clipboard, but not saved. ${taken.saveError.message}`,
+          nextStep: taken.saveError.nextStep,
+        });
+      }
+      refreshShots();
+    },
+    [refreshShots],
+  );
+
   // A capture from the shortcut opens the result too, whichever view was showing.
-  useScreenshotTaken(({ path, width, height }) => {
-    setShot({ path, width, height });
+  useScreenshotTaken((taken) => {
+    acceptShot(taken);
     setView('screenshot');
-    refreshShots();
   });
 
   const shoot = useCallback(async () => {
@@ -161,10 +183,8 @@ export function MainScreen() {
         camera: deviceChoice(false, null),
         mic: deviceChoice(false, null),
       });
-      if (result.ok && result.mode === 'screenshot' && result.result.path !== undefined) {
-        const { path, width, height } = result.result;
-        setShot({ path, width, height });
-        refreshShots();
+      if (result.ok && result.mode === 'screenshot') {
+        acceptShot(result.result);
       } else if (!result.ok && result.reason === 'rejected') {
         setShotError({ message: result.error.message, nextStep: result.error.nextStep });
       } else if (!result.ok && result.reason === 'failed') {
@@ -176,7 +196,7 @@ export function MainScreen() {
     } finally {
       setShooting(false);
     }
-  }, [refreshShots]);
+  }, [acceptShot]);
 
   const openItem = (opened: OpenedItem): void => {
     if (opened.kind === 'editor') {

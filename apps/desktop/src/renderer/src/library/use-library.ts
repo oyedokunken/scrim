@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { LibraryItem } from '../../../shared/library-contract';
 import type { OutputOf } from '../../../shared/ipc-contract';
+import { useCanShare } from '../hooks';
 
 export type OpenedItem = Exclude<
   OutputOf<'library:open'>,
@@ -31,23 +32,10 @@ interface LibraryData {
 export function useLibrary(active: boolean): LibraryData {
   const [items, setItems] = useState<readonly LibraryItem[] | null>(null);
   const [recoverable, setRecoverable] = useState<readonly Recoverable[]>([]);
-  const [canShare, setCanShare] = useState(false);
+  const canShare = useCanShare();
   const [version, setVersion] = useState(0);
   const refresh = useCallback(() => {
     setVersion((current) => current + 1);
-  }, []);
-
-  useEffect(() => {
-    let alive = true;
-    void window.scrim.invoke('share:available').then(
-      (value) => {
-        if (alive) setCanShare(value);
-      },
-      () => undefined,
-    );
-    return () => {
-      alive = false;
-    };
   }, []);
 
   useEffect(() => {

@@ -12,7 +12,13 @@ import { createRecordingMark, redDotBitmap } from './recording-mark';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { dialogIconPath } from '../app-icon';
-import { closeChoice, closeDialogCopy, decideClose, type CloseDecision } from './close-policy';
+import {
+  closeChoice,
+  closeDialogCopy,
+  decideClose,
+  type CloseChoice,
+  type CloseDecision,
+} from './close-policy';
 import type { RecorderControl } from './recorder-control';
 import {
   buildTrayMenu,
@@ -24,6 +30,8 @@ import {
 
 interface ShellOptions {
   recorder: RecorderControl;
+  /** Asks in the app's own dialog. Null means it could not, and the system message box is used. */
+  askInApp?: (trayAvailable: boolean) => Promise<CloseChoice | null>;
   platform: NodeJS.Platform;
   appPath: string;
   env: NodeJS.ProcessEnv;
@@ -34,7 +42,7 @@ interface ShellOptions {
  * quit path. Closing during a recording never discards anything silently. Every decision is made
  * by a pure function in this folder, so this file only does the Electron calls.
  */
-export function createShell({ recorder, platform, appPath, env }: ShellOptions) {
+export function createShell({ recorder, platform, appPath, env, askInApp }: ShellOptions) {
   let quitting = false;
   let asking = false;
   let tray: Tray | null = null;
@@ -126,20 +134,26 @@ export function createShell({ recorder, platform, appPath, env }: ShellOptions) 
     if (asking) return;
     asking = true;
     try {
-      const copy = closeDialogCopy(trayAvailable);
-      const iconPath = dialogIconPath(platform, appPath);
-      const { response } = await dialog.showMessageBox(window, {
-        type: 'question',
-        buttons: [...copy.buttons],
-        defaultId: copy.defaultId,
-        cancelId: copy.cancelId,
-        title: copy.title,
-        message: copy.message,
-        detail: copy.detail,
-        noLink: true,
-        ...(iconPath === undefined ? {} : { icon: nativeImage.createFromPath(iconPath) }),
-      });
-      const choice = closeChoice(response);
+      const inApp = askInApp === undefined ? null : await askInApp(trayAvailable);
+      let choice: CloseChoice;
+      if (inApp !== null) {
+        choice = inApp;
+      } else {
+        const copy = closeDialogCopy(trayAvailable);
+        const iconPath = dialogIconPath(platform, appPath);
+        const { response } = await dialog.showMessageBox(window, {
+          type: 'question',
+          buttons: [...copy.buttons],
+          defaultId: copy.defaultId,
+          cancelId: copy.cancelId,
+          title: copy.title,
+          message: copy.message,
+          detail: copy.detail,
+          noLink: true,
+          ...(iconPath === undefined ? {} : { icon: nativeImage.createFromPath(iconPath) }),
+        });
+        choice = closeChoice(response);
+      }
       if (choice === 'stop') await stopAndQuit();
       else if (choice === 'keep') {
         applyKeepRunning(
