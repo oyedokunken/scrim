@@ -27,7 +27,7 @@ import {
   typedCount,
   uiStateAt,
 } from '@/lib/demo/script';
-import { STAGE_MS, STAGES, type Stage } from '@/lib/demo/sequence';
+import { STAGES, type Stage } from '@/lib/demo/sequence';
 import styles from './hero-demo.module.css';
 import { MockWindow } from './mock-window';
 
@@ -403,30 +403,6 @@ export function HeroDemo({ gate = true, onEnded, overlay, stage, onStageRequest 
               style={{ left: `${String((click.t / DEMO_DURATION_MS) * 100)}%` }}
             />
           ))}
-          {STAGES.map((stageName) => {
-            const timeMs =
-              stageName === 'intro'
-                ? 0
-                : stageName === 'words'
-                  ? STAGE_MS.intro
-                  : stageName === 'demo' || stageName === 'platforms'
-                    ? STAGE_MS.intro + STAGE_MS.words
-                    : DEMO_DURATION_MS;
-            return (
-              <button
-                key={stageName}
-                type="button"
-                className={styles.stageMarker}
-                style={{ left: `${String((timeMs / DEMO_DURATION_MS) * 100)}%` }}
-                aria-label={`Go to ${stageName}`}
-                onClick={() => {
-                  onStageRequest?.(stageName);
-                }}
-              >
-                {stageName}
-              </button>
-            );
-          })}
           <input
             ref={slider}
             type="range"
@@ -450,6 +426,23 @@ export function HeroDemo({ gate = true, onEnded, overlay, stage, onStageRequest 
               player.current?.seek(Number(event.currentTarget.value));
             }}
           />
+        </div>
+        <div className={styles.stageRow}>
+          {STAGES.map((stageName) => {
+            return (
+              <button
+                key={stageName}
+                type="button"
+                className={styles.stageMarker}
+                aria-label={`Go to ${stageName}`}
+                onClick={() => {
+                  onStageRequest?.(stageName);
+                }}
+              >
+                {stageName}
+              </button>
+            );
+          })}
         </div>
         <div className={styles.ruler} aria-hidden="true">
           {Array.from({ length: DEMO_DURATION_MS / 1000 + 1 }, (_, second) => (

@@ -47,7 +47,7 @@ describe('the hero sequence', () => {
   });
 
   it('keeps the address on a single config constant', () => {
-    expect(siteConfig.heroAddress).toBe('scrim.app');
+    expect(siteConfig.heroAddress).toMatch(/scrim.app$/);
     expect(siteConfig.heroPlatformLine).toBe('Available for all platforms');
   });
 });

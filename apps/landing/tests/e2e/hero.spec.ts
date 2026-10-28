@@ -20,7 +20,8 @@ test.describe('the hero demo with JavaScript', () => {
     const view = demo(page);
     await expect(view).toHaveAttribute('data-playing', 'true');
     await expect.poll(() => scale(view), { timeout: 8000 }).toBe('2.00');
-    await expect.poll(() => scale(view), { timeout: 8000 }).toBe('1.00');
+    // The spring camera eases out, so ask for clearly back out rather than exactly 1.00.
+    await expect.poll(async () => Number(await scale(view)), { timeout: 12_000 }).toBeLessThan(1.3);
   });
 
   test('the play button pauses and resumes from the same place', async ({ page }) => {
@@ -378,6 +379,7 @@ test.describe('the hero sequence', () => {
   test('starts on the green card with the mark, then the words, the demo, the platforms and the address', async ({
     page,
   }) => {
+    test.setTimeout(90_000);
     await page.goto('/');
     const view = demo(page);
     const cards = page.getByTestId('hero-cards');

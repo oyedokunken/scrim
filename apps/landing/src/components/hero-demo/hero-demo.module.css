@@ -117,16 +117,6 @@
     border-color 0.15s ease;
 }
 
-@media (max-width: 48rem) {
-  .button,
-  .switch {
-    min-height: 2.5rem;
-    padding: 0.4rem 0.875rem;
-    font-size: 0.8125rem;
-    gap: 0.5rem;
-  }
-}
-
 .button:hover,
 .switch:hover {
   border-color: var(--scrim-green);
@@ -418,19 +408,26 @@
   }
 }
 
+/* The jump buttons sit in their own row, so they never overlap the timeline or each other. */
+.stageRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: var(--scrim-space-2);
+}
+
 .stageMarker {
-  position: absolute;
-  bottom: 0.5rem;
-  padding: 0.25rem 0.5rem;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0.25rem 0.625rem;
   border: 1px solid var(--scrim-border);
-  border-radius: 0.25rem;
+  border-radius: var(--scrim-radius-pill);
   background: var(--scrim-white);
   color: var(--scrim-black);
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: capitalize;
   cursor: pointer;
-  transform: translateX(-50%);
   white-space: nowrap;
   transition:
     background-color 0.15s ease,
@@ -443,21 +440,7 @@
   color: var(--scrim-white);
 }
 
-@media (max-width: 48rem) {
-  .stageMarker {
-    font-size: 0.5rem;
-    padding: 0.2rem 0.4rem;
-    bottom: 0.3rem;
-  }
-}
-
 @media (max-width: 36rem) {
-  .stageMarker {
-    font-size: 0.45rem;
-    padding: 0.15rem 0.35rem;
-    bottom: 0.25rem;
-  }
-
   .timelineLabel,
   .timelineClock {
     font-size: 0.6875rem;
