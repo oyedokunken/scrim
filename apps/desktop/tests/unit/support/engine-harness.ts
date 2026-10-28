@@ -81,6 +81,7 @@ const ERR = (code: string): Error => Object.assign(new Error(code), { code });
 export async function createHarness(options: HarnessOptions = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'scrim-engine-'));
   const destination = join(dir, 'Scrim');
+  const projects = join(dir, 'Projects');
   const faults: Faults = {};
   const clock = { time: 100_000 };
   const page = new FakePage();
@@ -185,6 +186,7 @@ export async function createHarness(options: HarnessOptions = {}) {
       }),
     setCaptureTarget: () => undefined,
     defaultDestination: () => destination,
+    projectsRoot: () => projects,
     index: createSessionIndex(join(dir, 'index.json'), realServiceFs),
     isProcessAlive: (pid) => alive.has(pid),
     log: () => undefined,
@@ -273,6 +275,7 @@ export async function createHarness(options: HarnessOptions = {}) {
   return {
     dir,
     destination,
+    projects,
     faults,
     alive,
     openSinks,
