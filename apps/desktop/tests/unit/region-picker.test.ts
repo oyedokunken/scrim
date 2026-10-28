@@ -88,4 +88,50 @@ describe('RegionPicker', () => {
     picker.pointerMove({ x: 1000, y: 700 });
     expect(picker.box).toBeUndefined();
   });
+
+  describe('resizing from the handles', () => {
+    it('finds the handle under a point, corners before edges', () => {
+      const picker = drawn();
+      expect(picker.handleAt({ x: 100, y: 100 })).toBe('nw');
+      expect(picker.handleAt({ x: 500, y: 100 })).toBe('ne');
+      expect(picker.handleAt({ x: 100, y: 400 })).toBe('sw');
+      expect(picker.handleAt({ x: 500, y: 400 })).toBe('se');
+      expect(picker.handleAt({ x: 300, y: 98 })).toBe('n');
+      expect(picker.handleAt({ x: 300, y: 402 })).toBe('s');
+      expect(picker.handleAt({ x: 98, y: 250 })).toBe('w');
+      expect(picker.handleAt({ x: 502, y: 250 })).toBe('e');
+      expect(picker.handleAt({ x: 300, y: 250 })).toBeUndefined();
+      expect(picker.handleAt({ x: 900, y: 600 })).toBeUndefined();
+      expect(new RegionPicker(display, 1).handleAt({ x: 1, y: 1 })).toBeUndefined();
+    });
+
+    it('moves only the edges a handle controls, and keeps the others where they were', () => {
+      const picker = drawn();
+      expect(picker.pointerDown({ x: 500, y: 250 })).toBeUndefined();
+      picker.pointerMove({ x: 700, y: 999 });
+      expect(picker.box).toEqual({ x: 100, y: 100, width: 600, height: 300 });
+      picker.pointerUp({ x: 700, y: 999 });
+
+      picker.pointerDown({ x: 100, y: 100 });
+      picker.pointerMove({ x: 150, y: 120 });
+      picker.pointerUp({ x: 150, y: 120 });
+      expect(picker.box).toEqual({ x: 150, y: 120, width: 550, height: 280 });
+    });
+
+    it('never folds the box flat or lets it leave the display', () => {
+      const picker = drawn();
+      picker.pointerDown({ x: 500, y: 400 });
+      picker.pointerMove({ x: 0, y: 0 });
+      expect(picker.box?.width).toBe(16);
+      expect(picker.box?.height).toBe(16);
+      picker.pointerMove({ x: 9000, y: 9000 });
+      expect(picker.box).toEqual({ x: 100, y: 100, width: 1180, height: 620 });
+      picker.pointerUp({ x: 9000, y: 9000 });
+    });
+
+    it('does not report a new box when a handle is dragged', () => {
+      const picker = drawn();
+      expect(picker.pointerDown({ x: 300, y: 98 })).toBeUndefined();
+    });
+  });
 });

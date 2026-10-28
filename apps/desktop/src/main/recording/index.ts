@@ -5,7 +5,7 @@ import { createRecordingService } from './create-service';
 import { startMarker } from './dev-marker';
 import { readDevTool, runDevTool } from './dev-tools';
 import { readDevTrigger, runDevTrigger } from './dev-trigger';
-import { createRegionPicker } from './region-picker';
+import { createAreaPicker } from './area-picker';
 import type { RecordingService } from './recording-service';
 import { createScreenshotTaker } from './screenshot-taker';
 import { listRecordableSources } from './source-list';
@@ -47,10 +47,26 @@ export function registerRecording(options: { appOrigin: string }): RecordingServ
 
   const tool = readDevTool(process.env, app.isPackaged);
   if (tool !== undefined) {
+    // The dry run answers "started" without starting anything, and logs what it was asked to record.
+    const dryRun = {
+      start: (recording: Parameters<RecordingService['start']>[0]) => {
+        console.log(`DEV PICK ${JSON.stringify(recording)}`);
+        return Promise.resolve({ ok: true as const, value: { folder: 'dry run' } });
+      },
+    };
+    const picker = createAreaPicker({
+      appOrigin: options.appOrigin,
+      service: tool === 'area-pick' ? dryRun : service,
+    });
     void runDevTool(tool, {
-      pickRegion: () => createRegionPicker({ appOrigin: options.appOrigin }).select(),
+      runArea: (request) => picker.run(request),
+      stopRecording: async () => {
+        await service.stop();
+      },
       listSources: listRecordableSources,
       takeShot: createScreenshotTaker(),
+      wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+      seconds: Number(process.env['SCRIM_DEV_SECONDS'] ?? '5') || 5,
       folder: process.env['SCRIM_DEV_DEST'] ?? tmpdir(),
       log: (message) => {
         console.log(message);

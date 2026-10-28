@@ -16,6 +16,7 @@ const good = { frameUrl: 'app://scrim/index.html', isMainFrame: true };
 function setup(overrides: Partial<Handlers> = {}) {
   const failures: [IpcFailure, string][] = [];
   const handlers: Handlers = {
+    'app:version': () => '1.0.0',
     'settings:get': () => DEFAULT_SETTINGS,
     'settings:set': () => DEFAULT_SETTINGS,
     'folder:choose': () => null,

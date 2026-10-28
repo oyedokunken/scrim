@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { REGION_CHANNELS, type RegionCommand } from '../../recorder/region/protocol';
 import { originOf } from '../renderer-target';
 import { createAppWindow } from '../windows/create-window';
-import type { DisplayInfo, OverlayHandle } from './region-selector';
+import type { DisplayInfo, OverlayHandle } from './area-flow';
 
 /** The region page, served next to the app window: `app://scrim/region.html` or the dev server. */
 function regionPageUrl(appOrigin: string): string {

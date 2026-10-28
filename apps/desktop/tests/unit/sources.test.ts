@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('electron', () => ({ desktopCapturer: { getSources: vi.fn() } }));
 
-const { toSourceList } = await import('../../src/main/recording/sources');
+const { toSourceList, toWindowTiles } = await import('../../src/main/recording/sources');
 
 const raw = (id: string, name: string, displayId = '') => ({
   id,
@@ -55,5 +55,26 @@ describe('toSourceList', () => {
     expect(list[0]?.displayId).toBeUndefined();
     expect(list[0]?.thumbnail).toContain('screen:0:0');
     expect(list[1]?.icon).toBe('data:image/png;base64,icon');
+  });
+});
+
+describe('toWindowTiles', () => {
+  const png = new Uint8Array([1, 2, 3]);
+  const raw = (id: string, name: string, bytes = png) => ({ id, name, png: bytes });
+
+  it('offers named windows with a picture, sorted by name, without Scrim own windows', () => {
+    const tiles = toWindowTiles(
+      [
+        raw('window:3:0', 'Zoom'),
+        raw('window:1:0', 'Scrim'),
+        raw('window:2:0', 'Notes'),
+        raw('window:4:0', '  '),
+        raw('window:5:0', 'Blank', new Uint8Array()),
+        raw('screen:0:0', 'Screen 1'),
+      ],
+      new Set(['window:1:0']),
+    );
+    expect(tiles.map((tile) => tile.name)).toEqual(['Notes', 'Zoom']);
+    expect(tiles[0]?.png).toBe(png);
   });
 });

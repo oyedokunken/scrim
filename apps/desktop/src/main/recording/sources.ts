@@ -1,4 +1,5 @@
 import { desktopCapturer } from 'electron';
+import type { WindowTile } from '../../recorder/region/protocol';
 
 /** A screen or window the person can pick on the home screen. */
 export interface SourceInfo {
@@ -76,6 +77,51 @@ export async function listSources(deps: SourceListDeps): Promise<SourceInfo[]> {
       display_id: source.display_id,
       thumbnailDataUrl: source.thumbnail.isEmpty() ? '' : source.thumbnail.toDataURL(),
       appIconDataUrl: source.appIcon.isEmpty() ? undefined : source.appIcon.toDataURL(),
+    })),
+    deps.ownSourceIds(),
+  );
+}
+
+/** The fields of a window source that a card needs. */
+export interface RawWindow {
+  id: string;
+  name: string;
+  png: Uint8Array;
+}
+
+/**
+ * The windows to offer as cards: those with a name and a picture, without Scrim's own, sorted by
+ * name. The picture is raw PNG bytes, so the overlay can draw it without a URL.
+ */
+export function toWindowTiles(
+  raw: readonly RawWindow[],
+  ownIds: ReadonlySet<string>,
+): WindowTile[] {
+  return raw
+    .filter(
+      (window) =>
+        window.id.startsWith('window:') &&
+        window.name.trim() !== '' &&
+        window.png.byteLength > 0 &&
+        !ownIds.has(window.id),
+    )
+    .map((window) => ({ id: window.id, name: window.name, png: window.png }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+const CARD = { width: 480, height: 270 } as const;
+
+/** Lists the windows that can be picked, with a PNG of each, for the area overlay. */
+export async function listWindowTiles(deps: SourceListDeps): Promise<WindowTile[]> {
+  const sources = await desktopCapturer.getSources({
+    types: ['window'],
+    thumbnailSize: CARD,
+  });
+  return toWindowTiles(
+    sources.map((source) => ({
+      id: source.id,
+      name: source.name,
+      png: source.thumbnail.isEmpty() ? new Uint8Array() : new Uint8Array(source.thumbnail.toPNG()),
     })),
     deps.ownSourceIds(),
   );
