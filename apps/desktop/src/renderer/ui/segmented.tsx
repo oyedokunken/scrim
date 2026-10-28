@@ -5,6 +5,10 @@ export interface SegmentOption<T extends string> {
   value: T;
   label: string;
   disabled?: boolean;
+  /** A class that paints a color dot before the label, for choosing a color. */
+  swatch?: string;
+  /** Shows only the dot. The label still names the option for assistive technology. */
+  hideLabel?: boolean;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -54,6 +58,7 @@ export function Segmented<T extends string>({
             aria-checked={selected}
             tabIndex={selected ? 0 : -1}
             disabled={option.disabled === true}
+            aria-label={option.hideLabel === true ? option.label : undefined}
             className={selected ? 'ui-segment selected' : 'ui-segment'}
             onClick={() => {
               onChange(option.value);
@@ -62,7 +67,10 @@ export function Segmented<T extends string>({
               onKeyDown(event, index);
             }}
           >
-            {option.label}
+            {option.swatch === undefined ? null : (
+              <span className={`ui-swatch ${option.swatch}`} aria-hidden="true" />
+            )}
+            {option.hideLabel === true ? null : option.label}
           </button>
         );
       })}

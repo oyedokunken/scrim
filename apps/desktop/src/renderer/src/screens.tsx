@@ -8,7 +8,7 @@ import { AppShell } from './shell/app-shell';
 import { Placeholder } from './shell/placeholder';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
-import { ScreenshotView } from './shell/screenshot-view';
+import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
 import { VIEW_LABELS, type ViewId } from './shell/views';
 import { Welcome } from './shell/welcome';
 import { Camera } from 'lucide-react';
@@ -86,6 +86,7 @@ export function MainScreen() {
   const [view, setView] = useState<ViewId>('record');
   const [shooting, setShooting] = useState(false);
   const [shotError, setShotError] = useState<UserError | null>(null);
+  const [shot, setShot] = useState<ShotInfo | null>(null);
   const [entered, setEntered] = useState(false);
 
   const start = useCallback(async (chosen: Settings) => {
@@ -120,7 +121,10 @@ export function MainScreen() {
         camera: deviceChoice(false, null),
         mic: deviceChoice(false, null),
       });
-      if (!result.ok && result.reason === 'rejected') {
+      if (result.ok && result.mode === 'screenshot' && result.result.path !== undefined) {
+        const { path, width, height } = result.result;
+        setShot({ path, width, height });
+      } else if (!result.ok && result.reason === 'rejected') {
         setShotError({ message: result.error.message, nextStep: result.error.nextStep });
       } else if (!result.ok && result.reason === 'failed') {
         setShotError({
@@ -221,7 +225,18 @@ export function MainScreen() {
       />
     );
   } else if (view === 'screenshot') {
-    main = <ScreenshotView busy={shooting} error={shotError} onTake={() => void shoot()} />;
+    main = (
+      <ScreenshotView
+        key={shot?.path ?? 'none'}
+        busy={shooting}
+        error={shotError}
+        shot={shot}
+        onClearShot={() => {
+          setShot(null);
+        }}
+        onTake={() => void shoot()}
+      />
+    );
   } else {
     main = <Placeholder view={view} />;
   }
