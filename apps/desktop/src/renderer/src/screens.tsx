@@ -5,6 +5,10 @@ import { EditorPlaceholder } from './components/editor-placeholder';
 import { RecordingView } from './components/recording-view';
 import { formatTimer } from './format';
 import { AppShell } from './shell/app-shell';
+import { CursorPanel } from './panels/cursor-panel';
+import { CursorPreview } from './panels/cursor-preview';
+import { ZoomPanel } from './panels/zoom-panel';
+import { ZoomPreview } from './panels/zoom-preview';
 import { Placeholder } from './shell/placeholder';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
@@ -161,6 +165,12 @@ export function MainScreen() {
     );
   }
 
+  const zoomValue = {
+    on: settings.zoomOn,
+    level: settings.zoomLevel,
+    holdMs: settings.holdAfterClickMs,
+    smoothness: settings.smoothness,
+  };
   const live = LIVE.has(snapshot.phase);
   const folder = settings.destinationFolder ?? 'Videos\\Scrim';
   const state = live
@@ -237,12 +247,39 @@ export function MainScreen() {
         onTake={() => void shoot()}
       />
     );
+  } else if (view === 'cursor') {
+    main = <CursorPreview value={{ style: settings.cursorStyle, haloColor: settings.haloColor }} />;
+  } else if (view === 'zoom') {
+    main = <ZoomPreview value={zoomValue} />;
   } else {
     main = <Placeholder view={view} />;
   }
 
   const panel =
-    view === 'record' ? (
+    view === 'cursor' ? (
+      <div className="panel-body">
+        <CursorPanel
+          value={{ style: settings.cursorStyle, haloColor: settings.haloColor }}
+          onChange={(value) => {
+            update({ cursorStyle: value.style, haloColor: value.haloColor });
+          }}
+        />
+      </div>
+    ) : view === 'zoom' ? (
+      <div className="panel-body">
+        <ZoomPanel
+          value={zoomValue}
+          onChange={(value) => {
+            update({
+              zoomOn: value.on,
+              zoomLevel: value.level,
+              holdAfterClickMs: value.holdMs,
+              smoothness: value.smoothness,
+            });
+          }}
+        />
+      </div>
+    ) : view === 'record' ? (
       <RecordPanel
         settings={settings}
         cameras={devices.cameras}

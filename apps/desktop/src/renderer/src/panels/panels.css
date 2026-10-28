@@ -1,0 +1,329 @@
+/* The Cursor and Zoom pages: tile layouts, art colors and the looping demos. No inline styles. */
+
+.ui-swatch-brand {
+  background: var(--scrim-butter);
+  border: 3px solid var(--scrim-green);
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tile-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* Tile art. */
+.art-window {
+  fill: var(--scrim-white);
+  stroke: var(--scrim-green);
+  stroke-width: 1.5;
+}
+
+.art-line {
+  fill: none;
+  stroke: var(--scrim-green);
+  stroke-width: 1.5;
+}
+
+.art-halo {
+  fill: color-mix(in srgb, var(--scrim-butter) 70%, transparent);
+  stroke: var(--scrim-green);
+  stroke-width: 1.5;
+}
+
+.art-ripple {
+  fill: none;
+  stroke: var(--scrim-green);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.art-cursor {
+  fill: var(--scrim-black);
+  stroke: var(--scrim-white);
+  stroke-width: 1;
+}
+
+.art-zoombox {
+  fill: var(--scrim-green-tint);
+  stroke: var(--scrim-green);
+  stroke-width: 1.5;
+}
+
+/* The big preview in the main area. */
+.demo-stage {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 60vh;
+  background: var(--ui-track);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-soft);
+  overflow: hidden;
+}
+
+.cursor-demo,
+.zoom-demo {
+  --halo-fill: color-mix(in srgb, var(--scrim-butter) 70%, transparent);
+  --halo-ring: var(--scrim-green);
+  position: relative;
+  width: min(86%, 640px);
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.cursor-demo[data-halo='green'] {
+  --halo-fill: color-mix(in srgb, var(--scrim-green) 22%, transparent);
+}
+
+.cursor-demo[data-halo='white'] {
+  --halo-fill: color-mix(in srgb, var(--scrim-white) 85%, transparent);
+  --halo-ring: color-mix(in srgb, var(--scrim-black) 40%, var(--scrim-white));
+}
+
+.cursor-demo[data-halo='black'] {
+  --halo-fill: color-mix(in srgb, var(--scrim-black) 18%, transparent);
+  --halo-ring: var(--scrim-black);
+}
+
+.demo-window {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 12% 1fr;
+}
+
+.demo-bar {
+  background: var(--scrim-green);
+}
+
+.demo-body {
+  display: grid;
+  align-content: start;
+  gap: 8%;
+  padding: 7%;
+}
+
+.demo-line {
+  display: block;
+  width: 45%;
+  height: 10px;
+  background: var(--ui-track);
+  border-radius: 6px;
+}
+
+.demo-line.wide {
+  width: 70%;
+}
+
+.demo-button {
+  display: block;
+  width: 26%;
+  height: 26px;
+  background: var(--scrim-green);
+  border-radius: 8px;
+}
+
+.demo-cursor {
+  position: absolute;
+  left: 62%;
+  top: 56%;
+  width: 0;
+  height: 0;
+}
+
+.demo-arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 18px;
+  height: 27px;
+  fill: var(--scrim-black);
+  stroke: var(--scrim-white);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.demo-halo,
+.demo-ripple {
+  position: absolute;
+  border-radius: 50%;
+  translate: -50% -50%;
+}
+
+.demo-halo {
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 44px;
+  background: var(--halo-fill, var(--scrim-butter));
+  border: 2px solid var(--halo-ring, var(--scrim-green));
+}
+
+.demo-ripple {
+  left: 0;
+  top: 0;
+  width: 70px;
+  height: 70px;
+  border: 2px solid var(--halo-ring, var(--scrim-green));
+  opacity: 0;
+}
+
+.cursor-demo[data-style='ripples'] .demo-halo,
+.cursor-demo[data-style='off'] .demo-halo,
+.cursor-demo[data-style='halo'] .demo-ripple,
+.cursor-demo[data-style='off'] .demo-ripple {
+  display: none;
+}
+
+/* The cursor moves in, clicks and rests, over four seconds. */
+.cursor-demo .demo-cursor {
+  animation: cursor-path 4s ease-in-out infinite;
+}
+
+.cursor-demo .demo-ripple {
+  animation: ripple-out 4s ease-out infinite;
+}
+
+.cursor-demo .demo-ripple.second {
+  animation-delay: 0.25s;
+}
+
+@keyframes cursor-path {
+  0% {
+    left: 18%;
+    top: 78%;
+  }
+  40%,
+  75% {
+    left: 62%;
+    top: 56%;
+  }
+  100% {
+    left: 18%;
+    top: 78%;
+  }
+}
+
+@keyframes ripple-out {
+  0%,
+  42% {
+    opacity: 0;
+    scale: 0.3;
+  }
+  46% {
+    opacity: 0.9;
+    scale: 0.4;
+  }
+  72%,
+  100% {
+    opacity: 0;
+    scale: 1.3;
+  }
+}
+
+/* The zoom demo: the scene scales around the click point. */
+.zoom-demo {
+  --zoom: 1.8;
+  --zoom-time: 6s;
+  --zoom-ease: ease-in-out;
+}
+
+.zoom-demo[data-strength='subtle'] {
+  --zoom: 1.4;
+}
+
+.zoom-demo[data-strength='strong'] {
+  --zoom: 2.4;
+}
+
+.zoom-demo[data-hold='short'] {
+  --zoom-time: 4.8s;
+}
+
+.zoom-demo[data-hold='long'] {
+  --zoom-time: 8s;
+}
+
+.zoom-demo[data-motion='snappy'] {
+  --zoom-ease: cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.zoom-demo[data-motion='gentle'] {
+  --zoom-ease: cubic-bezier(0.55, 0, 0.45, 1);
+}
+
+.zoom-scene {
+  position: absolute;
+  inset: 0;
+  transform-origin: 62% 56%;
+}
+
+.zoom-demo[data-on='true'] .zoom-scene {
+  animation: zoom-in-out var(--zoom-time) var(--zoom-ease) infinite;
+}
+
+.zoom-cursor {
+  left: 62%;
+  top: 56%;
+}
+
+.zoom-demo .demo-halo {
+  width: 30px;
+  height: 30px;
+}
+
+.zoom-demo .demo-ripple {
+  width: 52px;
+  height: 52px;
+}
+
+.zoom-demo[data-on='true'] .demo-ripple {
+  animation: ripple-out var(--zoom-time) ease-out infinite;
+}
+
+@keyframes zoom-in-out {
+  0%,
+  18% {
+    transform: scale(1);
+  }
+  32%,
+  68% {
+    transform: scale(var(--zoom));
+  }
+  86%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor-demo .demo-cursor,
+  .cursor-demo .demo-ripple,
+  .zoom-demo[data-on] .zoom-scene,
+  .zoom-demo[data-on] .demo-ripple {
+    animation: none;
+  }
+
+  .cursor-demo .demo-ripple {
+    opacity: 0.6;
+    scale: 0.9;
+  }
+
+  .zoom-demo[data-on='true'] .zoom-scene {
+    transform: scale(var(--zoom));
+  }
+
+  .zoom-demo[data-on='true'] .demo-ripple {
+    opacity: 0.6;
+  }
+}

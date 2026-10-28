@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const CURSOR_STYLES = ['halo-ripples', 'halo', 'ripples', 'off'] as const;
+const HALO_COLORS = ['brand', 'green', 'white', 'black'] as const;
 const SOURCE_KINDS = ['region', 'display', 'window'] as const;
 
 /** Every setting and its rule. Zoom is stored only in Phase 2 and applied at export later. */
@@ -8,6 +9,7 @@ const fields = {
   destinationFolder: z.string().min(1).max(1024).nullable(),
   lastSourceKind: z.enum(SOURCE_KINDS),
   cursorStyle: z.enum(CURSOR_STYLES),
+  haloColor: z.enum(HALO_COLORS),
   zoomOn: z.boolean(),
   zoomLevel: z.number().min(1.2).max(3),
   holdAfterClickMs: z.number().int().min(200).max(5000),
@@ -52,6 +54,7 @@ export const settingsFileSchema = z
     destinationFolder: true,
     lastSourceKind: true,
     cursorStyle: true,
+    haloColor: true,
     zoomOn: true,
     zoomLevel: true,
     holdAfterClickMs: true,
@@ -69,6 +72,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   destinationFolder: null,
   lastSourceKind: 'display',
   cursorStyle: 'halo-ripples',
+  haloColor: 'brand',
   zoomOn: true,
   zoomLevel: 1.8,
   holdAfterClickMs: 1200,
