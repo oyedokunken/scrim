@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@electron/fuses": "catalog:",
+    "@fontsource-variable/urbanist": "catalog:",
     "@playwright/test": "catalog:",
     "@scrim/core": "workspace:*",
     "@scrim/tokens": "workspace:*",
