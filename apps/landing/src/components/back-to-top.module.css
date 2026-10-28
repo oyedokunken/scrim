@@ -47,11 +47,11 @@
 .track,
 .progress {
   fill: none;
-  stroke-width: 6;
+  stroke-width: 4;
 }
 
 .track {
-  stroke: var(--scrim-green);
+  stroke: color-mix(in srgb, var(--scrim-green) 30%, transparent);
 }
 
 .progress {
@@ -61,14 +61,13 @@
   stroke-dashoffset: calc(100 - var(--p) * 100);
 }
 
-/* Inner circle - the main green circle */
-.ring::after {
-  content: '';
+/* Inner circle - solid green circle, separate from the rotated ring */
+.innerCircle {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
   background: var(--scrim-green);
   transform: translate(-50%, -50%);

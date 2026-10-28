@@ -410,7 +410,7 @@ export function HeroDemo() {
           }}
         >
           {playing ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}
-          <span>Play demo</span>
+          <span>{playing ? 'Pause' : 'Play'}</span>
         </button>
 
         <button

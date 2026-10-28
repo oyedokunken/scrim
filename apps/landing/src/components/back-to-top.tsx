@@ -2,18 +2,17 @@
 
 import { ArrowUp } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { formatClock, scrollProgress, scrollTimeMs } from '@/lib/clock';
+import { scrollProgress } from '@/lib/clock';
 import styles from './back-to-top.module.css';
 
 /**
- * A floating record button that takes you back to the top. Scrolling is the recording: the timer
- * counts up as you move down the page, and the red ring fills with how far you have come. Both
- * are written straight to the DOM, so scrolling never renders React. The button only shows once
- * the page has scrolled, and while it is hidden it cannot be tabbed to.
+ * A floating record button that takes you back to the top. Scrolling is the recording: the green
+ * ring fills with how far you have come. This is written straight to the DOM, so scrolling never
+ * renders React. The button only shows once the page has scrolled, and while it is hidden it
+ * cannot be tabbed to.
  */
 export function BackToTop() {
   const button = useRef<HTMLAnchorElement>(null);
-  const time = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     let frame = 0;
@@ -26,9 +25,6 @@ export function BackToTop() {
         '--p',
         scrollProgress(window.scrollY, scrollable).toFixed(4),
       );
-      if (time.current !== null) {
-        time.current.textContent = formatClock(scrollTimeMs(window.scrollY));
-      }
     };
     const onScroll = () => {
       if (frame === 0) {
@@ -61,11 +57,9 @@ export function BackToTop() {
           <circle className={styles.track} cx="32" cy="32" r="29" pathLength="100" />
           <circle className={styles.progress} cx="32" cy="32" r="29" pathLength="100" />
         </svg>
+        <div className={styles.innerCircle} aria-hidden="true"></div>
         <span className={styles.face} aria-hidden="true">
-          <ArrowUp size={14} strokeWidth={3.25} />
-          <span ref={time} className={styles.time}>
-            00:00
-          </span>
+          <ArrowUp size={12} strokeWidth={3} />
         </span>
       </a>
     </nav>

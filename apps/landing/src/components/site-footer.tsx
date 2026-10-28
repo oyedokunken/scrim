@@ -50,9 +50,9 @@ export function SiteFooter({ year }: SiteFooterProps) {
         </div>
       </div>
 
-      {/* Decoration only. Every link and fact above also appears as real text. The whole logo
-          rises into view as the page scrolls to it, and shows in full once it has arrived. */}
-      <div className={styles.mark} aria-hidden="true">
+      {/* The whole logo, in white, at the foot of the page. It is a link to the top. As the page
+          scrolls to it, it rises from below and fades in. */}
+      <a href="#top" className={styles.mark} aria-label="Scrim logo - back to top">
         <svg viewBox="0 0 1260 330" focusable="false">
           <g transform="scale(9.375)">
             <rect width="32" height="32" rx="8" fill="var(--scrim-white)" />
@@ -69,7 +69,7 @@ export function SiteFooter({ year }: SiteFooterProps) {
             Scrim
           </text>
         </svg>
-      </div>
+      </a>
     </footer>
   );
 }

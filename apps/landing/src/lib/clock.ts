@@ -6,15 +6,6 @@ export function formatClock(timeMs: number): string {
   return `${minutes}:${seconds}`;
 }
 
-/** Scrolling counts as recording time: this many pixels pass in one second on the timer. */
-export const SCROLL_PIXELS_PER_SECOND = 100;
-
-/** The timer reading for a scroll position, in milliseconds, so it can go through `formatClock`. */
-export function scrollTimeMs(scrollY: number): number {
-  const seconds = Math.max(0, Math.floor(scrollY / SCROLL_PIXELS_PER_SECOND));
-  return seconds * 1000;
-}
-
 /**
  * How far down the page the visitor is, from 0 at the top to 1 at the bottom. A page that does
  * not scroll is at 0.
