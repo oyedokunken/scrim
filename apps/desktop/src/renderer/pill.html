@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recording</title>
+    <link rel="stylesheet" href="./pill.css" />
+  </head>
+  <body>
+    <div id="pill" class="pill" role="group" aria-label="Recording controls">
+      <!-- The bar, with the buttons. Everything but the buttons drags the window. -->
+      <div id="main" class="row">
+        <span id="dot" class="dot" aria-hidden="true"></span>
+        <span id="timer" class="timer" role="timer" aria-label="Recorded time">00:00</span>
+        <button id="toggle" class="btn" type="button" title="Pause" aria-label="Pause">
+          <svg id="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 5v14M16 5v14" />
+          </svg>
+          <svg id="icon-play" viewBox="0 0 24 24" aria-hidden="true" hidden>
+            <path d="M7 4.5v15l12-7.5z" />
+          </svg>
+        </button>
+        <button
+          id="stop"
+          class="btn stop"
+          type="button"
+          title="Stop and save"
+          aria-label="Stop and save"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+          </svg>
+        </button>
+        <button
+          id="discard"
+          class="btn"
+          type="button"
+          title="Discard recording"
+          aria-label="Discard recording"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3" />
+          </svg>
+        </button>
+      </div>
+      <!-- Asked in place, so nothing is deleted until the person says so here. -->
+      <div id="confirm" class="row" hidden>
+        <span class="ask">Discard recording?</span>
+        <button id="keep" class="btn text" type="button">Keep</button>
+        <button id="yes" class="btn text danger" type="button">Discard</button>
+      </div>
+    </div>
+    <script type="module" src="../recorder/pill/page/main.ts"></script>
+  </body>
+</html>

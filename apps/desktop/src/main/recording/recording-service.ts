@@ -179,6 +179,30 @@ export class RecordingService {
     return () => this.listeners.delete(listener);
   }
 
+  /**
+   * Where the recording in progress is on the desktop, in device independent pixels, so a window
+   * of ours can stay out of it. `rect` is known for a region only. Nothing when not recording.
+   */
+  recordedArea():
+    | { displayId?: string; rect?: { x: number; y: number; width: number; height: number } }
+    | undefined {
+    const source = this.active?.session.source;
+    if (source === undefined) return undefined;
+    return {
+      ...(source.displayId === undefined ? {} : { displayId: source.displayId }),
+      ...(source.crop === undefined
+        ? {}
+        : {
+            rect: {
+              x: source.origin.x,
+              y: source.origin.y,
+              width: source.crop.width,
+              height: source.crop.height,
+            },
+          }),
+    };
+  }
+
   snapshot(): RecordingSnapshot {
     const active = this.active;
     if (active === undefined) {
