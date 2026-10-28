@@ -24,6 +24,9 @@ const allowedUrlSchema = z
   .max(2048)
   .refine(isAllowedExternalUrl, 'That link is not allowed.');
 
+/** Which of the two save folders a call is about. The page never names a path. */
+const folderKindInput = z.object({ kind: z.enum(['recordings', 'screenshots']) }).strict();
+
 /**
  * Every call the renderer can make, with the exact shape of what goes in and what comes out.
  * The main process validates the sender, the input and the output on every call. To add a
@@ -34,7 +37,8 @@ export const contract = {
   'app:version': { input: z.void(), output: z.string().min(1).max(64) },
   'settings:get': { input: z.void(), output: settingsSchema },
   'settings:set': { input: settingsPatchSchema, output: settingsSchema },
-  'folder:choose': { input: z.void(), output: z.string().nullable() },
+  'folder:choose': { input: folderKindInput, output: z.string().nullable() },
+  'folder:open': { input: folderKindInput, output: z.void() },
   'shell:open-external': {
     input: z.object({ url: allowedUrlSchema }).strict(),
     output: z.void(),

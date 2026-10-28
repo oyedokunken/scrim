@@ -23,7 +23,9 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       run: vi.fn(() => Promise.resolve({ ok: false as const, reason: 'cancelled' as const })),
       cancel: vi.fn(),
     },
-    screenshotFolder: () => 'PICTURES',
+    defaultScreenshotFolder: () => 'PICTURES',
+    defaultRecordingsFolder: () => 'VIDEOS',
+    ensureFolder: vi.fn(() => Promise.resolve()),
     images: {
       readFile: vi.fn(() => Promise.resolve(Buffer.from([]))),
       writeNewFile: vi.fn(() => Promise.resolve()),
@@ -33,6 +35,9 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       chooseSavePath: vi.fn(() => Promise.resolve(null)),
       startDrag: vi.fn(),
       trash: vi.fn(() => Promise.resolve()),
+      listFolder: vi.fn(() => Promise.resolve([])),
+      readHead: vi.fn(() => Promise.resolve(Buffer.from([]))),
+      thumbnail: vi.fn(() => 'data:image/png;base64,AA=='),
     },
     platform: process.platform,
     version: '1.0.0',
@@ -99,8 +104,37 @@ describe('the handlers', () => {
 
   it('hands back the folder the person chose, or null', async () => {
     const { handlers } = setup({ chooseFolder: () => Promise.resolve('C:\\Chosen') });
-    expect(await handlers['folder:choose'](undefined)).toBe('C:\\Chosen');
-    expect(await setup().handlers['folder:choose'](undefined)).toBeNull();
+    expect(await handlers['folder:choose']({ kind: 'recordings' })).toBe('C:\\Chosen');
+    expect(await setup().handlers['folder:choose']({ kind: 'recordings' })).toBeNull();
+  });
+
+  it('saves each chosen folder in its own setting, and starts the picker where it is now', async () => {
+    const chooseFolder = vi.fn(() => Promise.resolve('C:\\Chosen'));
+    const { handlers } = setup({ chooseFolder }, null);
+    await handlers['folder:choose']({ kind: 'recordings' });
+    expect(chooseFolder).toHaveBeenLastCalledWith('VIDEOS');
+    expect((await handlers['settings:get'](undefined)).destinationFolder).toBe('C:\\Chosen');
+    expect((await handlers['settings:get'](undefined)).screenshotFolder).toBeNull();
+    await handlers['folder:choose']({ kind: 'screenshots' });
+    expect(chooseFolder).toHaveBeenLastCalledWith('PICTURES');
+    expect((await handlers['settings:get'](undefined)).screenshotFolder).toBe('C:\\Chosen');
+  });
+
+  it('keeps the settings when the picker is cancelled', async () => {
+    const { handlers } = setup({}, null);
+    await handlers['folder:choose']({ kind: 'screenshots' });
+    expect((await handlers['settings:get'](undefined)).screenshotFolder).toBeNull();
+  });
+
+  it('opens the chosen or default folder, creating it first', async () => {
+    const { handlers, deps } = setup({}, null);
+    await handlers['folder:open']({ kind: 'recordings' });
+    expect(deps.ensureFolder).toHaveBeenLastCalledWith('VIDEOS');
+    expect(deps.openPath).toHaveBeenLastCalledWith('VIDEOS');
+    await handlers['folder:open']({ kind: 'screenshots' });
+    expect(deps.openPath).toHaveBeenLastCalledWith('PICTURES');
+    const failing = setup({ openPath: () => Promise.resolve('no') });
+    await expect(failing.handlers['folder:open']({ kind: 'recordings' })).rejects.toThrow();
   });
 
   it('reports the app version it was given', () => {

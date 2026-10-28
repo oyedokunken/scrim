@@ -12,10 +12,13 @@
         "tests/e2e/**/*.spec.ts",
         "src/renderer/src/main.tsx",
         "src/recorder/page/main.ts",
-        "tests/acceptance/**/*.spec.ts",
-        "playwright.acceptance.config.ts"
+        "src/recorder/bubble/page/main.ts",
+        "src/recorder/pill/page/main.ts",
+        "src/recorder/region/page/main.ts",
+        "tests/acceptance/**/*.spec.ts"
       ],
-      "project": ["build/**", "src/**", "tests/**", "*.ts", "*.mts"]
+      "project": ["build/**", "src/**", "tests/**", "*.ts", "*.mts"],
+      "ignoreDependencies": ["@fontsource-variable/urbanist"]
     },
     "apps/landing": {
       "entry": ["tests/stubs/server-only.ts"],

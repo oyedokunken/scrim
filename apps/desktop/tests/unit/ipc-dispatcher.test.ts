@@ -20,6 +20,7 @@ function setup(overrides: Partial<Handlers> = {}) {
     'settings:get': () => DEFAULT_SETTINGS,
     'settings:set': () => DEFAULT_SETTINGS,
     'folder:choose': () => null,
+    'folder:open': () => undefined,
     'shell:open-external': () => undefined,
     'shell:show-in-folder': () => undefined,
     'logs:open-folder': () => undefined,
@@ -32,6 +33,8 @@ function setup(overrides: Partial<Handlers> = {}) {
     'image:save-as': () => ({ path: null }),
     'image:drag': () => undefined,
     'image:delete': () => undefined,
+    'image:list': () => [],
+    'image:thumbnail': () => 'data:image/png;base64,AA==',
     ...overrides,
   };
   const dispatch = createDispatcher({
@@ -141,7 +144,9 @@ describe('the dispatcher', () => {
         throw new Error('EACCES: permission denied, open C:\\Users\\zainab\\secret.txt');
       },
     });
-    const error = await dispatch('folder:choose', good, []).catch((e: unknown) => e);
+    const error = await dispatch('folder:choose', good, [{ kind: 'recordings' }]).catch(
+      (e: unknown) => e,
+    );
     expect(error).toBeInstanceOf(IpcError);
     expect((error as IpcError).failure).toBe('handler-failed');
     expect((error as IpcError).message).toBe('Scrim could not complete that request.');

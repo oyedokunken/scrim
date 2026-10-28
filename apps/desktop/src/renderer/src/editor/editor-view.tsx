@@ -33,6 +33,8 @@ import {
 } from './edits';
 import { Timeline } from './timeline';
 import { usePlayback } from './use-playback';
+import { ExportPanel } from './export-panel';
+import { mediaSources } from './media-source';
 import { ZoomMoments } from './zoom-moments';
 import './editor.css';
 
@@ -48,8 +50,6 @@ export interface EditorViewProps {
   folder: string;
   api: EditorApi;
   settings: Settings;
-  /** Starts the export. The shell owns the sheet and the progress. */
-  onExport?: (() => void) | undefined;
 }
 
 /** Opens a recording and shows the editor, or says why it could not. */
@@ -92,7 +92,6 @@ function Editor({
   folder,
   api,
   settings,
-  onExport,
   project,
 }: EditorViewProps & { project: EditorProject }) {
   const screenEl = useRef<HTMLVideoElement>(null);
@@ -132,7 +131,8 @@ function Editor({
   const paint = useMemo(() => cursorPaintCss(settings.haloColor), [settings.haloColor]);
 
   const micOffsetMs = project.session.tracks.find((t) => t.kind === 'mic')?.startedAt ?? 0;
-  const hasCamera = project.media.camera !== undefined;
+  const media = mediaSources(project);
+  const hasCamera = media.camera !== undefined;
   const modeRef = useRef(mode);
   const splitRef = useRef(split);
   useEffect(() => {
@@ -341,26 +341,12 @@ function Editor({
               onPointerDown={onDividerDown}
             />
           ) : null}
-          <video
-            ref={screenEl}
-            src={project.media.screen}
-            muted
-            preload="auto"
-            playsInline
-            hidden
-          />
-          {project.media.camera === undefined ? null : (
-            <video
-              ref={cameraEl}
-              src={project.media.camera}
-              muted
-              preload="auto"
-              playsInline
-              hidden
-            />
+          <video ref={screenEl} src={media.screen} muted preload="auto" playsInline hidden />
+          {media.camera === undefined ? null : (
+            <video ref={cameraEl} src={media.camera} muted preload="auto" playsInline hidden />
           )}
-          {project.media.mic === undefined || !settings.keepSound ? null : (
-            <audio ref={micEl} src={project.media.mic} preload="auto" />
+          {media.mic === undefined || !settings.keepSound ? null : (
+            <audio ref={micEl} src={media.mic} preload="auto" />
           )}
         </div>
         <div className="editor-transport">
@@ -399,11 +385,6 @@ function Editor({
           <span className="editor-save" role="status">
             {saveNote}
           </span>
-          {onExport === undefined ? null : (
-            <Button variant="primary" onClick={onExport}>
-              Export
-            </Button>
-          )}
         </div>
         <Timeline
           durationMs={durationMs}
@@ -463,6 +444,15 @@ function Editor({
           }}
           edited={edits.zoom !== undefined}
         />
+        {api.exporter === undefined ? null : (
+          <ExportPanel
+            controls={api.exporter}
+            folder={folder}
+            beforeStart={async () => {
+              await api.saveEdits(folder, history.present);
+            }}
+          />
+        )}
       </aside>
     </div>
   );

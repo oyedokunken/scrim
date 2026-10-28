@@ -1,5 +1,6 @@
 import { isAbsolute, resolve } from 'node:path';
 import { isInsideRoot } from '../app-protocol';
+import type { Settings } from '../../shared/settings';
 import type { SettingsStore } from '../settings/settings-store';
 import type { Handlers } from './dispatcher';
 import { createAreaHandlers, type AreaApi } from './area-handlers';
@@ -16,10 +17,14 @@ export interface HandlerDeps {
   platform: NodeJS.Platform;
   /** The app version from the package, never typed in by hand. */
   version: string;
-  /** Where screenshots are saved when the person has not chosen a folder. */
-  screenshotFolder: () => string;
-  /** Opens the system folder picker. Null when the person cancels. */
-  chooseFolder: () => Promise<string | null>;
+  /** Where screenshots are saved when the person has not chosen a folder, Pictures\Scrim. */
+  defaultScreenshotFolder: () => string;
+  /** Where recordings are exported when the person has not chosen a folder, Videos\Scrim. */
+  defaultRecordingsFolder: () => string;
+  /** Creates a folder if it is missing, so Open works before the first save. */
+  ensureFolder: (path: string) => Promise<void>;
+  /** Opens the system folder picker, starting in the given folder. Null when the person cancels. */
+  chooseFolder: (startIn: string) => Promise<string | null>;
   showItemInFolder: (path: string) => void;
   /** Resolves to an error text, or an empty string on success, like `shell.openPath`. */
   openPath: (path: string) => Promise<string>;
@@ -47,16 +52,40 @@ export function isInsideKnownFolder(
   return folders.some((folder) => isInsideRoot(resolve(folder), target, caseInsensitive));
 }
 
+/** The folder screenshots go to: the one the person chose, or Pictures\Scrim. */
+export function screenshotFolderOf(saved: Settings, fallback: string): string {
+  return saved.screenshotFolder ?? fallback;
+}
+
 export function createHandlers(deps: HandlerDeps): Handlers {
+  const screenshotFolder = (): string =>
+    screenshotFolderOf(deps.settings.get(), deps.defaultScreenshotFolder());
   return {
     'settings:get': () => deps.settings.get(),
     'settings:set': (patch) => deps.settings.set(patch),
     // Choosing a folder is how the destination is set. Only this handler writes it, so the page
     // cannot send a recording somewhere the person never picked.
-    'folder:choose': async () => {
-      const chosen = await deps.chooseFolder();
-      if (chosen !== null) await deps.settings.set({ destinationFolder: chosen });
+    'folder:choose': async ({ kind }) => {
+      const chosen = await deps.chooseFolder(
+        kind === 'recordings'
+          ? (deps.settings.get().destinationFolder ?? deps.defaultRecordingsFolder())
+          : screenshotFolder(),
+      );
+      if (chosen !== null) {
+        await deps.settings.set(
+          kind === 'recordings' ? { destinationFolder: chosen } : { screenshotFolder: chosen },
+        );
+      }
       return chosen;
+    },
+    'folder:open': async ({ kind }) => {
+      const saved = deps.settings.get();
+      const folder =
+        kind === 'recordings'
+          ? (saved.destinationFolder ?? deps.defaultRecordingsFolder())
+          : screenshotFolder();
+      await deps.ensureFolder(folder);
+      if ((await deps.openPath(folder)) !== '') throw new Error('could not open folder');
     },
     'app:version': () => deps.version,
     'shell:open-external': async ({ url }) => {
@@ -65,8 +94,8 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     'shell:show-in-folder': ({ path }) => {
       const destination = deps.settings.get().destinationFolder;
       const known = [
-        ...(destination === null ? [] : [destination]),
-        deps.screenshotFolder(),
+        destination ?? deps.defaultRecordingsFolder(),
+        screenshotFolder(),
         ...(deps.extraKnownFolders?.() ?? []),
       ];
       if (!isInsideKnownFolder(path, known, deps.platform)) throw new Error('path not allowed');
@@ -79,12 +108,12 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     ...createAreaHandlers({
       area: deps.area,
       settings: () => deps.settings.get(),
-      screenshotFolder: deps.screenshotFolder,
+      screenshotFolder,
     }),
     ...createImageHandlers({
       ...deps.images,
       platform: deps.platform,
-      screenshotFolder: deps.screenshotFolder,
+      screenshotFolder,
     }),
     'logs:open-folder': async () => {
       if ((await deps.openPath(deps.logsFolder)) !== '') throw new Error('could not open logs');

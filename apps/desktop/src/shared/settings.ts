@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_ACCELERATORS, isValidAccelerator } from './shortcut-keys';
 
 const CURSOR_STYLES = ['halo-ripples', 'halo', 'ripples', 'off'] as const;
 const HALO_COLORS = ['brand', 'green', 'white', 'black'] as const;
@@ -9,10 +10,13 @@ const MIC_VOLUMES = ['quieter', 'normal', 'louder'] as const;
 const PADDINGS = ['none', 'small', 'medium', 'large'] as const;
 const CORNERS = ['square', 'soft', 'round'] as const;
 const SOURCE_KINDS = ['region', 'display', 'window'] as const;
+const acceleratorSchema = z.string().max(64).refine(isValidAccelerator, 'Not a usable shortcut.');
 
 /** Every setting and its rule. Zoom is stored only in Phase 2 and applied at export later. */
 const fields = {
   destinationFolder: z.string().min(1).max(1024).nullable(),
+  /** Where screenshots are saved. Null means Pictures\Scrim. Only the folder picker sets it. */
+  screenshotFolder: z.string().min(1).max(1024).nullable(),
   lastSourceKind: z.enum(SOURCE_KINDS),
   cursorStyle: z.enum(CURSOR_STYLES),
   haloColor: z.enum(HALO_COLORS),
@@ -37,6 +41,11 @@ const fields = {
   frameRate: z.union([z.literal(30), z.literal(60)]),
   firstRunDone: z.boolean(),
   showWelcome: z.boolean(),
+  /** The 3, 2, 1 before a recording starts. Off starts it at once. */
+  countdownOn: z.boolean(),
+  shortcutRecord: acceleratorSchema,
+  shortcutStop: acceleratorSchema,
+  shortcutScreenshot: acceleratorSchema,
 };
 
 export const settingsSchema = z.object(fields).strict();
@@ -49,7 +58,7 @@ export type Settings = z.infer<typeof settingsSchema>;
  */
 export const settingsPatchSchema = z
   .object(fields)
-  .omit({ destinationFolder: true })
+  .omit({ destinationFolder: true, screenshotFolder: true })
   .partial()
   .strict();
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
@@ -68,6 +77,7 @@ export const settingsFileSchema = z
   .object({ version: z.literal(SETTINGS_FILE_VERSION), ...fields })
   .partial({
     destinationFolder: true,
+    screenshotFolder: true,
     lastSourceKind: true,
     cursorStyle: true,
     haloColor: true,
@@ -91,10 +101,15 @@ export const settingsFileSchema = z
     frameRate: true,
     firstRunDone: true,
     showWelcome: true,
+    countdownOn: true,
+    shortcutRecord: true,
+    shortcutStop: true,
+    shortcutScreenshot: true,
   });
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
   destinationFolder: null,
+  screenshotFolder: null,
   lastSourceKind: 'display',
   cursorStyle: 'halo-ripples',
   haloColor: 'brand',
@@ -118,4 +133,8 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   frameRate: 30,
   firstRunDone: false,
   showWelcome: true,
+  countdownOn: true,
+  shortcutRecord: DEFAULT_ACCELERATORS.record,
+  shortcutStop: DEFAULT_ACCELERATORS.stop,
+  shortcutScreenshot: DEFAULT_ACCELERATORS.screenshot,
 });

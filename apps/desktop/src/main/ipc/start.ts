@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
-import { access, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, open, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { EventPayload } from '../../shared/ipc-contract';
 import { createLogger, type Logger } from '../log/logger';
 import { realLoggerFs } from '../log/real-logger-fs';
 import { openExternalChecked } from '../external-opener';
@@ -84,7 +85,11 @@ export async function startIpc(options: {
       settings,
       recording,
       area,
-      screenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
+      defaultScreenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
+      defaultRecordingsFolder: () => join(app.getPath('videos'), 'Scrim'),
+      ensureFolder: async (path) => {
+        await mkdir(path, { recursive: true });
+      },
       images: {
         readFile: (path) => readFile(path),
         // The exclusive flag makes the write fail when the name is taken, so nothing is replaced.
@@ -122,16 +127,47 @@ export async function startIpc(options: {
           });
         },
         trash: (path) => shell.trashItem(path),
+        listFolder: async (folder) => {
+          let names: string[];
+          try {
+            names = await readdir(folder);
+          } catch {
+            return [];
+          }
+          const stats = await Promise.all(
+            names.map(async (name) => {
+              try {
+                const info = await stat(join(folder, name));
+                return info.isFile() ? { name, modifiedMs: info.mtimeMs, bytes: info.size } : null;
+              } catch {
+                return null;
+              }
+            }),
+          );
+          return stats.filter((entry) => entry !== null);
+        },
+        readHead: async (path, bytes) => {
+          const handle = await open(path, 'r');
+          try {
+            const buffer = Buffer.alloc(bytes);
+            const { bytesRead } = await handle.read(buffer, 0, bytes, 0);
+            return buffer.subarray(0, bytesRead);
+          } finally {
+            await handle.close();
+          }
+        },
+        thumbnail: (path, width) =>
+          nativeImage.createFromPath(path).resize({ width, quality: 'good' }).toDataURL(),
       },
       extraKnownFolders: () => [...sessionFolders],
       platform: process.platform,
-      chooseFolder: async () => {
+      chooseFolder: async (startIn) => {
         const parent = BrowserWindow.getFocusedWindow();
         const dialogOptions = {
           properties: ['openDirectory', 'createDirectory'] as (
             'openDirectory' | 'createDirectory'
           )[],
-          defaultPath: settings.get().destinationFolder ?? app.getPath('videos'),
+          defaultPath: startIn,
         };
         const result = parent
           ? await dialog.showOpenDialog(parent, dialogOptions)
@@ -152,4 +188,14 @@ export async function startIpc(options: {
     },
   });
   return settings;
+}
+
+/** Tells every window of ours that a screenshot was saved, whether the button or the shortcut took it. */
+export function broadcastScreenshotTaken(
+  appOrigin: string,
+  shot: EventPayload<'screenshot:taken'>,
+): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    sendEvent(window.webContents, appOrigin, 'screenshot:taken', shot);
+  }
 }

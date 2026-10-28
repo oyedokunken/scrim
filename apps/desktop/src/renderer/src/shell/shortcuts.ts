@@ -4,5 +4,3 @@ export const SHORTCUTS = {
   stop: { label: 'Stop and save', keys: ['Ctrl', 'Shift', 'S'] },
   screenshot: { label: 'Take screenshot', keys: ['Ctrl', 'Shift', 'X'] },
 } as const;
-
-type ShortcutId = keyof typeof SHORTCUTS;

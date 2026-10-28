@@ -7,6 +7,8 @@ export type Snapshot = OutputOf<'recording:snapshot'>;
 export type Finished = EventPayload<'recording:finished'>;
 export type UserError = { message: string; nextStep: string };
 
+export type FolderKind = 'recordings' | 'screenshots';
+
 const SAVE_DELAY_MS = 150;
 
 /**
@@ -16,7 +18,7 @@ const SAVE_DELAY_MS = 150;
 export function useSettings(): {
   settings: Settings | null;
   update: (patch: SettingsPatch) => void;
-  chooseFolder: () => Promise<void>;
+  chooseFolder: (kind: FolderKind) => Promise<void>;
 } {
   const [settings, setSettings] = useState<Settings | null>(null);
   const pending = useRef<SettingsPatch>({});
@@ -48,9 +50,9 @@ export function useSettings(): {
     }, SAVE_DELAY_MS);
   }, []);
 
-  const chooseFolder = useCallback(async () => {
+  const chooseFolder = useCallback(async (kind: FolderKind) => {
     // The main process records the folder itself. The event brings the new settings back.
-    await window.scrim.invoke('folder:choose');
+    await window.scrim.invoke('folder:choose', { kind });
   }, []);
 
   return { settings, update, chooseFolder };
@@ -197,4 +199,46 @@ export function useScreenshotTaken(onTaken: (shot: ScreenshotTaken) => void): vo
       }),
     [],
   );
+}
+
+export type ShotListEntry = OutputOf<'image:list'>[number];
+
+/**
+ * The screenshots in the screenshots folder, newest first. It reads again whenever `refreshKey`
+ * changes or the Screenshot view opens, which the screen bumps after every capture, edit and delete, and when the window regains focus.
+ */
+export function useScreenshots(
+  refreshKey: number,
+  active: boolean,
+): readonly ShotListEntry[] | null {
+  const [shots, setShots] = useState<readonly ShotListEntry[] | null>(null);
+  const [focusKey, setFocusKey] = useState(0);
+
+  useEffect(() => {
+    const onFocus = (): void => {
+      setFocusKey((key) => key + 1);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    let alive = true;
+    window.scrim
+      .invoke('image:list')
+      .then((list) => {
+        if (alive) setShots(list);
+      })
+      .catch(() => {
+        if (alive) setShots((current) => current ?? []);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [refreshKey, focusKey, active]);
+
+  return shots;
 }

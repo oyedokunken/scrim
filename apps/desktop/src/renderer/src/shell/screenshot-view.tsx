@@ -22,6 +22,8 @@ export interface ScreenshotViewProps {
   shot?: ShotInfo | null;
   /** Forget the shot, which returns to the stage. */
   onClearShot?: () => void;
+  /** The shown shot changed: the editor saved a new file. The list reads again. */
+  onShot?: (shot: ShotInfo) => void;
 }
 
 /**
@@ -34,11 +36,10 @@ export function ScreenshotView({
   onTake,
   shot = null,
   onClearShot,
+  onShot,
 }: ScreenshotViewProps) {
   const [editing, setEditing] = useState(false);
-  // The editor writes a new file, so the result then shows the edited one.
-  const [edited, setEdited] = useState<ShotInfo | null>(null);
-  const shown = edited ?? shot;
+  const shown = shot;
 
   if (shown !== null && editing) {
     return (
@@ -48,8 +49,8 @@ export function ScreenshotView({
           setEditing(false);
         }}
         onSaved={(path, size) => {
-          setEdited({ path, ...size });
           setEditing(false);
+          onShot?.({ path, ...size });
         }}
       />
     );
@@ -65,7 +66,6 @@ export function ScreenshotView({
           setEditing(true);
         }}
         onDone={() => {
-          setEdited(null);
           onClearShot?.();
         }}
       />

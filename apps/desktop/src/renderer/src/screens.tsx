@@ -17,6 +17,7 @@ import { ZoomPreview } from './panels/zoom-preview';
 import { Placeholder } from './shell/placeholder';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
+import { ScreenshotPanel } from './screenshot/screenshot-panel';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
 import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
@@ -29,6 +30,7 @@ import {
   useRecordingOutcome,
   useRecordingSnapshot,
   useScreenshotTaken,
+  useScreenshots,
   useSettings,
   type UserError,
 } from './hooks';
@@ -98,6 +100,11 @@ export function MainScreen() {
   const [shooting, setShooting] = useState(false);
   const [shotError, setShotError] = useState<UserError | null>(null);
   const [shot, setShot] = useState<ShotInfo | null>(null);
+  const [shotsVersion, setShotsVersion] = useState(0);
+  const shots = useScreenshots(shotsVersion, view === 'screenshot');
+  const refreshShots = useCallback(() => {
+    setShotsVersion((version) => version + 1);
+  }, []);
   const [entered, setEntered] = useState(false);
   const [checking, setChecking] = useState(false);
   const phase = snapshot.phase;
@@ -134,6 +141,7 @@ export function MainScreen() {
   useScreenshotTaken(({ path, width, height }) => {
     setShot({ path, width, height });
     setView('screenshot');
+    refreshShots();
   });
 
   const shoot = useCallback(async () => {
@@ -148,6 +156,7 @@ export function MainScreen() {
       if (result.ok && result.mode === 'screenshot' && result.result.path !== undefined) {
         const { path, width, height } = result.result;
         setShot({ path, width, height });
+        refreshShots();
       } else if (!result.ok && result.reason === 'rejected') {
         setShotError({ message: result.error.message, nextStep: result.error.nextStep });
       } else if (!result.ok && result.reason === 'failed') {
@@ -159,7 +168,7 @@ export function MainScreen() {
     } finally {
       setShooting(false);
     }
-  }, []);
+  }, [refreshShots]);
 
   if (settings === null) {
     return (
@@ -216,7 +225,10 @@ export function MainScreen() {
     shadow: settings.backgroundShadow,
   };
   const live = LIVE.has(snapshot.phase);
-  const folder = settings.destinationFolder ?? 'Videos\\Scrim';
+  const folder =
+    view === 'screenshot'
+      ? (settings.screenshotFolder ?? 'Pictures\\Scrim')
+      : (settings.destinationFolder ?? 'Videos\\Scrim');
   const state = live
     ? `${snapshot.phase === 'paused' ? 'Paused' : 'Recording'} ${formatTimer(snapshot.elapsedMs)}`
     : 'Ready';
@@ -288,6 +300,11 @@ export function MainScreen() {
         shot={shot}
         onClearShot={() => {
           setShot(null);
+          refreshShots();
+        }}
+        onShot={(next) => {
+          setShot(next);
+          refreshShots();
         }}
         onTake={() => void shoot()}
       />
@@ -383,7 +400,15 @@ export function MainScreen() {
         cameras={devices.cameras}
         mics={devices.mics}
         onChange={update}
-        onChooseFolder={() => void chooseFolder()}
+        onChooseFolder={() => void chooseFolder('recordings')}
+      />
+    ) : view === 'screenshot' ? (
+      <ScreenshotPanel
+        shots={shots}
+        openPath={shot?.path ?? null}
+        onOpen={(entry) => {
+          setShot({ path: entry.path, width: entry.width, height: entry.height });
+        }}
       />
     ) : (
       <Placeholder view={view} inPanel />
