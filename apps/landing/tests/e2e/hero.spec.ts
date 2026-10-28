@@ -1,6 +1,8 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const demo = (page: Page) => page.getByTestId('hero-demo');
+/** The play control. Its name is Pause while the demo plays and Play while it is paused. */
+const playButton = (page: Page) => page.getByRole('button', { name: /^(Play|Pause)$/ });
 const scale = async (locator: Locator) => (await locator.getAttribute('data-scale')) ?? '';
 const time = async (locator: Locator) => Number((await locator.getAttribute('data-time')) ?? 'NaN');
 
@@ -18,12 +20,14 @@ test.describe('the hero demo with JavaScript', () => {
 
   test('the play button pauses and resumes from the same place', async ({ page }) => {
     const view = demo(page);
-    const button = page.getByRole('button', { name: 'Play demo' });
+    const button = playButton(page);
     await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveText('Pause');
     await expect.poll(() => time(view)).toBeGreaterThan(300);
 
     await button.click();
     await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveText('Play');
     await expect(view).toHaveAttribute('data-playing', 'false');
     const pausedAt = await time(view);
     await page.waitForTimeout(600);
@@ -60,14 +64,14 @@ test.describe('the hero demo with JavaScript', () => {
     const view = demo(page);
     // Wait for a zoomed moment, then freeze it.
     await expect.poll(() => scale(view), { timeout: 8000 }).toBe('2.00');
-    await page.getByRole('button', { name: 'Play demo' }).click();
+    await playButton(page).click();
     await expect(view).toHaveAttribute('data-playing', 'false');
     await page.getByRole('switch', { name: 'Auto zoom' }).click();
     await expect.poll(() => scale(view)).toBe('1.00');
   });
 
   test('both controls work from the keyboard', async ({ page }) => {
-    const button = page.getByRole('button', { name: 'Play demo' });
+    const button = playButton(page);
     const toggle = page.getByRole('switch', { name: 'Auto zoom' });
 
     await button.focus();
@@ -85,10 +89,7 @@ test.describe('the hero demo with JavaScript', () => {
   });
 
   test('both controls are at least 44 pixels in each direction', async ({ page }) => {
-    for (const control of [
-      page.getByRole('button', { name: 'Play demo' }),
-      page.getByRole('switch', { name: 'Auto zoom' }),
-    ]) {
+    for (const control of [playButton(page), page.getByRole('switch', { name: 'Auto zoom' })]) {
       const box = await control.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
       expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
@@ -164,7 +165,7 @@ test.describe('the recording look of the demo', () => {
   test('dragging the timeline moves the demo to that time', async ({ page }) => {
     await page.goto('/');
     const view = page.getByTestId('hero-demo');
-    await page.getByRole('button', { name: 'Play demo' }).click();
+    await playButton(page).click();
     await expect(view).toHaveAttribute('data-playing', 'false');
     const slider = page.getByRole('slider', { name: 'Demo position' });
     await slider.focus();
@@ -227,8 +228,9 @@ test.describe('with reduced motion', () => {
   test('does not autoplay and shows a still frame that is already zoomed in', async ({ page }) => {
     await page.goto('/');
     const view = demo(page);
-    const button = page.getByRole('button', { name: 'Play demo' });
+    const button = playButton(page);
     await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveText('Play');
     await expect(view).toHaveAttribute('data-playing', 'false');
     await expect.poll(() => scale(view)).toBe('2.00');
     const frozenAt = await time(view);
@@ -247,7 +249,7 @@ test.describe('with reduced motion', () => {
     await page.getByRole('switch', { name: 'Auto zoom' }).click();
     await expect.poll(() => scale(view)).toBe('2.00');
 
-    const button = page.getByRole('button', { name: 'Play demo' });
+    const button = playButton(page);
     await button.click();
     await expect(button).toHaveAttribute('aria-pressed', 'true');
     await expect(view).toHaveAttribute('data-playing', 'true');
