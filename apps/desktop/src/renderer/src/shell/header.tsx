@@ -28,7 +28,7 @@ export function Header({ recordingName, center, primary, onHelp }: HeaderProps) 
       <div className="app-header-center">{center}</div>
       <div className="app-header-right">
         {primary}
-        <Tooltip label="Keyboard shortcuts">
+        <Tooltip label="Keyboard shortcuts" side="bottom-end">
           <button
             type="button"
             className="icon-button"

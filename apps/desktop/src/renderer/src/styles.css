@@ -1,5 +1,6 @@
 @import '@scrim/tokens/tokens.css';
 @import '../ui/ui.css';
+@import './panels/panels.css';
 
 /* Latin only, bundled and served from app://scrim, so font-src 'self' covers it. Block, not swap: a local file
    arrives before first paint, and swap would show the system font for a frame. */

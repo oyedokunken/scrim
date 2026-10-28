@@ -6,7 +6,8 @@ export interface TooltipProps {
   label: string;
   /** The shortcut, shown as keycaps after the label. */
   keys?: readonly string[];
-  side?: 'bottom' | 'top' | 'right';
+  /** Where it sits. `bottom-end` lines its right edge up with the control, for one at the window edge. */
+  side?: 'bottom' | 'bottom-end' | 'top' | 'right';
   children: ReactElement;
 }
 
