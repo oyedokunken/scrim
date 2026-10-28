@@ -924,3 +924,264 @@ input[type='checkbox'] {
   object-fit: cover;
   -webkit-user-drag: none;
 }
+
+/* Library: toolbar, unfinished sessions, then a grid of cards. Only the main area scrolls. */
+.library {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.lib-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.lib-search {
+  display: flex;
+  flex: 1 1 200px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 12px;
+  color: var(--scrim-text-secondary);
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+}
+
+.lib-search:focus-within {
+  border-color: var(--scrim-green);
+}
+
+.lib-search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  font: inherit;
+  color: var(--scrim-black);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.lib-search input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.lib-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.lib-open {
+  display: block;
+  padding: 0;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+}
+
+.lib-open:hover .lib-thumb {
+  filter: brightness(0.96);
+}
+
+.lib-thumb {
+  width: 100%;
+}
+
+.lib-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lib-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.lib-name {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-sub {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--scrim-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-recover {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lib-recover-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--scrim-white);
+  border: 1px solid var(--scrim-green);
+  border-radius: var(--ui-radius-md);
+}
+
+.lib-recover-text {
+  display: grid;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.lib-badge {
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--scrim-white);
+  background: var(--scrim-green);
+  border-radius: 999px;
+}
+
+.lib-empty {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 48px 16px;
+  color: var(--scrim-text-secondary);
+}
+
+.lib-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--scrim-black);
+}
+
+.lib-rename {
+  display: grid;
+  gap: 16px;
+  min-width: 320px;
+}
+
+.ui-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  font: inherit;
+  color: var(--scrim-black);
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-sm);
+}
+
+.ui-input:focus {
+  border-color: var(--scrim-green);
+  outline: none;
+}
+
+/* Settings: one calm column of sections. Rows put the name on the left and the controls on the right. */
+.settings {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.set-section {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.set-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.set-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.set-row-text {
+  display: grid;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.set-row-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.set-row-path {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--scrim-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-row-note {
+  font-size: 13px;
+  color: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
+}
+
+.set-row-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.set-capture {
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--scrim-green);
+  background: var(--scrim-green-tint);
+  border-radius: 999px;
+}
+
+.set-about {
+  font-size: 14px;
+}
+
+.set-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

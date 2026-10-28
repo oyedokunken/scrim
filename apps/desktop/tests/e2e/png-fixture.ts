@@ -13,7 +13,7 @@ function chunk(type: string, data: Buffer): Buffer {
 }
 
 /** A small flat PNG that a real decoder accepts, for tests that need files on disk. */
-export function flatPng(width: number, height: number, shade = 200): Buffer {
+function flatPng(width: number, height: number, shade = 200): Buffer {
   const header = Buffer.alloc(13);
   header.writeUInt32BE(width, 0);
   header.writeUInt32BE(height, 4);

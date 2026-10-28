@@ -1,6 +1,7 @@
 export { Button } from './button';
 export { Card } from './card';
 export { ConfirmDialog } from './confirm-dialog';
+export { Dialog } from './dialog';
 export { Keycaps } from './keycap';
 export { PanelSection } from './panel-section';
 export { Segmented } from './segmented';
@@ -10,3 +11,4 @@ export { Switch } from './switch';
 export { Tile } from './tile';
 export { ToastProvider, useToast } from './toast';
 export { Tooltip } from './tooltip';
+export { Menu } from './menu';

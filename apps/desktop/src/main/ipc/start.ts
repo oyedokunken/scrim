@@ -2,13 +2,22 @@ import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shel
 import { access, mkdir, open, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EventPayload } from '../../shared/ipc-contract';
+import { findLegacyFolders, moveLegacyFolders } from '../export/legacy';
+import { createSessionIndex } from '../recording/session-store';
+import type { ShortcutId } from '../../shared/shortcut-keys';
+import type { Settings } from '../../shared/settings';
+import { loadExportSource } from '../export/source';
+import { isInsideKnownFolder } from './handlers';
+import { realServiceFs } from '../recording/fs-adapter';
+import { projectsRoot } from '../recording/projects-folder';
+import { createRealLibrary } from '../library/real-library';
 import { createLogger, type Logger } from '../log/logger';
 import { realLoggerFs } from '../log/real-logger-fs';
 import { openExternalChecked } from '../external-opener';
 import { realSettingsFs } from '../settings/real-settings-fs';
 import { createSettingsStore, type SettingsStore } from '../settings/settings-store';
 import type { AreaApi } from './area-handlers';
-import { createHandlers } from './handlers';
+import { createHandlers, screenshotFolderOf } from './handlers';
 import type { RecordingEvent } from '../recording/types';
 import { toBridgeEvent, type RecordingApi } from './recording-handlers';
 import { registerIpc, sendEvent } from './register';
@@ -36,6 +45,10 @@ export async function startIpc(options: {
   logger: Logger;
   recording: AppRecording;
   area: AreaApi;
+  /** Called after a setting was saved, so the shortcuts can follow the new keys. */
+  onSettingsChanged?: (settings: Settings) => void;
+  shortcutStatus: () => readonly ShortcutId[];
+  shortcutsSuspend: (suspended: boolean) => void;
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
 
@@ -43,6 +56,7 @@ export async function startIpc(options: {
     path: join(app.getPath('userData'), 'settings.json'),
     fs: realSettingsFs,
     onChange: (next) => {
+      options.onSettingsChanged?.(next);
       for (const window of BrowserWindow.getAllWindows()) {
         sendEvent(window.webContents, appOrigin, 'settings:changed', next);
       }
@@ -83,6 +97,64 @@ export async function startIpc(options: {
     allowedOrigin: appOrigin,
     handlers: createHandlers({
       settings,
+      share: null,
+      shortcutStatus: options.shortcutStatus,
+      shortcutsSuspend: options.shortcutsSuspend,
+      legacy: {
+        count: async () =>
+          (
+            await findLegacyFolders(
+              settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+            )
+          ).length,
+        move: async () => {
+          const found = await findLegacyFolders(
+            settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+          );
+          const sessions = createSessionIndex(
+            join(app.getPath('userData'), 'sessions.json'),
+            realServiceFs,
+          );
+          return moveLegacyFolders(found, {
+            projectsRoot: projectsRoot({
+              platform: process.platform,
+              env: process.env,
+              userData: app.getPath('userData'),
+            }),
+            moved: async (from, to) => {
+              await sessions.remove(from);
+              await sessions.add(to);
+            },
+          });
+        },
+      },
+      editor: {
+        loadSource: loadExportSource,
+        writeEdits: (folder, edits) =>
+          realServiceFs.writeJsonAtomic(join(folder, 'edits.json'), edits),
+        isKnownFolder: (folder) =>
+          folder.endsWith('.scrim') &&
+          isInsideKnownFolder(
+            folder,
+            [
+              projectsRoot({
+                platform: process.platform,
+                env: process.env,
+                userData: app.getPath('userData'),
+              }),
+              settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+              ...sessionFolders,
+            ],
+            process.platform,
+          ),
+      },
+      library: createRealLibrary({
+        videosFolder: () =>
+          settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+        screenshotsFolder: () =>
+          screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+        share: null,
+      }),
       recording,
       area,
       defaultScreenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),

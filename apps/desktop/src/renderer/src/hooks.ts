@@ -242,3 +242,17 @@ export function useScreenshots(
 
   return shots;
 }
+
+/** The time, read again every minute so words like Today and Yesterday stay right. */
+export function useClock(): number {
+  const [time, setTime] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setTime(Date.now());
+    }, 60_000);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+  return time;
+}

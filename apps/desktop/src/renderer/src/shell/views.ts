@@ -11,9 +11,14 @@ export const VIEW_IDS = [
   'settings',
 ] as const;
 
-export type ViewId = (typeof VIEW_IDS)[number];
+/** The items of the rail. */
+export type RailViewId = (typeof VIEW_IDS)[number];
+
+/** A rail item, or the editor, which has no rail item and is opened from a recording or the Library. */
+export type ViewId = RailViewId | 'editor';
 
 export const VIEW_LABELS: Record<ViewId, string> = {
+  editor: 'Editor',
   record: 'Record',
   screenshot: 'Screenshot',
   cursor: 'Cursor',
@@ -27,7 +32,7 @@ export const VIEW_LABELS: Record<ViewId, string> = {
 
 /** Library and Settings use the whole width, so they have no right panel. */
 export function hasPanel(view: ViewId): boolean {
-  return view !== 'library' && view !== 'settings';
+  return view !== 'library' && view !== 'settings' && view !== 'editor';
 }
 
 /** The settings views whose panels the editor and the record view share. */
@@ -41,7 +46,7 @@ export function isSettingsPanel(view: ViewId): boolean {
   );
 }
 
-export function isViewId(value: string): value is ViewId {
+export function isViewId(value: string): value is RailViewId {
   return (VIEW_IDS as readonly string[]).includes(value);
 }
 

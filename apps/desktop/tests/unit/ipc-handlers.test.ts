@@ -39,6 +39,27 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       readHead: vi.fn(() => Promise.resolve(Buffer.from([]))),
       thumbnail: vi.fn(() => 'data:image/png;base64,AA=='),
     },
+    library: {
+      list: vi.fn(() => Promise.resolve([])),
+      thumbnail: vi.fn(() => Promise.resolve(null)),
+      open: vi.fn(() => Promise.resolve({ kind: 'missing' as const })),
+      rename: vi.fn(() => Promise.resolve({ ok: true })),
+      reveal: vi.fn(),
+      remove: vi.fn(() => Promise.resolve()),
+      share: vi.fn(() => Promise.resolve()),
+    },
+    share: null,
+    shortcutStatus: () => [],
+    shortcutsSuspend: vi.fn(),
+    legacy: {
+      count: vi.fn(() => Promise.resolve(2)),
+      move: vi.fn(() => Promise.resolve({ moved: 2, failed: 0 })),
+    },
+    editor: {
+      loadSource: vi.fn(() => Promise.resolve({ ok: false as const, reason: 'missing' as const })),
+      writeEdits: vi.fn(() => Promise.resolve()),
+      isKnownFolder: () => false,
+    },
     platform: process.platform,
     version: '1.0.0',
     chooseFolder: vi.fn(() => Promise.resolve(null)),
@@ -135,6 +156,34 @@ describe('the handlers', () => {
     expect(deps.openPath).toHaveBeenLastCalledWith('PICTURES');
     const failing = setup({ openPath: () => Promise.resolve('no') });
     await expect(failing.handlers['folder:open']({ kind: 'recordings' })).rejects.toThrow();
+  });
+
+  it('refuses two shortcuts on the same keys, in any case, and keeps the old settings', async () => {
+    const { handlers } = setup();
+    expect(() => handlers['settings:set']({ shortcutStop: 'commandorcontrol+shift+r' })).toThrow();
+    expect((await handlers['settings:get'](undefined)).shortcutStop).toBe(
+      DEFAULT_SETTINGS.shortcutStop,
+    );
+    const ok = await handlers['settings:set']({ shortcutStop: 'CommandOrControl+Alt+S' });
+    expect(ok.shortcutStop).toBe('CommandOrControl+Alt+S');
+  });
+
+  it('says which shortcuts another program owns', () => {
+    const { handlers } = setup({ shortcutStatus: () => ['stop'] });
+    expect(handlers['shortcuts:status'](undefined)).toEqual({ unavailable: ['stop'] });
+  });
+
+  it('suspends the global shortcuts while a key is chosen', () => {
+    const { handlers, deps } = setup();
+    void handlers['shortcuts:suspend']({ suspended: true });
+    expect(deps.shortcutsSuspend).toHaveBeenCalledWith(true);
+  });
+
+  it('counts and moves old working folders, and nothing else', async () => {
+    const { handlers, deps } = setup();
+    expect(await handlers['legacy:count'](undefined)).toBe(2);
+    expect(await handlers['legacy:move'](undefined)).toEqual({ moved: 2, failed: 0 });
+    expect(deps.legacy.move).toHaveBeenCalledTimes(1);
   });
 
   it('reports the app version it was given', () => {

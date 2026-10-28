@@ -45,6 +45,14 @@ describe('buildAreaRequest', () => {
     expect(request.folder).toBeUndefined();
   });
 
+  it('counts down 3, 2, 1 unless the countdown is switched off', () => {
+    expect(buildAreaRequest(input, DEFAULT_SETTINGS, 'PICTURES').countdownSeconds).toBe(3);
+    expect(
+      buildAreaRequest(input, { ...DEFAULT_SETTINGS, countdownOn: false }, 'PICTURES')
+        .countdownSeconds,
+    ).toBe(0);
+  });
+
   it('takes screenshots into the pictures folder and copies them', () => {
     const request = buildAreaRequest(
       { ...input, mode: 'screenshot' },

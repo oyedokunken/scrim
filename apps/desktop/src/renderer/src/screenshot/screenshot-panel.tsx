@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { formatWhen } from '../format';
+import { useClock } from '../hooks';
 import type { ShotEntry } from '../../../shared/image-contract';
 import { Thumbnail } from './thumbnail';
 
@@ -11,20 +11,6 @@ export interface ScreenshotPanelProps {
   onOpen: (shot: ShotEntry) => void;
   /** Injected so a test can fix the clock. */
   now?: number;
-}
-
-/** The time, read again every minute so Today and Yesterday stay right. */
-function useClock(): number {
-  const [time, setTime] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setTime(Date.now());
-    }, 60_000);
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, []);
-  return time;
 }
 
 /** The right panel of the Screenshot view: how many there are, and every one of them, newest first. */

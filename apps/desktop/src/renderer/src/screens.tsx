@@ -17,6 +17,11 @@ import { ZoomPreview } from './panels/zoom-preview';
 import { Placeholder } from './shell/placeholder';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
+import { EditorView } from './editor/editor-view';
+import { SettingsView } from './settings/settings-view';
+import { LibraryView } from './library/library-view';
+import type { OpenedItem } from './library/use-library';
+import { editorApi } from './shell/editor-bridge';
 import { ScreenshotPanel } from './screenshot/screenshot-panel';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
 import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
@@ -100,12 +105,15 @@ export function MainScreen() {
   const [shooting, setShooting] = useState(false);
   const [shotError, setShotError] = useState<UserError | null>(null);
   const [shot, setShot] = useState<ShotInfo | null>(null);
+  const [editorFolder, setEditorFolder] = useState<string | null>(null);
   const [shotsVersion, setShotsVersion] = useState(0);
   const shots = useScreenshots(shotsVersion, view === 'screenshot');
   const refreshShots = useCallback(() => {
     setShotsVersion((version) => version + 1);
   }, []);
   const [entered, setEntered] = useState(false);
+  // Set by Show welcome again in the settings, which shows the welcome screen once even when it is switched off.
+  const [welcomeNow, setWelcomeNow] = useState(false);
   const [checking, setChecking] = useState(false);
   const phase = snapshot.phase;
 
@@ -170,6 +178,16 @@ export function MainScreen() {
     }
   }, [refreshShots]);
 
+  const openItem = (opened: OpenedItem): void => {
+    if (opened.kind === 'editor') {
+      setEditorFolder(opened.folder);
+      setView('editor');
+    } else {
+      setShot({ path: opened.path, width: opened.width, height: opened.height });
+      setView('screenshot');
+    }
+  };
+
   if (settings === null) {
     return (
       <main className="welcome" aria-busy="true">
@@ -189,7 +207,7 @@ export function MainScreen() {
     );
   }
 
-  if (!entered && (settings.showWelcome || !settings.firstRunDone)) {
+  if (!entered && (welcomeNow || settings.showWelcome || !settings.firstRunDone)) {
     return (
       <Welcome
         firstRun={!settings.firstRunDone}
@@ -198,6 +216,7 @@ export function MainScreen() {
           void window.scrim.invoke('shell:open-external', { url });
         }}
         onContinue={() => {
+          setWelcomeNow(false);
           if (settings.firstRunDone) setEntered(true);
           else setChecking(true);
         }}
@@ -286,6 +305,9 @@ export function MainScreen() {
                 onShowInFolder: () => {
                   void window.scrim.invoke('shell:show-in-folder', { path: finished.folder });
                 },
+                onOpenEditor: () => {
+                  openItem({ kind: 'editor', folder: finished.folder });
+                },
                 onRecordAgain: dismiss,
               }
         }
@@ -307,6 +329,37 @@ export function MainScreen() {
           refreshShots();
         }}
         onTake={() => void shoot()}
+      />
+    );
+  } else if (view === 'editor' && editorFolder !== null) {
+    main = (
+      <EditorView key={editorFolder} folder={editorFolder} api={editorApi} settings={settings} />
+    );
+  } else if (view === 'library') {
+    main = (
+      <LibraryView
+        active
+        onOpened={openItem}
+        onRecord={() => {
+          setView('record');
+        }}
+      />
+    );
+  } else if (view === 'settings') {
+    main = (
+      <SettingsView
+        settings={settings}
+        update={update}
+        chooseFolder={chooseFolder}
+        version={version}
+        onShowWelcome={() => {
+          setWelcomeNow(true);
+          setChecking(false);
+          setEntered(false);
+        }}
+        onOpenLink={(url) => {
+          void window.scrim.invoke('shell:open-external', { url });
+        }}
       />
     );
   } else if (view === 'cursor') {

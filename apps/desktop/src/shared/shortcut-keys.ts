@@ -80,3 +80,16 @@ export function findShortcutConflict(
   }
   return null;
 }
+
+/** The three accelerators saved in settings. */
+export function acceleratorsOf(settings: {
+  shortcutRecord: string;
+  shortcutStop: string;
+  shortcutScreenshot: string;
+}): Readonly<Record<ShortcutId, string>> {
+  return {
+    record: settings.shortcutRecord,
+    stop: settings.shortcutStop,
+    screenshot: settings.shortcutScreenshot,
+  };
+}

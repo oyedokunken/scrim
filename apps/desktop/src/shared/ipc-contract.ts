@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
+import { editorContract } from './editor-contract';
 import { imageContract } from './image-contract';
 import { libraryContract } from './library-contract';
 import {
@@ -18,6 +19,7 @@ import {
   warningSchema,
 } from './recording-contract';
 import { settingsPatchSchema, settingsSchema } from './settings';
+import { SHORTCUT_IDS } from './shortcut-keys';
 
 /** A link the app may open: the Scrim repository on GitHub, nothing else. */
 const allowedUrlSchema = z
@@ -46,10 +48,26 @@ export const contract = {
   },
   'shell:show-in-folder': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
   'logs:open-folder': { input: z.void(), output: z.void() },
+  /** The global shortcuts that another program already owns, so the settings page can say so. */
+  'shortcuts:status': {
+    input: z.void(),
+    output: z.object({ unavailable: z.array(z.enum(SHORTCUT_IDS)) }).strict(),
+  },
+  /** Lets go of the global shortcuts while a key is being chosen, so pressing the old one does not run it. */
+  'shortcuts:suspend': { input: z.object({ suspended: z.boolean() }).strict(), output: z.void() },
+  /** Old working folders that an earlier version left in the folder for finished videos. */
+  'legacy:count': { input: z.void(), output: z.number().int().nonnegative() },
+  'legacy:move': {
+    input: z.void(),
+    output: z
+      .object({ moved: z.number().int().nonnegative(), failed: z.number().int().nonnegative() })
+      .strict(),
+  },
   'area:run': { input: areaRequestSchema, output: areaOutcomeSchema },
   'area:cancel': { input: z.void(), output: z.void() },
   ...imageContract,
   ...libraryContract,
+  ...editorContract,
   // The destination is not an input: the main process uses the folder the person chose.
   'recording:start': {
     input: z

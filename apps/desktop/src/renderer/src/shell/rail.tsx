@@ -12,9 +12,9 @@ import {
 } from 'lucide-react';
 import { useRef, type KeyboardEvent } from 'react';
 import { arrowDirection, nextEnabledIndex } from '../../ui/keyboard';
-import { VIEW_IDS, VIEW_LABELS, type ViewId } from './views';
+import { VIEW_IDS, VIEW_LABELS, type RailViewId, type ViewId } from './views';
 
-const ICONS: Record<ViewId, LucideIcon> = {
+const ICONS: Record<RailViewId, LucideIcon> = {
   record: Video,
   screenshot: Crop,
   cursor: MousePointer2,
@@ -27,7 +27,7 @@ const ICONS: Record<ViewId, LucideIcon> = {
 };
 
 /** Library and Settings stay pinned at the bottom, the rest scrolls inside the rail. */
-const BOTTOM = new Set<ViewId>(['library', 'settings']);
+const BOTTOM = new Set<RailViewId>(['library', 'settings']);
 
 export interface RailProps {
   view: ViewId;
@@ -54,7 +54,7 @@ export function Rail({ view, onView }: RailProps) {
     }
   };
 
-  const renderItem = (id: ViewId, index: number) => {
+  const renderItem = (id: RailViewId, index: number) => {
     const Icon = ICONS[id];
     const selected = id === view;
     return (
@@ -66,7 +66,7 @@ export function Rail({ view, onView }: RailProps) {
           type="button"
           className={selected ? 'rail-item selected' : 'rail-item'}
           aria-current={selected ? 'page' : undefined}
-          tabIndex={selected ? 0 : -1}
+          tabIndex={selected || (view === 'editor' && index === 0) ? 0 : -1}
           onClick={() => {
             onView(id);
           }}

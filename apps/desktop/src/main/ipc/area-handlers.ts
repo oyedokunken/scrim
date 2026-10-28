@@ -91,6 +91,7 @@ export function buildAreaRequest(
       destination: saved.destinationFolder ?? undefined,
       name: input.name,
       style: styleFromSettings(saved),
+      countdownSeconds: saved.countdownOn ? 3 : 0,
     };
   }
   return {

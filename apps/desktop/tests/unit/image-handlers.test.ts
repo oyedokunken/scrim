@@ -31,6 +31,7 @@ function header(width: number, height: number): Buffer {
 function setup(
   taken: string[] = [],
   files: { name: string; modifiedMs: number; bytes: number }[] = [],
+  shareFn: ImageDeps['share'] = vi.fn(() => Promise.resolve()),
 ) {
   const deps: ImageDeps = {
     platform: process.platform,
@@ -43,6 +44,7 @@ function setup(
     chooseSavePath: vi.fn(() => Promise.resolve<string | null>(inFolder('chosen.png'))),
     startDrag: vi.fn(),
     trash: vi.fn(() => Promise.resolve()),
+    share: shareFn,
     listFolder: vi.fn(() => Promise.resolve(files)),
     readHead: vi.fn(() => Promise.resolve(header(800, 600))),
     thumbnail: vi.fn(() => 'data:image/png;base64,AA=='),
@@ -261,5 +263,25 @@ describe('image:thumbnail', () => {
   it('refuses a path outside the screenshots folder', () => {
     const { handlers } = setup();
     expect(() => handlers['image:thumbnail']({ path: join(FOLDER, '..', 'a.png') })).toThrow();
+  });
+});
+
+describe('image:share', () => {
+  it('opens the share sheet for a screenshot in the folder', async () => {
+    const share = vi.fn(() => Promise.resolve());
+    const { handlers } = setup([], [], share);
+    await handlers['image:share']({ path: inFolder('a.png') });
+    expect(share).toHaveBeenCalledWith(inFolder('a.png'));
+  });
+
+  it('refuses a file outside the folder, and fails plainly when there is no share sheet', async () => {
+    const { handlers } = setup(
+      [],
+      [],
+      vi.fn(() => Promise.resolve()),
+    );
+    await expect(handlers['image:share']({ path: join(FOLDER, '..', 'a.png') })).rejects.toThrow();
+    const none = setup([], [], null);
+    await expect(none.handlers['image:share']({ path: inFolder('a.png') })).rejects.toThrow();
   });
 });

@@ -30,7 +30,8 @@ import { createStubRecorder } from './shell/recorder-control';
 import { createRecordingWindows } from './shell/recording-windows';
 import { createAreaPicker } from './recording/area-picker';
 import { buildAreaRequest, devicesFromSettings, type AreaApi } from './ipc/area-handlers';
-import { registerGlobalShortcuts } from './shell/global-shortcuts';
+import { acceleratorsOf } from '../shared/shortcut-keys';
+import { createShortcutManager } from './shell/shortcut-manager';
 import { createRecordingControl, isLivePhase } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
 import { createWindowStateTracker } from './shell/window-state-tracker';
@@ -268,7 +269,22 @@ if (!app.requestSingleInstanceLock()) {
         picker.cancel();
       },
     };
-    settings = await startIpc({ appOrigin: target.origin, logger, recording, area });
+    const shortcutsRef: { current: ReturnType<typeof createShortcutManager> | undefined } = {
+      current: undefined,
+    };
+    settings = await startIpc({
+      appOrigin: target.origin,
+      logger,
+      recording,
+      area,
+      onSettingsChanged: (next) => {
+        shortcutsRef.current?.apply(acceleratorsOf(next));
+      },
+      shortcutStatus: () => shortcutsRef.current?.unavailable() ?? [],
+      shortcutsSuspend: (suspended) => {
+        shortcutsRef.current?.suspend(suspended);
+      },
+    });
     const runArea = async (mode: 'record' | 'screenshot'): Promise<void> => {
       const saved = settings?.get();
       if (saved === undefined) return;
@@ -281,7 +297,8 @@ if (!app.requestSingleInstanceLock()) {
       );
     };
     // Start and stop from any app. A key another program owns is logged, and the buttons still work.
-    const shortcuts = registerGlobalShortcuts({
+    // Changing a key in the settings registers the new one at once.
+    const shortcuts = createShortcutManager({
       api: globalShortcut,
       actions: {
         isRecording: () => control.isRecording(),
@@ -295,9 +312,12 @@ if (!app.requestSingleInstanceLock()) {
           error: error instanceof Error ? error.message : 'unknown',
         });
       },
+      log: (event, ids) => {
+        logger.warn(event, { ids: ids.join(',') });
+      },
     });
-    if (shortcuts.unavailable.length > 0)
-      logger.warn('shortcut.unavailable', { ids: shortcuts.unavailable });
+    shortcutsRef.current = shortcuts;
+    shortcuts.apply(acceleratorsOf(settings.get()));
     app.on('will-quit', () => {
       shortcuts.dispose();
     });
