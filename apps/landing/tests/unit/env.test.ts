@@ -112,3 +112,34 @@ describe('parseSiteEnv', () => {
     expect(() => parseSiteEnv({})).toThrow(/SITE_URL/);
   });
 });
+
+describe('SITE_URL in a production deployment', () => {
+  const site = { GITHUB_REPO: 'oyedokunken/scrim' };
+
+  it.each([
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://0.0.0.0:3000',
+    'http://[::1]:3000',
+  ])('refuses %s so the canonical link and og:image never point at localhost', (SITE_URL) => {
+    expect(() => parseSiteEnv({ ...site, SITE_URL, VERCEL_ENV: 'production' })).toThrow(
+      /SITE_URL: points at this machine/,
+    );
+  });
+
+  it('accepts the public address in production', () => {
+    const env = parseSiteEnv({
+      ...site,
+      SITE_URL: 'https://scriim.vercel.app/',
+      VERCEL_ENV: 'production',
+    });
+    expect(env.SITE_URL).toBe('https://scriim.vercel.app');
+  });
+
+  it('still allows localhost for local builds, previews and tests', () => {
+    expect(() => parseSiteEnv({ ...site, SITE_URL: 'http://localhost:3000' })).not.toThrow();
+    expect(() =>
+      parseSiteEnv({ ...site, SITE_URL: 'http://localhost:3000', VERCEL_ENV: 'preview' }),
+    ).not.toThrow();
+  });
+});

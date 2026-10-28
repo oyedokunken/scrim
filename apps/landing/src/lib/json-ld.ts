@@ -39,7 +39,7 @@ export function softwareApplicationJsonLd(input: SoftwareApplicationInput) {
     name: input.name,
     description: input.description,
     url: input.siteUrl,
-    operatingSystem: 'Windows, macOS, Linux',
+    operatingSystem: 'Windows',
     applicationCategory: 'MultimediaApplication',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     license: input.licenseUrl,

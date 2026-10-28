@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const SYSTEM_VALUES = ['windows', 'macos', 'linux'] as const;
+const SYSTEM_VALUES = ['windows', 'macos', 'linux'] as const;
 export type SystemValue = (typeof SYSTEM_VALUES)[number];
 
 /**
@@ -23,8 +23,6 @@ export const downloadRequestSchema = z.strictObject({
   website: z.string().max(200).optional(),
 });
 
-export type DownloadRequest = z.infer<typeof downloadRequestSchema>;
-
 /** The first message for each field that failed, keyed by field name. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const messages: Record<string, string> = {};
@@ -45,4 +43,6 @@ export interface DownloadResponse {
   version: string;
   /** True when `url` is the installer itself, false when it is the Releases page. */
   direct: boolean;
+  /** True when the system has no installer yet and the visitor joined the update list instead. */
+  comingSoon?: boolean;
 }

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Choose what to capture</title>
+    <link rel="stylesheet" href="./region.css" />
+  </head>
+  <body>
+    <!-- The dim layer. With a box, the box casts the dim itself, so the box is clear. -->
+    <div id="dim" class="dim"></div>
+    <div id="frame" class="frame" hidden></div>
+
+    <div id="selection" class="selection" hidden>
+      <span class="handle nw" data-handle="nw"></span>
+      <span class="handle n" data-handle="n"></span>
+      <span class="handle ne" data-handle="ne"></span>
+      <span class="handle e" data-handle="e"></span>
+      <span class="handle se" data-handle="se"></span>
+      <span class="handle s" data-handle="s"></span>
+      <span class="handle sw" data-handle="sw"></span>
+      <span class="handle w" data-handle="w"></span>
+      <span id="size" class="size"></span>
+    </div>
+
+    <div id="windows" class="windows" hidden></div>
+
+    <div id="pill" class="pill" role="group" aria-label="What to capture" hidden>
+      <button type="button" data-area="region" aria-pressed="true">Region</button>
+      <button type="button" data-area="window" aria-pressed="false">Window</button>
+      <button type="button" data-area="display" aria-pressed="false">Full screen</button>
+    </div>
+
+    <p id="hint" class="hint" hidden></p>
+
+    <div id="toolbar" class="toolbar" role="toolbar" aria-label="Recording options" hidden>
+      <div class="device">
+        <button id="camera" type="button" class="toggle" aria-pressed="false" title="Camera">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
+            <rect x="2" y="6" width="14" height="12" rx="2" />
+          </svg>
+          <span>Camera</span>
+        </button>
+        <button id="camera-menu" type="button" class="chevron" aria-label="Choose a camera">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+      </div>
+      <div class="device">
+        <button id="mic" type="button" class="toggle" aria-pressed="false" title="Microphone">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" x2="12" y1="19" y2="22" />
+          </svg>
+          <span>Microphone</span>
+          <i id="level" class="level" aria-hidden="true"></i>
+        </button>
+        <button id="mic-menu" type="button" class="chevron" aria-label="Choose a microphone">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+      </div>
+      <button id="start" type="button" class="start">
+        <i class="dot" aria-hidden="true"></i>
+        <span>Start recording</span>
+      </button>
+      <ul id="menu" class="menu" role="menu" hidden></ul>
+    </div>
+
+    <div id="count" class="count" aria-hidden="true" hidden></div>
+    <p id="status" class="sr" role="status" aria-live="polite"></p>
+    <script type="module" src="../recorder/region/page/main.ts"></script>
+  </body>
+</html>

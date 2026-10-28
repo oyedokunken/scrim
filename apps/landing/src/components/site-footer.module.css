@@ -110,14 +110,20 @@
   gap: var(--scrim-space-2) var(--scrim-space-5);
 }
 
-/* The whole logo, in white, at the foot of the page. It is not clipped. As the page scrolls to it,
-   it rises from below and fades in, where the browser can tie that to the scroll. Elsewhere it
-   simply sits there. */
+/* The whole logo, in white, at the foot of the page. It is a link to the top. As the page scrolls
+   to it, it rises from below and fades in. */
 .mark {
+  display: block;
   width: min(100% - 2 * var(--gutter), var(--page-width));
   margin: var(--scrim-space-7) auto 0;
   padding-bottom: var(--scrim-space-6);
   user-select: none;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.mark:hover {
+  opacity: 0.8;
 }
 
 .mark svg {

@@ -12,3 +12,6 @@ apps/landing/prisma/migrations
 apps/landing/public
 *.ico
 CLAUDE.md
+.agents
+out
+release

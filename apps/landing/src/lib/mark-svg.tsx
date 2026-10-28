@@ -1,8 +1,9 @@
+import { MARK_COLORS } from '@scrim/tokens';
 import { MARK } from './brand';
 
-// Literal values, for image routes and icons that cannot read CSS variables.
-const MARK_GREEN = '#004E52';
-const MARK_BUTTER = '#FBF8F4';
+// Literal values from the brand svg, for image routes and icons that cannot read CSS variables.
+const MARK_GREEN = MARK_COLORS.tile;
+const MARK_BUTTER = MARK_COLORS.glyph;
 
 interface MarkSvgProps {
   size: number;

@@ -1,6 +1,6 @@
 {
   "name": "@scrim/desktop",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Scrim desktop app",
   "main": "./out/main/index.js",
@@ -10,10 +10,19 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "package": "electron-vite build && electron-builder --config electron-builder.config.ts"
+    "fetch:ffmpeg": "node scripts/fetch-ffmpeg.mts",
+    "package": "node scripts/fetch-ffmpeg.mts && electron-vite build && electron-builder --config electron-builder.config.ts",
+    "package:dir": "node scripts/fetch-ffmpeg.mts && electron-vite build && electron-builder --dir --config electron-builder.config.ts",
+    "verify:fuses": "node build/verify-fuses.mts",
+    "icons": "node scripts/icons.mts",
+    "test:acceptance": "playwright test --config playwright.acceptance.config.ts"
+  },
+  "dependencies": {
+    "uiohook-napi": "catalog:"
   },
   "devDependencies": {
     "@electron/fuses": "catalog:",
+    "@fontsource-variable/urbanist": "catalog:",
     "@playwright/test": "catalog:",
     "@scrim/core": "workspace:*",
     "@scrim/tokens": "workspace:*",
@@ -24,11 +33,15 @@
     "electron": "catalog:",
     "electron-builder": "catalog:",
     "electron-vite": "catalog:",
+    "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "sharp": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",
     "zod": "catalog:"
-  }
+  },
+  "author": "Oyedokun Kehinde",
+  "homepage": "https://github.com/oyedokunken/scrim"
 }

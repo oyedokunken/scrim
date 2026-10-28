@@ -1,40 +1,11 @@
-import {
-  _electron as electron,
-  expect,
-  test,
-  type ElectronApplication,
-  type Page,
-} from '@playwright/test';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { expect, test } from './fixtures';
 
-let app: ElectronApplication;
-let page: Page;
-
-test.beforeAll(async () => {
-  app = await electron.launch({
-    // A private user data dir keeps the single instance lock from clashing with a running Scrim.
-    args: [
-      join(__dirname, '../..'),
-      `--user-data-dir=${mkdtempSync(join(tmpdir(), 'scrim-e2e-'))}`,
-      ...(process.env['CI'] ? ['--no-sandbox'] : []),
-    ],
-  });
-  page = await app.firstWindow();
-  await page.waitForLoadState('domcontentloaded');
-});
-
-test.afterAll(async () => {
-  await app.close();
-});
-
-test('launches and shows the window', async () => {
+test('launches and shows the window', async ({ page }) => {
+  expect(page.url()).toBe('app://scrim/index.html');
   await expect(page.getByRole('heading', { name: 'Scrim' })).toBeVisible();
-  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
 });
 
-test('the renderer has no Node access', async () => {
+test('the renderer has no Node access', async ({ page }) => {
   const result = await page.evaluate(() => ({
     require: typeof (globalThis as { require?: unknown }).require,
     process: typeof (globalThis as { process?: unknown }).process,
@@ -43,33 +14,39 @@ test('the renderer has no Node access', async () => {
   expect(result).toEqual({ require: 'undefined', process: 'undefined', bridge: 'object' });
 });
 
-test('navigation to an external page is blocked', async () => {
-  const before = page.url();
+test('navigation to an external page is blocked and the page stays on app://scrim', async ({
+  page,
+}) => {
   await page.evaluate(() => {
     globalThis.location.href = 'https://example.com/';
   });
   await page.waitForTimeout(500);
-  expect(page.url()).toBe(before);
+  expect(page.url()).toBe('app://scrim/index.html');
 });
 
-test('window.open is denied', async () => {
+test('window.open returns null and opens no page', async ({ page }) => {
+  const before = page.context().pages().length;
   const opened = await page.evaluate(() => globalThis.open('https://example.com/') === null);
+  await page.waitForTimeout(300);
   expect(opened).toBe(true);
-  expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+  expect(page.context().pages().length).toBe(before);
 });
 
-test('minimize, maximize and restore work', async () => {
+// Maximize and minimize are window states that only the main process can read, and the packaged
+// app hides the main process, so this one runs against the built app only.
+test('minimize, maximize and restore work', async ({ app }) => {
+  const state = (key: 'isMaximized' | 'isMinimized') =>
+    app.evaluate(({ BrowserWindow }, k) => BrowserWindow.getAllWindows()[0]?.[k](), key);
+  await expect
+    .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible()))
+    .toBe(true);
   await app.evaluate(({ BrowserWindow }) => {
     BrowserWindow.getAllWindows()[0]?.maximize();
   });
-  expect(
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isMaximized()),
-  ).toBe(true);
+  expect(await state('isMaximized')).toBe(true);
   await app.evaluate(({ BrowserWindow }) => {
     BrowserWindow.getAllWindows()[0]?.unmaximize();
     BrowserWindow.getAllWindows()[0]?.minimize();
   });
-  expect(
-    await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isMinimized()),
-  ).toBe(true);
+  expect(await state('isMinimized')).toBe(true);
 });

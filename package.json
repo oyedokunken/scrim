@@ -9,7 +9,9 @@
   },
   "scripts": {
     "prepare": "husky",
+    "dev": "pnpm --filter @scrim/desktop dev",
     "dev:landing": "pnpm --filter @scrim/landing dev",
+    "package": "pnpm --filter @scrim/desktop package",
     "build": "turbo run build",
     "lint": "eslint .",
     "lint:text": "node tools/check-text.js",
@@ -25,7 +27,8 @@
     "db:generate": "pnpm --filter @scrim/landing db:generate",
     "db:migrate": "pnpm --filter @scrim/landing db:migrate",
     "db:deploy": "pnpm --filter @scrim/landing db:deploy",
-    "db:studio": "pnpm --filter @scrim/landing db:studio"
+    "db:studio": "pnpm --filter @scrim/landing db:studio",
+    "icons": "node tools/icons.mts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [

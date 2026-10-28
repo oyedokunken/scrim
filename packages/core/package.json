@@ -5,11 +5,15 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./zoom": "./src/entry-zoom.ts"
+    "./zoom": "./src/entry-zoom.ts",
+    "./render": "./src/entry-render.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "catalog:",

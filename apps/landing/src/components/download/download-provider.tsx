@@ -36,7 +36,7 @@ interface DownloadApi {
 
 const DownloadContext = createContext<DownloadApi>({ open: () => undefined });
 
-export function useDownloadModal(): DownloadApi {
+function useDownloadModal(): DownloadApi {
   return useContext(DownloadContext);
 }
 
@@ -95,6 +95,10 @@ export function useDownloadLink(os?: SystemValue) {
   const { open } = useDownloadModal();
   return {
     href: siteConfig.releasesUrl,
+    // Without JavaScript this is a plain link to another site, so it follows the same rule as every
+    // other one: a new tab, with no way back to this page.
+    target: '_blank',
+    rel: 'noopener noreferrer',
     'data-download-trigger': '',
     onClick: (event: MouseEvent<HTMLAnchorElement>) => {
       if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {

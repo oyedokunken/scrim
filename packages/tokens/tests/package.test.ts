@@ -10,10 +10,10 @@ describe('@scrim/tokens package', () => {
     expect(pkg).not.toHaveProperty('peerDependencies');
   });
 
-  it('exposes the module and the stylesheet', () => {
+  it('exposes the module, the stylesheet and the brand mark', () => {
     const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
       exports: Record<string, string>;
     };
-    expect(Object.keys(pkg.exports)).toEqual(['.', './tokens.css']);
+    expect(Object.keys(pkg.exports)).toEqual(['.', './tokens.css', './brand/scrim-mark.svg']);
   });
 });

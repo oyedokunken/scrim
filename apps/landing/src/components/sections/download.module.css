@@ -141,3 +141,23 @@
     align-items: stretch;
   }
 }
+
+.soon {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-fill-quiet-on-white);
+  color: var(--scrim-black);
+  font-size: var(--scrim-text-small);
+  font-weight: 800;
+}
+
+.notify,
+.notify:hover {
+  background: var(--scrim-white);
+  color: var(--scrim-green);
+  box-shadow: inset 0 0 0 2px var(--scrim-green);
+}
+
+.notify:hover {
+  background: var(--scrim-green-tint);
+}

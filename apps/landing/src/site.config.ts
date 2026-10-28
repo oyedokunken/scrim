@@ -3,7 +3,7 @@ export const siteConfig = {
   name: 'Scrim',
   tagline: 'Record anything on your screen effortlessly',
   description:
-    'Scrim is a free, open source screen recorder for Windows, macOS and Linux. It spotlights your cursor, ripples every click, zooms in on the action and exports a clean MP4. Everything stays on your computer.',
+    'Scrim is a free, open source screen recorder for Windows, with macOS and Linux coming soon. It spotlights your cursor, ripples every click, zooms in on the action and exports a clean MP4. Everything stays on your computer.',
   repoUrl: 'https://github.com/oyedokunken/scrim',
   releasesUrl: 'https://github.com/oyedokunken/scrim/releases',
   issuesUrl: 'https://github.com/oyedokunken/scrim/issues',
@@ -14,10 +14,12 @@ export const siteConfig = {
   licenseUrl: 'https://github.com/oyedokunken/scrim/blob/main/LICENSE',
   changelogUrl: 'https://github.com/oyedokunken/scrim/blob/main/CHANGELOG.md',
   maltUrl: 'https://buymeamalt.com/@oyedokunken',
-  /** The address people see. */
-  contactEmail: 'hello@scrim.app',
-  /** Where mail to that address goes. Links open a message to this inbox. */
+  /** The owner's inbox. Only the privacy page links to it, for access and deletion requests. */
   contactInbox: 'oyedokunken@gmail.com',
+  /** The address shown on the last card of the hero video. Switch it when the domain changes. */
+  heroAddress: 'www.scrim.app',
+  /** The line on the platforms card of the hero video. The owner chose it ahead of the installers. */
+  heroPlatformLine: 'Available for all platforms',
   author: {
     name: 'Oyedokun Kehinde',
     handle: '@oyedokunken',
@@ -62,5 +64,3 @@ export const siteConfig = {
     ],
   },
 } as const;
-
-export type SiteConfig = typeof siteConfig;

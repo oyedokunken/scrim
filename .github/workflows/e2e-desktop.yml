@@ -1,0 +1,80 @@
+name: e2e-desktop
+
+# Windows only for now. macOS and Linux join the matrix later in Phase 2.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'tools/icons.mts'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/e2e-desktop.yml'
+  pull_request:
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'tools/icons.mts'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/e2e-desktop.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+
+      - name: Regenerate the icons and fail on any difference
+        working-directory: .
+        run: |
+          pnpm icons
+          git diff --exit-code -- apps/desktop/resources apps/landing/src/app/icon.svg packages/tokens/src/mark.ts
+
+      - name: Typecheck and unit tests
+        run: |
+          pnpm typecheck
+          pnpm test
+
+      - name: Build and run the end to end tests against the build
+        run: |
+          pnpm build
+          pnpm test:e2e
+
+      - name: Package an unsigned Windows installer
+        run: pnpm package
+
+      - name: Read the fuses back from the packaged binary
+        run: pnpm verify:fuses release/win-unpacked/Scrim.exe
+
+      - name: Run the end to end tests against the packaged app
+        env:
+          SCRIM_E2E_TARGET: packaged
+        run: pnpm test:e2e
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scrim-windows-unsigned
+          path: apps/desktop/release/Scrim Setup *.exe
+          retention-days: 3
+          if-no-files-found: error

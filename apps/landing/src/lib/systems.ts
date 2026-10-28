@@ -1,22 +1,25 @@
 import type { Os } from './platform';
 
-export type SupportedOs = Exclude<Os, 'unsupported'>;
+type SupportedOs = Exclude<Os, 'unsupported'>;
 
 export interface SystemInfo {
   os: SupportedOs;
   name: string;
+  /** False while there is no installer for this system. It then shows Coming soon. */
+  available: boolean;
   /** What the download is. */
   summary: string;
   /** First run help, one paragraph each. */
   help: readonly string[];
 }
 
-/** The three systems Scrim runs on, with the help people need on first run. */
+/** The three systems Scrim is planned for. Only Windows has an installer in version 1. */
 export const SYSTEMS: readonly SystemInfo[] = [
   {
     os: 'windows',
     name: 'Windows',
-    summary: 'An installer for Windows.',
+    available: true,
+    summary: 'An installer for 64 bit Windows 10 and 11.',
     help: [
       'Until the installer is signed, Windows SmartScreen may warn you before it runs.',
       'Choose More info, then Run anyway.',
@@ -25,19 +28,21 @@ export const SYSTEMS: readonly SystemInfo[] = [
   {
     os: 'macos',
     name: 'macOS',
-    summary: 'An app for macOS, for Apple Silicon and Intel Macs.',
+    available: false,
+    summary: 'Leave your email and we will tell you when it is ready.',
     help: [
-      'Until the app is notarized, open System Settings, then Privacy and Security, and choose Open Anyway.',
-      'Your first recording needs the Screen Recording permission. Cursor effects and auto zoom need the Accessibility or Input Monitoring permission.',
+      'There is no Mac version yet, so there is nothing to install.',
+      'Tick the box to get one email when a new version is out.',
     ],
   },
   {
     os: 'linux',
     name: 'Linux',
-    summary: 'An AppImage and a deb package.',
+    available: false,
+    summary: 'Leave your email and we will tell you when it is ready.',
     help: [
-      'Cursor effects and auto zoom need an X11 session.',
-      'On Wayland, recording works but those effects are off, and Scrim tells you why.',
+      'There is no Linux version yet, so there is nothing to install.',
+      'Tick the box to get one email when a new version is out.',
     ],
   },
 ];

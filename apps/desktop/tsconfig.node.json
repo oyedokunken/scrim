@@ -1,14 +1,46 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "composite": true, "types": ["node"], "lib": ["ES2023", "DOM"] },
+  "compilerOptions": {
+    "composite": true,
+    "allowImportingTsExtensions": true,
+    "types": ["node"],
+    "lib": ["ES2023"]
+  },
   "include": [
     "electron.vite.config.ts",
     "electron-builder.config.ts",
     "vitest.config.mts",
-    "playwright.config.ts",
     "src/main/**/*",
     "src/preload/**/*",
     "src/shared/**/*",
-    "tests/**/*"
+    "src/recorder/protocol.ts",
+    "src/recorder/protocol-schemas.ts",
+    "src/recorder/preload/**/*",
+    "src/recorder/region/geometry.ts",
+    "src/recorder/region/picker.ts",
+    "src/recorder/region/protocol.ts",
+    "src/recorder/region/preload/**/*",
+    "src/recorder/pill/channels.ts",
+    "src/recorder/bubble/channels.ts",
+    "src/recorder/bubble/geometry.ts",
+    "src/recorder/bubble/protocol.ts",
+    "src/recorder/bubble/preload/**/*",
+    "src/recorder/pill/format.ts",
+    "src/recorder/pill/protocol.ts",
+    "src/recorder/pill/preload/**/*",
+    "tests/unit/**/*",
+    "build/**/*",
+    "scripts/**/*",
+    "../../packages/tokens/scripts/mark-source.mts"
+  ],
+  "exclude": [
+    "tests/unit/track-recorder.test.ts",
+    "tests/unit/recorder-controller.test.ts",
+    "tests/unit/support/recorder-fakes.ts",
+    "tests/unit/shell-views.test.tsx",
+    "tests/unit/first-run.test.tsx",
+    "tests/unit/ui-primitives.test.tsx",
+    "tests/unit/renderer-*.test.ts",
+    "tests/unit/renderer-*.test.tsx"
   ]
 }

@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
   type CSSProperties,
+  type ReactNode,
 } from 'react';
 import { DemoPlayer, browserClock } from '@/lib/demo/player';
 import { poseToTransform } from '@/lib/demo/pose-to-transform';
@@ -26,6 +27,7 @@ import {
   typedCount,
   uiStateAt,
 } from '@/lib/demo/script';
+import { STAGE_MS, STAGES, type Stage } from '@/lib/demo/sequence';
 import styles from './hero-demo.module.css';
 import { MockWindow } from './mock-window';
 
@@ -89,7 +91,20 @@ const TRAIL_REST = (index: number) =>
  * not render 60 times a second. The recording overlays (timer, zoom badge, face camera) sit
  * outside the zoomed scene, as they would in an exported video.
  */
-export function HeroDemo() {
+interface HeroDemoProps {
+  /** False keeps the demo still at its start, for example while an intro card is showing. */
+  gate?: boolean;
+  /** Called each time the demo reaches its end. */
+  onEnded?: () => void;
+  /** Cards that sit over the camera view. They are siblings of it, so they stay readable. */
+  overlay?: ReactNode;
+  /** Which part of the hero sequence is showing. Only exposed as a data attribute. */
+  stage?: string;
+  /** Called when a user clicks a stage marker on the timeline. */
+  onStageRequest?: (stage: Stage) => void;
+}
+
+export function HeroDemo({ gate = true, onEnded, overlay, stage, onStageRequest }: HeroDemoProps) {
   const root = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
   const ripples = useRef<(HTMLSpanElement | null)[]>([]);
@@ -104,6 +119,12 @@ export function HeroDemo() {
   const player = useRef<DemoPlayer | null>(null);
   const autoZoomRef = useRef(true);
   const scrubbing = useRef(false);
+  const lastTime = useRef(0);
+  const endedRef = useRef(onEnded);
+
+  useEffect(() => {
+    endedRef.current = onEnded;
+  }, [onEnded]);
 
   const reducedMotion = usePrefersReducedMotion();
   // Auto means "play unless the visitor prefers reduced motion". A click makes it explicit.
@@ -113,7 +134,7 @@ export function HeroDemo() {
   const [tabVisible, setTabVisible] = useState(true);
 
   const playing = mode === 'playing' || (mode === 'auto' && !reducedMotion);
-  const running = playing && inView && tabVisible;
+  const running = playing && inView && tabVisible && gate;
 
   const draw = useCallback((timeMs: number) => {
     const element = root.current;
@@ -190,6 +211,16 @@ export function HeroDemo() {
       slider.current.value = String(Math.round(timeMs));
     }
 
+    // A wrap from the end of the loop to its start while playing means the demo finished.
+    if (
+      lastTime.current > DEMO_DURATION_MS - 600 &&
+      timeMs < 600 &&
+      player.current?.isPlaying === true
+    ) {
+      endedRef.current?.();
+    }
+    lastTime.current = timeMs;
+
     element.dataset.scale = pose.scale.toFixed(2);
     element.dataset.time = String(Math.round(timeMs));
   }, []);
@@ -231,6 +262,15 @@ export function HeroDemo() {
     }
   }, [reducedMotion, mode]);
 
+  // Each time the gate opens the demo starts from the top, or from the still frame.
+  useEffect(() => {
+    if (gate) {
+      player.current?.seek(reducedMotion ? STATIC_FRAME_TIME_MS : 0);
+    }
+    // The reduced motion value only matters at the moment the gate opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate]);
+
   useEffect(() => {
     if (running) {
       player.current?.play();
@@ -245,90 +285,94 @@ export function HeroDemo() {
   }, [autoZoom]);
 
   return (
-    <div className={styles.demo}>
-      <div
-        ref={root}
-        className={styles.viewport}
-        style={ROOT_STYLE}
-        data-testid="hero-demo"
-        data-playing={running ? 'true' : 'false'}
-        data-scale="1.00"
-        data-time="0"
-        role="img"
-        aria-label="A demonstration of auto zoom. A cursor moves over a task app and clicks three times. The view zooms in on each click, follows the cursor, then eases back out. A face camera sits in the corner and a timer counts the recording."
-      >
-        <div ref={scene} className={styles.scene} style={SCENE_STYLE}>
-          <MockWindow />
-          {Array.from({ length: TRAIL_LENGTH }, (_, index) => (
-            <span
-              key={index}
-              ref={(element) => {
-                trail.current[index] = element;
-              }}
-              className={styles.trail}
-              style={TRAIL_REST(index)}
-            />
-          ))}
-          {DEMO_CLICKS.map((click, index) => (
-            <span
-              key={click.t}
-              ref={(element) => {
-                ripples.current[index] = element;
-              }}
-              className={styles.ripple}
-              style={{
-                ...RIPPLE_REST,
-                left: `${String((click.x / DEMO_FRAME.width) * 100)}%`,
-                top: `${String((click.y / DEMO_FRAME.height) * 100)}%`,
-              }}
-            />
-          ))}
-          <div className={styles.cursor}>
-            <span className={styles.halo} />
-            <svg className={styles.pointer} viewBox="0 0 15 22" focusable="false">
+    <div className={styles.demo} data-stage={stage}>
+      <div className={styles.stage}>
+        <div
+          ref={root}
+          className={styles.viewport}
+          style={ROOT_STYLE}
+          data-testid="hero-demo"
+          data-stage={stage}
+          data-playing={running ? 'true' : 'false'}
+          data-scale="1.00"
+          data-time="0"
+          role="img"
+          aria-label="A demonstration of auto zoom. A cursor moves over a task app and clicks three times. The view zooms in on each click, follows the cursor, then eases back out. A face camera sits in the corner and a timer counts the recording."
+        >
+          <div ref={scene} className={styles.scene} style={SCENE_STYLE}>
+            <MockWindow />
+            {Array.from({ length: TRAIL_LENGTH }, (_, index) => (
+              <span
+                key={index}
+                ref={(element) => {
+                  trail.current[index] = element;
+                }}
+                className={styles.trail}
+                style={TRAIL_REST(index)}
+              />
+            ))}
+            {DEMO_CLICKS.map((click, index) => (
+              <span
+                key={click.t}
+                ref={(element) => {
+                  ripples.current[index] = element;
+                }}
+                className={styles.ripple}
+                style={{
+                  ...RIPPLE_REST,
+                  left: `${String((click.x / DEMO_FRAME.width) * 100)}%`,
+                  top: `${String((click.y / DEMO_FRAME.height) * 100)}%`,
+                }}
+              />
+            ))}
+            <div className={styles.cursor}>
+              <span className={styles.halo} />
+              <svg className={styles.pointer} viewBox="0 0 15 22" focusable="false">
+                <path
+                  d="M0 0V19L5 14.5L8.5 22L12 20.5L8.5 13H15Z"
+                  fill="var(--scrim-black)"
+                  stroke="var(--scrim-white)"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Recording overlays. They stay put while the scene zooms. */}
+          <span className={styles.rec}>
+            <span className={styles.recDot} />
+            <span className={styles.recLabel}>REC</span>
+            <span ref={clock} className={styles.recTime}>
+              00:00
+            </span>
+          </span>
+          <span className={styles.zoomBadge}>
+            Zoom <span ref={badge}>1.0x</span>
+          </span>
+          <div className={styles.face}>
+            <svg viewBox="0 0 100 100" focusable="false" className={styles.faceArt}>
+              <circle cx="50" cy="50" r="50" fill="var(--scrim-green)" />
+              <path d="M14 100a36 30 0 0 1 72 0Z" fill="var(--scrim-butter)" />
+              <circle cx="50" cy="42" r="19" fill="var(--scrim-butter)" />
+              <circle cx="43" cy="40" r="2.4" fill="var(--scrim-black)" />
+              <circle cx="57" cy="40" r="2.4" fill="var(--scrim-black)" />
               <path
-                d="M0 0V19L5 14.5L8.5 22L12 20.5L8.5 13H15Z"
-                fill="var(--scrim-black)"
-                stroke="var(--scrim-white)"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
+                d="M43 49q7 6 14 0"
+                fill="none"
+                stroke="var(--scrim-black)"
+                strokeWidth="2.2"
+                strokeLinecap="round"
               />
             </svg>
+            <span className={styles.mic}>
+              <span className={styles.micBar} style={{ transform: 'scaleY(var(--m1))' }} />
+              <span className={styles.micBar} style={{ transform: 'scaleY(var(--m2))' }} />
+              <span className={styles.micBar} style={{ transform: 'scaleY(var(--m3))' }} />
+            </span>
           </div>
         </div>
-
-        {/* Recording overlays. They stay put while the scene zooms. */}
-        <span className={styles.rec}>
-          <span className={styles.recDot} />
-          <span className={styles.recLabel}>REC</span>
-          <span ref={clock} className={styles.recTime}>
-            00:00
-          </span>
-        </span>
-        <span className={styles.zoomBadge}>
-          Zoom <span ref={badge}>1.0x</span>
-        </span>
-        <div className={styles.face}>
-          <svg viewBox="0 0 100 100" focusable="false" className={styles.faceArt}>
-            <circle cx="50" cy="50" r="50" fill="var(--scrim-green)" />
-            <path d="M14 100a36 30 0 0 1 72 0Z" fill="var(--scrim-butter)" />
-            <circle cx="50" cy="42" r="19" fill="var(--scrim-butter)" />
-            <circle cx="43" cy="40" r="2.4" fill="var(--scrim-black)" />
-            <circle cx="57" cy="40" r="2.4" fill="var(--scrim-black)" />
-            <path
-              d="M43 49q7 6 14 0"
-              fill="none"
-              stroke="var(--scrim-black)"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            />
-          </svg>
-          <span className={styles.mic}>
-            <span className={styles.micBar} style={{ transform: 'scaleY(var(--m1))' }} />
-            <span className={styles.micBar} style={{ transform: 'scaleY(var(--m2))' }} />
-            <span className={styles.micBar} style={{ transform: 'scaleY(var(--m3))' }} />
-          </span>
-        </div>
+        {overlay}
       </div>
 
       <div className={styles.timeline}>
@@ -359,6 +403,30 @@ export function HeroDemo() {
               style={{ left: `${String((click.t / DEMO_DURATION_MS) * 100)}%` }}
             />
           ))}
+          {STAGES.map((stageName) => {
+            const timeMs =
+              stageName === 'intro'
+                ? 0
+                : stageName === 'words'
+                  ? STAGE_MS.intro
+                  : stageName === 'demo' || stageName === 'platforms'
+                    ? STAGE_MS.intro + STAGE_MS.words
+                    : DEMO_DURATION_MS;
+            return (
+              <button
+                key={stageName}
+                type="button"
+                className={styles.stageMarker}
+                style={{ left: `${String((timeMs / DEMO_DURATION_MS) * 100)}%` }}
+                aria-label={`Go to ${stageName}`}
+                onClick={() => {
+                  onStageRequest?.(stageName);
+                }}
+              >
+                {stageName}
+              </button>
+            );
+          })}
           <input
             ref={slider}
             type="range"
@@ -404,13 +472,14 @@ export function HeroDemo() {
         <button
           type="button"
           className={styles.button}
-          aria-pressed={playing}
+          data-playing={playing && gate}
+          disabled={!gate}
           onClick={() => {
             setMode(playing ? 'paused' : 'playing');
           }}
         >
           {playing ? <Pause aria-hidden="true" size={18} /> : <Play aria-hidden="true" size={18} />}
-          <span>Play demo</span>
+          <span>{playing ? 'Pause' : 'Play'}</span>
         </button>
 
         <button

@@ -23,9 +23,9 @@ export function DownloadButton({ className }: DownloadButtonProps) {
   const link = useDownloadLink();
   const platform = usePlatform();
   const known = platform !== null && platform.os !== 'unsupported' ? platform.os : null;
-  const label = known === null ? 'Download' : `Download for ${osLabel(known)}`;
+  const label = known === 'windows' ? `Download for ${osLabel(known)}` : 'Download';
   const icon =
-    known === null ? (
+    known !== 'windows' ? (
       <Download aria-hidden="true" size={20} strokeWidth={2.25} />
     ) : (
       <OsIcon os={known} size={20} />

@@ -4,7 +4,7 @@ Thanks for helping improve Scrim.
 
 ## Before you start
 
-The current phase is the landing page. Do not scaffold or modify `apps/desktop` until Phase 2 begins. Read [CLAUDE.md](CLAUDE.md) for the complete project requirements and architecture.
+The website (`apps/landing`) and the Windows desktop app (`apps/desktop`) are both under active development, and they never import from each other. They share code only through `packages/*`. Read [CLAUDE.md](CLAUDE.md) for the complete project requirements and architecture, and `docs/adr` for the decisions behind them.
 
 For a substantial change, open an issue first so the direction can be agreed before implementation.
 
@@ -31,6 +31,8 @@ pnpm dev:landing
 ```
 
 Copy `apps/landing/.env.example` to `.env` and point it at a development database. A mail catcher such as Mailpit works for mail. Never develop against the production database.
+
+For desktop work, run `pnpm dev` (electron-vite). The packaged app is built with `pnpm package`, which fetches the pinned FFmpeg build first. Recordings made while developing go to the projects folder and must never be committed.
 
 ## Making changes
 
@@ -68,7 +70,7 @@ pnpm knip
 pnpm format
 ```
 
-Landing page changes should also pass the integration, end-to-end, accessibility and Lighthouse checks required by CI. Desktop changes must include the applicable Electron and platform tests.
+Landing page changes should also pass the integration, end-to-end, accessibility and Lighthouse checks. Desktop changes must include unit tests and, for anything a person can see, an end to end test that drives the app's own pages (never the computer's mouse or keyboard). They must work in the installed app, not only in development. GitHub Actions may be unavailable, so run the checks locally and say which you ran in the pull request.
 
 ## Pull requests
 

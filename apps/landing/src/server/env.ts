@@ -55,10 +55,23 @@ function describeProblems(error: z.ZodError): string {
   ].join('\n');
 }
 
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/;
+
 export function parseSiteEnv(source: Record<string, string | undefined>): SiteEnv {
   const result = siteSchema.safeParse(source);
   if (!result.success) {
     throw new Error(describeProblems(result.error));
+  }
+  // The canonical link, og:url and og:image all come from SITE_URL. A production deployment that
+  // still carries the .env.example value would publish localhost links, so refuse to build it.
+  const hostname = new URL(result.data.SITE_URL).hostname;
+  if (source.VERCEL_ENV === 'production' && LOCAL_HOST.test(hostname)) {
+    throw new Error(
+      [
+        'Invalid environment configuration:',
+        '  SITE_URL: points at this machine, but this is a production deployment. Set it to the public address.',
+      ].join('\n'),
+    );
   }
   return result.data;
 }

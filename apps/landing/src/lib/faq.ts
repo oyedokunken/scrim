@@ -18,12 +18,12 @@ export const FAQ: readonly FaqItem[] = [
   {
     question: 'Are my videos saved to the cloud?',
     answer:
-      'No. Your videos are saved in a folder on your computer, and nothing is uploaded, synced or shared unless you choose to send the exported file yourself. The only network request the app may make is an optional check for a newer version on GitHub.',
+      'No. Your videos are saved in a folder on your computer, and nothing is uploaded, synced or shared unless you choose to send the exported file yourself.',
   },
   {
     question: 'Which systems does it run on?',
     answer:
-      'Windows, macOS and Linux. On Linux, cursor effects and auto zoom need an X11 session. Under Wayland you can still record, and Scrim tells you why those two effects are off.',
+      'Windows 10 and 11, 64 bit, today. macOS and Linux versions are planned and are not out yet. Leave your email in the download form and we will write once when one is ready.',
   },
   {
     question: 'How does auto zoom work?',

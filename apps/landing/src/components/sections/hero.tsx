@@ -2,7 +2,7 @@ import { ExternalLink } from 'lucide-react';
 import { siteConfig } from '@/site.config';
 import { DownloadButton } from '../download-button';
 import { SiteLink } from '../site-link';
-import { HeroDemo } from '../hero-demo/hero-demo';
+import { HeroShow } from '../hero-demo/hero-show';
 import styles from './hero.module.css';
 
 export function Hero() {
@@ -26,7 +26,7 @@ export function Hero() {
           </div>
         </div>
       </div>
-      <HeroDemo />
+      <HeroShow />
     </section>
   );
 }

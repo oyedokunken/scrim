@@ -117,7 +117,7 @@ const FEATURES: readonly Feature[] = [
   },
   {
     title: 'Shortcuts',
-    text: 'Start and stop from any app with global shortcuts. Ctrl+Shift+R starts and Ctrl+Shift+S stops and exports, with Cmd in place of Ctrl on macOS. Change either one to suit you.',
+    text: 'Start and stop from any app with global shortcuts. Ctrl+Shift+R starts and Ctrl+Shift+S stops and exports. Change either one to suit you.',
     visual: <ShortcutsIllustration className={styles.art} />,
   },
 ];

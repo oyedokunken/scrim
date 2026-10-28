@@ -115,8 +115,10 @@ describe('SiteFooter', () => {
     expect(html).not.toContain('<li>Windows</li>');
   });
 
-  it('no longer holds the back to top button, which now floats', () => {
-    expect(html).not.toContain('href="#top"');
+  it('holds no back to top button of its own, only the logo link to the top', () => {
+    // The floating button lives in the layout. The one link to the top in here is the big logo.
+    expect(html.match(/href="#top"/g)).toHaveLength(1);
+    expect(html).not.toContain('aria-label="Back to top"');
   });
 
   it('puts a Show your Support button, with a heart, under the brand text', () => {
@@ -136,9 +138,19 @@ describe('SiteFooter', () => {
     expect(html).toContain('@oyedokunken');
   });
 
-  it('hides the giant wordmark from assistive technology and never uses it as the only link', () => {
-    const mark = /<div class="[^"]*mark[^"]*" aria-hidden="true">/.exec(html);
-    expect(mark).not.toBeNull();
+  it('makes the giant logo a link to the top, with a name that says where it goes', () => {
+    const link = /<a href="#top" class="[^"]*mark[^"]*" aria-label="([^"]+)">/.exec(html);
+    expect(link).not.toBeNull();
+    expect(link?.[1]).toBe('Scrim logo - back to top');
+    // The drawing is inside the link, so the link is the only thing that carries it.
+    expect(html.indexOf('<svg viewBox="0 0 1260 330"')).toBeGreaterThan(
+      html.indexOf(link?.[0] ?? ''),
+    );
     expect(html.slice(html.indexOf('<text'))).not.toContain('<a ');
+  });
+
+  it('draws the logo in white on the black footer, with no separate butter section', () => {
+    expect(html).toContain('fill="var(--scrim-white)"');
+    expect(html).not.toContain('markSection');
   });
 });

@@ -1,8 +1,14 @@
+import { ToastProvider } from '../ui';
+import { routeFromHash } from './routes';
+import { ControlScreen, MainScreen } from './screens';
+
+/** One page, two windows: the recording control at `#/control`, the app everywhere else. */
 export function App() {
-  return (
-    <main>
-      <h1>Scrim</h1>
-      <p>Record your screen. Nothing leaves your computer.</p>
-    </main>
+  return routeFromHash(window.location.hash) === 'control' ? (
+    <ControlScreen />
+  ) : (
+    <ToastProvider>
+      <MainScreen />
+    </ToastProvider>
   );
 }

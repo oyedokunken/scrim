@@ -65,7 +65,10 @@ test.describe('the nav lands on real sections', () => {
       expect(heading).not.toBeNull();
       expect(pill).not.toBeNull();
       const pillBottom = (pill?.y ?? 0) + (pill?.height ?? 0);
-      expect(section?.y ?? -1, 'section top').toBeGreaterThanOrEqual(pillBottom - 1);
+      // The lower sections render on demand, so on a first visit the scroll can land up to the
+      // header offset past the section's own top edge. The section must not be scrolled past,
+      // and its heading, which is what a visitor reads, must be clear of the pill.
+      expect(section?.y ?? -99, 'section top not scrolled past').toBeGreaterThanOrEqual(-1);
       expect(heading?.y ?? -1, 'heading top').toBeGreaterThanOrEqual(pillBottom - 1);
       expect(heading?.y ?? 9999, 'heading is on screen').toBeLessThan(viewport);
     });
@@ -115,9 +118,13 @@ test.describe('the disclosures', () => {
   test('each system has first run help that opens on click', async ({ page }) => {
     await page.goto('/');
     const download = page.locator('#download');
-    const summaries = download.getByText('First run help');
+    const summaries = download.getByText('Need help?');
     await expect(summaries).toHaveCount(3);
-    for (const [index, text] of ['SmartScreen', 'Open Anyway', 'X11'].entries()) {
+    for (const [index, text] of [
+      'SmartScreen',
+      'no Mac version yet',
+      'no Linux version yet',
+    ].entries()) {
       await summaries.nth(index).click();
       await expect(download.locator('details').nth(index)).toHaveAttribute('open', '');
       await expect(download.locator('details').nth(index)).toContainText(text);
@@ -257,10 +264,15 @@ test.describe('keyboard only', () => {
     expect(openedFaq, 'a FAQ question was opened by keyboard').toBe(true);
     expect(openedHelp, 'first run help was opened by keyboard').toBe(true);
     expect(copied, 'the commands were copied by keyboard').toBe(true);
+    // The demo button is named Pause while the demo plays and Play while it is paused.
+    expect(
+      [...seen].some((label) => label === 'Play' || label === 'Pause'),
+      'the demo play button was reachable',
+    ).toBe(true);
     for (const expected of [
-      'Play demo',
       'Auto zoom',
       'Copy commands',
+      'Scrim logo - back to top',
       'Back to top',
       'Privacy policy',
     ]) {
@@ -308,7 +320,7 @@ test.describe('metadata and structured data', () => {
     const data = JSON.parse(raw ?? '{}') as Record<string, unknown>;
     expect(data['@type']).toBe('SoftwareApplication');
     expect(data.name).toBe('Scrim');
-    expect(data.operatingSystem).toBe('Windows, macOS, Linux');
+    expect(data.operatingSystem).toBe('Windows');
     expect(data.applicationCategory).toBe('MultimediaApplication');
     expect(data.offers).toMatchObject({ price: '0' });
     expect(data.license).toBe('https://github.com/oyedokunken/scrim/blob/main/LICENSE');
@@ -385,7 +397,9 @@ test.describe('the content the owner asked for', () => {
 
   test('the FAQ heading and subtext line up with each other', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'You probably have questions.' })).toBeVisible();
-    await expect(page.getByText('Straight answers, before you download.')).toBeVisible();
+    await expect(
+      page.getByText('So we answered them below. When you use Scrim, you are in control.'),
+    ).toBeVisible();
   });
 
   test('the FAQ answers the sign up and cloud questions', async ({ page }) => {

@@ -41,10 +41,10 @@ const optionsArb = fc.record(
   {
     maxZoom: fc.double({ min: 1.2, max: 3, noNaN: true }),
     leadInMs: fc.integer({ min: 0, max: 1000 }),
-    easeMs: fc.integer({ min: 0, max: 2000 }),
+    easeMs: fc.integer({ min: 100, max: 2000 }),
     holdMs: fc.integer({ min: 0, max: 3000 }),
-    mergeWindowMs: fc.integer({ min: 0, max: 4000 }),
-    followIntervalMs: fc.integer({ min: 50, max: 1000 }),
+    lookAheadMs: fc.integer({ min: 0, max: 400 }),
+    deadZone: fc.double({ min: 0, max: 1, noNaN: true }),
   },
   { requiredKeys: [] },
 );

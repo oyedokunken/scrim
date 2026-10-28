@@ -61,15 +61,48 @@ async function visitorOn(browser: Browser, system: keyof typeof USER_AGENTS): Pr
   return page;
 }
 
-async function fillIn(page: Page, name = 'Ada Lovelace', email = 'ada@example.com') {
+/**
+ * Picks Windows when the dialog has not chosen a system. A desktop browser gets its system picked
+ * from the computer, but a touch screen is treated as a phone, which gets no guess, so the visitor
+ * has to choose.
+ */
+async function chooseSystemIfNone(page: Page, viaKeyboard = false) {
+  const checked = dialog(page).getByRole('radio', { checked: true });
+  if ((await checked.count()) > 0) {
+    return;
+  }
+  const windows = dialog(page).getByRole('radio', { name: 'Windows' });
+  if (viaKeyboard) {
+    await windows.focus();
+    await page.keyboard.press('Space');
+  } else {
+    await windows.check();
+  }
+}
+
+async function fillIn(
+  page: Page,
+  name = 'Ada Lovelace',
+  email = 'ada@example.com',
+  { pickSystem = true }: { pickSystem?: boolean } = {},
+) {
   await dialog(page).getByLabel('Your name').fill(name);
   await dialog(page).getByLabel('Your email').fill(email);
+  if (pickSystem) {
+    await chooseSystemIfNone(page);
+  }
 }
 
 async function openDialog(page: Page) {
   await page.goto('/');
   await heroButton(page).click();
   await expect(dialog(page)).toBeVisible();
+  // The dialog rises in. Wait for that to finish, so positions are measured on the settled dialog.
+  await dialog(page).evaluate(async (element) => {
+    await Promise.all(
+      element.getAnimations({ subtree: true }).map((animation) => animation.finished),
+    );
+  });
 }
 
 test.describe('opening the download dialog', () => {
@@ -93,11 +126,31 @@ test.describe('opening the download dialog', () => {
     await expect(dialog(page)).toBeVisible();
   });
 
-  test('a system card opens it with that system chosen', async ({ page }) => {
+  test('the Windows card opens it with Windows chosen', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#download').getByRole('link', { name: 'Download for macOS' }).click();
+    await page.locator('#download').getByRole('link', { name: 'Download for Windows' }).click();
     await expect(dialog(page)).toBeVisible();
-    await expect(dialog(page).getByRole('radio', { name: 'macOS' })).toBeChecked();
+    await expect(dialog(page).getByRole('radio', { name: 'Windows' })).toBeChecked();
+    await expect(dialog(page).getByRole('heading', { name: 'Before you download' })).toBeVisible();
+  });
+
+  test('a card for a system with no installer opens it as a Coming soon sign up', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await expect(page.locator('#download').getByText('Coming soon')).toHaveCount(2);
+    await expect(page.locator('#download').getByText('Download for macOS')).toHaveCount(0);
+    await page
+      .locator('#download')
+      .getByRole('link', { name: 'Email me when it is ready' })
+      .first()
+      .click();
+    await expect(dialog(page)).toBeVisible();
+    await expect(dialog(page).getByRole('heading', { name: /is coming soon/ })).toBeVisible();
+    await expect(dialog(page).getByLabel('Email me when a new version is out')).toHaveCount(0);
+    await expect(
+      dialog(page).getByRole('button', { name: 'Tell me when it is ready' }),
+    ).toBeVisible();
   });
 
   test('the closing call to action opens it with that system chosen', async ({ page }) => {
@@ -135,22 +188,17 @@ test.describe('the system is picked from the visitor computer', () => {
     });
   }
 
-  test('a Mac is asked which chip, with Apple Silicon first', async ({ browser }) => {
-    const page = await visitorOn(browser, 'macos');
-    await openDialog(page);
-    await expect(dialog(page).getByText('Which Mac?')).toBeVisible();
-    await expect(dialog(page).getByRole('radio', { name: /Apple Silicon/ })).toBeChecked();
-    await dialog(page).getByRole('radio', { name: 'Intel' }).check();
-    await expect(dialog(page).getByRole('radio', { name: 'Intel' })).toBeChecked();
-    await page.context().close();
-  });
-
-  test('Linux is asked which package, AppImage first', async ({ browser }) => {
-    const page = await visitorOn(browser, 'linux');
-    await openDialog(page);
-    await expect(dialog(page).getByText('Which package?')).toBeVisible();
-    await expect(dialog(page).getByRole('radio', { name: 'AppImage' })).toBeChecked();
-    await page.context().close();
+  test('a Mac or Linux visitor is told it is coming soon, and is not asked about chips or packages', async ({
+    browser,
+  }) => {
+    for (const system of ['macos', 'linux'] as const) {
+      const page = await visitorOn(browser, system);
+      await openDialog(page);
+      await expect(dialog(page).getByRole('heading', { name: /is coming soon/ })).toBeVisible();
+      await expect(dialog(page).getByText('Which Mac?')).toHaveCount(0);
+      await expect(dialog(page).getByText('Which package?')).toHaveCount(0);
+      await page.context().close();
+    }
   });
 
   test('the visitor can change it, and the choice sticks', async ({ browser }) => {
@@ -174,7 +222,9 @@ test.describe('the system is picked from the visitor computer', () => {
     });
     await openDialog(page);
     await expect(
-      dialog(page).getByText(/Scrim runs on Windows, macOS and Linux computers/),
+      dialog(page)
+        .getByText(/Windows has an installer today. macOS and Linux are coming soon/)
+        .first(),
     ).toBeVisible();
     for (const label of ['Windows', 'macOS', 'Linux']) {
       await expect(dialog(page).getByRole('radio', { name: label })).not.toBeChecked();
@@ -277,7 +327,7 @@ test.describe('the form', () => {
     });
     const requests = await mockServer(page, baseURL ?? '');
     await openDialog(page);
-    await fillIn(page);
+    await fillIn(page, 'Ada Lovelace', 'ada@example.com', { pickSystem: false });
     await dialog(page).getByRole('button', { name: 'Start download' }).click();
     await expect(dialog(page).getByText('Choose your system.')).toBeVisible();
     expect(requests).toHaveLength(0);
@@ -342,15 +392,11 @@ test.describe('starting the download', () => {
     });
   });
 
-  test('sends the system, the chip and the opt in the visitor chose', async ({
-    browser,
-    baseURL,
-  }) => {
-    const page = await visitorOn(browser, 'macos');
+  test('sends the system and the opt in the visitor chose', async ({ browser, baseURL }) => {
+    const page = await visitorOn(browser, 'windows');
     const requests = await mockServer(page, baseURL ?? '');
     await openDialog(page);
     await fillIn(page, '  Ada  ', '  ADA@Example.com ');
-    await dialog(page).getByRole('radio', { name: 'Intel' }).check();
     await dialog(page).getByLabel('Email me when a new version is out').check();
     await Promise.all([
       page.waitForEvent('download'),
@@ -359,10 +405,26 @@ test.describe('starting the download', () => {
     expect(requests[0]).toMatchObject({
       name: 'Ada',
       email: 'ada@example.com',
-      os: 'macos',
+      os: 'windows',
       arch: 'x64',
       updatesOptIn: true,
     });
+    await page.context().close();
+  });
+
+  test('a Mac visitor signs up for news and sees the list message, with no download', async ({
+    browser,
+    baseURL,
+  }) => {
+    const page = await visitorOn(browser, 'macos');
+    const requests = await mockServer(page, baseURL ?? '', {
+      body: { url: RELEASES, filename: '', version: '', direct: false, comingSoon: true },
+    });
+    await openDialog(page);
+    await fillIn(page, 'Ada', 'ada@example.com');
+    await dialog(page).getByRole('button', { name: 'Tell me when it is ready' }).click();
+    await expect(dialog(page).getByRole('heading', { name: 'You are on the list.' })).toBeVisible();
+    expect(requests[0]).toMatchObject({ os: 'macos', updatesOptIn: true });
     await page.context().close();
   });
 
@@ -521,12 +583,23 @@ test.describe('keyboard and focus', () => {
     await expect(dialog(page)).toBeHidden();
   });
 
-  test('Tab stays inside the dialog', async ({ page }) => {
+  test('Tab never reaches the page behind the dialog', async ({ page }) => {
     await openDialog(page);
+    // A modal dialog makes the page behind it inert. After its last control, the browser hands
+    // focus to its own interface, which shows up here as the body, and that is not a trap. What
+    // must never happen is focus landing on a control of the page underneath.
     for (let i = 0; i < 25; i += 1) {
       await page.keyboard.press('Tab');
-      const inside = await page.evaluate(() => document.activeElement?.closest('dialog') !== null);
-      expect(inside, `Tab ${String(i + 1)} left the dialog`).toBe(true);
+      const where = await page.evaluate(() => {
+        const active = document.activeElement;
+        if (active === null || active === document.body) {
+          return 'browser';
+        }
+        return active.closest('dialog') === null ? 'page behind' : 'dialog';
+      });
+      expect(where, `Tab ${String(i + 1)} reached the page behind the dialog`).not.toBe(
+        'page behind',
+      );
     }
   });
 
@@ -538,6 +611,7 @@ test.describe('keyboard and focus', () => {
     await page.keyboard.type('ada@example.com');
     await expect(dialog(page).getByLabel('Your name')).toHaveValue('Ada Lovelace');
     await expect(dialog(page).getByLabel('Your email')).toHaveValue('ada@example.com');
+    await chooseSystemIfNone(page, true);
 
     const submit = dialog(page).getByRole('button', { name: 'Start download' });
     await submit.focus();
@@ -632,7 +706,8 @@ test.describe('the unsubscribe page', () => {
     );
     await page.goto(`/unsubscribe?token=${TOKEN}`);
     await page.getByRole('button', { name: 'Unsubscribe' }).click();
-    await expect(page.getByRole('alert')).toContainText('did not work');
+    // Next.js adds its own route announcer with the same role, so pick the page's message.
+    await expect(page.getByRole('alert').filter({ hasText: 'did not work' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Unsubscribe' })).toBeEnabled();
   });
 

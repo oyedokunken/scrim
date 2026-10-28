@@ -1,3 +1,11 @@
 export * from './camera';
+export * from './clock';
+export * from './edit';
+export * from './export';
 export * from './input';
+export * from './render';
+export * from './result';
+export * from './session';
 export * from './zoom';
+export { zoomEditsSchema, zoomMomentSchema } from './zoom/moments-schema';
+export type { ZoomEdits } from './zoom/moments-schema';

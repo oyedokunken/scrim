@@ -179,6 +179,37 @@ export default tseslint.config(
     },
   },
   {
+    // Main and preload run in Node. The browser globals do not exist there.
+    files: ['apps/desktop/src/main/**/*.ts', 'apps/desktop/src/preload/**/*.ts'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        { name: 'window', message: 'There is no window in the main or preload process.' },
+        { name: 'document', message: 'There is no document in the main or preload process.' },
+        { name: 'navigator', message: 'There is no navigator in the main or preload process.' },
+      ],
+    },
+  },
+  {
+    // Every e2e test launches Electron through the isolated fixture.
+    files: ['apps/desktop/tests/e2e/**/*.ts'],
+    ignores: ['apps/desktop/tests/e2e/fixtures.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@playwright/test',
+              importNames: ['_electron'],
+              message: 'Use the fixture in tests/e2e/fixtures.ts so the launch is isolated.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // The sandboxed preload imports only electron and types.
     files: ['apps/desktop/src/preload/**/*.ts'],
     rules: {
@@ -211,6 +242,25 @@ export default tseslint.config(
               message: 'shared is environment neutral.',
             },
           ],
+        },
+      ],
+    },
+  },
+  {
+    // Every desktop window comes from createAppWindow, which applies the icon, the security
+    // baseline and the taskbar rule. A plain BrowserWindow would skip all three.
+    files: ['apps/desktop/src/main/**/*.ts'],
+    ignores: ['apps/desktop/src/main/windows/create-window.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ExportDefaultDeclaration',
+          message: 'Use named exports. Default exports only where a framework requires them.',
+        },
+        {
+          selector: "NewExpression[callee.name='BrowserWindow']",
+          message: 'Create windows with createAppWindow so they get the icon and the baseline.',
         },
       ],
     },

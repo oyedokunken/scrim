@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { SCROLL_PIXELS_PER_SECOND, formatClock, scrollProgress, scrollTimeMs } from '@/lib/clock';
+import { formatClock, scrollProgress } from '@/lib/clock';
 
 describe('formatClock', () => {
   it('formats minutes and seconds with leading zeros', () => {
@@ -13,33 +13,6 @@ describe('formatClock', () => {
 
   it('never shows a negative time', () => {
     expect(formatClock(-1)).toBe('00:00');
-  });
-});
-
-describe('scrollTimeMs', () => {
-  it('counts one second for every hundred pixels', () => {
-    expect(SCROLL_PIXELS_PER_SECOND).toBe(100);
-    expect(scrollTimeMs(0)).toBe(0);
-    expect(scrollTimeMs(99)).toBe(0);
-    expect(scrollTimeMs(100)).toBe(1000);
-    expect(scrollTimeMs(800)).toBe(8000);
-    expect(formatClock(scrollTimeMs(800))).toBe('00:08');
-  });
-
-  it('reads zero when the page bounces above the top', () => {
-    expect(scrollTimeMs(-40)).toBe(0);
-  });
-
-  it('only ever moves forward as the page scrolls down', () => {
-    fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: 50_000 }),
-        fc.integer({ min: 0, max: 5000 }),
-        (y, step) => {
-          expect(scrollTimeMs(y + step)).toBeGreaterThanOrEqual(scrollTimeMs(y));
-        },
-      ),
-    );
   });
 });
 

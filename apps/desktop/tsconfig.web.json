@@ -6,5 +6,28 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": []
   },
-  "include": ["src/renderer/**/*", "src/shared/**/*"]
+  "include": [
+    "src/renderer/**/*",
+    "src/shared/**/*",
+    "src/recorder/page/**/*",
+    "src/recorder/protocol.ts",
+    "src/recorder/region/geometry.ts",
+    "src/recorder/region/picker.ts",
+    "src/recorder/region/protocol.ts",
+    "src/recorder/region/page/**/*",
+    "src/recorder/bubble/geometry.ts",
+    "src/recorder/bubble/protocol.ts",
+    "src/recorder/bubble/page/**/*",
+    "src/recorder/pill/format.ts",
+    "src/recorder/pill/protocol.ts",
+    "src/recorder/pill/page/**/*",
+    "tests/unit/track-recorder.test.ts",
+    "tests/unit/recorder-controller.test.ts",
+    "tests/unit/support/recorder-fakes.ts",
+    "tests/unit/shell-views.test.tsx",
+    "tests/unit/first-run.test.tsx",
+    "tests/unit/ui-primitives.test.tsx",
+    "tests/unit/renderer-*.test.ts",
+    "tests/unit/renderer-*.test.tsx"
+  ]
 }

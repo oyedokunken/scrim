@@ -7,7 +7,10 @@ const isNarrow = (page: Page) => (page.viewportSize()?.width ?? 0) < MENU_BREAKP
 
 const NAV_LABELS = ['Features', 'Use cases', 'Download', 'FAQ', 'Contribute'];
 
-const backToTop = (page: Page) => page.getByRole('link', { name: 'Back to top' });
+/** The floating button. Exact, because the footer logo link also says back to top. */
+const backToTop = (page: Page) => page.getByRole('link', { name: 'Back to top', exact: true });
+const footerLogo = (page: Page) =>
+  page.locator('footer').getByRole('link', { name: 'Scrim logo - back to top', exact: true });
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -58,8 +61,9 @@ test('the header is a sticky black pill with square top corners and two ears', a
 test('the header stays at the top while the page scrolls', async ({ page }) => {
   await page.mouse.wheel(0, 1500);
   await page.waitForFunction(() => window.scrollY > 500);
+  // The page header, not the section headers inside <main>.
   const top = await page
-    .locator('header')
+    .locator('body > header')
     .evaluate((element) => element.getBoundingClientRect().top);
   expect(top).toBe(0);
 });
@@ -256,7 +260,7 @@ test.describe('the floating back to top button', () => {
     expect(focusable).toBe(false);
   });
 
-  test('appears once the page scrolls, floating in the corner and red like a record button', async ({
+  test('appears once the page scrolls, floating in the corner with a solid green circle', async ({
     page,
   }) => {
     await page.mouse.wheel(0, 1500);
@@ -272,10 +276,8 @@ test.describe('the floating back to top button', () => {
     // It sits in the lower right corner, not mid screen.
     expect((box?.x ?? 0) + (box?.width ?? 0)).toBeGreaterThan((viewport?.width ?? 0) - 40);
 
-    await expect(backToTop(page).locator('span').last()).toHaveCSS(
-      'background-color',
-      'rgb(255, 59, 48)',
-    );
+    // The solid inner circle is the brand green, not the record red.
+    await expect(backToTop(page).locator('div')).toHaveCSS('background-color', 'rgb(0, 78, 82)');
   });
 
   test('stays in view as the page keeps scrolling and takes you back to the top', async ({
@@ -306,17 +308,20 @@ test.describe('footer', () => {
     }
     await expect(footer.getByText(`© ${String(new Date().getFullYear())} Scrim.`)).toBeVisible();
     await expect(footer.getByRole('link', { name: 'MIT license' }).last()).toBeVisible();
-    await expect(footer.getByRole('link', { name: 'Oyedokun Kehinde' })).toHaveAttribute(
-      'href',
-      'https://www.oyedokun.dev/',
-    );
+    // The builder's links sit in the Built by card, which opens from the handle.
+    await footer.getByRole('button', { name: '@oyedokunken' }).click();
+    await expect(
+      footer
+        .getByRole('group', { name: 'Find @oyedokunken online' })
+        .getByRole('link', { name: 'Website' }),
+    ).toHaveAttribute('href', 'https://www.oyedokun.dev/');
     await expect(footer.getByRole('link', { name: /^Show your Support/ })).toHaveAttribute(
       'rel',
       'noopener noreferrer',
     );
   });
 
-  test('no longer shows the system chips, the version chip, the trust line or a back to top link', async ({
+  test('no longer shows the system chips, the version chip, the trust line or a butter section', async ({
     page,
   }) => {
     const footer = page.locator('footer');
@@ -324,20 +329,50 @@ test.describe('footer', () => {
     await expect(footer.getByText('Latest version')).toHaveCount(0);
     await expect(footer.getByText('Recordings never leave your computer.')).toHaveCount(0);
     await expect(footer.getByRole('list', { name: 'Supported systems' })).toHaveCount(0);
-    await expect(footer.getByRole('link', { name: 'Back to top' })).toHaveCount(0);
+    await expect(footer.getByRole('link', { name: 'Back to top', exact: true })).toHaveCount(0);
+    // The logo sits on the black footer itself, with no butter section under it.
+    await expect(footer).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+    await expect(footer.locator('[class*="markSection"]')).toHaveCount(0);
   });
 
-  test('the giant wordmark is decoration only, clipped by the bottom edge', async ({ page }) => {
-    const mark = page
-      .locator('footer [aria-hidden="true"]')
-      .filter({ has: page.locator('svg text') });
-    await expect(mark).toHaveCount(1);
-    await expect(mark).toHaveCSS('overflow', 'hidden');
-    const box = await mark.boundingBox();
-    const svg = await mark.locator('svg').boundingBox();
-    expect(box).not.toBeNull();
-    expect(svg).not.toBeNull();
-    expect(svg?.height ?? 0).toBeGreaterThan(box?.height ?? 0);
+  test('the giant logo is a link to the top with a clear name', async ({ page }) => {
+    const logo = footerLogo(page);
+    await expect(logo).toHaveCount(1);
+    await expect(logo).toHaveAttribute('href', '#top');
+    // The name says what it is and where it goes.
+    expect(await logo.getAttribute('aria-label')).toBe('Scrim logo - back to top');
+    await logo.scrollIntoViewIfNeeded();
+    await expect(logo.locator('svg')).toBeVisible();
+    const box = await logo.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box?.width ?? 0).toBeGreaterThan(0);
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(viewport?.width ?? 0);
+  });
+
+  test('clicking the giant logo takes you back to the top', async ({ page }) => {
+    await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+    });
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+    await footerLogo(page).click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(5);
+  });
+
+  test('the giant logo works from the keyboard and shows a focus outline', async ({ page }) => {
+    const logo = footerLogo(page);
+    await logo.focus();
+    await expect(logo).toBeFocused();
+    await expect(logo).toHaveCSS('outline-style', 'solid');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(5);
+  });
+
+  test('the footer, with the logo link in view, has no axe violations', async ({ page }) => {
+    await footerLogo(page).scrollIntoViewIfNeeded();
+    // Let the scroll driven rise finish, so contrast is measured on the settled logo.
+    await page.waitForTimeout(400);
+    const results = await new AxeBuilder({ page }).include('footer').analyze();
+    expect(results.violations).toEqual([]);
   });
 
   test('links have a visible butter focus outline on the dark background', async ({ page }) => {
@@ -351,24 +386,24 @@ test.describe('footer', () => {
   });
 });
 
-test.describe('the back to top button is a recording', () => {
-  const timer = (page: Page) => backToTop(page).locator('span').last();
+test.describe('the back to top button shows how far down the page you are', () => {
+  // By selector, not by role: at the top of the page the button is hidden, and a role locator
+  // skips hidden elements, but the progress value is still there to read.
   const progress = (page: Page) =>
-    backToTop(page).evaluate((element) => Number(element.style.getPropertyValue('--p')));
+    page
+      .locator('a[aria-label="Back to top"]')
+      .evaluate((element) => Number((element as HTMLElement).style.getPropertyValue('--p')));
 
-  test('shows a time that counts up as the page scrolls', async ({ page }) => {
-    await expect(timer(page)).toHaveText('00:00');
+  test('has no timer', async ({ page }) => {
     await page.evaluate(() => {
-      window.scrollTo(0, 800);
+      window.scrollTo(0, 1500);
     });
-    await expect(timer(page)).toHaveText('00:08');
-    await page.evaluate(() => {
-      window.scrollTo(0, 1250);
-    });
-    await expect(timer(page)).toHaveText('00:12');
+    await expect(backToTop(page)).toBeVisible();
+    await expect(backToTop(page)).not.toContainText(/\d\d:\d\d/);
+    await expect(backToTop(page).locator('span')).toHaveCount(1);
   });
 
-  test('the red ring fills as the page scrolls and is full at the bottom', async ({ page }) => {
+  test('the green ring fills as the page scrolls and is full at the bottom', async ({ page }) => {
     expect(await progress(page)).toBe(0);
     await page.evaluate(() => {
       window.scrollTo(0, 1000);
@@ -381,20 +416,21 @@ test.describe('the back to top button is a recording', () => {
       window.scrollTo(0, document.documentElement.scrollHeight);
     });
     await expect.poll(() => progress(page)).toBeGreaterThan(0.99);
-    // The ring is drawn in the record red.
-    await expect(backToTop(page).locator('circle').last()).toHaveCSS('stroke', 'rgb(255, 59, 48)');
+    // The ring is the brand green, over a track that is the same green, faded.
+    const circles = backToTop(page).locator('circle');
+    await expect(circles.last()).toHaveCSS('stroke', 'rgb(0, 78, 82)');
+    await expect(circles.first()).toHaveCSS('stroke', /rgba?\(0, 78, 82, 0\.\d+\)|color\(srgb/);
   });
 
-  test('the time and the ring go back to the start at the top', async ({ page }) => {
+  test('the ring goes back to the start at the top', async ({ page }) => {
     await page.evaluate(() => {
       window.scrollTo(0, 2000);
     });
-    await expect(timer(page)).toHaveText('00:20');
+    await expect.poll(() => progress(page)).toBeGreaterThan(0);
     await page.evaluate(() => {
       window.scrollTo(0, 0);
     });
-    await expect(timer(page)).toHaveText('00:00');
-    expect(await progress(page)).toBe(0);
+    await expect.poll(() => progress(page)).toBe(0);
   });
 });
 

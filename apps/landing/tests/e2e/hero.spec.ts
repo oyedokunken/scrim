@@ -1,12 +1,19 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const demo = (page: Page) => page.getByTestId('hero-demo');
+/** The play control. Its name is Pause while the demo plays and Play while it is paused. */
+const playButton = (page: Page) => page.getByRole('button', { name: /^(Play|Pause)$/ });
 const scale = async (locator: Locator) => (await locator.getAttribute('data-scale')) ?? '';
 const time = async (locator: Locator) => Number((await locator.getAttribute('data-time')) ?? 'NaN');
+
+/** The hero starts with two cards. The product demo begins about four seconds in. */
+const waitForDemoStage = (page: Page) =>
+  expect(demo(page)).toHaveAttribute('data-stage', 'demo', { timeout: 12_000 });
 
 test.describe('the hero demo with JavaScript', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await waitForDemoStage(page);
   });
 
   test('plays on its own, zooms in on a click and zooms back out', async ({ page }) => {
@@ -18,19 +25,23 @@ test.describe('the hero demo with JavaScript', () => {
 
   test('the play button pauses and resumes from the same place', async ({ page }) => {
     const view = demo(page);
-    const button = page.getByRole('button', { name: 'Play demo' });
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    const button = playButton(page);
+    // Not a toggle button: the changing name already says the state, so nothing is pressed.
+    await expect(button).not.toHaveAttribute('aria-pressed');
+    await expect(button).toHaveAccessibleName('Pause');
+    await expect(button).toHaveText('Pause');
     await expect.poll(() => time(view)).toBeGreaterThan(300);
 
     await button.click();
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveAccessibleName('Play');
+    await expect(button).toHaveText('Play');
     await expect(view).toHaveAttribute('data-playing', 'false');
     const pausedAt = await time(view);
     await page.waitForTimeout(600);
     expect(await time(view)).toBe(pausedAt);
 
     await button.click();
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveAccessibleName('Pause');
     await expect.poll(() => time(view)).not.toBe(pausedAt);
   });
 
@@ -60,21 +71,21 @@ test.describe('the hero demo with JavaScript', () => {
     const view = demo(page);
     // Wait for a zoomed moment, then freeze it.
     await expect.poll(() => scale(view), { timeout: 8000 }).toBe('2.00');
-    await page.getByRole('button', { name: 'Play demo' }).click();
+    await playButton(page).click();
     await expect(view).toHaveAttribute('data-playing', 'false');
     await page.getByRole('switch', { name: 'Auto zoom' }).click();
     await expect.poll(() => scale(view)).toBe('1.00');
   });
 
   test('both controls work from the keyboard', async ({ page }) => {
-    const button = page.getByRole('button', { name: 'Play demo' });
+    const button = playButton(page);
     const toggle = page.getByRole('switch', { name: 'Auto zoom' });
 
     await button.focus();
     await page.keyboard.press('Enter');
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveAccessibleName('Play');
     await page.keyboard.press('Space');
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveAccessibleName('Pause');
 
     await page.keyboard.press('Tab');
     await expect(toggle).toBeFocused();
@@ -85,10 +96,7 @@ test.describe('the hero demo with JavaScript', () => {
   });
 
   test('both controls are at least 44 pixels in each direction', async ({ page }) => {
-    for (const control of [
-      page.getByRole('button', { name: 'Play demo' }),
-      page.getByRole('switch', { name: 'Auto zoom' }),
-    ]) {
+    for (const control of [playButton(page), page.getByRole('switch', { name: 'Auto zoom' })]) {
       const box = await control.boundingBox();
       expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
       expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
@@ -164,7 +172,7 @@ test.describe('the recording look of the demo', () => {
   test('dragging the timeline moves the demo to that time', async ({ page }) => {
     await page.goto('/');
     const view = page.getByTestId('hero-demo');
-    await page.getByRole('button', { name: 'Play demo' }).click();
+    await playButton(page).click();
     await expect(view).toHaveAttribute('data-playing', 'false');
     const slider = page.getByRole('slider', { name: 'Demo position' });
     await slider.focus();
@@ -224,11 +232,28 @@ test.describe('without JavaScript', () => {
 test.describe('with reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
 
-  test('does not autoplay and shows a still frame that is already zoomed in', async ({ page }) => {
+  /** Reduced motion opens on the final card. Replay then shows the demo on its still frame. */
+  async function openStill(page: Page) {
     await page.goto('/');
+    await expect(demo(page)).toHaveAttribute('data-stage', 'address');
+    await page.getByRole('button', { name: 'Replay' }).click();
+    await expect(demo(page)).toHaveAttribute('data-stage', 'demo');
+  }
+
+  test('shows the final card with the address and no moving parts', async ({ page }) => {
+    await page.goto('/');
+    const cards = page.getByTestId('hero-cards');
+    await expect(cards.getByText('scrim.app')).toBeVisible();
+    await expect(demo(page)).toHaveAttribute('data-playing', 'false');
+    await expect(page.getByRole('button', { name: 'Replay' })).toBeVisible();
+  });
+
+  test('does not autoplay and shows a still frame that is already zoomed in', async ({ page }) => {
+    await openStill(page);
     const view = demo(page);
-    const button = page.getByRole('button', { name: 'Play demo' });
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    const button = playButton(page);
+    await expect(button).toHaveAccessibleName('Play');
+    await expect(button).toHaveText('Play');
     await expect(view).toHaveAttribute('data-playing', 'false');
     await expect.poll(() => scale(view)).toBe('2.00');
     const frozenAt = await time(view);
@@ -238,7 +263,7 @@ test.describe('with reduced motion', () => {
   });
 
   test('the controls still work', async ({ page }) => {
-    await page.goto('/');
+    await openStill(page);
     const view = demo(page);
     await expect.poll(() => scale(view)).toBe('2.00');
 
@@ -247,9 +272,9 @@ test.describe('with reduced motion', () => {
     await page.getByRole('switch', { name: 'Auto zoom' }).click();
     await expect.poll(() => scale(view)).toBe('2.00');
 
-    const button = page.getByRole('button', { name: 'Play demo' });
+    const button = playButton(page);
     await button.click();
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveAccessibleName('Pause');
     await expect(view).toHaveAttribute('data-playing', 'true');
     await expect.poll(() => time(view)).not.toBe(1900);
   });
@@ -271,12 +296,12 @@ test.describe('the download button names the visitor system', () => {
     [
       'macOS',
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15',
-      'Download for macOS',
+      'Download',
     ],
     [
       'Linux',
       'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-      'Download for Linux',
+      'Download',
     ],
     [
       'an Android phone',
@@ -343,5 +368,48 @@ test.describe('the download button names the visitor system', () => {
     }
     expect(widths[0]).toBeGreaterThan(0);
     expect(Math.abs((widths[0] ?? 0) - (widths[1] ?? 0))).toBeLessThan(0.5);
+  });
+});
+
+test.describe('the hero sequence', () => {
+  test('starts on the green card with the mark, then the words, the demo, the platforms and the address', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const view = demo(page);
+    const cards = page.getByTestId('hero-cards');
+    await expect(view).toHaveAttribute('data-stage', 'intro');
+    await expect(cards.locator('[data-card="brand"]')).toHaveCSS('opacity', '1');
+    await expect(cards.locator('[data-card="brand"]')).toHaveCSS(
+      'background-color',
+      'rgb(0, 78, 82)',
+    );
+    await expect(view).toHaveAttribute('data-stage', 'words');
+    await expect(cards.getByText('Record anything on your screen effortlessly')).toBeVisible();
+    await expect(view).toHaveAttribute('data-stage', 'demo', { timeout: 8000 });
+    await expect(view).toHaveAttribute('data-playing', 'true');
+    // The demo is 18 seconds long.
+    await expect(view).toHaveAttribute('data-stage', 'platforms', { timeout: 25_000 });
+    await expect(cards.getByText('Available for all platforms')).toBeVisible();
+    await expect(view).toHaveAttribute('data-stage', 'address', { timeout: 8000 });
+    await expect(cards.getByText('scrim.app')).toBeVisible();
+    await page.getByRole('button', { name: 'Replay' }).click();
+    await expect(view).toHaveAttribute('data-stage', 'intro');
+  });
+
+  test('does not start until the hero is on screen', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.scrollTo(0, 0);
+    });
+    await page.setViewportSize({ width: 1440, height: 500 });
+    await page.goto('/');
+    await page.evaluate(() => {
+      document.querySelector('#features')?.scrollIntoView();
+    });
+    await page.waitForTimeout(300);
+    const view = demo(page);
+    await expect(view).toHaveAttribute('data-stage', 'intro');
+    await page.waitForTimeout(2200);
+    await expect(view).toHaveAttribute('data-stage', 'intro');
   });
 });

@@ -1,0 +1,170 @@
+import { z } from 'zod';
+import { EASE_LIMITS, ZOOM_LIMITS } from '../render/constants';
+import type { RenderStyle } from '../render/model';
+
+const nonNegative = z.number().nonnegative();
+
+export const osSchema = z.enum(['windows', 'macos', 'linux']);
+export const archSchema = z.enum(['x64', 'arm64']);
+
+const rectSchema = z.strictObject({
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+});
+
+export const trackKindSchema = z.enum(['screen', 'camera', 'mic']);
+export type TrackKind = z.infer<typeof trackKindSchema>;
+
+/** Why a track stopped before the recording did. Unset when it ran to the end. */
+export const trackEndReasonSchema = z.enum([
+  'device-removed',
+  'error',
+  'disk-full',
+  'folder-unavailable',
+  'renderer-crash',
+]);
+
+const trackSchema = z.strictObject({
+  kind: trackKindSchema,
+  /** The raw file in the session folder, such as `screen.raw.webm`. */
+  file: z.string().min(1),
+  mimeType: z.string().min(1),
+  /** When the track started, in milliseconds on the main clock. */
+  startedAt: nonNegative,
+  bytesWritten: z.number().int().nonnegative(),
+  /** True once the writer finished and closed the raw file. */
+  complete: z.boolean(),
+  endedReason: trackEndReasonSchema.optional(),
+  /**
+   * When the track stopped, in milliseconds on the main clock. A screen on a static desktop sends
+   * about one frame a second, so its last frame can be well before this. Export holds the last
+   * frame until this time, so every track ends when the recording did.
+   */
+  stoppedAt: nonNegative.optional(),
+  /** The playable copy made by remuxing, once it exists and has been checked. */
+  playableFile: z.string().min(1).optional(),
+});
+
+const inputSchema = z.discriminatedUnion('status', [
+  z.strictObject({ status: z.literal('recorded'), file: z.string().min(1) }),
+  z.strictObject({
+    status: z.literal('unavailable'),
+    reason: z.enum(['wayland', 'permission', 'error', 'window-bounds-unsupported']),
+  }),
+]);
+
+/**
+ * The look chosen on the home screen before recording: the cursor effect and the auto zoom. They
+ * are the starting point for the editor and for export, which can still change them afterwards. It
+ * is a part of `RenderStyle`, and the type below fails to compile if it ever stops being one.
+ */
+const styleSchema = z.strictObject({
+  cursor: z
+    .strictObject({ style: z.enum(['halo-ripples', 'halo', 'ripples', 'off']).optional() })
+    .optional(),
+  zoom: z
+    .strictObject({
+      enabled: z.boolean().optional(),
+      maxZoom: z.number().min(ZOOM_LIMITS.min).max(ZOOM_LIMITS.max).optional(),
+      holdMs: z.number().min(0).max(5000).optional(),
+      easeMs: z.number().min(EASE_LIMITS.minMs).max(EASE_LIMITS.maxMs).optional(),
+    })
+    .optional(),
+});
+
+type AssignableToRenderStyle<T extends RenderStyle> = T;
+export type SessionStyle = AssignableToRenderStyle<z.infer<typeof styleSchema>>;
+
+/**
+ * `session.json`, version 1. It is rewritten atomically on every heartbeat, so after a crash it
+ * says what was being recorded, how much reached the disk and that the recording never closed
+ * cleanly. `cleanClose` is true only when every track is complete and the input log is saved.
+ */
+/**
+ * Where the camera bubble sat while recording, so export draws it exactly there. One entry per
+ * change of position, in order of media time (milliseconds of recorded time, pauses left out).
+ * `x` and `y` are the top left of the round picture on the desktop, in device independent
+ * pixels, and `size` is its diameter in the same unit.
+ */
+const bubbleKeyframeSchema = z.strictObject({
+  t: nonNegative,
+  corner: z.enum(['tl', 'tr', 'bl', 'br']),
+  x: z.number(),
+  y: z.number(),
+  size: z.number().positive(),
+});
+export type BubbleKeyframe = z.infer<typeof bubbleKeyframeSchema>;
+
+export const sessionFileSchema = z.strictObject({
+  version: z.literal(1),
+  id: z.uuid(),
+  name: z.string().min(1).max(200),
+  createdAt: z.iso.datetime(),
+  app: z.strictObject({ version: z.string(), os: osSchema, arch: archSchema }),
+  /** Process id of the app that owns this recording, so recovery can tell a crash from a live one. */
+  pid: z.number().int().positive(),
+  source: z.strictObject({
+    kind: z.enum(['region', 'display', 'window']),
+    displayId: z.string().optional(),
+    /** The recorded area in device independent pixels on the desktop, for a region. */
+    crop: rectSchema.optional(),
+    /**
+     * The same area in physical pixels of the video, which is what export cuts. Relative to the top
+     * left of the recorded display, because the video covers that display only.
+     */
+    cropPx: rectSchema.optional(),
+    /** Top left of the recorded display or window on the desktop, in device independent pixels. */
+    origin: z.strictObject({ x: z.number(), y: z.number() }),
+    scaleFactor: z.number().positive(),
+    /** Size of the recorded video in pixels, when known. */
+    frame: z
+      .strictObject({
+        width: z.number().int().positive(),
+        height: z.number().int().positive(),
+      })
+      .optional(),
+  }),
+  capture: z.strictObject({
+    /**
+     * Whether the system cursor is part of the recorded video. On Windows it always is: Chromium
+     * ignores the request to hide it (ADR 0001). False only when a capture backend hides it.
+     */
+    cursorInCapture: z.boolean(),
+  }),
+  /**
+   * For a window recording: whether the window's position was logged over time, in
+   * `window-bounds.ndjson`. Left out for a display or a region.
+   */
+  windowBounds: z
+    .discriminatedUnion('status', [
+      z.strictObject({ status: z.literal('recorded'), file: z.string().min(1) }),
+      z.strictObject({ status: z.literal('unavailable') }),
+    ])
+    .optional(),
+  tracks: z.array(trackSchema),
+  clock: z.strictObject({
+    /** Milliseconds to add to a renderer `performance.now()` value to get main clock time. */
+    rendererOffsetMs: z.number(),
+    /** Half the round trip of the best ping, so the offset is right within this much. */
+    uncertaintyMs: nonNegative,
+  }),
+  /** Pauses on the main clock, in milliseconds. An open pause has no `resumedAt`. */
+  pauses: z.array(z.strictObject({ pausedAt: nonNegative, resumedAt: nonNegative.nullable() })),
+  input: inputSchema,
+  warnings: z.array(z.string()),
+  /** The look picked before recording. Absent for sessions made without a choice. */
+  style: styleSchema.optional(),
+  /** The camera bubble's positions over time. Absent when the camera was off. */
+  bubble: z.array(bubbleKeyframeSchema).max(5000).optional(),
+  heartbeatAt: z.iso.datetime(),
+  /** The main clock at the last heartbeat, in milliseconds, so recovery knows how far it got. */
+  heartbeatElapsedMs: nonNegative,
+  cleanClose: z.boolean(),
+  /** True when the session was closed by recovery after a crash. */
+  recovered: z.boolean().optional(),
+});
+
+export type SessionFile = z.infer<typeof sessionFileSchema>;
+export type SessionTrack = SessionFile['tracks'][number];
