@@ -42,6 +42,14 @@ function orNothing<T>(value: T): T | undefined {
   return value;
 }
 
+/**
+ * Whether a field has no choice yet. For a group of radio buttons with none checked, the form
+ * library reports `null`, not `undefined`, so both count as empty, and so does an empty string.
+ */
+function hasNoChoice(value: unknown): boolean {
+  return value === undefined || value === null || value === '';
+}
+
 function systemName(os: SystemValue): string {
   return SYSTEMS.find((system) => system.os === os)?.name ?? os;
 }
@@ -122,10 +130,10 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
   // Pick the system from the visitor's computer, unless they or a button already chose one.
   // Apple Silicon is the default for a Mac, because that is every Mac sold in recent years.
   useEffect(() => {
-    if (detectedOs !== null && orNothing(getValues('os')) === undefined) {
+    if (detectedOs !== null && hasNoChoice(getValues('os'))) {
       setValue('os', detectedOs);
     }
-    if (orNothing(getValues('arch')) === undefined) {
+    if (hasNoChoice(getValues('arch'))) {
       setValue('arch', detectedArch === 'x64' ? 'x64' : 'arm64');
     }
   }, [detectedOs, detectedArch, getValues, setValue]);
