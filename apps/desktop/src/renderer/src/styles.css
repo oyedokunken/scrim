@@ -1185,3 +1185,10 @@ input[type='checkbox'] {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* A tooltip host around a name that is cut short keeps the cut: the host takes the row width. */
+.lib-text .ui-tooltip-host,
+.set-row-text .ui-tooltip-host {
+  display: block;
+  min-width: 0;
+}

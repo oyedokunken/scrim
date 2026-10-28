@@ -1,6 +1,6 @@
 import { FolderOpen, Image, Pencil, Search, Share2, Trash2, Video } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Button, ConfirmDialog, Dialog, Menu, Segmented, useToast } from '../../ui';
+import { Button, ConfirmDialog, Dialog, Menu, Segmented, Tooltip, useToast } from '../../ui';
 import type { LibraryItem } from '../../../shared/library-contract';
 import { formatWhen } from '../format';
 import { useClock } from '../hooks';
@@ -100,9 +100,9 @@ function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDele
       </button>
       <div className="lib-meta">
         <div className="lib-text">
-          <span className="lib-name" title={item.name}>
-            {item.name}
-          </span>
+          <Tooltip label={item.name}>
+            <span className="lib-name">{item.name}</span>
+          </Tooltip>
           <span className="lib-sub">
             {itemKindLabel(item)}, {formatWhen(item.createdMs, now)}
           </span>

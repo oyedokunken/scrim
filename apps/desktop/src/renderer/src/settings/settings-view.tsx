@@ -2,7 +2,7 @@ import { FolderOpen } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Settings, SettingsPatch } from '../../../shared/settings';
 import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../../shared/shortcut-keys';
-import { Button, ConfirmDialog, Switch, useToast } from '../../ui';
+import { Button, ConfirmDialog, Switch, Tooltip, useToast } from '../../ui';
 import type { FolderKind } from '../hooks';
 import { ShortcutRow } from './shortcut-row';
 
@@ -38,9 +38,9 @@ function FolderRow({
     <div className="set-row">
       <div className="set-row-text">
         <span className="set-row-label">{label}</span>
-        <span className="set-row-path" title={path ?? fallback}>
-          {path ?? `${fallback} (default)`}
-        </span>
+        <Tooltip label={path ?? fallback}>
+          <span className="set-row-path">{path ?? `${fallback} (default)`}</span>
+        </Tooltip>
       </div>
       <div className="set-row-control">
         <Button aria-label={`Change ${label.toLowerCase()}`} onClick={onChange}>
