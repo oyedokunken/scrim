@@ -21,12 +21,14 @@ test.describe('the hero demo with JavaScript', () => {
   test('the play button pauses and resumes from the same place', async ({ page }) => {
     const view = demo(page);
     const button = playButton(page);
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    // Not a toggle button: the changing name already says the state, so nothing is pressed.
+    await expect(button).not.toHaveAttribute('aria-pressed');
+    await expect(button).toHaveAccessibleName('Pause');
     await expect(button).toHaveText('Pause');
     await expect.poll(() => time(view)).toBeGreaterThan(300);
 
     await button.click();
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveAccessibleName('Play');
     await expect(button).toHaveText('Play');
     await expect(view).toHaveAttribute('data-playing', 'false');
     const pausedAt = await time(view);
@@ -34,7 +36,7 @@ test.describe('the hero demo with JavaScript', () => {
     expect(await time(view)).toBe(pausedAt);
 
     await button.click();
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveAccessibleName('Pause');
     await expect.poll(() => time(view)).not.toBe(pausedAt);
   });
 
@@ -76,9 +78,9 @@ test.describe('the hero demo with JavaScript', () => {
 
     await button.focus();
     await page.keyboard.press('Enter');
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveAccessibleName('Play');
     await page.keyboard.press('Space');
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveAccessibleName('Pause');
 
     await page.keyboard.press('Tab');
     await expect(toggle).toBeFocused();
@@ -229,7 +231,7 @@ test.describe('with reduced motion', () => {
     await page.goto('/');
     const view = demo(page);
     const button = playButton(page);
-    await expect(button).toHaveAttribute('aria-pressed', 'false');
+    await expect(button).toHaveAccessibleName('Play');
     await expect(button).toHaveText('Play');
     await expect(view).toHaveAttribute('data-playing', 'false');
     await expect.poll(() => scale(view)).toBe('2.00');
@@ -251,7 +253,7 @@ test.describe('with reduced motion', () => {
 
     const button = playButton(page);
     await button.click();
-    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await expect(button).toHaveAccessibleName('Pause');
     await expect(view).toHaveAttribute('data-playing', 'true');
     await expect.poll(() => time(view)).not.toBe(1900);
   });

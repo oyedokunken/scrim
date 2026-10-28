@@ -104,8 +104,9 @@
   border-color: var(--scrim-green);
 }
 
-/* Pressed means playing. The state is also in the icon, which swaps between play and pause. */
-.button[aria-pressed='true'] {
+/* Filled while the demo plays. The name says the state too: Pause while playing, Play while paused,
+   and the icon swaps to match. It is not a toggle button, so there is no pressed state to announce. */
+.button[data-playing='true'] {
   background: var(--scrim-green);
   border-color: var(--scrim-green);
   color: var(--scrim-white);

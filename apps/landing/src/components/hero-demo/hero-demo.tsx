@@ -404,7 +404,7 @@ export function HeroDemo() {
         <button
           type="button"
           className={styles.button}
-          aria-pressed={playing}
+          data-playing={playing}
           onClick={() => {
             setMode(playing ? 'paused' : 'playing');
           }}
