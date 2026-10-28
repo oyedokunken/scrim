@@ -6,7 +6,9 @@ import {
   type Handlers,
   type IpcFailure,
 } from '../../src/main/ipc/dispatcher';
+import { createRecordingHandlers } from '../../src/main/ipc/recording-handlers';
 import { DEFAULT_SETTINGS } from '../../src/shared/settings';
+import { fakeRecording } from './support/recording-api-fake';
 
 const ORIGIN = 'app://scrim';
 const good = { frameUrl: 'app://scrim/index.html', isMainFrame: true };
@@ -20,6 +22,7 @@ function setup(overrides: Partial<Handlers> = {}) {
     'shell:open-external': () => undefined,
     'shell:show-in-folder': () => undefined,
     'logs:open-folder': () => undefined,
+    ...createRecordingHandlers({ recording: fakeRecording(), destination: () => null }),
     ...overrides,
   };
   const dispatch = createDispatcher({

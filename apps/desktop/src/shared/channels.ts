@@ -10,9 +10,23 @@ export const CHANNELS = [
   'shell:open-external',
   'shell:show-in-folder',
   'logs:open-folder',
+  'recording:start',
+  'recording:pause',
+  'recording:resume',
+  'recording:stop',
+  'recording:snapshot',
+  'recording:list-recoverable',
+  'recording:recover',
+  'recording:dismiss',
 ] as const;
 export type Channel = (typeof CHANNELS)[number];
 
 /** Messages the main process pushes to the renderer. */
-export const EVENT_CHANNELS = ['settings:changed'] as const;
+export const EVENT_CHANNELS = [
+  'settings:changed',
+  'recording:state',
+  'recording:warning',
+  'recording:error',
+  'recording:finished',
+] as const;
 export type EventChannel = (typeof EVENT_CHANNELS)[number];

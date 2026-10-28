@@ -2,10 +2,12 @@ import { isAbsolute, resolve } from 'node:path';
 import { isInsideRoot } from '../app-protocol';
 import type { SettingsStore } from '../settings/settings-store';
 import type { Handlers } from './dispatcher';
+import { createRecordingHandlers, type RecordingApi } from './recording-handlers';
 
 /** Everything the handlers need from the outside world, so a test can supply fakes. */
 export interface HandlerDeps {
   settings: SettingsStore;
+  recording: RecordingApi;
   platform: NodeJS.Platform;
   /** Opens the system folder picker. Null when the person cancels. */
   chooseFolder: () => Promise<string | null>;
@@ -40,7 +42,13 @@ export function createHandlers(deps: HandlerDeps): Handlers {
   return {
     'settings:get': () => deps.settings.get(),
     'settings:set': (patch) => deps.settings.set(patch),
-    'folder:choose': () => deps.chooseFolder(),
+    // Choosing a folder is how the destination is set. Only this handler writes it, so the page
+    // cannot send a recording somewhere the person never picked.
+    'folder:choose': async () => {
+      const chosen = await deps.chooseFolder();
+      if (chosen !== null) await deps.settings.set({ destinationFolder: chosen });
+      return chosen;
+    },
     'shell:open-external': async ({ url }) => {
       if (!(await deps.openExternal(url))) throw new Error('link not allowed');
     },
@@ -53,6 +61,10 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       if (!isInsideKnownFolder(path, known, deps.platform)) throw new Error('path not allowed');
       deps.showItemInFolder(resolve(path));
     },
+    ...createRecordingHandlers({
+      recording: deps.recording,
+      destination: () => deps.settings.get().destinationFolder,
+    }),
     'logs:open-folder': async () => {
       if ((await deps.openPath(deps.logsFolder)) !== '') throw new Error('could not open logs');
     },

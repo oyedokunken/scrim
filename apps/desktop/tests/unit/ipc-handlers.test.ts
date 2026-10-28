@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { createHandlers, isInsideKnownFolder, type HandlerDeps } from '../../src/main/ipc/handlers';
 import { DEFAULT_SETTINGS, type Settings } from '../../src/shared/settings';
+import { fakeRecording } from './support/recording-api-fake';
 
 const DEST = process.platform === 'win32' ? 'C:\\Recordings' : '/recordings';
 const inDest = (...parts: string[]) => join(DEST, ...parts);
@@ -17,6 +18,7 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       },
       load: () => Promise.resolve(settings),
     },
+    recording: fakeRecording(),
     platform: process.platform,
     chooseFolder: vi.fn(() => Promise.resolve(null)),
     showItemInFolder: vi.fn(),

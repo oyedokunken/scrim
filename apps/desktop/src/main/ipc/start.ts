@@ -6,7 +6,14 @@ import { openExternalChecked } from '../external-opener';
 import { realSettingsFs } from '../settings/real-settings-fs';
 import { createSettingsStore, type SettingsStore } from '../settings/settings-store';
 import { createHandlers } from './handlers';
+import type { RecordingEvent } from '../recording/types';
+import { toBridgeEvent, type RecordingApi } from './recording-handlers';
 import { registerIpc, sendEvent } from './register';
+
+/** What the app shell needs from the recording service: the calls, and its events. */
+export type AppRecording = RecordingApi & {
+  on: (listener: (event: RecordingEvent) => void) => () => void;
+};
 
 /** The local log, in the system logs folder. Lines are cleaned of paths before they are written. */
 export function createAppLogger(): Logger {
@@ -24,8 +31,9 @@ export function createAppLogger(): Logger {
 export async function startIpc(options: {
   appOrigin: string;
   logger: Logger;
+  recording: AppRecording;
 }): Promise<SettingsStore> {
-  const { appOrigin, logger } = options;
+  const { appOrigin, logger, recording } = options;
 
   const settings = createSettingsStore({
     path: join(app.getPath('userData'), 'settings.json'),
@@ -41,10 +49,38 @@ export async function startIpc(options: {
   });
   await settings.load();
 
+  // Folders the engine has written to this run, so a finished recording can be shown in its folder.
+  const sessionFolders = new Set<string>();
+
+  // Every engine event goes to every window of ours, after it has been checked against the contract.
+  recording.on((event) => {
+    const mapped = toBridgeEvent(event);
+    if (mapped.channel === 'recording:finished') sessionFolders.add(mapped.payload.folder);
+    for (const window of BrowserWindow.getAllWindows()) {
+      const contents = window.webContents;
+      switch (mapped.channel) {
+        case 'recording:state':
+          sendEvent(contents, appOrigin, mapped.channel, mapped.payload);
+          break;
+        case 'recording:warning':
+          sendEvent(contents, appOrigin, mapped.channel, mapped.payload);
+          break;
+        case 'recording:error':
+          sendEvent(contents, appOrigin, mapped.channel, mapped.payload);
+          break;
+        case 'recording:finished':
+          sendEvent(contents, appOrigin, mapped.channel, mapped.payload);
+          break;
+      }
+    }
+  });
+
   registerIpc({
     allowedOrigin: appOrigin,
     handlers: createHandlers({
       settings,
+      recording,
+      extraKnownFolders: () => [...sessionFolders],
       platform: process.platform,
       chooseFolder: async () => {
         const parent = BrowserWindow.getFocusedWindow();

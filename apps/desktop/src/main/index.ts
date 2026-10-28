@@ -7,9 +7,11 @@ import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
 import { createAppLogger, startIpc } from './ipc/start';
 import { registerRecording } from './recording';
+import type { SettingsStore } from './settings/settings-store';
 import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { applyApplicationMenu } from './shell/menu';
 import { createStubRecorder } from './shell/recorder-control';
+import { createRecordingControl } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
 import { createWindowStateTracker } from './shell/window-state-tracker';
 import { createMainWindow, MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MINIMUM } from './windows/main-window';
@@ -46,12 +48,32 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   const appCsp = buildCsp({ packaged: true });
 
-  // The recording engine replaces this stub when it is wired in. The shell only sees the interface.
-  const recorder = createStubRecorder();
-  if (!app.isPackaged && process.env['SCRIM_E2E'] === '1') {
-    // End to end tests drive the fake recorder from the main process. Never in a packaged app.
-    (globalThis as { __scrimRecorder?: unknown }).__scrimRecorder = recorder;
-  }
+  // The settings store exists once the app is ready. Until then the tray has nothing to start.
+  let settings: SettingsStore | undefined;
+
+  // The shell sees the recording engine only through this control. End to end tests swap in a fake
+  // that they drive from the main process, which can never happen in a packaged app.
+  const control = createRecordingControl({
+    startOptions: () => {
+      const saved = settings?.get();
+      return {
+        source: { kind: 'display' },
+        camera: {
+          enabled: saved?.cameraOn ?? false,
+          ...(saved?.cameraDeviceId == null ? {} : { deviceId: saved.cameraDeviceId }),
+        },
+        mic: {
+          enabled: saved?.micOn ?? false,
+          ...(saved?.micDeviceId == null ? {} : { deviceId: saved.micDeviceId }),
+        },
+        ...(saved?.destinationFolder == null ? {} : { destination: saved.destinationFolder }),
+      };
+    },
+  });
+  const useFakeRecorder = !app.isPackaged && process.env['SCRIM_E2E'] === '1';
+  const fake = createStubRecorder();
+  if (useFakeRecorder) (globalThis as { __scrimRecorder?: unknown }).__scrimRecorder = fake;
+  const recorder = useFakeRecorder ? fake : control;
   const shell = createShell({
     recorder,
     platform: process.platform,
@@ -102,9 +124,10 @@ if (!app.requestSingleInstanceLock()) {
     });
     const logger = createAppLogger();
     logger.info('app.start', { version: app.getVersion(), platform: process.platform });
-    await startIpc({ appOrigin: target.origin, logger });
+    const recording = registerRecording({ appOrigin: target.origin });
+    control.attach(recording);
+    settings = await startIpc({ appOrigin: target.origin, logger, recording });
     shell.start();
     await openMainWindow();
-    registerRecording({ appOrigin: target.origin });
   });
 }

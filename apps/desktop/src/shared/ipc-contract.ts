@@ -1,6 +1,18 @@
 import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
+import {
+  deviceSchema,
+  finishedSchema,
+  outcome,
+  pathSchema,
+  recordingErrorSchema,
+  recordingNameSchema,
+  recoverableSchema,
+  snapshotSchema,
+  sourceSchema,
+  warningSchema,
+} from './recording-contract';
 import { settingsPatchSchema, settingsSchema } from './settings';
 
 /** A link the app may open: the Scrim repository on GitHub, nothing else. */
@@ -8,8 +20,6 @@ const allowedUrlSchema = z
   .string()
   .max(2048)
   .refine(isAllowedExternalUrl, 'That link is not allowed.');
-
-const pathSchema = z.string().min(1).max(1024);
 
 /**
  * Every call the renderer can make, with the exact shape of what goes in and what comes out.
@@ -27,11 +37,38 @@ export const contract = {
   },
   'shell:show-in-folder': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
   'logs:open-folder': { input: z.void(), output: z.void() },
+  // The destination is not an input: the main process uses the folder the person chose.
+  'recording:start': {
+    input: z
+      .object({
+        source: sourceSchema,
+        camera: deviceSchema,
+        mic: deviceSchema,
+        name: recordingNameSchema.optional(),
+      })
+      .strict(),
+    output: outcome(z.object({}).strict()),
+  },
+  'recording:pause': { input: z.void(), output: outcome(z.void()) },
+  'recording:resume': { input: z.void(), output: outcome(z.void()) },
+  'recording:stop': { input: z.void(), output: outcome(finishedSchema) },
+  'recording:snapshot': { input: z.void(), output: snapshotSchema },
+  'recording:list-recoverable': { input: z.void(), output: z.array(recoverableSchema) },
+  // Only a folder that the list above offered is accepted, which the handler checks.
+  'recording:recover': {
+    input: z.object({ folder: pathSchema }).strict(),
+    output: outcome(finishedSchema),
+  },
+  'recording:dismiss': { input: z.object({ folder: pathSchema }).strict(), output: z.void() },
 } as const satisfies Record<Channel, { input: z.ZodType; output: z.ZodType }>;
 
 /** Messages from the main process to the renderer. Validated before they are sent. */
 export const events = {
   'settings:changed': settingsSchema,
+  'recording:state': snapshotSchema,
+  'recording:warning': warningSchema,
+  'recording:error': recordingErrorSchema,
+  'recording:finished': finishedSchema,
 } as const satisfies Record<EventChannel, z.ZodType>;
 
 export type InputOf<C extends Channel> = z.input<(typeof contract)[C]['input']>;

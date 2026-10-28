@@ -22,9 +22,21 @@ const fields = {
 export const settingsSchema = z.object(fields).strict();
 export type Settings = z.infer<typeof settingsSchema>;
 
-/** A change request: any subset of the settings, and nothing else. */
-export const settingsPatchSchema = z.object(fields).partial().strict();
+/**
+ * A change the renderer may ask for: any subset of the settings except the destination folder. The
+ * renderer is untrusted, so the folder only changes when the person picks one in the system dialog,
+ * which the main process records itself.
+ */
+export const settingsPatchSchema = z
+  .object(fields)
+  .omit({ destinationFolder: true })
+  .partial()
+  .strict();
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
+
+/** Every change the main process itself may make, which includes the destination folder. */
+export const settingsChangeSchema = z.object(fields).partial().strict();
+export type SettingsChange = z.infer<typeof settingsChangeSchema>;
 
 /**
  * What a settings file may hold on disk: the version plus any subset of settings. Missing

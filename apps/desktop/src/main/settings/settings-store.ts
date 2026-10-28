@@ -2,10 +2,10 @@ import {
   DEFAULT_SETTINGS,
   SETTINGS_FILE_VERSION,
   settingsFileSchema,
-  settingsPatchSchema,
+  settingsChangeSchema,
   settingsSchema,
   type Settings,
-  type SettingsPatch,
+  type SettingsChange,
 } from '../../shared/settings';
 
 /** The file system the store needs, so a test can make any call fail. */
@@ -92,9 +92,9 @@ export function createSettingsStore(options: SettingsStoreOptions) {
     return current;
   }
 
-  function set(patch: SettingsPatch): Promise<Settings> {
+  function set(patch: SettingsChange): Promise<Settings> {
     const run = async (): Promise<Settings> => {
-      const checked = settingsPatchSchema.parse(patch);
+      const checked = settingsChangeSchema.parse(patch);
       const next = settingsSchema.parse({ ...current, ...defined(checked) });
       await fs.writeJsonAtomic(path, toFile(next));
       // Memory changes only after the file does, so a failed write never shows as saved.

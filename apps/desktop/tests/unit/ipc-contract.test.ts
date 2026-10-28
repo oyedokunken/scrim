@@ -30,6 +30,9 @@ describe('every channel rejects input that does not fit', () => {
     ['settings:set', { cursorStyle: 'sparkles' }],
     ['settings:set', { frameRate: 45 }],
     ['settings:set', { destinationFolder: '' }],
+    // The page may not set the destination at all. Only the folder picker in main does.
+    ['settings:set', { destinationFolder: 'C:/Windows/System32' }],
+    ['settings:set', { destinationFolder: null }],
     ['folder:choose', {}],
     ['shell:open-external', undefined],
     ['shell:open-external', {}],
@@ -52,7 +55,6 @@ describe('every channel accepts input that fits', () => {
     ['settings:get', undefined],
     ['settings:set', {}],
     ['settings:set', { zoomLevel: 2.5, cameraOn: true }],
-    ['settings:set', { destinationFolder: null }],
     ['folder:choose', undefined],
     ['shell:open-external', { url: 'https://github.com/oyedokunken/scrim/releases' }],
     ['shell:show-in-folder', { path: 'C:\\Recordings\\one' }],
