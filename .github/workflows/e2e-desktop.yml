@@ -1,6 +1,6 @@
 name: e2e-desktop
 
-# Windows only for now. macOS and Linux join the matrix later in Phase 2.
+# Windows is the gate. The linux and macos jobs are allowed to fail until they have run once.
 on:
   push:
     branches: [main]
@@ -78,3 +78,52 @@ jobs:
           path: apps/desktop/release/Scrim Setup *.exe
           retention-days: 3
           if-no-files-found: error
+
+  # Unverified on purpose: these two jobs have never run. They are allowed to fail so they cannot
+  # block the Windows result while the macOS and Linux paths are brought up.
+  linux:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: |
+          pnpm typecheck
+          pnpm test
+      - run: pnpm build
+      - name: End to end tests on X11 under xvfb (Electron gets --no-sandbox from CI)
+        run: xvfb-run --auto-servernum pnpm test:e2e
+
+  macos:
+    runs-on: macos-15
+    continue-on-error: true
+    timeout-minutes: 30
+    env:
+      CI: 'true'
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.18.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: |
+          pnpm typecheck
+          pnpm test

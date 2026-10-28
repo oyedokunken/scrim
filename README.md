@@ -75,6 +75,8 @@ The landing page is a single Next.js project in `apps/landing`. It has these sec
 
 The website is live. The Windows desktop app is in its first release (v1), due 30 October 2026. macOS and Linux installers follow.
 
+macOS and Linux: the packaging, FFmpeg pins, entitlements and release workflow are written, but only partly run. The Linux installers were built and their bundled FFmpeg was run in a Linux container. Nothing has run on a real Mac or a real Linux desktop yet. [docs/releasing.md](docs/releasing.md) lists exactly what is verified and gives a test checklist for each system.
+
 | Phase | Scope                                         | State                          |
 | ----- | --------------------------------------------- | ------------------------------ |
 | 1     | Landing page and shared design tokens         | Done                           |
