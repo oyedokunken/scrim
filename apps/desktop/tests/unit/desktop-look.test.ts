@@ -61,4 +61,20 @@ describe('the shared primitives stylesheet', () => {
   it('hides a closed sheet, which a display rule would otherwise keep on screen', () => {
     expect(ui).toMatch(/\.ui-sheet:not\(\[open\]\)\s*\{\s*display: none/);
   });
+
+  it('shows a pointer on interactive primitives, and not-allowed when disabled', () => {
+    expect(ui).not.toContain('cursor: default');
+    for (const name of ['ui-button', 'ui-segment', 'ui-switch', 'ui-tile']) {
+      const start = ui.indexOf(`.${name} {`);
+      expect(start, name).toBeGreaterThanOrEqual(0);
+      expect(ui.slice(start, ui.indexOf('}', start)), name).toContain('cursor: pointer');
+    }
+    expect(ui).toContain('cursor: not-allowed');
+  });
+
+  it('gives the primitives a hover state', () => {
+    for (const hover of ['.ui-segment:hover', '.ui-tile:hover', '.ui-button-primary:hover']) {
+      expect(ui).toContain(hover);
+    }
+  });
 });

@@ -196,7 +196,7 @@ input:disabled {
 }
 
 .button:disabled {
-  cursor: default;
+  cursor: pointer;
   opacity: 0.55;
 }
 
@@ -419,7 +419,7 @@ svg {
   background: transparent;
   border: 0;
   border-radius: var(--ui-radius-sm);
-  cursor: default;
+  cursor: pointer;
 }
 
 .icon-button:hover {
@@ -454,7 +454,7 @@ svg {
   background: transparent;
   border: 0;
   border-radius: var(--ui-radius-md);
-  cursor: default;
+  cursor: pointer;
   transition: background var(--ui-ease);
 }
 
@@ -656,6 +656,10 @@ svg {
   font-weight: 600;
 }
 
+.welcome-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
 .welcome-button {
   min-width: 180px;
   min-height: 48px;
@@ -672,4 +676,19 @@ svg {
   background: var(--scrim-white);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-sm);
+}
+
+.rail-item:disabled,
+.icon-button:disabled {
+  cursor: not-allowed;
+}
+
+.welcome-credit a:hover {
+  text-decoration: underline;
+}
+
+select,
+label[for],
+input[type='checkbox'] {
+  cursor: pointer;
 }

@@ -29,7 +29,7 @@
   font-weight: 600;
   border: 1px solid transparent;
   border-radius: var(--ui-radius-sm);
-  cursor: default;
+  cursor: pointer;
   transition: background var(--ui-ease);
 }
 
@@ -105,7 +105,7 @@
   background: transparent;
   border: 0;
   border-radius: 6px;
-  cursor: default;
+  cursor: pointer;
   transition: background var(--ui-ease);
 }
 
@@ -137,7 +137,7 @@
   text-align: left;
   background: transparent;
   border: 0;
-  cursor: default;
+  cursor: pointer;
 }
 
 .ui-switch-knob {
@@ -185,7 +185,7 @@
   background: var(--scrim-white);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
-  cursor: default;
+  cursor: pointer;
 }
 
 .ui-tile.selected {
@@ -219,7 +219,7 @@
 }
 
 .ui-card-button {
-  cursor: default;
+  cursor: pointer;
   transition: border-color var(--ui-ease);
 }
 
@@ -267,4 +267,53 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* Every interactive element shows a pointer and a hover state. Disabled ones say so. */
+:where(
+  .ui-button,
+  .ui-segment,
+  .ui-switch,
+  .ui-tile,
+  .ui-card-button,
+  .icon-button,
+  .rail-item
+):disabled {
+  cursor: not-allowed;
+}
+
+.ui-segment:hover:not(:disabled, .selected) {
+  color: var(--scrim-black);
+  background: color-mix(in srgb, var(--scrim-black) 6%, transparent);
+}
+
+.ui-switch:hover:not(:disabled) .ui-switch-knob {
+  background: color-mix(in srgb, var(--scrim-black) 35%, var(--scrim-butter));
+}
+
+.ui-switch.on:hover:not(:disabled) .ui-switch-knob {
+  background: var(--scrim-green-hover);
+}
+
+.ui-tile:hover:not(:disabled, .selected) {
+  border-color: var(--scrim-green);
+}
+
+.ui-card-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.ui-button-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.ui-select:hover:not(:disabled) {
+  border-color: var(--scrim-green);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-card-button:hover:not(:disabled),
+  .ui-button-primary:hover:not(:disabled) {
+    transform: none;
+  }
 }
