@@ -308,13 +308,13 @@ describe('handleDownloadRequest', () => {
     expect(JSON.stringify(recorded)).not.toContain('203.0.113.9');
   });
 
-  it('sends the chosen chip to the matcher', async () => {
+  it('sends the chosen architecture to the matcher', async () => {
     const { deps, recorded } = setup();
     const result = await handleDownloadRequest(
-      { headers: headers(), bodyText: body({ ...valid, os: 'macos', arch: 'arm64' }) },
+      { headers: headers(), bodyText: body({ ...valid, os: 'windows', arch: 'arm64' }) },
       deps,
     );
-    expect(result.body).toMatchObject({ filename: 'Scrim-1.2.3-arm64.dmg', direct: true });
+    expect(result.body).toMatchObject({ direct: false });
     expect(recorded[0]?.arch).toBe('arm64');
   });
 
@@ -327,11 +327,10 @@ describe('handleDownloadRequest', () => {
   });
 
   it('points at the Releases page when no file fits the visitor system', async () => {
-    const { deps } = setup();
-    const result = await handleDownloadRequest(
-      { headers: headers(), bodyText: body({ ...valid, os: 'linux' }) },
-      deps,
-    );
+    const { deps } = setup({
+      getRelease: () => Promise.resolve({ ...release, assets: [] }),
+    });
+    const result = await handleDownloadRequest({ headers: headers(), bodyText: body(valid) }, deps);
     expect(result.body).toEqual({
       url: RELEASES_URL,
       filename: '',
@@ -339,6 +338,32 @@ describe('handleDownloadRequest', () => {
       direct: false,
     });
   });
+
+  describe.each(['macos', 'linux'] as const)(
+    'a visitor on %s, which has no installer yet',
+    (os) => {
+      it('joins the update list, with no file and no email', async () => {
+        const { deps, recorded } = setup();
+        const result = await handleDownloadRequest(
+          { headers: headers(), bodyText: body({ ...valid, os, updatesOptIn: false }) },
+          deps,
+        );
+        expect(result.status).toBe(200);
+        expect(result.body).toEqual({
+          url: RELEASES_URL,
+          filename: '',
+          version: '',
+          direct: false,
+          comingSoon: true,
+        });
+        expect(result.email).toBeUndefined();
+        expect(recorded).toHaveLength(1);
+        expect(recorded[0]?.os).toBe(os);
+        expect(recorded[0]?.updatesOptIn).toBe(true);
+        expect(recorded[0]?.version).toBe('waitlist');
+      });
+    },
+  );
 
   it('records the opt in only when it was ticked', async () => {
     const { deps, recorded } = setup();

@@ -1,6 +1,6 @@
 # Scrim
 
-Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux. It highlights the cursor, ripples every click, zooms in where you work, adds your face in a bubble, and exports an MP4 that plays everywhere.
+Scrim is a free, open source screen recorder and screenshot tool, available now for Windows, with macOS and Linux coming soon. It highlights the cursor, ripples every click, zooms in where you work, adds your face in a bubble, and exports an MP4 that plays everywhere.
 
 Scrim keeps recordings on your computer. Nothing is uploaded, there is no account, and exports have no watermark. The website collects only the name and email needed to count downloads and provide optional release notices.
 
@@ -15,7 +15,7 @@ Scrim keeps recordings on your computer. Nothing is uploaded, there is no accoun
 - Gradient, pattern and image backdrops
 - MP4 export with H.264 and AAC
 - Full display, region and window screenshots
-- Windows, macOS and Linux support
+- Windows today, macOS and Linux coming soon
 
 ## Use cases
 

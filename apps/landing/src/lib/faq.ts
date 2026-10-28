@@ -23,7 +23,7 @@ export const FAQ: readonly FaqItem[] = [
   {
     question: 'Which systems does it run on?',
     answer:
-      'Windows, macOS and Linux. On Linux, cursor effects and auto zoom need an X11 session. Under Wayland you can still record, and Scrim tells you why those two effects are off.',
+      'Windows 10 and 11, 64 bit, today. macOS and Linux versions are planned and are not out yet. Leave your email in the download form and we will write once when one is ready.',
   },
   {
     question: 'How does auto zoom work?',

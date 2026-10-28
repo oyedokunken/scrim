@@ -43,4 +43,6 @@ export interface DownloadResponse {
   version: string;
   /** True when `url` is the installer itself, false when it is the Releases page. */
   direct: boolean;
+  /** True when the system has no installer yet and the visitor joined the update list instead. */
+  comingSoon?: boolean;
 }

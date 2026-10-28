@@ -135,12 +135,16 @@ describe('the sections in detail', () => {
     expect(html).not.toContain('Every build of Scrim');
   });
 
-  it('Download has three system blocks with logos, buttons and help', () => {
+  it('Download has three system blocks, with Windows downloadable and the others coming soon', () => {
     const html = renderToStaticMarkup(<DownloadSection release={null} />);
     for (const name of ['Windows', 'macOS', 'Linux']) {
       expect(html).toContain(`<h3>${name}</h3>`);
-      expect(html).toContain(`Download for ${name}`);
     }
+    expect(html).toContain('Download for Windows');
+    expect(html).not.toContain('Download for macOS');
+    expect(html).not.toContain('Download for Linux');
+    expect(html.match(/Coming soon/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(html.match(/Email me when it is ready/g)).toHaveLength(2);
     expect(html.match(/<details/g)).toHaveLength(3);
     expect(html.match(/Need help\?/g)).toHaveLength(3);
     expect(html).not.toContain('First run help');

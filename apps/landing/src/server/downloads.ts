@@ -8,6 +8,8 @@ import type { LatestRelease } from './releases';
 export const HOURLY_LIMIT = 10;
 /** The largest request body we read, in bytes. A real form is a few hundred. */
 export const MAX_BODY_BYTES = 4096;
+/** The version stored for someone who asked to hear about a system that has no installer yet. */
+export const WAITLIST_VERSION = 'waitlist';
 
 export interface RecordEntry {
   email: string;
@@ -147,6 +149,30 @@ export async function handleDownloadRequest(
     }
   } catch {
     log('Could not check the download rate limit.');
+  }
+
+  // Only Windows has an installer in version 1. Anyone else joins the update list instead: the row
+  // is kept with the version "waitlist", so it is never counted as a download, and no file or
+  // confirmation email goes out.
+  if (request.os !== 'windows') {
+    try {
+      await deps.store.record({
+        email: request.email,
+        name: request.name,
+        updatesOptIn: true,
+        os: request.os,
+        arch: request.arch ?? null,
+        version: WAITLIST_VERSION,
+        ipHash,
+        userAgent: truncateUserAgent(headers.get('user-agent')),
+      });
+    } catch {
+      log('Could not record a waitlist signup.');
+    }
+    return {
+      status: 200,
+      body: { url: deps.releasesUrl, filename: '', version: '', direct: false, comingSoon: true },
+    };
   }
 
   const release = await deps.getRelease();

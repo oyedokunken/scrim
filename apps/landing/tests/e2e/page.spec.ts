@@ -120,7 +120,11 @@ test.describe('the disclosures', () => {
     const download = page.locator('#download');
     const summaries = download.getByText('Need help?');
     await expect(summaries).toHaveCount(3);
-    for (const [index, text] of ['SmartScreen', 'Open Anyway', 'X11'].entries()) {
+    for (const [index, text] of [
+      'SmartScreen',
+      'no Mac version yet',
+      'no Linux version yet',
+    ].entries()) {
       await summaries.nth(index).click();
       await expect(download.locator('details').nth(index)).toHaveAttribute('open', '');
       await expect(download.locator('details').nth(index)).toContainText(text);
@@ -316,7 +320,7 @@ test.describe('metadata and structured data', () => {
     const data = JSON.parse(raw ?? '{}') as Record<string, unknown>;
     expect(data['@type']).toBe('SoftwareApplication');
     expect(data.name).toBe('Scrim');
-    expect(data.operatingSystem).toBe('Windows, macOS, Linux');
+    expect(data.operatingSystem).toBe('Windows');
     expect(data.applicationCategory).toBe('MultimediaApplication');
     expect(data.offers).toMatchObject({ price: '0' });
     expect(data.license).toBe('https://github.com/oyedokunken/scrim/blob/main/LICENSE');

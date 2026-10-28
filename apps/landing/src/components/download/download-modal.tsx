@@ -108,6 +108,7 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
   });
 
   const os = orNothing(useWatch({ control, name: 'os' }));
+  const comingSoon = os !== undefined && os !== 'windows';
   const detectedOs = platform !== null && platform.os !== 'unsupported' ? platform.os : null;
   const detectedArch = platform?.arch ?? 'unknown';
 
@@ -147,13 +148,12 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
 
   const onValid = async (data: FormOutput) => {
     setFormError('');
-    // Only a Mac asks which chip it has. Other systems use what the browser reported.
-    const arch =
-      data.os === 'macos' ? (data.arch ?? 'arm64') : detectedArch === 'arm64' ? 'arm64' : 'x64';
     const request = {
       ...data,
-      arch,
-      format: data.os === 'linux' ? (data.format ?? 'appimage') : undefined,
+      arch: detectedArch === 'arm64' ? 'arm64' : 'x64',
+      format: undefined,
+      // Someone asking about a system with no installer is asking to be told when it is ready.
+      updatesOptIn: data.os === 'windows' ? data.updatesOptIn : true,
     };
 
     try {
@@ -181,6 +181,9 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
         os: data.os,
         firstName: data.name.split(/\s+/)[0] ?? data.name,
       });
+      if (result.comingSoon === true) {
+        return;
+      }
       if (result.direct) {
         startDownload(result.url, result.filename);
       } else {
@@ -224,10 +227,12 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
             className={styles.form}
           >
             <h2 id={titleId} className={styles.title} ref={heading} tabIndex={-1}>
-              Before you download
+              {comingSoon ? `Scrim for ${systemName(os)} is coming soon` : 'Before you download'}
             </h2>
             <p id={introId} className={styles.intro}>
-              We track the number of downloads, so let&rsquo;s get to know you.
+              {comingSoon
+                ? 'There is no installer for this system yet. Leave your name and email and we will write once, when it is ready.'
+                : 'We track the number of downloads, so let’s get to know you.'}
             </p>
 
             <div className={styles.row}>
@@ -289,47 +294,17 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                 {detectedOs !== null && os === detectedOs
                   ? `We picked ${systemName(detectedOs)} from your computer. Change it if that is wrong.`
                   : platform?.os === 'unsupported'
-                    ? 'Scrim runs on Windows, macOS and Linux computers. Pick the one you will install it on.'
-                    : 'Pick the system you will install Scrim on.'}
+                    ? 'Scrim is for desktop computers. Windows has an installer today. macOS and Linux are coming soon.'
+                    : 'Windows has an installer today. macOS and Linux are coming soon.'}
               </p>
             </fieldset>
 
-            {os === 'macos' ? (
-              <fieldset className={styles.fieldset}>
-                <legend>Which Mac?</legend>
-                <div className={styles.inline}>
-                  <label className={styles.pill}>
-                    <input type="radio" value="arm64" {...register('arch')} />
-                    <span>Apple Silicon (M1 or newer)</span>
-                  </label>
-                  <label className={styles.pill}>
-                    <input type="radio" value="x64" {...register('arch')} />
-                    <span>Intel</span>
-                  </label>
-                </div>
-              </fieldset>
-            ) : null}
-
-            {os === 'linux' ? (
-              <fieldset className={styles.fieldset}>
-                <legend>Which package?</legend>
-                <div className={styles.inline}>
-                  <label className={styles.pill}>
-                    <input type="radio" value="appimage" {...register('format')} />
-                    <span>AppImage</span>
-                  </label>
-                  <label className={styles.pill}>
-                    <input type="radio" value="deb" {...register('format')} />
-                    <span>deb</span>
-                  </label>
-                </div>
-              </fieldset>
-            ) : null}
-
-            <label className={styles.check}>
-              <input type="checkbox" {...register('updatesOptIn')} />
-              <span>Email me when a new version is out</span>
-            </label>
+            {comingSoon ? null : (
+              <label className={styles.check}>
+                <input type="checkbox" {...register('updatesOptIn')} />
+                <span>Email me when a new version is out</span>
+              </label>
+            )}
 
             {/* A trap for bots. People never see it, so only a bot fills it in. */}
             <div className={styles.trap} aria-hidden="true">
@@ -355,7 +330,13 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
               ) : (
                 <OsIcon os={os} size={20} />
               )}
-              {isSubmitting ? 'Starting your download...' : 'Start download'}
+              {isSubmitting
+                ? comingSoon
+                  ? 'Saving your email...'
+                  : 'Starting your download...'
+                : comingSoon
+                  ? 'Tell me when it is ready'
+                  : 'Start download'}
             </button>
 
             <p className={styles.privacy}>
@@ -374,9 +355,16 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
               <Check size={32} strokeWidth={3} />
             </span>
             <h2 id={titleId} className={styles.title} ref={heading} tabIndex={-1}>
-              Your download is starting.
+              {view.result.comingSoon === true
+                ? 'You are on the list.'
+                : 'Your download is starting.'}
             </h2>
-            {view.result.direct ? (
+            {view.result.comingSoon === true ? (
+              <p className={styles.intro}>
+                Thanks, {view.firstName}. Scrim for {systemName(view.os)} is not ready yet. We will
+                write to you once, when it is.
+              </p>
+            ) : view.result.direct ? (
               <p className={styles.intro}>
                 Thanks, {view.firstName}. {view.result.filename}
                 {view.result.version === '' ? '' : ` (version ${view.result.version})`} should begin
@@ -388,13 +376,15 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                 the Releases page, and we are opening it for you.
               </p>
             )}
-            <a
-              className={styles.again}
-              href={view.result.url}
-              {...(view.result.direct ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-            >
-              {view.result.direct ? 'Nothing happened? Download again' : 'Open the Releases page'}
-            </a>
+            {view.result.comingSoon === true ? null : (
+              <a
+                className={styles.again}
+                href={view.result.url}
+                {...(view.result.direct ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+              >
+                {view.result.direct ? 'Nothing happened? Download again' : 'Open the Releases page'}
+              </a>
+            )}
             <MaltLink className={styles.support} label="Show your Support" icon="heart" />
             <button type="button" className={styles.submit} onClick={onClose}>
               Close
