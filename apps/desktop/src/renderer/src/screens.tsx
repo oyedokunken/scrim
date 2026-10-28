@@ -5,6 +5,12 @@ import { EditorPlaceholder } from './components/editor-placeholder';
 import { RecordingView } from './components/recording-view';
 import { formatTimer } from './format';
 import { AppShell } from './shell/app-shell';
+import { AudioPanel } from './panels/audio-panel';
+import { AudioPreview } from './panels/audio-preview';
+import { BackgroundPanel } from './panels/background-panel';
+import { BackgroundPreview } from './panels/background-preview';
+import { CameraPanel } from './panels/camera-panel';
+import { CameraPreview } from './panels/camera-preview';
 import { CursorPanel } from './panels/cursor-panel';
 import { CursorPreview } from './panels/cursor-preview';
 import { ZoomPanel } from './panels/zoom-panel';
@@ -191,6 +197,19 @@ export function MainScreen() {
     holdMs: settings.holdAfterClickMs,
     smoothness: settings.smoothness,
   };
+  const cameraValue = {
+    on: settings.cameraOn,
+    size: settings.bubbleSize,
+    shape: settings.bubbleShape,
+    corner: settings.bubbleCorner,
+  };
+  const audioValue = { keepSound: settings.keepSound, volume: settings.micVolume };
+  const backgroundValue = {
+    id: settings.backgroundId,
+    padding: settings.backgroundPadding,
+    corners: settings.backgroundCorners,
+    shadow: settings.backgroundShadow,
+  };
   const live = LIVE.has(snapshot.phase);
   const folder = settings.destinationFolder ?? 'Videos\\Scrim';
   const state = live
@@ -271,6 +290,22 @@ export function MainScreen() {
     main = <CursorPreview value={{ style: settings.cursorStyle, haloColor: settings.haloColor }} />;
   } else if (view === 'zoom') {
     main = <ZoomPreview value={zoomValue} />;
+  } else if (view === 'camera') {
+    main = (
+      <CameraPreview
+        value={cameraValue}
+        deviceId={settings.cameraDeviceId}
+        onCorner={(bubbleCorner) => {
+          update({ bubbleCorner });
+        }}
+      />
+    );
+  } else if (view === 'audio') {
+    main = (
+      <AudioPreview value={audioValue} micOn={settings.micOn} deviceId={settings.micDeviceId} />
+    );
+  } else if (view === 'background') {
+    main = <BackgroundPreview value={backgroundValue} />;
   } else {
     main = <Placeholder view={view} />;
   }
@@ -295,6 +330,43 @@ export function MainScreen() {
               zoomLevel: value.level,
               holdAfterClickMs: value.holdMs,
               smoothness: value.smoothness,
+            });
+          }}
+        />
+      </div>
+    ) : view === 'camera' ? (
+      <div className="panel-body">
+        <CameraPanel
+          value={cameraValue}
+          onChange={(value) => {
+            update({
+              cameraOn: value.on,
+              bubbleSize: value.size,
+              bubbleShape: value.shape,
+              bubbleCorner: value.corner,
+            });
+          }}
+        />
+      </div>
+    ) : view === 'audio' ? (
+      <div className="panel-body">
+        <AudioPanel
+          value={audioValue}
+          onChange={(value) => {
+            update({ keepSound: value.keepSound, micVolume: value.volume });
+          }}
+        />
+      </div>
+    ) : view === 'background' ? (
+      <div className="panel-body">
+        <BackgroundPanel
+          value={backgroundValue}
+          onChange={(value) => {
+            update({
+              backgroundId: value.id,
+              backgroundPadding: value.padding,
+              backgroundCorners: value.corners,
+              backgroundShadow: value.shadow,
             });
           }}
         />
