@@ -19,6 +19,11 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       load: () => Promise.resolve(settings),
     },
     recording: fakeRecording(),
+    area: {
+      run: vi.fn(() => Promise.resolve({ ok: false as const, reason: 'cancelled' as const })),
+      cancel: vi.fn(),
+    },
+    screenshotFolder: () => 'PICTURES',
     platform: process.platform,
     version: '1.0.0',
     chooseFolder: vi.fn(() => Promise.resolve(null)),

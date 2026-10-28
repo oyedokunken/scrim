@@ -88,13 +88,19 @@ export function MainScreen() {
     setStarting(true);
     setStartError(null);
     try {
-      const result = await window.scrim.invoke('recording:start', {
-        source: { kind: 'display' },
+      // The overlay does the choosing, the countdown and the start. A cancel shows nothing.
+      const result = await window.scrim.invoke('area:run', {
+        mode: 'record',
         camera: deviceChoice(chosen.cameraOn, chosen.cameraDeviceId),
         mic: deviceChoice(chosen.micOn, chosen.micDeviceId),
       });
-      if (!result.ok) {
+      if (!result.ok && result.reason === 'rejected') {
         setStartError({ message: result.error.message, nextStep: result.error.nextStep });
+      } else if (!result.ok && result.reason === 'failed') {
+        setStartError({
+          message: 'Scrim could not open the area chooser.',
+          nextStep: 'Try again. If it keeps happening, restart Scrim.',
+        });
       }
     } finally {
       setStarting(false);

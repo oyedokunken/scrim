@@ -11,6 +11,8 @@ export const CHANNELS = [
   'shell:open-external',
   'shell:show-in-folder',
   'logs:open-folder',
+  'area:run',
+  'area:cancel',
   'recording:start',
   'recording:pause',
   'recording:resume',

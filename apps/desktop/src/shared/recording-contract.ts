@@ -125,3 +125,37 @@ export const outcome = <T extends z.ZodType>(value: T) =>
   ]);
 
 export const recordingNameSchema = z.string().min(1).max(200);
+
+const screenshotResultSchema = z
+  .object({
+    path: pathSchema.optional(),
+    copied: z.boolean(),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+  })
+  .strict();
+
+/**
+ * What the area chooser did. A cancelled overlay is an answer, not an error, so the page shows
+ * nothing for it. Where the files go comes from the main process, never from the page.
+ */
+export const areaOutcomeSchema = z.union([
+  z.object({ ok: z.literal(true), mode: z.literal('record') }).strict(),
+  z
+    .object({ ok: z.literal(true), mode: z.literal('screenshot'), result: screenshotResultSchema })
+    .strict(),
+  z.object({ ok: z.literal(false), reason: z.enum(['cancelled', 'failed', 'busy']) }).strict(),
+  z
+    .object({ ok: z.literal(false), reason: z.literal('rejected'), error: recordingErrorSchema })
+    .strict(),
+]);
+
+export const areaRequestSchema = z
+  .object({
+    mode: z.enum(['record', 'screenshot']),
+    area: z.enum(['region', 'window', 'display']).optional(),
+    camera: deviceSchema,
+    mic: deviceSchema,
+    name: recordingNameSchema.optional(),
+  })
+  .strict();

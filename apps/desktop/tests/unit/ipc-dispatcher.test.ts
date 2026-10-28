@@ -23,6 +23,8 @@ function setup(overrides: Partial<Handlers> = {}) {
     'shell:open-external': () => undefined,
     'shell:show-in-folder': () => undefined,
     'logs:open-folder': () => undefined,
+    'area:run': () => ({ ok: false, reason: 'cancelled' }),
+    'area:cancel': () => undefined,
     ...createRecordingHandlers({ recording: fakeRecording(), destination: () => null }),
     ...overrides,
   };

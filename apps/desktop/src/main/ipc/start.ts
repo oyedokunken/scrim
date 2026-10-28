@@ -5,6 +5,7 @@ import { realLoggerFs } from '../log/real-logger-fs';
 import { openExternalChecked } from '../external-opener';
 import { realSettingsFs } from '../settings/real-settings-fs';
 import { createSettingsStore, type SettingsStore } from '../settings/settings-store';
+import type { AreaApi } from './area-handlers';
 import { createHandlers } from './handlers';
 import type { RecordingEvent } from '../recording/types';
 import { toBridgeEvent, type RecordingApi } from './recording-handlers';
@@ -32,8 +33,9 @@ export async function startIpc(options: {
   appOrigin: string;
   logger: Logger;
   recording: AppRecording;
+  area: AreaApi;
 }): Promise<SettingsStore> {
-  const { appOrigin, logger, recording } = options;
+  const { appOrigin, logger, recording, area } = options;
 
   const settings = createSettingsStore({
     path: join(app.getPath('userData'), 'settings.json'),
@@ -80,6 +82,8 @@ export async function startIpc(options: {
     handlers: createHandlers({
       settings,
       recording,
+      area,
+      screenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
       extraKnownFolders: () => [...sessionFolders],
       platform: process.platform,
       chooseFolder: async () => {

@@ -2,6 +2,8 @@ import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
 import {
+  areaOutcomeSchema,
+  areaRequestSchema,
   deviceSchema,
   finishedSchema,
   outcome,
@@ -38,6 +40,8 @@ export const contract = {
   },
   'shell:show-in-folder': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
   'logs:open-folder': { input: z.void(), output: z.void() },
+  'area:run': { input: areaRequestSchema, output: areaOutcomeSchema },
+  'area:cancel': { input: z.void(), output: z.void() },
   // The destination is not an input: the main process uses the folder the person chose.
   'recording:start': {
     input: z

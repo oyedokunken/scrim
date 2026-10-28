@@ -195,6 +195,11 @@ export function createShell({ recorder, platform, appPath, env }: ShellOptions) 
     /** The dock icon was clicked on macOS, or the window was hidden: bring it back. */
     show: showWindow,
 
+    /** Steps the main window aside, so the area chooser and the picture never include it. */
+    minimize(): void {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
+    },
+
     /** Minimizes the main window for a recording. It keeps its taskbar button, with a red dot. */
     beginRecordingMark(): void {
       mark.begin(mainWindow);

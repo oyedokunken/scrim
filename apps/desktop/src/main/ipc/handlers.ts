@@ -2,15 +2,19 @@ import { isAbsolute, resolve } from 'node:path';
 import { isInsideRoot } from '../app-protocol';
 import type { SettingsStore } from '../settings/settings-store';
 import type { Handlers } from './dispatcher';
+import { createAreaHandlers, type AreaApi } from './area-handlers';
 import { createRecordingHandlers, type RecordingApi } from './recording-handlers';
 
 /** Everything the handlers need from the outside world, so a test can supply fakes. */
 export interface HandlerDeps {
   settings: SettingsStore;
   recording: RecordingApi;
+  area: AreaApi;
   platform: NodeJS.Platform;
   /** The app version from the package, never typed in by hand. */
   version: string;
+  /** Where screenshots are saved when the person has not chosen a folder. */
+  screenshotFolder: () => string;
   /** Opens the system folder picker. Null when the person cancels. */
   chooseFolder: () => Promise<string | null>;
   showItemInFolder: (path: string) => void;
@@ -67,6 +71,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     ...createRecordingHandlers({
       recording: deps.recording,
       destination: () => deps.settings.get().destinationFolder,
+    }),
+    ...createAreaHandlers({
+      area: deps.area,
+      settings: () => deps.settings.get(),
+      screenshotFolder: deps.screenshotFolder,
     }),
     'logs:open-folder': async () => {
       if ((await deps.openPath(deps.logsFolder)) !== '') throw new Error('could not open logs');

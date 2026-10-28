@@ -22,6 +22,8 @@ import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { applyApplicationMenu } from './shell/menu';
 import { createStubRecorder } from './shell/recorder-control';
 import { createRecordingWindows } from './shell/recording-windows';
+import { createAreaPicker } from './recording/area-picker';
+import { buildAreaRequest, devicesFromSettings, type AreaApi } from './ipc/area-handlers';
 import { registerGlobalShortcuts } from './shell/global-shortcuts';
 import { createRecordingControl } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
@@ -177,13 +179,44 @@ if (!app.requestSingleInstanceLock()) {
       pill.onEvent(event);
       recordingWindows.onEvent(event);
     });
-    settings = await startIpc({ appOrigin: target.origin, logger, recording });
+    // The main window steps aside while the area is chosen and comes back unless a recording began.
+    const picker = createAreaPicker({
+      appOrigin: target.origin,
+      service: recording,
+      beforeOpen: () => {
+        shell.minimize();
+        return Promise.resolve();
+      },
+    });
+    const area: AreaApi = {
+      run: async (request) => {
+        const outcome = await picker.run(request);
+        if (!(outcome.ok && outcome.mode === 'record')) shell.show();
+        return outcome;
+      },
+      cancel: () => {
+        picker.cancel();
+      },
+    };
+    settings = await startIpc({ appOrigin: target.origin, logger, recording, area });
+    const runArea = async (mode: 'record' | 'screenshot'): Promise<void> => {
+      const saved = settings?.get();
+      if (saved === undefined) return;
+      await area.run(
+        buildAreaRequest(
+          { mode, ...devicesFromSettings(saved) },
+          saved,
+          join(app.getPath('pictures'), 'Scrim'),
+        ),
+      );
+    };
     // Start and stop from any app. A key another program owns is logged, and the buttons still work.
     const shortcuts = registerGlobalShortcuts({
       api: globalShortcut,
       actions: {
         isRecording: () => control.isRecording(),
-        record: () => control.start(),
+        record: () => runArea('record'),
+        screenshot: () => runArea('screenshot'),
         stop: () => control.stopAndSave(),
       },
       onError: (id, error) => {
