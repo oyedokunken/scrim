@@ -179,6 +179,7 @@ test.describe('acceptance: shell', () => {
     if (!overlay) throw new Error('The area selector did not open.');
     await overlay.waitForLoadState('domcontentloaded');
 
+    await expect(overlay.locator('body')).toContainText('Drag to choose an area');
     // Draw a region with mouse events sent to the overlay page, then read the size label.
     await overlay.mouse.move(200, 200);
     await overlay.mouse.down();
