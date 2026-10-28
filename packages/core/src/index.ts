@@ -7,3 +7,5 @@ export * from './render';
 export * from './result';
 export * from './session';
 export * from './zoom';
+export { zoomEditsSchema, zoomMomentSchema } from './zoom/moments-schema';
+export type { ZoomEdits } from './zoom/moments-schema';

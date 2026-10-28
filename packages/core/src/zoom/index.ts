@@ -5,3 +5,12 @@ export type { ZoomMoment } from './moments';
 export { defaultZoomOptions, resolveZoomOptions } from './options';
 export type { ZoomOptions } from './options';
 export { planCamera, planZoom, planZoomMoments } from './plan-zoom';
+export {
+  addMoment,
+  deleteMoment,
+  momentKind,
+  moveMoment,
+  resizeMoment,
+  sameMoments,
+  tidyMoments,
+} from './edit-moments';
