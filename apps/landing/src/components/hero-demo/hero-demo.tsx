@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
   type CSSProperties,
+  type ReactNode,
 } from 'react';
 import { DemoPlayer, browserClock } from '@/lib/demo/player';
 import { poseToTransform } from '@/lib/demo/pose-to-transform';
@@ -89,7 +90,18 @@ const TRAIL_REST = (index: number) =>
  * not render 60 times a second. The recording overlays (timer, zoom badge, face camera) sit
  * outside the zoomed scene, as they would in an exported video.
  */
-export function HeroDemo() {
+interface HeroDemoProps {
+  /** False keeps the demo still at its start, for example while an intro card is showing. */
+  gate?: boolean;
+  /** Called each time the demo reaches its end. */
+  onEnded?: () => void;
+  /** Cards that sit over the camera view. They are siblings of it, so they stay readable. */
+  overlay?: ReactNode;
+  /** Which part of the hero sequence is showing. Only exposed as a data attribute. */
+  stage?: string;
+}
+
+export function HeroDemo({ gate = true, onEnded, overlay, stage }: HeroDemoProps) {
   const root = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
   const ripples = useRef<(HTMLSpanElement | null)[]>([]);
@@ -104,6 +116,9 @@ export function HeroDemo() {
   const player = useRef<DemoPlayer | null>(null);
   const autoZoomRef = useRef(true);
   const scrubbing = useRef(false);
+  const lastTime = useRef(0);
+  const endedRef = useRef(onEnded);
+  endedRef.current = onEnded;
 
   const reducedMotion = usePrefersReducedMotion();
   // Auto means "play unless the visitor prefers reduced motion". A click makes it explicit.
@@ -113,7 +128,7 @@ export function HeroDemo() {
   const [tabVisible, setTabVisible] = useState(true);
 
   const playing = mode === 'playing' || (mode === 'auto' && !reducedMotion);
-  const running = playing && inView && tabVisible;
+  const running = playing && inView && tabVisible && gate;
 
   const draw = useCallback((timeMs: number) => {
     const element = root.current;
@@ -190,6 +205,16 @@ export function HeroDemo() {
       slider.current.value = String(Math.round(timeMs));
     }
 
+    // A wrap from the end of the loop to its start while playing means the demo finished.
+    if (
+      lastTime.current > DEMO_DURATION_MS - 600 &&
+      timeMs < 600 &&
+      player.current?.isPlaying === true
+    ) {
+      endedRef.current?.();
+    }
+    lastTime.current = timeMs;
+
     element.dataset.scale = pose.scale.toFixed(2);
     element.dataset.time = String(Math.round(timeMs));
   }, []);
@@ -231,6 +256,15 @@ export function HeroDemo() {
     }
   }, [reducedMotion, mode]);
 
+  // Each time the gate opens the demo starts from the top, or from the still frame.
+  useEffect(() => {
+    if (gate) {
+      player.current?.seek(reducedMotion ? STATIC_FRAME_TIME_MS : 0);
+    }
+    // The reduced motion value only matters at the moment the gate opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate]);
+
   useEffect(() => {
     if (running) {
       player.current?.play();
@@ -245,12 +279,14 @@ export function HeroDemo() {
   }, [autoZoom]);
 
   return (
-    <div className={styles.demo}>
+    <div className={styles.demo} data-stage={stage}>
+      <div className={styles.stage}>
       <div
         ref={root}
         className={styles.viewport}
         style={ROOT_STYLE}
         data-testid="hero-demo"
+        data-stage={stage}
         data-playing={running ? 'true' : 'false'}
         data-scale="1.00"
         data-time="0"
@@ -330,6 +366,8 @@ export function HeroDemo() {
           </span>
         </div>
       </div>
+      {overlay}
+      </div>
 
       <div className={styles.timeline}>
         <div className={styles.timelineHead}>
@@ -404,7 +442,8 @@ export function HeroDemo() {
         <button
           type="button"
           className={styles.button}
-          data-playing={playing}
+          data-playing={playing && gate}
+          disabled={!gate}
           onClick={() => {
             setMode(playing ? 'paused' : 'playing');
           }}

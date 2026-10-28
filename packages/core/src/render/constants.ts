@@ -36,11 +36,11 @@ export const ZOOM_DEFAULTS = {
   enabled: true,
   maxZoom: 1.8,
   holdMs: 1200,
-  easeMs: 450,
+  easeMs: 480,
 } as const;
 
 export const ZOOM_LIMITS = { min: 1.2, max: 3 } as const;
-export const EASE_LIMITS = { minMs: 200, maxMs: 900 } as const;
+export const EASE_LIMITS = { minMs: 150, maxMs: 700 } as const;
 
 /** Maps the smoothness control (0 to 1) to the ease time of the zoom, in milliseconds. */
 export function smoothnessToEaseMs(smoothness: number): number {

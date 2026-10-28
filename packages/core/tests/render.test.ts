@@ -319,6 +319,27 @@ describe('render model', () => {
     expect(createRenderModel(input({ log: null })).effectsOffReason).toContain('no input log');
   });
 
+  it('lists the zoom moments, and an edited list replaces the planned one', () => {
+    const planned = createRenderModel(input());
+    expect(planned.zoomMoments.length).toBeGreaterThan(0);
+    const edited = createRenderModel(
+      input({
+        edits: {
+          trim: null,
+          cuts: [],
+          zoom: { moments: [{ startMs: 6000, endMs: 8000, x: 100, y: 100 }] },
+        },
+      }),
+    );
+    expect(edited.zoomMoments).toEqual([{ startMs: 6000, endMs: 8000, x: 100, y: 100 }]);
+    expect(edited.describeAt(2800).pose.scale).toBe(1);
+    expect(edited.describeAt(7500).pose.scale).toBeGreaterThan(1.7);
+    const none = createRenderModel(
+      input({ edits: { trim: null, cuts: [], zoom: { moments: [] } } }),
+    );
+    expect(none.keyframes).toEqual([]);
+  });
+
   it('clamps the zoom level to the supported range', () => {
     const model = createRenderModel(
       input({ settings: { preset: '1080p', style: { zoom: { maxZoom: 9 } } } }),
@@ -496,9 +517,9 @@ describe('audio plan', () => {
 
 describe('smoothness', () => {
   it('maps 0 to 1 onto the ease range', () => {
-    expect(smoothnessToEaseMs(0)).toBe(200);
-    expect(smoothnessToEaseMs(1)).toBe(900);
-    expect(smoothnessToEaseMs(-3)).toBe(200);
-    expect(smoothnessToEaseMs(7)).toBe(900);
+    expect(smoothnessToEaseMs(0)).toBe(150);
+    expect(smoothnessToEaseMs(1)).toBe(700);
+    expect(smoothnessToEaseMs(-3)).toBe(150);
+    expect(smoothnessToEaseMs(7)).toBe(700);
   });
 });

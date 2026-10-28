@@ -10,7 +10,8 @@ import type { EditList } from '../edit/edit-list';
 import { outputSize, type ResolutionPreset } from '../export/size';
 import type { Frame, InputEvent } from '../input/types';
 import type { SessionFile } from '../session/schema';
-import { planZoom } from '../zoom/plan-zoom';
+import type { ZoomMoment } from '../zoom/moments';
+import { planCamera, planZoomMoments } from '../zoom/plan-zoom';
 import { planAudio, type AudioPiece } from './audio';
 import {
   BUBBLE_DEFAULTS,
@@ -61,7 +62,10 @@ export interface RenderInput {
   session: SessionFile;
   /** The saved input log, or null when the mouse could not be logged. */
   log: { frame: Frame; events: readonly InputEvent[] } | null;
-  edits: Pick<EditList, 'trim' | 'cuts'>;
+  /** `zoom` holds the moments the person edited. Without it the moments come from the clicks. */
+  edits: Pick<EditList, 'trim' | 'cuts'> & {
+    zoom?: { moments: readonly ZoomMoment[] } | undefined;
+  };
   settings: RenderSettings;
 }
 
@@ -91,6 +95,11 @@ export interface RenderModel {
   layout: Layout;
   timeline: Timeline;
   keyframes: readonly CameraKeyframe[];
+  /**
+   * The zoom moments the keyframes were planned from: the edited list when there is one, else the
+   * ones found from the clicks. Empty when there is no input log, even if zoom is switched off.
+   */
+  zoomMoments: readonly ZoomMoment[];
   /** Mic pieces in output order, or an empty list when there is no mic or sound is dropped. */
   audio: readonly AudioPiece[];
   /** Why zoom and cursor effects are off, in plain words, or null when they are on. */
@@ -144,17 +153,15 @@ export function createRenderModel(input: RenderInput): RenderModel {
 
   const zoom = style.zoom ?? {};
   const zoomOn = zoom.enabled ?? ZOOM_DEFAULTS.enabled;
-  const keyframes =
-    log !== null && zoomOn
-      ? planZoom(
-          { frame: log.frame, events: log.events },
-          {
-            maxZoom: clampZoom(zoom.maxZoom ?? ZOOM_DEFAULTS.maxZoom),
-            holdMs: zoom.holdMs ?? ZOOM_DEFAULTS.holdMs,
-            easeMs: zoom.easeMs ?? ZOOM_DEFAULTS.easeMs,
-          },
-        )
-      : [];
+  const zoomOptions = {
+    maxZoom: clampZoom(zoom.maxZoom ?? ZOOM_DEFAULTS.maxZoom),
+    holdMs: zoom.holdMs ?? ZOOM_DEFAULTS.holdMs,
+    easeMs: zoom.easeMs ?? ZOOM_DEFAULTS.easeMs,
+  };
+  const zoomLog = log === null ? null : { frame: log.frame, events: log.events };
+  const zoomMoments: readonly ZoomMoment[] =
+    zoomLog === null ? [] : (edits.zoom?.moments ?? planZoomMoments(zoomLog, zoomOptions));
+  const keyframes = zoomLog !== null && zoomOn ? planCamera(zoomMoments, zoomLog, zoomOptions) : [];
 
   const cursorStyle = style.cursor?.style ?? CURSOR_DEFAULTS.style;
   const cursorTrack = log === null ? null : prepareCursor(log.events, log.frame);
@@ -203,6 +210,7 @@ export function createRenderModel(input: RenderInput): RenderModel {
     layout,
     timeline,
     keyframes,
+    zoomMoments,
     audio,
     effectsOffReason,
     describeAt,
