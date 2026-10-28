@@ -16,7 +16,6 @@ export function StatusBar({ state, folder }: StatusBarProps) {
       </span>
       <span className="status-folder">Saved in {folder}</span>
       <span className="status-end">
-        <span>Nothing leaves this PC</span>
         <Keycaps keys={SHORTCUTS.record.keys} />
         <Keycaps keys={SHORTCUTS.stop.keys} />
       </span>

@@ -26,6 +26,9 @@ const ICONS: Record<ViewId, LucideIcon> = {
   settings: Settings,
 };
 
+/** Library and Settings stay pinned at the bottom, the rest scrolls inside the rail. */
+const BOTTOM = new Set<ViewId>(['library', 'settings']);
+
 export interface RailProps {
   view: ViewId;
   onView: (view: ViewId) => void;
@@ -51,34 +54,41 @@ export function Rail({ view, onView }: RailProps) {
     }
   };
 
+  const renderItem = (id: ViewId, index: number) => {
+    const Icon = ICONS[id];
+    const selected = id === view;
+    return (
+      <div key={id} className="rail-group">
+        <button
+          ref={(node) => {
+            refs.current[index] = node;
+          }}
+          type="button"
+          className={selected ? 'rail-item selected' : 'rail-item'}
+          aria-current={selected ? 'page' : undefined}
+          tabIndex={selected ? 0 : -1}
+          onClick={() => {
+            onView(id);
+          }}
+          onKeyDown={(event) => {
+            onKeyDown(event, index);
+          }}
+        >
+          <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+          <span className="rail-label">{VIEW_LABELS[id]}</span>
+        </button>
+      </div>
+    );
+  };
+
   return (
     <nav className="rail" aria-label="Sections">
-      {VIEW_IDS.map((id, index) => {
-        const Icon = ICONS[id];
-        const selected = id === view;
-        return (
-          <div key={id} className={id === 'library' ? 'rail-group after-divider' : 'rail-group'}>
-            <button
-              ref={(node) => {
-                refs.current[index] = node;
-              }}
-              type="button"
-              className={selected ? 'rail-item selected' : 'rail-item'}
-              aria-current={selected ? 'page' : undefined}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => {
-                onView(id);
-              }}
-              onKeyDown={(event) => {
-                onKeyDown(event, index);
-              }}
-            >
-              <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
-              <span className="rail-label">{VIEW_LABELS[id]}</span>
-            </button>
-          </div>
-        );
-      })}
+      <div className="rail-top">
+        {VIEW_IDS.map((id, index) => (BOTTOM.has(id) ? null : renderItem(id, index)))}
+      </div>
+      <div className="rail-bottom">
+        {VIEW_IDS.map((id, index) => (BOTTOM.has(id) ? renderItem(id, index) : null))}
+      </div>
     </nav>
   );
 }

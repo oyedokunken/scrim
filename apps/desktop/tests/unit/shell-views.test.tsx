@@ -83,9 +83,12 @@ describe('the icon rail', () => {
     expect(html.match(/aria-hidden="true"/g)).toHaveLength(9);
   });
 
-  it('puts a divider before the library', () => {
-    expect(html).toContain('rail-group after-divider');
-    expect(html.match(/after-divider/g)).toHaveLength(1);
+  it('pins the library and settings below a divider, apart from the scrolling group', () => {
+    expect(html).toContain('rail-top');
+    expect(html.match(/class="rail-bottom"/g)).toHaveLength(1);
+    expect(html.indexOf('rail-bottom')).toBeGreaterThan(html.indexOf('Background'));
+    expect(html.slice(html.indexOf('rail-bottom'))).toContain('Library');
+    expect(html.slice(html.indexOf('rail-bottom'))).toContain('Settings');
   });
 });
 
@@ -113,7 +116,7 @@ describe('the status bar', () => {
     expect(html).toContain('role="status"');
     expect(html).toContain('Recording 00:42');
     expect(html).toContain('Saved in Videos\\Scrim');
-    expect(html).toContain('Nothing leaves this PC');
+    expect(html).not.toContain('Nothing leaves');
     expect(html).toContain('aria-label="Ctrl Shift R"');
     expect(html).toContain('aria-label="Ctrl Shift S"');
   });

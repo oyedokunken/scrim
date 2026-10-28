@@ -144,6 +144,7 @@ export function Select({ label, value, options, onChange, disabled = false, id }
         role="combobox"
         className="ui-select"
         aria-label={label}
+        title={selected?.label}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
@@ -153,7 +154,7 @@ export function Select({ label, value, options, onChange, disabled = false, id }
         onKeyDown={onButtonKey}
       >
         <span className="ui-select-value">
-          {selected?.label ?? ''}
+          <span className="ui-select-text">{selected?.label ?? ''}</span>
           {selected?.tag ? <span className="ui-select-tag">{selected.tag}</span> : null}
         </span>
         <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />
