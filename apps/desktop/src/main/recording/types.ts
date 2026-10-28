@@ -22,8 +22,16 @@ export interface RecordingOptions {
   source: SourceSpec;
   camera: { enabled: boolean; deviceId?: string | undefined };
   mic: { enabled: boolean; deviceId?: string | undefined };
-  /** The folder to save into. The Videos folder plus Scrim when left out. */
+  /**
+   * The folder finished exports and screenshots go to, Videos\Scrim when left out. The recording
+   * itself is never saved here: its working folder is made in the projects folder.
+   */
   destination?: string | undefined;
+  /**
+   * Where the working folder is made, instead of the projects folder. Only the development
+   * triggers and the tests set it. The page cannot: no channel carries it.
+   */
+  projectsDir?: string | undefined;
   /** The recording name, used for the folder and the files. A dated name when left out. */
   name?: string | undefined;
   /** The cursor effect and auto zoom picked on the home screen, kept in the session file. */

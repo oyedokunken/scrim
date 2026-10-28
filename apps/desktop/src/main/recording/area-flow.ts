@@ -144,10 +144,6 @@ async function choose(
   let mic = request.mic;
   let windows: WindowTile[] = [];
   let windowsRequested = false;
-  let skip: () => void = () => undefined;
-  const skipped = new Promise<void>((resolve) => {
-    skip = resolve;
-  });
   let confirmed: { source: SourceSpec; entry: Entry } | undefined;
   let confirmedSignal: () => void = () => undefined;
   const confirmedPromise = new Promise<void>((resolve) => {
@@ -254,9 +250,6 @@ async function choose(
         case 'cancel':
           finish({ ok: false, reason: 'cancelled' });
           return;
-        case 'skip':
-          if (phase === 'counting') skip();
-          return;
         case 'confirm-region': {
           if (phase !== 'choosing') return;
           const region = toEvenPixels(event.rect, display.scaleFactor, {
@@ -331,10 +324,8 @@ async function choose(
     entry.handle.send({ type: 'count', n });
     const next = await Promise.race([
       deps.wait(1000).then(() => 'tick' as const),
-      skipped.then(() => 'skip' as const),
       done.then(() => 'cancel' as const),
     ]);
-    if (next === 'skip') break;
     if (next === 'cancel' || isCancelled()) {
       phase = 'closing';
       closeAll();

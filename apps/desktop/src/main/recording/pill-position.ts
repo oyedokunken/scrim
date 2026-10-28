@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** The pill, in device independent pixels. A single compact bar. */
-export const PILL_SIZE = { width: 212, height: 40 } as const;
+export const PILL_SIZE = { width: 232, height: 40 } as const;
 /** The gap to the edges of the display, in device independent pixels. */
 export const PILL_MARGIN = 24;
 

@@ -11,7 +11,13 @@ later launch what happened, and let recovery rebuild a playable file without gue
 
 ## Decision
 
-One folder per recording, `<name>.scrim`, inside the destination folder the user chose.
+One folder per recording, `<name>.scrim`, inside the projects folder, which is the app's own data:
+`%LOCALAPPDATA%ScrimProjects` on Windows and `Projects` in the user data folder elsewhere (owner
+decision, 2026-10-28). The folder the user chose (VideosScrim by default) receives only finished
+exports and screenshots, never working folders. Free space is checked on the projects drive before a
+recording starts and while it runs. Recovery and the library read the session index, which stores
+folder paths, so sessions made earlier in a chosen folder are still found where they are. Nothing
+is moved or deleted silently when this location changed.
 
 ```
 <name>.scrim/

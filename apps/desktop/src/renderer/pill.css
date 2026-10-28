@@ -62,7 +62,7 @@ body {
   margin-right: 8px;
   border-radius: 50%;
   background: var(--record);
-  animation: pulse 1.6s ease-in-out infinite;
+  animation: blink 1.2s steps(2, jump-none) infinite;
 }
 
 .dot.paused {
@@ -70,13 +70,12 @@ body {
   opacity: 0.45;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
+@keyframes blink {
+  0% {
     opacity: 1;
   }
-  50% {
-    opacity: 0.4;
+  100% {
+    opacity: 0.15;
   }
 }
 
@@ -84,6 +83,17 @@ body {
   .dot {
     animation: none;
   }
+}
+
+.rec {
+  margin-right: 8px;
+  color: var(--record);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.rec.paused {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .timer {

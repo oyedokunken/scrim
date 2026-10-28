@@ -11,7 +11,7 @@ import {
   type SessionStyle,
   type TrackKind,
 } from '@scrim/core';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import type { RecorderEvent } from '../../recorder/protocol';
 import { ChunkWriter, QUEUE_WARNING_BYTES, type WriterFailure } from './chunk-writer';
 import { assessDisk, DISK_FLOORS } from './disk-space';
@@ -61,7 +61,10 @@ export interface ServiceDeps {
   resolveSource: (spec: SourceSpec) => Promise<Outcome<ResolvedSource>>;
   /** Tells the display media handler what to capture, or clears it. */
   setCaptureTarget: (spec: SourceSpec | undefined) => void;
+  /** Where finished exports go when the person has not chosen a folder. */
   defaultDestination: () => string;
+  /** The folder that holds every working folder, on a drive of the app, not of the person. */
+  projectsRoot: () => string;
   index: SessionIndex;
   isProcessAlive: (pid: number) => boolean;
   log: (message: string) => void;
@@ -242,7 +245,10 @@ export class RecordingService {
       const resolved = await deps.resolveSource(options.source);
       if (!resolved.ok) return await this.failStart(active, resolved.error);
 
-      const folderResult = await this.prepareFolder(destination, name);
+      const folderResult = await this.prepareFolder(
+        options.projectsDir ?? deps.projectsRoot(),
+        name,
+      );
       if (!folderResult.ok) return await this.failStart(active, folderResult.error);
 
       active = this.createActive(
@@ -479,17 +485,17 @@ export class RecordingService {
     return makeError('unknown', error instanceof Error ? error.message : undefined);
   }
 
-  /** Where a recording is saved, made unique and writable. */
-  private async prepareFolder(destination: string, name: string): Promise<Outcome<string>> {
+  /** The working folder of a recording, made unique and writable, after a free space check. */
+  private async prepareFolder(projects: string, name: string): Promise<Outcome<string>> {
     const { fs } = this.deps;
     try {
-      await fs.mkdir(destination);
-      if (assessDisk(await fs.freeBytes(destination), 'start') === 'refuse') {
+      await fs.mkdir(projects);
+      if (assessDisk(await fs.freeBytes(projects), 'start') === 'refuse') {
         return { ok: false, error: makeError('disk-too-full') };
       }
-      let folder = join(destination, `${name}.scrim`);
+      let folder = join(projects, `${name}.scrim`);
       for (let n = 2; await fs.exists(folder); n += 1) {
-        folder = join(destination, `${name} ${String(n)}.scrim`);
+        folder = join(projects, `${name} ${String(n)}.scrim`);
       }
       await fs.mkdir(folder);
       return { ok: true, value: folder };
@@ -730,7 +736,8 @@ export class RecordingService {
   private async checkDisk(active: Active): Promise<void> {
     let free: number;
     try {
-      free = await this.deps.fs.freeBytes(active.destination);
+      // The raw files are written next to the session file, so that is the drive that can fill up.
+      free = await this.deps.fs.freeBytes(dirname(active.folder));
     } catch {
       return;
     }

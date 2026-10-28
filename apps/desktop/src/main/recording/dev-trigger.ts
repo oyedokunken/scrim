@@ -90,7 +90,7 @@ export async function runDevTrigger(plan: DevTriggerPlan, deps: DevTriggerDeps):
       source: { kind: 'display' },
       camera: { enabled: plan.camera },
       mic: { enabled: plan.mic },
-      destination: plan.destination,
+      projectsDir: plan.destination,
     });
     if (!started.ok) {
       fail('start', started.error);

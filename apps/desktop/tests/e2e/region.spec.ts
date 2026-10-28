@@ -138,7 +138,7 @@ function pickedFrom(line: string): Picked {
   return JSON.parse(line.slice(line.indexOf('{'))) as Picked;
 }
 
-test('draws a region, turns the camera on, starts, and skips the countdown with Enter', async () => {
+test('draws a region, turns the camera on, and starts after a countdown that Enter cannot skip', async () => {
   test.setTimeout(90_000);
   const running = await start(join(work, 'user'));
   try {
@@ -159,7 +159,10 @@ test('draws a region, turns the camera on, starts, and skips the countdown with 
     await page.locator('#start').click();
     await expect(page.locator('#count')).toBeVisible();
     await expect(page.locator('#count')).toHaveText('3');
-    await tolerateClose(() => page.keyboard.press('Enter'));
+    // Enter does not skip the countdown: nothing starts for the first second.
+    await page.keyboard.press('Enter');
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(running.lines.some((line) => line.includes('DEV PICK'))).toBe(false);
 
     const picked = pickedFrom(await running.waitFor('DEV PICK', 20_000));
     expect(picked.source.kind).toBe('region');

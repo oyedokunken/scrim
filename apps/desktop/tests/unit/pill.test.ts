@@ -17,7 +17,7 @@ const area = { x: 0, y: 0, width: 1920, height: 1040 };
 describe('pill size and position', () => {
   it('is compact, about 200 by 40', () => {
     expect(PILL_SIZE.width).toBeGreaterThanOrEqual(190);
-    expect(PILL_SIZE.width).toBeLessThanOrEqual(230);
+    expect(PILL_SIZE.width).toBeLessThanOrEqual(240);
     expect(PILL_SIZE.height).toBeLessThanOrEqual(44);
   });
 

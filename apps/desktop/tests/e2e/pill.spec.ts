@@ -62,14 +62,18 @@ const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 
 async function launch(pillAt?: { x: number; y: number }): Promise<Running> {
   const userData = join(work, 'user');
-  const folder = join(work, 'recordings');
+  // Working folders go to the projects folder, which follows LOCALAPPDATA. The chosen folder only
+  // receives exports, so a recording must leave it empty.
+  const local = join(work, 'local');
+  const exports = join(work, 'exports');
+  const folder = join(local, 'Scrim', 'Projects');
   mkdirSync(userData, { recursive: true });
-  mkdirSync(folder, { recursive: true });
+  mkdirSync(exports, { recursive: true });
   writeFileSync(
     join(userData, 'settings.json'),
     JSON.stringify({
       version: 1,
-      destinationFolder: folder,
+      destinationFolder: exports,
       firstRunDone: true,
       showWelcome: false,
     }),
@@ -80,7 +84,7 @@ async function launch(pillAt?: { x: number; y: number }): Promise<Running> {
     electronPath,
     [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0'],
     {
-      env: { ...process.env, SCRIM_E2E: '' },
+      env: { ...process.env, SCRIM_E2E: '', LOCALAPPDATA: local },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
@@ -285,9 +289,9 @@ test('the pill never appears in the recorded video', async () => {
     const folder = join(running.folder, sessionFolders(running.folder)[0] ?? '');
     const video = readdirSync(folder).find((name) => /\.(mp4|webm|mkv)$/.test(name));
     expect(video).toBeDefined();
-    // The recording dot is the one record red thing on the pill. The pill is 212 by 40 device
+    // The recording dot is the one record red thing on the pill. The pill is 232 by 40 device
     // independent pixels, and the dot sits inside it, so count record red pixels over that box.
-    const width = Math.round(212 * scale);
+    const width = Math.round(232 * scale);
     const height = Math.round(40 * scale);
     const frame = spawnSync(
       ffmpeg,

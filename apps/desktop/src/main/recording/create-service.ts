@@ -11,6 +11,7 @@ import { createUnavailableBoundsSource } from './window-bounds-source';
 import { RecorderHost } from './recorder-host';
 import { openRecorderWindow } from './recorder-window';
 import { RecordingService } from './recording-service';
+import { projectsRoot } from './projects-folder';
 import { createSessionIndex } from './session-store';
 import type { Outcome, ResolvedSource, SourceSpec } from './types';
 import { makeError } from './messages';
@@ -152,6 +153,12 @@ export function createRecordingService(options: CreateServiceOptions): Recording
       target = spec;
     },
     defaultDestination: () => join(app.getPath('videos'), 'Scrim'),
+    projectsRoot: () =>
+      projectsRoot({
+        platform: process.platform,
+        env: process.env,
+        userData: app.getPath('userData'),
+      }),
     index: createSessionIndex(join(app.getPath('userData'), 'sessions.json'), realServiceFs),
     isProcessAlive: isAlive,
     log,

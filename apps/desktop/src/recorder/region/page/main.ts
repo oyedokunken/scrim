@@ -349,10 +349,8 @@ function setArea(next: AreaKind, announceIt: boolean): void {
 // ---- Confirming ------------------------------------------------------------------------------
 
 function confirm(): void {
-  if (counting) {
-    send({ type: 'skip' });
-    return;
-  }
+  // The countdown cannot be skipped. People need the time to get ready.
+  if (counting) return;
   if (area === 'region') {
     const region = picker.pixels;
     if (region !== undefined) send({ type: 'confirm-region', rect: region.dip });
@@ -400,7 +398,7 @@ window.addEventListener('keydown', (event) => {
     if (!dom.menu.hidden) closeMenu();
     else send({ type: 'cancel' });
   } else if (event.key === 'Enter' && (counting || !(event.target instanceof HTMLButtonElement))) {
-    // During the countdown Enter always skips it, even with a button focused.
+    // Enter does nothing during the countdown, and never presses a focused button then.
     event.preventDefault();
     confirm();
   }

@@ -68,7 +68,6 @@ export const regionEventSchema = z.discriminatedUnion('type', [
   /** The whole display of this overlay was picked. */
   z.strictObject({ type: z.literal('confirm-display') }),
   /** Enter during the countdown starts at once. */
-  z.strictObject({ type: z.literal('skip') }),
   /** Escape was pressed. */
   z.strictObject({ type: z.literal('cancel') }),
 ]);

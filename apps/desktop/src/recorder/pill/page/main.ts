@@ -24,6 +24,7 @@ const dom = {
   main: element('main', HTMLDivElement),
   confirm: element('confirm', HTMLDivElement),
   dot: element('dot', HTMLSpanElement),
+  rec: element('rec', HTMLSpanElement),
   timer: element('timer', HTMLSpanElement),
   toggle: element('toggle', HTMLButtonElement),
   pauseIcon: document.getElementById('icon-pause'),
@@ -48,6 +49,8 @@ function render(): void {
   const paused = state.phase === 'paused';
   const saving = state.phase === 'saving';
   dom.dot.classList.toggle('paused', paused || saving);
+  dom.rec.classList.toggle('paused', paused || saving);
+  dom.rec.textContent = saving ? 'SAVING' : paused ? 'PAUSED' : 'REC';
   dom.timer.textContent = formatPillTime(shownMs());
   const label = paused ? 'Resume' : 'Pause';
   dom.toggle.title = label;
