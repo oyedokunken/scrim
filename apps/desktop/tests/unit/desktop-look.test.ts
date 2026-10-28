@@ -57,4 +57,8 @@ describe('the shared primitives stylesheet', () => {
     for (const radius of ['16px', '12px', '8px', '6px']) expect(ui).toContain(radius);
     expect(ui).toMatch(/\.ui-segment\s*\{[^}]*min-height: 32px/s);
   });
+
+  it('hides a closed sheet, which a display rule would otherwise keep on screen', () => {
+    expect(ui).toMatch(/\.ui-sheet:not\(\[open\]\)\s*\{\s*display: none/);
+  });
 });

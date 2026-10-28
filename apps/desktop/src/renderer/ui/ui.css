@@ -242,6 +242,10 @@
   font-weight: 600;
 }
 
+.ui-sheet:not([open]) {
+  display: none;
+}
+
 .ui-sheet {
   width: min(480px, calc(100vw - 48px));
   padding: 24px;
@@ -256,4 +260,11 @@
 
 .ui-sheet::backdrop {
   background: color-mix(in srgb, var(--scrim-black) 35%, transparent);
+}
+
+.ui-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
