@@ -2,7 +2,7 @@ import type { PillAction, PillPhase, PillState } from '../../recorder/pill/proto
 import type { FinishedRecording, Outcome, RecordingEvent, RecordingSnapshot } from './types';
 
 /** The part of the recording service the pill talks to. The real service fits it as it is. */
-export interface PillService {
+interface PillService {
   pause: () => Promise<Outcome<void>>;
   resume: () => Promise<Outcome<void>>;
   stop: () => Promise<Outcome<FinishedRecording>>;

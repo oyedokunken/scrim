@@ -6,6 +6,7 @@ import {
   dotSideFor,
   easeBetween,
   nearestCorner,
+  type BubbleShape,
   type Corner,
   type DotSide,
   type Point,
@@ -17,6 +18,8 @@ export interface BubbleWindow {
   open: (input: {
     circle: Point;
     side: DotSide;
+    size: number;
+    shape: BubbleShape;
     camera: { deviceId?: string | undefined };
     mic: { enabled: boolean; deviceId?: string | undefined };
   }) => void;
@@ -29,7 +32,7 @@ export interface BubbleWindow {
   onDragEnd: (callback: (circle: Point) => void) => void;
 }
 
-export interface BubbleTimers {
+interface BubbleTimers {
   setInterval: (callback: () => void, ms: number) => unknown;
   clearInterval: (handle: unknown) => void;
 }
@@ -43,8 +46,13 @@ export interface BubbleDeps {
         mic: { enabled: boolean; deviceId?: string | undefined };
       }
     | undefined;
-  /** The work area of the display being recorded, and extra room to keep free at the bottom. */
-  area: () => { workArea: Rect; bottomInset: number };
+  /**
+   * The work area of the display being recorded, or of the display with the chosen area when
+   * `displayId` is given, and extra room to keep free at the bottom.
+   */
+  area: (displayId?: string) => { workArea: Rect; bottomInset: number };
+  /** The person's choices for the bubble: where it starts, how big, what shape. */
+  look: () => { corner: Corner; size: number; shape: BubbleShape };
   cursor: () => Point;
   now: () => number;
   timers: BubbleTimers;
@@ -63,6 +71,10 @@ const FRAME_MS = 16;
  */
 export function createBubbleController(deps: BubbleDeps) {
   let open = false;
+  /** Open before the countdown, so people can centre themselves. It then goes live in place. */
+  let previewing = false;
+  let previewDisplay: string | undefined;
+  let size = 180;
   let corner: Corner = 'bl';
   let circle: Point = { x: 0, y: 0 };
   let lastMoveAt = -Infinity;
@@ -71,12 +83,12 @@ export function createBubbleController(deps: BubbleDeps) {
   let animation: unknown;
 
   const positions = (): Record<Corner, Point> => {
-    const { workArea, bottomInset } = deps.area();
-    return cornerPositions(workArea, bottomInset);
+    const { workArea, bottomInset } = deps.area(previewing ? previewDisplay : undefined);
+    return cornerPositions(workArea, bottomInset, size);
   };
 
   const note = (): void => {
-    deps.record({ corner, x: Math.round(circle.x), y: Math.round(circle.y), size: BUBBLE.size });
+    deps.record({ corner, x: Math.round(circle.x), y: Math.round(circle.y), size });
   };
 
   const stopAnimation = (): void => {
@@ -108,7 +120,8 @@ export function createBubbleController(deps: BubbleDeps) {
   };
 
   const watchCursor = (): void => {
-    if (!open) return;
+    // Before the countdown the cursor is busy with the overlay, so the picture stays put.
+    if (!open || previewing) return;
     const target = dodgeCorner({
       current: corner,
       positions: positions(),
@@ -116,6 +129,7 @@ export function createBubbleController(deps: BubbleDeps) {
       now: deps.now(),
       lastMoveAt,
       dragging,
+      size,
     });
     if (target !== undefined && animation === undefined) moveTo(target);
   };
@@ -131,36 +145,91 @@ export function createBubbleController(deps: BubbleDeps) {
     moveTo(nearestCorner(dropped, positions()));
   });
 
+  const stop = (): void => {
+    open = false;
+    previewing = false;
+    previewDisplay = undefined;
+    dragging = false;
+    stopAnimation();
+    if (watch !== undefined) deps.timers.clearInterval(watch);
+    watch = undefined;
+    deps.window.close();
+  };
+
+  const show = (devices: {
+    camera: { deviceId?: string | undefined };
+    mic: { enabled: boolean; deviceId?: string | undefined };
+  }): void => {
+    open = true;
+    const look = deps.look();
+    size = look.size;
+    corner = look.corner;
+    circle = positions()[corner];
+    lastMoveAt = deps.now();
+    deps.window.open({
+      circle,
+      side: dotSideFor(corner),
+      size,
+      shape: look.shape,
+      camera: { deviceId: devices.camera.deviceId },
+      mic: devices.mic,
+    });
+  };
+
   return {
-    /** Opens the bubble if the recording that just started has its camera on. */
-    start(): void {
+    /**
+     * Shows the bubble while the area is chosen, on the display that has the choice, so people can
+     * centre themselves before pressing Start. Nothing is noted for the session yet.
+     */
+    preview(input: {
+      displayId: string;
+      camera: { deviceId?: string | undefined };
+      mic: { enabled: boolean; deviceId?: string | undefined };
+    }): void {
       if (open) return;
+      previewing = true;
+      previewDisplay = input.displayId;
+      show(input);
+    },
+    /** Takes the preview away, when the choice was lost or the person cancelled. */
+    endPreview(): void {
+      if (!previewing) return;
+      previewing = false;
+      previewDisplay = undefined;
+      stop();
+    },
+    isPreviewing: (): boolean => previewing,
+    /**
+     * Goes live for the recording that just started, if its camera is on. A preview that is
+     * already showing carries on in place, so nothing flickers.
+     */
+    start(): void {
       const devices = deps.devices();
+      if (open && previewing) {
+        previewing = false;
+        previewDisplay = undefined;
+        if (devices === undefined || !devices.camera.enabled) {
+          stop();
+          return;
+        }
+        // The recording is on the same display, but the pill now needs its corner kept clear.
+        circle = positions()[corner];
+        deps.window.place(circle, dotSideFor(corner));
+        lastMoveAt = deps.now();
+        note();
+        watch = deps.timers.setInterval(watchCursor, WATCH_MS);
+        return;
+      }
+      if (open) return;
       if (devices === undefined || !devices.camera.enabled) return;
-      open = true;
-      corner = 'bl';
-      circle = positions()[corner];
-      lastMoveAt = deps.now();
-      deps.window.open({
-        circle,
-        side: dotSideFor(corner),
-        camera: { deviceId: devices.camera.deviceId },
-        mic: devices.mic,
-      });
+      show(devices);
       note();
       watch = deps.timers.setInterval(watchCursor, WATCH_MS);
     },
     /** Closes the bubble. Safe to call again. */
-    stop(): void {
-      open = false;
-      dragging = false;
-      stopAnimation();
-      if (watch !== undefined) deps.timers.clearInterval(watch);
-      watch = undefined;
-      deps.window.close();
-    },
+    stop,
     isOpen: (): boolean => open,
     /** For tests: where the picture is and which corner it counts as. */
-    state: (): { corner: Corner; circle: Point } => ({ corner, circle }),
+    state: (): { corner: Corner; circle: Point; size: number } => ({ corner, circle, size }),
   };
 }

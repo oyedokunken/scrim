@@ -3,7 +3,7 @@
  * zero acceleration, which is what makes a camera move look smooth. The step is exact for a
  * target that holds still during it, so the result does not depend on the step size by much.
  */
-export interface SpringState {
+interface SpringState {
   x: number;
   v: number;
 }
@@ -18,7 +18,7 @@ export function omegaFor(easeMs: number): number {
   return 7.754 / (easeMs / 1000);
 }
 
-export function stepSpring(state: SpringState, target: number, omega: number, dtSec: number): void {
+function stepSpring(state: SpringState, target: number, omega: number, dtSec: number): void {
   const d = state.x - target;
   const decay = Math.exp(-omega * dtSec);
   const k = state.v + omega * d;

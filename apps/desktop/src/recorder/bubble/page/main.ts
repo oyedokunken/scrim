@@ -1,11 +1,11 @@
-import type { BubbleCommand, BubbleEvent } from '../protocol';
+import type { BubbleCommand } from '../protocol';
 
 declare global {
   interface Window {
     /** Exposed by the bubble preload. */
     scrimBubble: {
       onCommand(callback: (command: BubbleCommand) => void): void;
-      send(event: BubbleEvent): void;
+      send(event: { type: 'ready' }): void;
     };
   }
 }
@@ -19,6 +19,7 @@ function element<T extends HTMLElement>(id: string, type: new () => T): T {
 const stage = element('stage', HTMLDivElement);
 const video = element('video', HTMLVideoElement);
 const dot = element('dot', HTMLDivElement);
+const bubble = element('bubble', HTMLDivElement);
 
 let micContext: AudioContext | undefined;
 
@@ -53,6 +54,12 @@ function startMicDot(stream: MediaStream): void {
 
 async function init(command: Extract<BubbleCommand, { type: 'init' }>): Promise<void> {
   setSide(command.side);
+  // Set through the style object, which a strict style policy allows, unlike a style attribute.
+  if (command.size !== undefined) {
+    bubble.style.width = `${String(command.size)}px`;
+    bubble.style.height = `${String(command.size)}px`;
+  }
+  bubble.classList.toggle('square', command.shape === 'rounded-square');
   try {
     const camera = await navigator.mediaDevices.getUserMedia({
       video:

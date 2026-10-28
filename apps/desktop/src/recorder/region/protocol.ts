@@ -6,7 +6,7 @@ export const REGION_CHANNELS = {
   event: 'scrim-region:event',
 } as const;
 
-export const areaKindSchema = z.enum(['region', 'window', 'display']);
+const areaKindSchema = z.enum(['region', 'window', 'display']);
 export type AreaKind = z.infer<typeof areaKindSchema>;
 
 const device = z.strictObject({
@@ -61,6 +61,11 @@ export const regionEventSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('area'), area: areaKindSchema }),
   /** A toggle or a device changed. */
   z.strictObject({ type: z.literal('devices'), camera: device, mic: device }),
+  /**
+   * Recording only. Something is chosen here and Start is on offer (or no longer is), which is the
+   * moment the camera bubble shows, before the countdown.
+   */
+  z.strictObject({ type: z.literal('staged'), ready: z.boolean() }),
   /** A box was confirmed, in device independent pixels on this display. */
   z.strictObject({ type: z.literal('confirm-region'), rect }),
   /** A window card was picked. */

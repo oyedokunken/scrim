@@ -9,6 +9,9 @@ export type BubbleCommand =
       /** Whether the dot follows the microphone, and which one. */
       mic: { enabled: boolean; deviceId?: string | undefined };
       side: 'left' | 'right';
+      /** The picture's diameter in pixels, and whether it is round or a rounded square. */
+      size?: number | undefined;
+      shape?: 'circle' | 'rounded-square' | undefined;
     }
   /** The bubble moved to a corner on the other side, so the dot swaps sides. */
   | { type: 'side'; side: 'left' | 'right' };
@@ -17,4 +20,3 @@ export type BubbleCommand =
 export const bubbleEventSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('ready') }),
 ]);
-export type BubbleEvent = z.infer<typeof bubbleEventSchema>;
