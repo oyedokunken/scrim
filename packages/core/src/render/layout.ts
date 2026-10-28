@@ -30,7 +30,7 @@ export interface BackgroundStyle {
   radiusShare?: number | undefined;
 }
 
-export type ResolvedBackground =
+type ResolvedBackground =
   { kind: 'none' } | { kind: 'fill'; fill: BackgroundFill } | { kind: 'image'; path: string };
 
 export interface Layout {
