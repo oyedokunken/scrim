@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, session } from 'electron';
+import { app, BrowserWindow, globalShortcut, protocol, session } from 'electron';
 import { join } from 'node:path';
 import { APP_ID, APP_NAME } from '../shared/app-id';
 import { devDockIconPath } from './app-icon';
@@ -12,6 +12,7 @@ import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { applyApplicationMenu } from './shell/menu';
 import { createStubRecorder } from './shell/recorder-control';
 import { createRecordingWindows } from './shell/recording-windows';
+import { registerGlobalShortcuts } from './shell/global-shortcuts';
 import { createRecordingControl } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
 import { createWindowStateTracker } from './shell/window-state-tracker';
@@ -148,6 +149,26 @@ if (!app.requestSingleInstanceLock()) {
       recordingWindows.onEvent(event);
     });
     settings = await startIpc({ appOrigin: target.origin, logger, recording });
+    // Start and stop from any app. A key another program owns is logged, and the buttons still work.
+    const shortcuts = registerGlobalShortcuts({
+      api: globalShortcut,
+      actions: {
+        isRecording: () => control.isRecording(),
+        record: () => control.start(),
+        stop: () => control.stopAndSave(),
+      },
+      onError: (id, error) => {
+        logger.error('shortcut.failed', {
+          id,
+          error: error instanceof Error ? error.message : 'unknown',
+        });
+      },
+    });
+    if (shortcuts.unavailable.length > 0)
+      logger.warn('shortcut.unavailable', { ids: shortcuts.unavailable });
+    app.on('will-quit', () => {
+      shortcuts.dispose();
+    });
     shell.start();
     await openMainWindow();
   });
