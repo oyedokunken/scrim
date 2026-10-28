@@ -1,5 +1,6 @@
 import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { Tooltip } from './tooltip';
 import { arrowDirection, nextEnabledIndex, typeaheadIndex } from './keyboard';
 
 export interface SelectOption {
@@ -137,28 +138,30 @@ export function Select({ label, value, options, onChange, disabled = false, id }
 
   return (
     <div className="ui-select-wrap">
-      <button
-        ref={button}
-        id={id}
-        type="button"
-        role="combobox"
-        className="ui-select"
-        aria-label={label}
-        title={selected?.label}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
-        disabled={disabled}
-        popoverTarget={listId}
-        popoverTargetAction="toggle"
-        onKeyDown={onButtonKey}
-      >
-        <span className="ui-select-value">
-          <span className="ui-select-text">{selected?.label ?? ''}</span>
-          {selected?.tag ? <span className="ui-select-tag">{selected.tag}</span> : null}
-        </span>
-        <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />
-      </button>
+      <Tooltip label={selected?.label ?? label}>
+        <button
+          ref={button}
+          id={id}
+          type="button"
+          role="combobox"
+          className="ui-select"
+          aria-label={label}
+          title={selected?.label}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={listId}
+          disabled={disabled}
+          popoverTarget={listId}
+          popoverTargetAction="toggle"
+          onKeyDown={onButtonKey}
+        >
+          <span className="ui-select-value">
+            <span className="ui-select-text">{selected?.label ?? ''}</span>
+            {selected?.tag ? <span className="ui-select-tag">{selected.tag}</span> : null}
+          </span>
+          <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+      </Tooltip>
       <div
         ref={list}
         id={listId}
