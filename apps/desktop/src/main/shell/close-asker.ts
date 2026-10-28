@@ -48,5 +48,3 @@ export function createCloseAsker(options: {
     },
   };
 }
-
-export type CloseAsker = ReturnType<typeof createCloseAsker>;
