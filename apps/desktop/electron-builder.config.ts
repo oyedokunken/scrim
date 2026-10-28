@@ -8,6 +8,10 @@ const config: Configuration = {
   directories: { buildResources: 'resources', output: 'release' },
   files: ['out/**', 'package.json', 'resources/icons/**'],
   asar: true,
+  // The one native module is a prebuilt binary, so a rebuild step would only fail on a missing toolchain.
+  npmRebuild: false,
+  // FFmpeg sits beside the app, not inside the archive, because it is run as a program.
+  extraResources: [{ from: 'resources/ffmpeg', to: 'ffmpeg' }],
   // Native modules cannot load from inside the asar archive.
   asarUnpack: ['node_modules/uiohook-napi/**'],
   // The install folder comes from the package name, and the workspace name is scoped.
