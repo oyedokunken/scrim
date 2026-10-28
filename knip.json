@@ -11,7 +11,9 @@
         "electron-builder.config.ts",
         "tests/e2e/**/*.spec.ts",
         "src/renderer/src/main.tsx",
-        "src/recorder/page/main.ts"
+        "src/recorder/page/main.ts",
+        "tests/acceptance/**/*.spec.ts",
+        "playwright.acceptance.config.ts"
       ],
       "project": ["build/**", "src/**", "tests/**", "*.ts", "*.mts"]
     },

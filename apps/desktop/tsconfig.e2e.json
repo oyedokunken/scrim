@@ -1,5 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "composite": true, "types": ["node"], "lib": ["ES2023", "DOM"] },
-  "include": ["tests/e2e/**/*", "playwright.config.ts"]
+  "compilerOptions": {
+    "composite": true,
+    "types": ["node"],
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": [
+    "tests/e2e/**/*",
+    "tests/acceptance/**/*",
+    "playwright.config.ts",
+    "playwright.acceptance.config.ts"
+  ]
 }

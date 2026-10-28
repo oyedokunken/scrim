@@ -14,7 +14,8 @@
     "package": "node scripts/fetch-ffmpeg.mts && electron-vite build && electron-builder --config electron-builder.config.ts",
     "package:dir": "node scripts/fetch-ffmpeg.mts && electron-vite build && electron-builder --dir --config electron-builder.config.ts",
     "verify:fuses": "node build/verify-fuses.mts",
-    "icons": "node scripts/icons.mts"
+    "icons": "node scripts/icons.mts",
+    "test:acceptance": "playwright test --config playwright.acceptance.config.ts"
   },
   "dependencies": {
     "uiohook-napi": "catalog:"
