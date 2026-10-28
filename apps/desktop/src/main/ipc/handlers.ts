@@ -3,6 +3,7 @@ import { isInsideRoot } from '../app-protocol';
 import type { SettingsStore } from '../settings/settings-store';
 import type { Handlers } from './dispatcher';
 import { createAreaHandlers, type AreaApi } from './area-handlers';
+import { createImageHandlers, type ImageDeps } from './image-handlers';
 import { createRecordingHandlers, type RecordingApi } from './recording-handlers';
 
 /** Everything the handlers need from the outside world, so a test can supply fakes. */
@@ -10,6 +11,8 @@ export interface HandlerDeps {
   settings: SettingsStore;
   recording: RecordingApi;
   area: AreaApi;
+  /** The file and clipboard work behind the screenshot result and editor. */
+  images: Omit<ImageDeps, 'platform' | 'screenshotFolder'>;
   platform: NodeJS.Platform;
   /** The app version from the package, never typed in by hand. */
   version: string;
@@ -63,6 +66,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       const destination = deps.settings.get().destinationFolder;
       const known = [
         ...(destination === null ? [] : [destination]),
+        deps.screenshotFolder(),
         ...(deps.extraKnownFolders?.() ?? []),
       ];
       if (!isInsideKnownFolder(path, known, deps.platform)) throw new Error('path not allowed');
@@ -75,6 +79,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     ...createAreaHandlers({
       area: deps.area,
       settings: () => deps.settings.get(),
+      screenshotFolder: deps.screenshotFolder,
+    }),
+    ...createImageHandlers({
+      ...deps.images,
+      platform: deps.platform,
       screenshotFolder: deps.screenshotFolder,
     }),
     'logs:open-folder': async () => {

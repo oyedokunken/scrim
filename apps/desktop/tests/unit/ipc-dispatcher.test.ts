@@ -26,6 +26,12 @@ function setup(overrides: Partial<Handlers> = {}) {
     'area:run': () => ({ ok: false, reason: 'cancelled' }),
     'area:cancel': () => undefined,
     ...createRecordingHandlers({ recording: fakeRecording(), destination: () => null }),
+    'image:read': () => 'data:image/png;base64,AA==',
+    'image:save-edited': () => ({ path: 'x.png', copied: false }),
+    'image:copy': () => undefined,
+    'image:save-as': () => ({ path: null }),
+    'image:drag': () => undefined,
+    'image:delete': () => undefined,
     ...overrides,
   };
   const dispatch = createDispatcher({

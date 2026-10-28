@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, shell } from 'electron';
+import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
+import { access, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createLogger, type Logger } from '../log/logger';
 import { realLoggerFs } from '../log/real-logger-fs';
@@ -84,6 +85,44 @@ export async function startIpc(options: {
       recording,
       area,
       screenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
+      images: {
+        readFile: (path) => readFile(path),
+        // The exclusive flag makes the write fail when the name is taken, so nothing is replaced.
+        writeNewFile: (path, data) => writeFile(path, data, { flag: 'wx' }),
+        writeChosenFile: (path, data) => writeFile(path, data),
+        exists: (path) =>
+          access(path).then(
+            () => true,
+            () => false,
+          ),
+        copyImage: (png) => {
+          void clipboard.write([
+            new ClipboardItem({
+              'image/png': new Blob([new Uint8Array(png)], { type: 'image/png' }),
+            }),
+          ]);
+        },
+        chooseSavePath: async (defaultName) => {
+          const options = {
+            defaultPath: join(app.getPath('pictures'), defaultName),
+            filters: [{ name: 'PNG image', extensions: ['png'] }],
+          };
+          const parent = BrowserWindow.getFocusedWindow();
+          const result = parent
+            ? await dialog.showSaveDialog(parent, options)
+            : await dialog.showSaveDialog(options);
+          return result.canceled ? null : result.filePath;
+        },
+        startDrag: (path) => {
+          const window = BrowserWindow.getFocusedWindow();
+          if (!window) return;
+          window.webContents.startDrag({
+            file: path,
+            icon: nativeImage.createFromPath(path).resize({ width: 128 }),
+          });
+        },
+        trash: (path) => shell.trashItem(path),
+      },
       extraKnownFolders: () => [...sessionFolders],
       platform: process.platform,
       chooseFolder: async () => {
