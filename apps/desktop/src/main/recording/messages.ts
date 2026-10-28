@@ -20,7 +20,8 @@ const COPY: Readonly<Record<RecordingErrorCode, { message: string; nextStep: str
   },
   'folder-not-writable': {
     message: 'Scrim cannot write to this folder.',
-    nextStep: 'Choose another folder.',
+    nextStep:
+      'Choose another folder. If Windows Security blocked Scrim, allow it under Controlled folder access.',
   },
   'folder-unavailable': {
     message: 'The folder is no longer available. Your recording was saved up to this point.',

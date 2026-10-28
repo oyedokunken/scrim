@@ -234,6 +234,9 @@ describe('takeScreenshot', () => {
     );
     expect(both.ok && both.value.path).toBeUndefined();
     expect(both.ok && both.value.copied).toBe(true);
+    // Never silent: the failed save comes back with its plain message and next step.
+    expect(both.ok && both.value.saveError?.code).toBe(expected);
+    expect(both.ok && both.value.saveError?.nextStep).toBeTruthy();
     expect(copied).toHaveLength(1);
 
     const only = await takeScreenshot(
