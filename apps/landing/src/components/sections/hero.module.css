@@ -53,6 +53,35 @@
   text-decoration-color: var(--scrim-green);
 }
 
+@media (max-width: 48rem) {
+  .hero {
+    gap: var(--scrim-space-5);
+    padding-top: var(--scrim-space-5);
+  }
+
+  .copy {
+    gap: var(--scrim-space-4);
+  }
+
+  .title {
+    max-width: 24ch;
+    font-size: 2.5rem;
+    line-height: 1.1;
+  }
+
+  .aside {
+    gap: var(--scrim-space-4);
+  }
+
+  .lead {
+    font-size: var(--scrim-text-body);
+  }
+
+  .actions {
+    gap: var(--scrim-space-2) var(--scrim-space-3);
+  }
+}
+
 @media (min-width: 60rem) {
   .copy {
     grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);

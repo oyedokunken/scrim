@@ -52,6 +52,7 @@ export function HeroShow() {
   const [visible, setVisible] = useState(false);
   // With reduced motion the final card is the state to show, until someone presses Replay.
   const [replayed, setReplayed] = useState(false);
+  const manualAdvanceRef = useRef(false);
   const stage: Stage = reducedMotion && !replayed ? 'address' : chosen;
 
   useEffect(() => {
@@ -73,7 +74,7 @@ export function HeroShow() {
 
   // Timed cards advance on their own, only while the hero is visible. Leaving restarts the card.
   useEffect(() => {
-    if (!visible || reducedMotion) {
+    if (!visible || reducedMotion || manualAdvanceRef.current) {
       return;
     }
     const next = stageAfterTimer(stage);
@@ -94,17 +95,30 @@ export function HeroShow() {
 
   const replay = useCallback(() => {
     setReplayed(true);
+    manualAdvanceRef.current = true;
     // With reduced motion there is no film to replay, so it opens the demo on its still frame.
     setStage(reducedMotion ? 'demo' : 'intro');
   }, [reducedMotion]);
+
+  const handleStageRequest = useCallback((requestedStage: Stage) => {
+    manualAdvanceRef.current = true;
+    setStage(requestedStage);
+  }, []);
 
   const is = (name: Stage) => stage === name;
 
   const overlay = (
     <div className={styles.cards} data-stage={stage} data-testid="hero-cards">
-      <div className={styles.card} data-card="brand" data-on={is('intro') || is('words')}>
-        <LogoMark size={96} className={styles.mark} />
-        <p className={styles.words} aria-hidden={!is('words')}>
+      <div className={styles.card} data-card="brand" data-on={is('intro')}>
+        <div className={styles.brand}>
+          <LogoMark size={96} className={styles.mark} />
+          <span className={styles.wordmark} aria-hidden="true">
+            {siteConfig.name}
+          </span>
+        </div>
+      </div>
+      <div className={styles.card} data-card="words" data-on={is('words')}>
+        <p className={styles.words}>
           {WORDS.map((word, index) => (
             <span key={`${word}-${String(index)}`} style={{ '--i': index } as CSSProperties}>
               {word}{' '}
@@ -140,7 +154,13 @@ export function HeroShow() {
 
   return (
     <div ref={box}>
-      <HeroDemo gate={is('demo')} onEnded={onEnded} overlay={overlay} stage={stage} />
+      <HeroDemo
+        gate={is('demo')}
+        onEnded={onEnded}
+        overlay={overlay}
+        stage={stage}
+        onStageRequest={handleStageRequest}
+      />
     </div>
   );
 }

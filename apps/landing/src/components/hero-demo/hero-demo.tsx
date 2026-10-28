@@ -27,6 +27,7 @@ import {
   typedCount,
   uiStateAt,
 } from '@/lib/demo/script';
+import { STAGE_MS, STAGES, type Stage } from '@/lib/demo/sequence';
 import styles from './hero-demo.module.css';
 import { MockWindow } from './mock-window';
 
@@ -99,9 +100,11 @@ interface HeroDemoProps {
   overlay?: ReactNode;
   /** Which part of the hero sequence is showing. Only exposed as a data attribute. */
   stage?: string;
+  /** Called when a user clicks a stage marker on the timeline. */
+  onStageRequest?: (stage: Stage) => void;
 }
 
-export function HeroDemo({ gate = true, onEnded, overlay, stage }: HeroDemoProps) {
+export function HeroDemo({ gate = true, onEnded, overlay, stage, onStageRequest }: HeroDemoProps) {
   const root = useRef<HTMLDivElement>(null);
   const scene = useRef<HTMLDivElement>(null);
   const ripples = useRef<(HTMLSpanElement | null)[]>([]);
@@ -400,6 +403,30 @@ export function HeroDemo({ gate = true, onEnded, overlay, stage }: HeroDemoProps
               style={{ left: `${String((click.t / DEMO_DURATION_MS) * 100)}%` }}
             />
           ))}
+          {STAGES.map((stageName) => {
+            const timeMs =
+              stageName === 'intro'
+                ? 0
+                : stageName === 'words'
+                  ? STAGE_MS.intro
+                  : stageName === 'demo' || stageName === 'platforms'
+                    ? STAGE_MS.intro + STAGE_MS.words
+                    : DEMO_DURATION_MS;
+            return (
+              <button
+                key={stageName}
+                type="button"
+                className={styles.stageMarker}
+                style={{ left: `${String((timeMs / DEMO_DURATION_MS) * 100)}%` }}
+                aria-label={`Go to ${stageName}`}
+                onClick={() => {
+                  onStageRequest?.(stageName);
+                }}
+              >
+                {stageName}
+              </button>
+            );
+          })}
           <input
             ref={slider}
             type="range"
