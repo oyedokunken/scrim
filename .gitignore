@@ -69,3 +69,6 @@ recordings/
 
 # bundled FFmpeg, fetched by apps/desktop/scripts/fetch-ffmpeg.mts
 apps/desktop/resources/ffmpeg/
+
+# throwaway experiments (the export spike numbers live in docs/adr)
+spikes/
