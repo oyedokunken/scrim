@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, enterApp } from '../e2e/fixtures';
+import { expect, test, enterApp } from './fixtures';
 
 interface Bridge {
   scrim: { invoke: (channel: string) => Promise<unknown> };

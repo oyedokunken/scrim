@@ -1,4 +1,4 @@
-import { expect, test, enterApp } from '../e2e/fixtures';
+import { expect, test, enterApp } from './fixtures';
 
 /**
  * Owner acceptance checks 1 to 4, run against the built app (`pnpm build` first). The area
