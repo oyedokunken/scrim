@@ -6,33 +6,37 @@ Owner: Oyedokun Kehinde (GitHub: oyedokunken). Repo: github.com/oyedokunken/scri
 
 This file is the working agreement for anyone, human or AI, changing this repo. Read it fully before making changes. When a rule here conflicts with a habit or a default, the rule wins.
 
-## Build log (state of the system, 2026-10-26)
+## Build log (state of the system, 2026-10-28)
 
-Phase 1 only. `apps/desktop` does not exist yet.
+Phase 2 is in progress. The work is on the branch `feat/desktop`, with one draft pull request open (#6). It is not merged into `main` yet. Three agents share the one folder: A (desktop shell, security, IPC, icons), B (recording engine and session format) and C (render and export sizing). Their coordination notes live in `.agents/` and are never committed.
 
-Done and committed:
+Done and committed on `feat/desktop`:
 
-- Monorepo: pnpm 12 workspace with a catalog and a 7 day release age, turbo, strict TypeScript, ESLint boundary rules, a text guard that rejects dashes, emojis and tool names, husky with lint-staged and commitlint.
-- `packages/tokens`: palette (green, butter, black, white, record red), CSS variables, type scale, contrast tests.
-- `packages/core`: `planZoom`, `sampleCamera`, `cursorAt` and a zoom-only subpath, with property tests.
-- Landing page: live zoom hero (18 s scripted demo using the real planner), eight stacking feature cards numbered 01/08 to 08/08, use cases, download section with per system help, FAQ in two columns, contribute, contact, closing call to action, footer with the full white logo, which rises on scroll and is a link to the top, header pill that shrinks on scroll, floating back to top button (green, with a ring that fills as the page scrolls, a solid green inner circle and no timer), Built by popover.
-- Download flow: native dialog, React Hook Form with the shared zod schema, system detection with spoofed user agent tests, `/api/downloads` (origin check, honeypot, rate limit, hashed IP, release lookup, Prisma record), confirmation email to the visitor and a note email to the owner (Nodemailer, sent in `after()`), unsubscribe page and `/api/unsubscribe` (POST only).
+- Monorepo: pnpm 12 workspace with a catalog and a 7 day release age, turbo, strict TypeScript, ESLint boundary rules, a text guard that rejects dashes, emojis and tool names, husky with lint-staged (run without stashing, because the folder is shared) and commitlint.
+- `packages/tokens`: palette (green, butter, black, white, record red), CSS variables, type scale, contrast tests, and the brand mark SVG in `packages/tokens/brand`. The mark is the single source: the landing page logo geometry and every desktop icon are generated from it by `pnpm icons`, and CI is meant to fail on any difference.
+- `packages/core`: `planZoom`, `sampleCamera`, `cursorAt` and a zoom-only subpath, plus the recording clock and media time mapping, the input log parser and session log, the session file schema and layout, the edit list, window bounds and display ids. Property tests throughout.
+- Landing page: live zoom hero (18 s scripted demo using the real planner, with a Play and Pause button), eight stacking feature cards numbered 01/08 to 08/08, use cases, download section with per system help, FAQ in two columns, contribute, contact, closing call to action, footer with the full white logo, which rises on scroll and is a link to the top, header pill that shrinks on scroll, floating back to top button (green, with a ring that fills as the page scrolls, a solid green inner circle and no timer), Built by popover.
+- Download flow: native dialog, React Hook Form with the shared zod schema, system detection with spoofed user agent tests, `/api/downloads` (origin check, honeypot, rate limit, hashed IP, release lookup, Prisma record), confirmation email to the visitor and a note email to the owner (Nodemailer, sent in `after()`), unsubscribe page and `/api/unsubscribe` (POST only). The dialog now preselects the visitor system, which it did not before.
 - Privacy page, metadata, Open Graph image, sitemap, robots, manifest, icons, JSON-LD, security headers.
-- Docs: README, WIKI, CHANGELOG, SECURITY, CONTRIBUTING.
-- Tests: 436 landing unit tests, 32 token tests, root tests. E2E specs for chrome, hero, page, download, emails (screenshots on demand) with axe.
+- Docs: README, WIKI, CHANGELOG, SECURITY, CONTRIBUTING, `docs/architecture.md` (desktop security baseline and notes for later milestones), `docs/phase-2-plan.md`, and ADRs 0001, 0002, 0004, 0005 and 0006. There is no ADR 0003.
+- Desktop app (`apps/desktop`): Electron, electron-vite and React. The security baseline is locked by tests: web preferences, the CSP served from the `app://` protocol, permission and navigation guards, one link opener, sandbox, and Electron fuses read back from the packaged binary. Native window controls, single instance lock, tray, an application menu on macOS only, a close dialog during a recording, and window position per display. A typed IPC bridge with a zod contract, a settings store with recovery, and a local logger that never writes a path or a window title. The app icon on every window, the installer and the tray. The home screen shows the mark, the name and the tagline.
+- Recording engine groundwork (Agent B): chunk writer with disk space checks, the hidden recorder page, the recording service with finalize and recovery, the mouse hook input recorder, a kill and recover test, crop pixels and `edits.json`.
+- Tests: landing has 436 unit tests and 399 end to end tests across desktop, tablet and mobile viewports, with axe. Other counts change often, so read them from `pnpm check`.
 
 Not done, or not verified:
 
-- The latest full Playwright run had failures in `download.spec.ts`, `page.spec.ts` and `chrome.spec.ts`. They are being fixed.
+- Phase 2 is unfinished: the permission checks and first run flow (M5), the home screen with source picking (M6), the handled error states (M10), a real capture session on macOS and Linux, and a packaged install check beyond Windows.
+- Export sizing did not exist before Phase 2. The earlier claim that it was already specified by tests was wrong. Agent C is writing `packages/core/src/export/size.ts` and the render code with their tests, and none of it is committed yet.
+- GitHub Actions cannot run until the account billing is fixed, so the one workflow that exists (`e2e-desktop.yml`) and every gate in this file are unverified in CI. Verify locally.
 - No Lighthouse run and no bundle size check since react-hook-form and zod joined the lazy dialog.
 - No integration tests against a real database and no live SMTP send. Gmail needs an app password and rewrites From unless an alias exists.
-- Missing: knip run, `docs/architecture.md`, `testing.md`, `releasing.md`, ADRs, CI workflows, issue and PR templates.
+- Missing: `docs/testing.md`, `docs/releasing.md`, ADR 0003, the workflows `ci`, `landing-quality`, `commit-policy`, `secrets-scan` and `codeql`, and the pull request template. Issue templates, CODEOWNERS and the Dependabot config exist.
 - Open decisions below are unanswered. The scrim.app domain and hello@scrim.app are unconfirmed. The Supabase project is shared between dev and prod.
 - The privacy page does not yet mention the owner notification email.
 
 ## Current phase
 
-Phase 1 is the landing page only. Do not scaffold or touch `apps/desktop` until the owner says Phase 2 has started. The web and the desktop app are separate apps in one monorepo. They never import from each other. They share code only through `packages/*`.
+Phase 2 is in progress on `feat/desktop`. The web and the desktop app are separate apps in one monorepo. They never import from each other. They share code only through `packages/*`. The table below is the original scope. `docs/phase-2-plan.md` proposes moving the capture of the camera, the microphone, the input log and pause into Phase 2 and keeping their rendering in Phase 4 (owner decision D1).
 
 | Phase | Scope |
 | --- | --- |
@@ -83,7 +87,7 @@ Cursor halo, click ripples, auto zoom that follows the mouse, face camera and mi
 
 ### Output resolution
 
-Exports never upscale, always use even dimensions (H.264 yuv420p requirement) and are capped at 3840 by 2160. Presets: source, 720p, 1080p, 1440p, 2160p. This logic lives in `packages/core/src/export/size.ts` and is already specified by tests. The owner has not yet confirmed the intended maximum, so treat 3840 by 2160 as the working ceiling.
+Exports never upscale, always use even dimensions (H.264 yuv420p requirement) and are capped at 3840 by 2160. Presets: source, 720p, 1080p, 1440p, 2160p. This logic lives in `packages/core/src/export/size.ts`. It did not exist before Phase 2: Agent C is writing it with its tests, and it is not committed yet. The owner has not yet confirmed the intended maximum, so treat 3840 by 2160 as the working ceiling.
 
 ## Reliability requirements
 
