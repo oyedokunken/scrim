@@ -117,13 +117,24 @@ export const WARNINGS = {
         ? 'Camera disconnected. Screen recording continues.'
         : 'Microphone disconnected. Screen recording continues.',
   }),
-  deviceUnavailable: (kind: 'camera' | 'mic'): Warning => ({
-    code: kind === 'camera' ? 'camera-unavailable' : 'mic-unavailable',
-    message:
-      kind === 'camera'
-        ? 'The camera could not be opened, so it is not being recorded.'
-        : 'The microphone could not be opened, so it is not being recorded.',
-  }),
+  deviceUnavailable: (
+    kind: 'camera' | 'mic',
+    reason: 'permission-denied' | 'device-missing' | 'device-busy' | 'unsupported' | 'unknown',
+  ): Warning => {
+    const name = kind === 'camera' ? 'camera' : 'microphone';
+    const settings = kind === 'camera' ? 'Camera' : 'Microphone';
+    const why: Record<typeof reason, string> = {
+      'permission-denied': `Scrim is not allowed to use the ${name}. Turn it on in Windows Settings, under Privacy and security, ${settings}.`,
+      'device-missing': `No ${name} was found. Connect one and record again.`,
+      'device-busy': `Another app is using the ${name}. Close it and record again.`,
+      unsupported: `This computer cannot record from the ${name}.`,
+      unknown: `The ${name} could not be opened.`,
+    };
+    return {
+      code: kind === 'camera' ? 'camera-unavailable' : 'mic-unavailable',
+      message: `${why[reason]} The screen is still being recorded.`,
+    };
+  },
   inputUnavailable: (
     reason: 'wayland' | 'permission' | 'error' | 'window-bounds-unsupported',
   ): Warning => ({

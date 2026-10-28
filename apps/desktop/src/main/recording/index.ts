@@ -1,5 +1,6 @@
-import { app } from 'electron';
+import { app, dialog } from 'electron';
 import { tmpdir } from 'node:os';
+import { createCrashGuard } from './crash-guard';
 import { createRecordingService } from './create-service';
 import { startMarker } from './dev-marker';
 import { readDevTool, runDevTool } from './dev-tools';
@@ -20,6 +21,23 @@ export type * from './types';
  */
 export function registerRecording(options: { appOrigin: string }): RecordingService {
   const service = createRecordingService({ appOrigin: options.appOrigin });
+
+  // Anything unexpected in this process saves a running recording before it does anything else.
+  const guard = createCrashGuard({
+    service,
+    log: (message) => {
+      console.error(message);
+    },
+    notify: (title, message) => {
+      dialog.showErrorBox(title, message);
+    },
+  });
+  process.on('uncaughtException', (error) => {
+    void guard.onException(error);
+  });
+  process.on('unhandledRejection', (reason) => {
+    guard.onRejection(reason);
+  });
 
   void service.listRecoverable().then((found) => {
     if (found.length > 0) {

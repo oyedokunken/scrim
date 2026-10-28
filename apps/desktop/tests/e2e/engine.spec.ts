@@ -230,6 +230,27 @@ function readNetLog(file: string): { urls: string[]; lookups: number } {
   return { urls, lookups: log.events.filter((event) => lookupTypes.has(event.type)).length };
 }
 
+test('a destination that is not a usable folder gives a plain message and no crash', async () => {
+  test.setTimeout(60_000);
+  const blocker = join(work, 'not-a-folder.txt');
+  writeFileSync(blocker, 'a file, where a folder was expected');
+  const app = launch(
+    { SCRIM_DEV_RECORD: '3', SCRIM_DEV_DEST: join(blocker, 'recordings') },
+    join(work, 'user'),
+  );
+  try {
+    const line = await app.waitFor('DEV RECORD start failed', 45_000);
+    expect(line).toContain('Scrim cannot write to this folder.');
+    expect(line).toContain('Choose another folder.');
+    // The error carries no path and no system text, only the plain message and the next step.
+    expect(line).not.toContain(work);
+    expect(await app.exited).toBe(0);
+    expect(readdirSync(work).sort()).toEqual(['not-a-folder.txt', 'user']);
+  } finally {
+    killHard(app.child);
+  }
+});
+
 test('makes no network request while recording, pausing, stopping and recovering', async () => {
   test.setTimeout(240_000);
 

@@ -565,7 +565,7 @@ export class RecordingService {
     }
     for (const failure of ready.failed) {
       if (failure.kind === 'camera' || failure.kind === 'mic') {
-        this.warn(active, WARNINGS.deviceUnavailable(failure.kind));
+        this.warn(active, WARNINGS.deviceUnavailable(failure.kind, failure.reason));
       }
     }
 
