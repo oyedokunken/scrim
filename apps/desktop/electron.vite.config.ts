@@ -38,6 +38,7 @@ export default defineConfig({
         input: {
           index: here('./src/preload/index.ts'),
           recorder: here('./src/recorder/preload/index.ts'),
+          region: here('./src/recorder/region/preload/index.ts'),
         },
       },
     },
@@ -50,6 +51,7 @@ export default defineConfig({
         input: {
           index: here('./src/renderer/index.html'),
           recorder: here('./src/renderer/recorder.html'),
+          region: here('./src/renderer/region.html'),
         },
       },
     },
