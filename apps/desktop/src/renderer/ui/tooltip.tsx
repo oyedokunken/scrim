@@ -11,7 +11,7 @@ export interface TooltipProps {
   children: ReactElement;
 }
 
-export const TOOLTIP_DELAY_MS = 400;
+const TOOLTIP_DELAY_MS = 400;
 
 /**
  * A label that appears after 400 ms of hover or keyboard focus and goes away on leave, blur, click

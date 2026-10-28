@@ -3,6 +3,11 @@
   gap: var(--scrim-space-4);
 }
 
+/* Holds the camera view and the cards over it. */
+.stage {
+  position: relative;
+}
+
 /* The camera view. Its shape is fixed, so the demo never shifts the page. */
 .viewport {
   position: relative;

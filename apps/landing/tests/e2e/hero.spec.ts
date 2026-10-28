@@ -6,9 +6,14 @@ const playButton = (page: Page) => page.getByRole('button', { name: /^(Play|Paus
 const scale = async (locator: Locator) => (await locator.getAttribute('data-scale')) ?? '';
 const time = async (locator: Locator) => Number((await locator.getAttribute('data-time')) ?? 'NaN');
 
+/** The hero starts with two cards. The product demo begins about four seconds in. */
+const waitForDemoStage = (page: Page) =>
+  expect(demo(page)).toHaveAttribute('data-stage', 'demo', { timeout: 12_000 });
+
 test.describe('the hero demo with JavaScript', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await waitForDemoStage(page);
   });
 
   test('plays on its own, zooms in on a click and zooms back out', async ({ page }) => {
@@ -227,8 +232,24 @@ test.describe('without JavaScript', () => {
 test.describe('with reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
 
-  test('does not autoplay and shows a still frame that is already zoomed in', async ({ page }) => {
+  /** Reduced motion opens on the final card. Replay then shows the demo on its still frame. */
+  async function openStill(page: Page) {
     await page.goto('/');
+    await expect(demo(page)).toHaveAttribute('data-stage', 'address');
+    await page.getByRole('button', { name: 'Replay' }).click();
+    await expect(demo(page)).toHaveAttribute('data-stage', 'demo');
+  }
+
+  test('shows the final card with the address and no moving parts', async ({ page }) => {
+    await page.goto('/');
+    const cards = page.getByTestId('hero-cards');
+    await expect(cards.getByText('scrim.app')).toBeVisible();
+    await expect(demo(page)).toHaveAttribute('data-playing', 'false');
+    await expect(page.getByRole('button', { name: 'Replay' })).toBeVisible();
+  });
+
+  test('does not autoplay and shows a still frame that is already zoomed in', async ({ page }) => {
+    await openStill(page);
     const view = demo(page);
     const button = playButton(page);
     await expect(button).toHaveAccessibleName('Play');
@@ -242,7 +263,7 @@ test.describe('with reduced motion', () => {
   });
 
   test('the controls still work', async ({ page }) => {
-    await page.goto('/');
+    await openStill(page);
     const view = demo(page);
     await expect.poll(() => scale(view)).toBe('2.00');
 
@@ -347,5 +368,48 @@ test.describe('the download button names the visitor system', () => {
     }
     expect(widths[0]).toBeGreaterThan(0);
     expect(Math.abs((widths[0] ?? 0) - (widths[1] ?? 0))).toBeLessThan(0.5);
+  });
+});
+
+test.describe('the hero sequence', () => {
+  test('starts on the green card with the mark, then the words, the demo, the platforms and the address', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const view = demo(page);
+    const cards = page.getByTestId('hero-cards');
+    await expect(view).toHaveAttribute('data-stage', 'intro');
+    await expect(cards.locator('[data-card="brand"]')).toHaveCSS('opacity', '1');
+    await expect(cards.locator('[data-card="brand"]')).toHaveCSS(
+      'background-color',
+      'rgb(0, 78, 82)',
+    );
+    await expect(view).toHaveAttribute('data-stage', 'words');
+    await expect(cards.getByText('Record anything on your screen effortlessly')).toBeVisible();
+    await expect(view).toHaveAttribute('data-stage', 'demo', { timeout: 8000 });
+    await expect(view).toHaveAttribute('data-playing', 'true');
+    // The demo is 18 seconds long.
+    await expect(view).toHaveAttribute('data-stage', 'platforms', { timeout: 25_000 });
+    await expect(cards.getByText('Available for all platforms')).toBeVisible();
+    await expect(view).toHaveAttribute('data-stage', 'address', { timeout: 8000 });
+    await expect(cards.getByText('scrim.app')).toBeVisible();
+    await page.getByRole('button', { name: 'Replay' }).click();
+    await expect(view).toHaveAttribute('data-stage', 'intro');
+  });
+
+  test('does not start until the hero is on screen', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.scrollTo(0, 0);
+    });
+    await page.setViewportSize({ width: 1440, height: 500 });
+    await page.goto('/');
+    await page.evaluate(() => {
+      document.querySelector('#features')?.scrollIntoView();
+    });
+    await page.waitForTimeout(300);
+    const view = demo(page);
+    await expect(view).toHaveAttribute('data-stage', 'intro');
+    await page.waitForTimeout(2200);
+    await expect(view).toHaveAttribute('data-stage', 'intro');
   });
 });

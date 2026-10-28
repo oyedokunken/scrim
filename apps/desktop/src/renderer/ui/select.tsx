@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { Tooltip } from './tooltip';
 import { arrowDirection, nextEnabledIndex, typeaheadIndex } from './keyboard';
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
   /** A small note after the label, for example Default. */

@@ -1,0 +1,162 @@
+/* The cards sit over the camera view. They share its shape and its rounded corners. */
+.cards {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--scrim-radius-lg);
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+}
+
+.cards[data-stage='demo'] {
+  visibility: hidden;
+  transition: visibility 0s linear 0.5s;
+}
+
+.card {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4cqh;
+  background: var(--scrim-green);
+  color: var(--scrim-butter);
+  text-align: center;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.5s ease,
+    visibility 0s linear 0.5s;
+}
+
+.card[data-on='true'] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.5s ease;
+  pointer-events: auto;
+}
+
+/* The brand card: the mark alone, then the mark above the tagline. */
+.mark {
+  width: 22cqh;
+  height: 22cqh;
+  transition:
+    width 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    height 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.words {
+  margin: 0;
+  max-width: 80cqw;
+  font-size: 7.5cqh;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.words span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(1.5cqh);
+}
+
+.cards[data-stage='intro'] .words {
+  display: none;
+}
+
+.cards[data-stage='words'] .mark {
+  width: 11cqh;
+  height: 11cqh;
+}
+
+.cards[data-stage='words'] .words span {
+  animation: word-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 0.28s + 0.2s);
+}
+
+.logos {
+  display: flex;
+  gap: 6cqw;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.logos li {
+  display: grid;
+  place-items: center;
+}
+
+.line {
+  margin: 0;
+  font-size: 6.5cqh;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.markSmall {
+  width: 11cqh;
+  height: 11cqh;
+}
+
+.address {
+  margin: 0;
+  font-size: 12cqh;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.25rem;
+  border: 1px solid var(--scrim-butter);
+  border-radius: var(--scrim-radius-pill);
+  background: transparent;
+  color: var(--scrim-butter);
+  font-size: var(--scrim-text-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.replay:hover {
+  background: var(--scrim-butter);
+  color: var(--scrim-green);
+}
+
+.replay:focus-visible {
+  outline: 3px solid var(--scrim-butter);
+  outline-offset: 3px;
+}
+
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(1.5cqh);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card[data-on='true'],
+  .cards[data-stage='demo'],
+  .mark {
+    transition: none;
+  }
+
+  .words span {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+}

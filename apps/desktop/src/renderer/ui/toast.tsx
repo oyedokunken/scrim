@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 
-export const TOAST_MS = 4000;
+const TOAST_MS = 4000;
 
 interface ToastItem {
   id: number;

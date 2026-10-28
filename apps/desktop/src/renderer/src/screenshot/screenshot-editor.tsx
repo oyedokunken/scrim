@@ -68,7 +68,7 @@ interface ToolSpec {
 }
 
 /** The tools, in toolbar order. Each has a single key. */
-export const TOOLS: readonly ToolSpec[] = [
+const TOOLS: readonly ToolSpec[] = [
   { tool: 'select', label: 'Select', key: 'V', Icon: MousePointer2 },
   { tool: 'crop', label: 'Crop', key: 'C', Icon: Crop },
   { tool: 'arrow', label: 'Arrow', key: 'A', Icon: MoveUpRight },

@@ -54,13 +54,13 @@ export function toBridgeSnapshot(snapshot: RecordingSnapshot): BridgeSnapshot {
   };
 }
 
-export function toBridgeWarning(warning: Warning): BridgeWarning {
+function toBridgeWarning(warning: Warning): BridgeWarning {
   return warning.code === 'disk-low'
     ? { code: warning.code, message: warning.message, freeBytes: warning.freeBytes }
     : { code: warning.code, message: warning.message };
 }
 
-export function toBridgeFinished(result: FinishedRecording): BridgeFinished {
+function toBridgeFinished(result: FinishedRecording): BridgeFinished {
   return {
     folder: result.folder,
     name: result.name,

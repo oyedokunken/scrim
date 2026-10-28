@@ -4,12 +4,28 @@ import { pathSchema } from './recording-contract';
 export const PNG_DATA_URL_PREFIX = 'data:image/png;base64,';
 
 /** A 4K screenshot is about 25 MB as a PNG and a third more as text, so the ceiling is generous. */
-export const MAX_DATA_URL_CHARS = 96 * 1024 * 1024;
+const MAX_DATA_URL_CHARS = 96 * 1024 * 1024;
 
-export const pngDataUrlSchema = z
+const pngDataUrlSchema = z
   .string()
   .max(MAX_DATA_URL_CHARS)
   .startsWith(PNG_DATA_URL_PREFIX, 'Only PNG images are accepted.');
+
+const shotEntrySchema = z
+  .object({
+    path: pathSchema,
+    name: z.string(),
+    modifiedMs: z.number().nonnegative(),
+    bytes: z.number().nonnegative(),
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+  })
+  .strict();
+
+export type ShotEntry = z.infer<typeof shotEntrySchema>;
+
+/** The most screenshots one listing returns, newest first. */
+export const MAX_LISTED_SHOTS = 500;
 
 /**
  * The image calls. The page only ever names a PNG inside the screenshots folder, and the main
@@ -29,5 +45,10 @@ export const imageContract = {
     output: z.object({ path: pathSchema.nullable() }).strict(),
   },
   'image:drag': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
+  'image:list': { input: z.void(), output: z.array(shotEntrySchema).max(MAX_LISTED_SHOTS) },
+  'image:thumbnail': {
+    input: z.object({ path: pathSchema }).strict(),
+    output: pngDataUrlSchema,
+  },
   'image:delete': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
 } as const;

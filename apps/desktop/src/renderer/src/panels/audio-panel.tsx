@@ -1,6 +1,6 @@
 import { PanelSection, Segmented, Switch } from '../../ui';
 
-export type MicVolume = 'quieter' | 'normal' | 'louder';
+type MicVolume = 'quieter' | 'normal' | 'louder';
 
 export interface AudioValue {
   keepSound: boolean;

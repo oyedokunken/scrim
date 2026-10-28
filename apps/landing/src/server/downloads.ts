@@ -9,7 +9,7 @@ export const HOURLY_LIMIT = 10;
 /** The largest request body we read, in bytes. A real form is a few hundred. */
 export const MAX_BODY_BYTES = 4096;
 /** The version stored for someone who asked to hear about a system that has no installer yet. */
-export const WAITLIST_VERSION = 'waitlist';
+const WAITLIST_VERSION = 'waitlist';
 
 export interface RecordEntry {
   email: string;

@@ -118,7 +118,10 @@ export function HeroDemo({ gate = true, onEnded, overlay, stage }: HeroDemoProps
   const scrubbing = useRef(false);
   const lastTime = useRef(0);
   const endedRef = useRef(onEnded);
-  endedRef.current = onEnded;
+
+  useEffect(() => {
+    endedRef.current = onEnded;
+  }, [onEnded]);
 
   const reducedMotion = usePrefersReducedMotion();
   // Auto means "play unless the visitor prefers reduced motion". A click makes it explicit.
@@ -281,92 +284,92 @@ export function HeroDemo({ gate = true, onEnded, overlay, stage }: HeroDemoProps
   return (
     <div className={styles.demo} data-stage={stage}>
       <div className={styles.stage}>
-      <div
-        ref={root}
-        className={styles.viewport}
-        style={ROOT_STYLE}
-        data-testid="hero-demo"
-        data-stage={stage}
-        data-playing={running ? 'true' : 'false'}
-        data-scale="1.00"
-        data-time="0"
-        role="img"
-        aria-label="A demonstration of auto zoom. A cursor moves over a task app and clicks three times. The view zooms in on each click, follows the cursor, then eases back out. A face camera sits in the corner and a timer counts the recording."
-      >
-        <div ref={scene} className={styles.scene} style={SCENE_STYLE}>
-          <MockWindow />
-          {Array.from({ length: TRAIL_LENGTH }, (_, index) => (
-            <span
-              key={index}
-              ref={(element) => {
-                trail.current[index] = element;
-              }}
-              className={styles.trail}
-              style={TRAIL_REST(index)}
-            />
-          ))}
-          {DEMO_CLICKS.map((click, index) => (
-            <span
-              key={click.t}
-              ref={(element) => {
-                ripples.current[index] = element;
-              }}
-              className={styles.ripple}
-              style={{
-                ...RIPPLE_REST,
-                left: `${String((click.x / DEMO_FRAME.width) * 100)}%`,
-                top: `${String((click.y / DEMO_FRAME.height) * 100)}%`,
-              }}
-            />
-          ))}
-          <div className={styles.cursor}>
-            <span className={styles.halo} />
-            <svg className={styles.pointer} viewBox="0 0 15 22" focusable="false">
+        <div
+          ref={root}
+          className={styles.viewport}
+          style={ROOT_STYLE}
+          data-testid="hero-demo"
+          data-stage={stage}
+          data-playing={running ? 'true' : 'false'}
+          data-scale="1.00"
+          data-time="0"
+          role="img"
+          aria-label="A demonstration of auto zoom. A cursor moves over a task app and clicks three times. The view zooms in on each click, follows the cursor, then eases back out. A face camera sits in the corner and a timer counts the recording."
+        >
+          <div ref={scene} className={styles.scene} style={SCENE_STYLE}>
+            <MockWindow />
+            {Array.from({ length: TRAIL_LENGTH }, (_, index) => (
+              <span
+                key={index}
+                ref={(element) => {
+                  trail.current[index] = element;
+                }}
+                className={styles.trail}
+                style={TRAIL_REST(index)}
+              />
+            ))}
+            {DEMO_CLICKS.map((click, index) => (
+              <span
+                key={click.t}
+                ref={(element) => {
+                  ripples.current[index] = element;
+                }}
+                className={styles.ripple}
+                style={{
+                  ...RIPPLE_REST,
+                  left: `${String((click.x / DEMO_FRAME.width) * 100)}%`,
+                  top: `${String((click.y / DEMO_FRAME.height) * 100)}%`,
+                }}
+              />
+            ))}
+            <div className={styles.cursor}>
+              <span className={styles.halo} />
+              <svg className={styles.pointer} viewBox="0 0 15 22" focusable="false">
+                <path
+                  d="M0 0V19L5 14.5L8.5 22L12 20.5L8.5 13H15Z"
+                  fill="var(--scrim-black)"
+                  stroke="var(--scrim-white)"
+                  strokeWidth="1.5"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Recording overlays. They stay put while the scene zooms. */}
+          <span className={styles.rec}>
+            <span className={styles.recDot} />
+            <span className={styles.recLabel}>REC</span>
+            <span ref={clock} className={styles.recTime}>
+              00:00
+            </span>
+          </span>
+          <span className={styles.zoomBadge}>
+            Zoom <span ref={badge}>1.0x</span>
+          </span>
+          <div className={styles.face}>
+            <svg viewBox="0 0 100 100" focusable="false" className={styles.faceArt}>
+              <circle cx="50" cy="50" r="50" fill="var(--scrim-green)" />
+              <path d="M14 100a36 30 0 0 1 72 0Z" fill="var(--scrim-butter)" />
+              <circle cx="50" cy="42" r="19" fill="var(--scrim-butter)" />
+              <circle cx="43" cy="40" r="2.4" fill="var(--scrim-black)" />
+              <circle cx="57" cy="40" r="2.4" fill="var(--scrim-black)" />
               <path
-                d="M0 0V19L5 14.5L8.5 22L12 20.5L8.5 13H15Z"
-                fill="var(--scrim-black)"
-                stroke="var(--scrim-white)"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
+                d="M43 49q7 6 14 0"
+                fill="none"
+                stroke="var(--scrim-black)"
+                strokeWidth="2.2"
+                strokeLinecap="round"
               />
             </svg>
+            <span className={styles.mic}>
+              <span className={styles.micBar} style={{ transform: 'scaleY(var(--m1))' }} />
+              <span className={styles.micBar} style={{ transform: 'scaleY(var(--m2))' }} />
+              <span className={styles.micBar} style={{ transform: 'scaleY(var(--m3))' }} />
+            </span>
           </div>
         </div>
-
-        {/* Recording overlays. They stay put while the scene zooms. */}
-        <span className={styles.rec}>
-          <span className={styles.recDot} />
-          <span className={styles.recLabel}>REC</span>
-          <span ref={clock} className={styles.recTime}>
-            00:00
-          </span>
-        </span>
-        <span className={styles.zoomBadge}>
-          Zoom <span ref={badge}>1.0x</span>
-        </span>
-        <div className={styles.face}>
-          <svg viewBox="0 0 100 100" focusable="false" className={styles.faceArt}>
-            <circle cx="50" cy="50" r="50" fill="var(--scrim-green)" />
-            <path d="M14 100a36 30 0 0 1 72 0Z" fill="var(--scrim-butter)" />
-            <circle cx="50" cy="42" r="19" fill="var(--scrim-butter)" />
-            <circle cx="43" cy="40" r="2.4" fill="var(--scrim-black)" />
-            <circle cx="57" cy="40" r="2.4" fill="var(--scrim-black)" />
-            <path
-              d="M43 49q7 6 14 0"
-              fill="none"
-              stroke="var(--scrim-black)"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            />
-          </svg>
-          <span className={styles.mic}>
-            <span className={styles.micBar} style={{ transform: 'scaleY(var(--m1))' }} />
-            <span className={styles.micBar} style={{ transform: 'scaleY(var(--m2))' }} />
-            <span className={styles.micBar} style={{ transform: 'scaleY(var(--m3))' }} />
-          </span>
-        </div>
-      </div>
-      {overlay}
+        {overlay}
       </div>
 
       <div className={styles.timeline}>

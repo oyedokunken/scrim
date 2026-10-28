@@ -2,8 +2,8 @@ import { BACKGROUND_PRESETS } from '@scrim/core/render';
 import { ImagePlus } from 'lucide-react';
 import { PanelSection, Segmented, Switch } from '../../ui';
 
-export type BackgroundPadding = 'none' | 'small' | 'medium' | 'large';
-export type BackgroundCorners = 'square' | 'soft' | 'round';
+type BackgroundPadding = 'none' | 'small' | 'medium' | 'large';
+type BackgroundCorners = 'square' | 'soft' | 'round';
 
 export interface BackgroundValue {
   /** A preset id from the render constants, or `none` for the recording alone. */

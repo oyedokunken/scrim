@@ -120,7 +120,7 @@ export function fontSizeFor(thickness: ThicknessName): number {
 }
 
 /** An estimate good enough for hit testing and handles. Drawing measures the real text. */
-export function textWidth(text: string, fontSize: number): number {
+function textWidth(text: string, fontSize: number): number {
   return Math.max(fontSize, text.length * fontSize * 0.55);
 }
 

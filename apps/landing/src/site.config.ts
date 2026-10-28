@@ -18,6 +18,8 @@ export const siteConfig = {
   contactInbox: 'oyedokunken@gmail.com',
   /** The address shown on the last card of the hero video. Switch it when the domain changes. */
   heroAddress: 'scrim.app',
+  /** The line on the platforms card of the hero video. The owner chose it ahead of the installers. */
+  heroPlatformLine: 'Available for all platforms',
   author: {
     name: 'Oyedokun Kehinde',
     handle: '@oyedokunken',

@@ -1,8 +1,8 @@
 import { PanelSection, Segmented, Switch } from '../../ui';
 
 export type BubbleCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-export type BubbleSize = 'S' | 'M' | 'L';
-export type BubbleShape = 'circle' | 'rounded-square';
+type BubbleSize = 'S' | 'M' | 'L';
+type BubbleShape = 'circle' | 'rounded-square';
 
 export interface CameraValue {
   on: boolean;
@@ -29,21 +29,21 @@ const SHAPE_OPTIONS = [
   { value: 'rounded-square', label: 'Rounded' },
 ] as const;
 
-export const CORNERS: readonly { value: BubbleCorner; label: string }[] = [
+const CORNERS: readonly { value: BubbleCorner; label: string }[] = [
   { value: 'top-left', label: 'Top left' },
   { value: 'top-right', label: 'Top right' },
   { value: 'bottom-left', label: 'Bottom left' },
   { value: 'bottom-right', label: 'Bottom right' },
 ];
 
-export interface CornerPickerProps {
+interface CornerPickerProps {
   value: BubbleCorner;
   onChange: (corner: BubbleCorner) => void;
   disabled?: boolean;
 }
 
 /** A small frame with a dot in each corner. The chosen corner is filled. */
-export function CornerPicker({ value, onChange, disabled = false }: CornerPickerProps) {
+function CornerPicker({ value, onChange, disabled = false }: CornerPickerProps) {
   return (
     <div className="corner-picker" role="radiogroup" aria-label="Bubble position">
       {CORNERS.map((corner) => (

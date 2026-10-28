@@ -1,18 +1,12 @@
+import { DEFAULT_ACCELERATORS, type ShortcutId } from '../../shared/shortcut-keys';
+
+export { DEFAULT_ACCELERATORS, type ShortcutId };
+
 /** The slice of Electron's `globalShortcut` this module needs, so tests can stand in for it. */
 export interface ShortcutApi {
   register: (accelerator: string, callback: () => void) => boolean;
   unregister: (accelerator: string) => void;
 }
-
-export const SHORTCUT_IDS = ['record', 'stop', 'screenshot'] as const;
-export type ShortcutId = (typeof SHORTCUT_IDS)[number];
-
-/** Electron accelerators. The renderer shows the same keys as Ctrl, Shift and a letter. */
-export const DEFAULT_ACCELERATORS: Readonly<Record<ShortcutId, string>> = {
-  record: 'CommandOrControl+Shift+R',
-  stop: 'CommandOrControl+Shift+S',
-  screenshot: 'CommandOrControl+Shift+X',
-};
 
 export interface ShortcutActions {
   isRecording: () => boolean;

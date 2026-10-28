@@ -1,7 +1,7 @@
 import { useRef, type KeyboardEvent } from 'react';
 import { arrowDirection, nextEnabledIndex } from './keyboard';
 
-export interface SegmentOption<T extends string> {
+interface SegmentOption<T extends string> {
   value: T;
   label: string;
   disabled?: boolean;

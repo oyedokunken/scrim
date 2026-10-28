@@ -5,4 +5,4 @@ export const SHORTCUTS = {
   screenshot: { label: 'Take screenshot', keys: ['Ctrl', 'Shift', 'X'] },
 } as const;
 
-export type ShortcutId = keyof typeof SHORTCUTS;
+type ShortcutId = keyof typeof SHORTCUTS;

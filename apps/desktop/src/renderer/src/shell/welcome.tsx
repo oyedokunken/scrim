@@ -2,7 +2,7 @@ import { useEffect, type MouseEvent } from 'react';
 import { Button } from '../../ui';
 import { BrandMark } from '../brand-mark';
 
-export const OWNER_URL = 'https://www.oyedokun.dev/';
+const OWNER_URL = 'https://www.oyedokun.dev/';
 
 export interface WelcomeProps {
   /** Get started on the first launch, Continue after. */

@@ -1,5 +1,5 @@
 import { basename, dirname, extname, join, resolve } from 'node:path';
-import { PNG_DATA_URL_PREFIX } from '../../shared/image-contract';
+import { MAX_LISTED_SHOTS, PNG_DATA_URL_PREFIX, type ShotEntry } from '../../shared/image-contract';
 import type { Handlers } from './dispatcher';
 import { isInsideKnownFolder } from './handlers';
 
@@ -22,9 +22,15 @@ export interface ImageDeps {
   startDrag: (path: string) => void;
   /** Moves the file to the recycle bin, so a delete can be undone from there. */
   trash: (path: string) => Promise<void>;
+  /** The files directly inside a folder, with their size and time. Empty when it does not exist. */
+  listFolder: (folder: string) => Promise<{ name: string; modifiedMs: number; bytes: number }[]>;
+  /** The first bytes of a file, enough to read a PNG header. */
+  readHead: (path: string, bytes: number) => Promise<Buffer>;
+  /** A small PNG of the picture, as a data URL. Made in the main process so no big image crosses. */
+  thumbnail: (path: string, width: number) => string;
 }
 
-export class ImageError extends Error {}
+class ImageError extends Error {}
 
 /** The bytes of a PNG data URL. Anything else, or text that does not decode to a PNG, throws. */
 export function decodePngDataUrl(dataUrl: string): Buffer {
@@ -52,6 +58,17 @@ export async function editedPath(
   return candidate;
 }
 
+/** Width and height from the header of a PNG, or null when the bytes are not one. */
+export function pngSize(head: Buffer): { width: number; height: number } | null {
+  if (head.length < 24 || !head.subarray(0, 8).equals(PNG_SIGNATURE)) return null;
+  if (head.toString('latin1', 12, 16) !== 'IHDR') return null;
+  const width = head.readUInt32BE(16);
+  const height = head.readUInt32BE(20);
+  return width > 0 && height > 0 ? { width, height } : null;
+}
+
+const THUMBNAIL_WIDTH = 320;
+
 type ImageHandlers = Pick<
   Handlers,
   | 'image:read'
@@ -60,6 +77,8 @@ type ImageHandlers = Pick<
   | 'image:save-as'
   | 'image:drag'
   | 'image:delete'
+  | 'image:list'
+  | 'image:thumbnail'
 >;
 
 export function createImageHandlers(deps: ImageDeps): ImageHandlers {
@@ -101,6 +120,26 @@ export function createImageHandlers(deps: ImageDeps): ImageHandlers {
     'image:drag': ({ path }) => {
       deps.startDrag(screenshot(path));
     },
+    'image:list': async () => {
+      const folder = deps.screenshotFolder();
+      const files = (await deps.listFolder(folder))
+        .filter((file) => extname(file.name).toLowerCase() === '.png')
+        .sort((a, b) => b.modifiedMs - a.modifiedMs)
+        .slice(0, MAX_LISTED_SHOTS);
+      const entries = await Promise.all(
+        files.map(async (file): Promise<ShotEntry | null> => {
+          const path = join(folder, file.name);
+          try {
+            const size = pngSize(await deps.readHead(path, 24));
+            return size === null ? null : { path, ...file, ...size };
+          } catch {
+            return null;
+          }
+        }),
+      );
+      return entries.filter((entry): entry is ShotEntry => entry !== null);
+    },
+    'image:thumbnail': ({ path }) => deps.thumbnail(screenshot(path), THUMBNAIL_WIDTH),
     'image:delete': async ({ path }) => {
       await deps.trash(screenshot(path));
     },
