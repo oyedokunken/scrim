@@ -69,6 +69,8 @@ export interface HarnessOptions {
   alivePids?: number[];
   /** Pixels per device independent pixel of the pretend display. */
   scaleFactor?: number;
+  /** Where the pretend display sits on the desktop. */
+  origin?: { x: number; y: number };
   /** Whether the page can read frame timestamps. When not, video time zero falls back. */
   frameTimestamps?: boolean;
 }
@@ -177,7 +179,7 @@ export async function createHarness(options: HarnessOptions = {}) {
         value: {
           kind: spec.kind,
           ...(spec.kind === 'region' ? { crop: spec.crop } : {}),
-          origin: { x: 0, y: 0 },
+          origin: options.origin ?? { x: 0, y: 0 },
           scaleFactor: options.scaleFactor ?? 1,
         },
       }),

@@ -95,7 +95,10 @@ export const sessionFileSchema = z.strictObject({
     displayId: z.string().optional(),
     /** The recorded area in device independent pixels on the desktop, for a region. */
     crop: rectSchema.optional(),
-    /** The same area in physical pixels of the video, which is what export cuts. */
+    /**
+     * The same area in physical pixels of the video, which is what export cuts. Relative to the top
+     * left of the recorded display, because the video covers that display only.
+     */
     cropPx: rectSchema.optional(),
     /** Top left of the recorded display or window on the desktop, in device independent pixels. */
     origin: z.strictObject({ x: z.number(), y: z.number() }),

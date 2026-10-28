@@ -19,6 +19,7 @@ import type { FfmpegPaths, RunProcess } from './ffmpeg';
 import { finalizeSession } from './finalize';
 import type { ServiceFs } from './fs-adapter';
 import { BoundsRecorder } from './bounds-recorder';
+import { cropInPixels } from './crop';
 import { InputRecorder } from './input-recorder';
 import type { InputSource } from './input-source';
 import { errnoOf, errorFromFs, makeError, WARNINGS } from './messages';
@@ -150,24 +151,6 @@ const TIMESLICE_MS = 1000;
 const SCREEN_BITS_PER_SECOND = 12_000_000;
 const CHUNK_DRAIN_MS = 5000;
 const WAIT_STEP_MS = 20;
-
-/**
- * The same area in physical pixels, which is what export cuts. Each edge is rounded on its own, so
- * neighbouring regions never leave a gap or overlap by a pixel.
- */
-function cropInPixels(
-  crop: { x: number; y: number; width: number; height: number },
-  scale: number,
-): { x: number; y: number; width: number; height: number } {
-  const left = Math.round(crop.x * scale);
-  const top = Math.round(crop.y * scale);
-  return {
-    x: left,
-    y: top,
-    width: Math.max(1, Math.round((crop.x + crop.width) * scale) - left),
-    height: Math.max(1, Math.round((crop.y + crop.height) * scale) - top),
-  };
-}
 
 /** A dated name that is the same on every system: `Scrim 2026-10-26 18.20.05`. */
 function defaultName(date: Date): string {
@@ -511,7 +494,10 @@ export class RecordingService {
         ...(source.displayId === undefined ? {} : { displayId: source.displayId }),
         ...(source.crop === undefined
           ? {}
-          : { crop: source.crop, cropPx: cropInPixels(source.crop, source.scaleFactor) }),
+          : {
+              crop: source.crop,
+              cropPx: cropInPixels(source.crop, source.origin, source.scaleFactor),
+            }),
         origin: source.origin,
         scaleFactor: source.scaleFactor,
       },

@@ -921,3 +921,23 @@ describe('the look chosen before recording', () => {
     expect((await readSessionFile(folder)).style).toEqual(style);
   });
 });
+
+describe('the recorded area on a second display', () => {
+  it('stores the pixel crop relative to that display, not to the desktop', async () => {
+    const h = await createHarness({ scaleFactor: 2, origin: { x: 1280, y: -100 } });
+    harness = h;
+    const result = await h.service.start({
+      ...h.options,
+      name: 'Second',
+      source: { kind: 'region', crop: { x: 1280 + 50, y: -100 + 25, width: 300, height: 200 } },
+    });
+    expect(result.ok).toBe(true);
+    const folder = result.ok ? result.value.folder : '';
+    h.sendChunk('screen');
+    await h.service.stop();
+    const { source } = await readSessionFile(folder);
+    expect(source.origin).toEqual({ x: 1280, y: -100 });
+    expect(source.crop).toEqual({ x: 1330, y: -75, width: 300, height: 200 });
+    expect(source.cropPx).toEqual({ x: 100, y: 50, width: 600, height: 400 });
+  });
+});

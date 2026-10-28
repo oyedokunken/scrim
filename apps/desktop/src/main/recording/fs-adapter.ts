@@ -1,4 +1,14 @@
-import { access, mkdir, open, readFile, rename, rm, stat, statfs } from 'node:fs/promises';
+import {
+  access,
+  mkdir,
+  open,
+  readFile,
+  rename,
+  rm,
+  stat,
+  statfs,
+  writeFile,
+} from 'node:fs/promises';
 import type { FileSink } from './chunk-writer';
 
 /** A file opened for append, as a sink. The raw file is only ever appended to. */
@@ -93,6 +103,8 @@ export interface ServiceFs {
   openAppend(path: string): Promise<FileSink>;
   writeJsonAtomic(path: string, value: unknown): Promise<void>;
   readText(path: string): Promise<string>;
+  /** Writes a new file and fails if one is already there, so nothing is ever overwritten. */
+  writeBytes(path: string, data: Uint8Array): Promise<void>;
   remove(path: string): Promise<void>;
   rename(from: string, to: string): Promise<void>;
   /** The size of a file in bytes, or undefined when it does not exist. */
@@ -115,6 +127,7 @@ export const realServiceFs: ServiceFs = {
   openAppend: openAppendSink,
   writeJsonAtomic: (path, value) => writeJsonAtomic(path, value),
   readText: (path) => readFile(path, 'utf8'),
+  writeBytes: (path, data) => writeFile(path, data, { flag: 'wx' }),
   async remove(path) {
     await rm(path, { force: true });
   },
