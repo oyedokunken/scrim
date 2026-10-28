@@ -4,7 +4,7 @@ This wiki is a concise guide to the project structure, development phases and co
 
 ## Project overview
 
-Scrim is a local-first screen recorder and screenshot tool for Windows, macOS and Linux. Recordings remain on the user's computer and are rendered into MP4 exports with cursor effects, zoom, camera and audio support.
+Scrim is a local-first screen recorder and screenshot tool. Windows comes first, with macOS and Linux installers following. Recordings remain on the user's computer and are rendered into MP4 exports with cursor effects, zoom, camera and audio support.
 
 ## Development phases
 
@@ -16,12 +16,12 @@ The project is being built incrementally:
 4. Recording effects and editing
 5. Shortcuts, screenshots and release automation
 
-The repository is currently in Phase 1. Desktop work should wait until Phase 2 begins.
+The website is live and the Windows desktop app is heading for its first release. Capture, recovery, screenshots, the overlay, the recording pill and the camera bubble are built. Export and editing are in progress.
 
 ## Repository structure
 
 - `apps/landing`: Next.js website, download API, database and mail
-- `apps/desktop`: Electron application for Phase 2 onward
+- `apps/desktop`: Electron application (main process, sandboxed renderer, overlay, pill and bubble pages)
 - `packages/core`: Pure recording, zoom, camera, export and editing logic
 - `packages/tokens`: Shared design tokens
 - `docs`: Architecture, testing, releasing and architecture decisions
@@ -34,11 +34,21 @@ The repository is currently in Phase 1. Desktop work should wait until Phase 2 b
 - Colors: green `#004E52`, butter `#FBF8F4`, black, white, and one record red for recording indicators. Errors use a darker red mixed from it.
 - Every external link opens in a new tab through `SiteLink`.
 
+## The desktop app
+
+- **Process model.** The main process owns windows, capture, files, FFmpeg and the typed IPC. The preload is sandboxed and only passes named channels. The renderer is untrusted React UI.
+- **Recording.** The screen, camera and microphone are recorded as separate tracks into the projects folder (`%LOCALAPPDATA%\Scrim\Projects` on Windows), with a heartbeat and a clean close marker. A mouse log and the camera bubble positions are saved beside them. After a crash the next launch offers Recover.
+- **Record, then render.** The original recording is never changed. Cursor effects, auto zoom, the camera bubble, the background and cuts are drawn at export into one MP4 in the folder you choose.
+- **Capture helpers.** The area overlay, the recording pill and the camera bubble are separate always on top windows hidden from capture, so they never appear in the video.
+- **Screenshots.** One PNG per capture in Pictures\Scrim, also copied to the clipboard.
+- **FFmpeg.** A pinned LGPL build is fetched at packaging time and installed beside the app.
+- **Decisions.** See `docs/adr`.
+
 ## Local development
 
 Install the pinned dependencies with `pnpm install`. For landing page work, configure a development environment from `.env.example` (a development database and an SMTP account or mail catcher), then run `pnpm db:generate` and `pnpm dev:landing`.
 
-Run `pnpm check` before submitting changes. The full requirements and architecture are documented in [CLAUDE.md](CLAUDE.md).
+Run `pnpm dev` for the desktop app. Run `pnpm check` before submitting changes. The full requirements and architecture are documented in [CLAUDE.md](CLAUDE.md).
 
 ## Privacy and security
 

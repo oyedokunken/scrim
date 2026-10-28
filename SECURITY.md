@@ -33,3 +33,16 @@ Scrim is designed with these boundaries:
 - Every link to another site opens in a new tab with `rel="noopener noreferrer"`
 - Raw IP addresses are not stored or logged
 - Secrets and credentials must never be committed
+
+### Desktop app
+
+- The renderer is treated as untrusted web content: `contextIsolation` and `sandbox` are on, `nodeIntegration` is off, and these settings live in one tested constant
+- A strict Content Security Policy is served from the packaged `app://` protocol, with no `unsafe-eval` and no inline script or style
+- Every IPC channel has a zod schema for its input and output, and the main process checks the sender before it answers
+- Navigation is blocked, new windows and webviews are denied, and only the `media` and `display-capture` permissions are granted, only to the app's own pages
+- Links open in the browser only through one allowlisted channel with exact URLs
+- The packaged binary has the Electron fuses set, and a test reads them back
+- The renderer never sees the file path of a recording or the technical text of an error
+- The bundled FFmpeg is run with an argument array and no shell, and its checksum is pinned
+- Working files stay on the user's computer. Discarding a recording moves it to the Recycle Bin after a confirmation
+- The app sends nothing to the website or to any other server
