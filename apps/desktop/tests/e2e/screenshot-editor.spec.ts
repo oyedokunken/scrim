@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
-import { expect, test } from './fixtures';
+import { expect, test, enterApp } from './fixtures';
 
 const WIDTH = 600;
 const HEIGHT = 400;
@@ -87,7 +87,7 @@ async function arrange(app: ElectronApplication): Promise<Fixture> {
 }
 
 async function openResult(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /get started|continue/i }).click();
+  await enterApp(page);
   await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
   await page.locator('.stage').getByRole('button', { name: 'Take screenshot' }).click();
   await expect(page.getByRole('img', { name: /Screenshot 600 by 400/ })).toBeVisible();

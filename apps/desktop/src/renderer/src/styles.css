@@ -745,3 +745,43 @@ label[for],
 input[type='checkbox'] {
   cursor: pointer;
 }
+
+.first-run {
+  display: grid;
+  height: 100%;
+  align-content: center;
+  justify-items: start;
+  gap: 16px;
+  padding: 40px 48px;
+}
+
+.first-run-title {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.first-run-list {
+  display: grid;
+  gap: 12px;
+  width: min(560px, 100%);
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.first-run-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.first-run-actions {
+  display: flex;
+  justify-content: flex-end;
+  width: min(560px, 100%);
+}

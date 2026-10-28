@@ -1,4 +1,4 @@
-import { expect, test } from '../e2e/fixtures';
+import { expect, test, enterApp } from '../e2e/fixtures';
 
 /**
  * Owner acceptance checks 1 to 4, run against the built app (`pnpm build` first). The area
@@ -9,7 +9,7 @@ test.describe('acceptance: shell', () => {
     page,
   }) => {
     await expect(page.locator('dialog[open]')).toHaveCount(0);
-    await page.getByRole('button', { name: /get started|continue/i }).click();
+    await enterApp(page);
     const help = page.getByRole('button', { name: 'Keyboard shortcuts' });
     const sheet = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
     await expect(sheet).toBeHidden();
@@ -121,7 +121,7 @@ test.describe('acceptance: shell', () => {
     await checkHover('.welcome-button', 'welcome button');
     await checkHover('.welcome-credit a', 'credit link');
 
-    await page.getByRole('button', { name: /get started|continue/i }).click();
+    await enterApp(page);
     const rail = page.getByRole('navigation', { name: 'Sections' }).getByRole('button');
     await expect(rail.first()).toBeVisible();
 
@@ -169,7 +169,7 @@ test.describe('acceptance: shell', () => {
     page,
     app,
   }) => {
-    await page.getByRole('button', { name: /get started|continue/i }).click();
+    await enterApp(page);
     await page.getByRole('button', { name: 'Start recording' }).first().click();
 
     const selector = () =>

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from '../e2e/fixtures';
+import { expect, test, enterApp } from '../e2e/fixtures';
 
 const SIZES = [
   { width: 1100, height: 700 },
@@ -7,7 +7,7 @@ const SIZES = [
 ] as const;
 
 async function openRecord(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /get started|continue/i }).click();
+  await enterApp(page);
   await expect(page.locator('.shell')).toBeVisible();
 }
 

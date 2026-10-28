@@ -1,8 +1,8 @@
-import { expect, test } from './fixtures';
+import { expect, test, enterApp } from './fixtures';
 
 test.describe('the shortcuts sheet', () => {
   test('is closed on launch and opens and closes four ways', async ({ page }) => {
-    await page.getByRole('button', { name: /get started|continue/i }).click();
+    await enterApp(page);
     const help = page.getByRole('button', { name: 'Keyboard shortcuts' });
     const sheet = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
     await expect(help).toBeVisible();

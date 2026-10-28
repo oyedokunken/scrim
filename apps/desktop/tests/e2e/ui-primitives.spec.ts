@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { expect, test, enterApp } from './fixtures';
 
 /** Records every CSP violation, so a style attribute or an injected style tag fails the test. */
 async function watchViolations(page: Page): Promise<void> {
@@ -54,13 +54,14 @@ test.describe('the welcome screen', () => {
   test('Enter continues without the button having focus', async ({ page }) => {
     await expect(page.getByRole('button', { name: /get started|continue/i })).toBeVisible();
     await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('heading', { name: 'Record', level: 1 })).toBeVisible();
   });
 });
 
 test.describe('the views', () => {
   test.beforeEach(async ({ page }) => {
-    await page.getByRole('button', { name: /get started|continue/i }).click();
+    await enterApp(page);
     await watchViolations(page);
   });
 

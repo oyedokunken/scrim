@@ -168,3 +168,15 @@ export const test = base.extend<Fixtures>({
 });
 
 export { expect } from '@playwright/test';
+
+/**
+ * Gets past the welcome screen, and past the camera and microphone check that follows it on a
+ * first launch. Both steps end on a Continue or Get started button, and the app is behind them.
+ */
+export async function enterApp(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /get started|continue/i }).click();
+  const check = page.getByRole('heading', { name: 'Check your camera and microphone' });
+  if (await check.isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: 'Continue' }).click();
+  }
+}

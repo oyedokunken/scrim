@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from '../e2e/fixtures';
+import { expect, test, enterApp } from '../e2e/fixtures';
 
 interface Bridge {
   scrim: { invoke: (channel: string) => Promise<unknown> };
@@ -11,7 +11,7 @@ async function saved(page: Page): Promise<unknown> {
 }
 
 async function openView(page: Page, name: string): Promise<void> {
-  await page.getByRole('button', { name: /get started|continue/i }).click();
+  await enterApp(page);
   await page.getByRole('button', { name, exact: true }).click();
 }
 

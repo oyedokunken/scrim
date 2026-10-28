@@ -22,6 +22,7 @@
     "tests/unit/recorder-controller.test.ts",
     "tests/unit/support/recorder-fakes.ts",
     "tests/unit/shell-views.test.tsx",
+    "tests/unit/first-run.test.tsx",
     "tests/unit/ui-primitives.test.tsx",
     "tests/unit/renderer-*.test.ts",
     "tests/unit/renderer-*.test.tsx"
