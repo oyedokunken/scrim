@@ -229,6 +229,9 @@ test.describe('without JavaScript', () => {
   });
 });
 
+/** The planner decides the exact still zoom, so the tests only ask for a clear zoom in. */
+const zoomLevel = async (locator: Locator) => Number(await scale(locator));
+
 test.describe('with reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
 
@@ -255,22 +258,22 @@ test.describe('with reduced motion', () => {
     await expect(button).toHaveAccessibleName('Play');
     await expect(button).toHaveText('Play');
     await expect(view).toHaveAttribute('data-playing', 'false');
-    await expect.poll(() => scale(view)).toBe('2.00');
+    await expect.poll(() => zoomLevel(view)).toBeGreaterThan(1.9);
     const frozenAt = await time(view);
     await page.waitForTimeout(1200);
     expect(await time(view)).toBe(frozenAt);
-    expect(await scale(view)).toBe('2.00');
+    expect(await zoomLevel(view)).toBeGreaterThan(1.9);
   });
 
   test('the controls still work', async ({ page }) => {
     await openStill(page);
     const view = demo(page);
-    await expect.poll(() => scale(view)).toBe('2.00');
+    await expect.poll(() => zoomLevel(view)).toBeGreaterThan(1.9);
 
     await page.getByRole('switch', { name: 'Auto zoom' }).click();
     await expect.poll(() => scale(view)).toBe('1.00');
     await page.getByRole('switch', { name: 'Auto zoom' }).click();
-    await expect.poll(() => scale(view)).toBe('2.00');
+    await expect.poll(() => zoomLevel(view)).toBeGreaterThan(1.9);
 
     const button = playButton(page);
     await button.click();

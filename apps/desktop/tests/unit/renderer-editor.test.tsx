@@ -12,6 +12,7 @@ import {
   undo,
   type Edits,
 } from '../../src/renderer/src/editor/edits';
+import { ExportPanel, percent } from '../../src/renderer/src/editor/export-panel';
 import { Timeline, tickSeconds } from '../../src/renderer/src/editor/timeline';
 import { ZoomMoments } from '../../src/renderer/src/editor/zoom-moments';
 import { cursorPaintCss, renderStyleFromSettings } from '../../src/shared/render-style';
@@ -191,3 +192,26 @@ describe('render style from settings', () => {
     }
   });
 });
+
+describe('export panel', () => {
+  const controls = {
+    start: () => Promise.resolve({ ok: true as const, jobId: '1' }),
+    cancel: noopFn,
+    retrySafer: noopFn,
+    reveal: noopFn,
+    subscribe: () => noopFn,
+  };
+
+  it('shows the export button before any job and formats progress', () => {
+    const html = renderToStaticMarkup(
+      <ExportPanel controls={controls} folder="C:/x" beforeStart={() => Promise.resolve()} />,
+    );
+    expect(html).toContain('Export MP4');
+    expect(percent(null)).toBe('Starting');
+    expect(percent(0.426)).toBe('43%');
+  });
+});
+
+function noopFn(): void {
+  return undefined;
+}

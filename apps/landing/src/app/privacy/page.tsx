@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { formatPrivacyDate, PRIVACY_LAST_UPDATED, RETENTION_STATEMENT } from '@/lib/privacy';
 import { pageMetadata } from '@/lib/page-metadata';
+import { SiteLink } from '@/components/site-link';
 import { siteConfig } from '@/site.config';
 import styles from './privacy.module.css';
 
@@ -109,8 +110,9 @@ export default function PrivacyPage() {
       <section aria-labelledby="contact-title">
         <h2 id="contact-title">Contact</h2>
         <p>
-          Questions about this page? Open an issue on <a href={siteConfig.issuesUrl}>GitHub</a>, and
-          keep personal details out of it. For anything private, use the email link above.
+          Questions about this page? Open an issue on{' '}
+          <SiteLink href={siteConfig.issuesUrl}>GitHub</SiteLink>, and keep personal details out of
+          it. For anything private, use the email link above.
         </p>
       </section>
     </article>
