@@ -1,23 +1,15 @@
 @import '@scrim/tokens/tokens.css';
-
 @import '../ui/ui.css';
 
 /* Latin only, bundled and served from app://scrim, so font-src 'self' covers it. Block, not swap: a local file
-
    arrives before first paint, and swap would show the system font for a frame. */
-
 @font-face {
   font-family: 'Urbanist Variable';
-
   font-style: normal;
-
   font-display: block;
-
   font-weight: 100 900;
-
   src: url('@fontsource-variable/urbanist/files/urbanist-latin-wght-normal.woff2')
     format('woff2-variations');
-
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
@@ -28,44 +20,33 @@
 }
 
 html,
-body {
+body,
+#root {
   height: 100%;
-
   overflow: hidden;
 }
 
 body {
   margin: 0;
-
   cursor: default;
-
   user-select: none;
-
   background: var(--scrim-butter);
-
   color: var(--scrim-black);
-
   font-family: var(--scrim-font, system-ui, sans-serif);
-
   font-size: var(--scrim-text-body, 1rem);
-
   line-height: var(--scrim-leading-body, 1.5);
 }
 
 /* The recording control is a transparent window, so only its own bar is painted. */
-
 :root[data-route='control'],
 :root[data-route='control'] body {
   background: transparent;
-
   overflow: hidden;
 }
 
 .screen {
   display: grid;
-
   gap: 16px;
-
   align-content: start;
 }
 
@@ -77,23 +58,16 @@ p {
 
 .brand {
   display: flex;
-
   align-items: center;
-
   gap: 0.5rem;
-
   font-size: 2rem;
-
   line-height: 1;
 }
 
 /* The mark is as tall as the name, whatever size the name is set to. */
-
 .brand-mark {
   flex: none;
-
   width: 1em;
-
   height: 1em;
 }
 
@@ -108,21 +82,15 @@ p {
 
 .home-header {
   display: grid;
-
   gap: var(--scrim-space-2);
 }
 
 .panel {
   display: grid;
-
   gap: var(--scrim-space-3);
-
   padding: var(--scrim-space-4) var(--scrim-space-5);
-
   background: var(--scrim-white);
-
   border: 1px solid var(--scrim-border-on-white);
-
   border-radius: var(--scrim-radius-md);
 }
 
@@ -132,15 +100,12 @@ p {
 
 .field {
   display: grid;
-
   gap: var(--scrim-space-1);
 }
 
 .field-check {
   grid-template-columns: auto 1fr;
-
   align-items: center;
-
   gap: var(--scrim-space-2);
 }
 
@@ -150,38 +115,28 @@ label {
 
 output {
   font-weight: 400;
-
   color: var(--scrim-text-secondary);
-
   font-variant-numeric: tabular-nums;
 }
 
 select,
 input[type='range'] {
   width: 100%;
-
   font: inherit;
 }
 
 select {
   min-height: 2.5rem;
-
   padding: 0 var(--scrim-space-2);
-
   background: var(--scrim-white);
-
   color: var(--scrim-black);
-
   border: 1px solid var(--scrim-border-on-white);
-
   border-radius: var(--scrim-radius-sm);
 }
 
 input[type='checkbox'] {
   width: 1.25rem;
-
   height: 1.25rem;
-
   accent-color: var(--scrim-green);
 }
 
@@ -196,49 +151,35 @@ input:disabled {
 
 :focus-visible {
   outline: 3px solid var(--scrim-green);
-
   outline-offset: 2px;
 }
 
 .folder-row {
   display: grid;
-
   grid-template-columns: 1fr auto;
-
   align-items: center;
-
   gap: var(--scrim-space-3);
 }
 
 .folder {
   min-width: 0;
-
   overflow: hidden;
-
   text-overflow: ellipsis;
-
   white-space: nowrap;
 }
 
 .button {
   min-height: 2.75rem;
-
   padding: 0 var(--scrim-space-5);
-
   font: inherit;
-
   font-weight: 700;
-
   border: 1px solid var(--scrim-green);
-
   border-radius: var(--scrim-radius-pill);
-
   cursor: pointer;
 }
 
 .button.primary {
   background: var(--scrim-green);
-
   color: var(--scrim-white);
 }
 
@@ -248,7 +189,6 @@ input:disabled {
 
 .button.secondary {
   background: var(--scrim-white);
-
   color: var(--scrim-green);
 }
 
@@ -258,23 +198,18 @@ input:disabled {
 
 .button:disabled {
   cursor: not-allowed;
-
   opacity: 0.55;
 }
 
 .actions {
   display: grid;
-
   gap: var(--scrim-space-2);
-
   justify-items: start;
 }
 
 .actions.row {
   grid-auto-flow: column;
-
   justify-content: start;
-
   gap: var(--scrim-space-3);
 }
 
@@ -284,19 +219,14 @@ input:disabled {
 
 .notice {
   padding: var(--scrim-space-3) var(--scrim-space-4);
-
   background: var(--scrim-white);
-
   border: 1px solid var(--scrim-border-on-white);
-
   border-radius: var(--scrim-radius-md);
 }
 
 /* A failure is dark red, mixed from the record red and black, which keeps its text readable. */
-
 .notice.error {
   color: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
-
   border-color: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
 }
 
@@ -306,39 +236,28 @@ input:disabled {
 
 .rec-dot {
   display: inline-block;
-
   width: 0.75rem;
-
   height: 0.75rem;
-
   border-radius: 50%;
-
   background: var(--scrim-record);
 }
 
 .rec-dot.paused {
   background: transparent;
-
   border: 2px solid var(--scrim-record);
 }
 
 .recording-phase {
   display: flex;
-
   align-items: center;
-
   gap: var(--scrim-space-2);
-
   font-weight: 700;
 }
 
 .recording-time {
   font-size: 3rem;
-
   font-weight: 800;
-
   font-variant-numeric: tabular-nums;
-
   line-height: 1.1;
 }
 
@@ -348,83 +267,58 @@ input:disabled {
 
 .summary {
   display: grid;
-
   grid-auto-flow: column;
-
   justify-content: start;
-
   gap: var(--scrim-space-6);
-
   margin: 0;
 }
 
 .summary dt {
   color: var(--scrim-text-secondary);
-
   font-size: var(--scrim-text-small, 0.875rem);
 }
 
 .summary dd {
   margin: 0;
-
   font-weight: 700;
 }
 
 /* The control bar. Dragging it moves the window, and its buttons stay clickable. */
-
 .control {
   display: flex;
-
   align-items: center;
-
   gap: var(--scrim-space-3);
-
   height: 100vh;
-
   padding: 0 var(--scrim-space-3) 0 var(--scrim-space-4);
-
   background: var(--scrim-white);
-
   border: 1px solid var(--scrim-border-on-white);
-
   border-radius: var(--scrim-radius-pill);
-
   box-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--scrim-black) 25%, transparent);
-
   -webkit-app-region: drag;
-
   user-select: none;
 }
 
 .control-state {
   font-weight: 800;
-
   letter-spacing: 0.02em;
 }
 
 .control-time {
   min-width: 3.5rem;
-
   font-weight: 700;
-
   font-variant-numeric: tabular-nums;
 }
 
 .control-button {
   min-height: 2.25rem;
-
   padding: 0 var(--scrim-space-4);
-
   background: var(--scrim-white);
-
   color: var(--scrim-green);
-
   -webkit-app-region: no-drag;
 }
 
 .control-button.stop {
   background: var(--scrim-green);
-
   color: var(--scrim-white);
 }
 
@@ -441,7 +335,6 @@ input:disabled {
 }
 
 /* Only text the user may want to copy is selectable. */
-
 input,
 textarea,
 .saved-name,
@@ -461,24 +354,17 @@ svg {
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto;
-
     transition: none;
-
     animation: none;
   }
 }
 
 /* The app shell. Header, rail and status bar are fixed. Only the main area and the panel scroll. */
-
 .shell {
   display: grid;
-
   height: 100%;
-
   grid-template-columns: 72px minmax(0, 1fr) 320px;
-
   grid-template-rows: 56px minmax(0, 1fr) 28px;
-
   grid-template-areas:
     'header header header'
     'rail main panel'
@@ -487,7 +373,6 @@ svg {
 
 .shell.no-panel {
   grid-template-columns: 72px minmax(0, 1fr);
-
   grid-template-areas:
     'header header'
     'rail main'
@@ -496,28 +381,19 @@ svg {
 
 .app-header {
   grid-area: header;
-
   display: grid;
-
   grid-template-columns: 1fr auto 1fr;
-
   align-items: center;
-
   gap: 16px;
-
   padding: 0 16px;
-
   background: var(--scrim-white);
-
   border-bottom: 1px solid var(--ui-border);
 }
 
 .app-header-left,
 .app-header-right {
   display: flex;
-
   align-items: center;
-
   gap: 12px;
 }
 
@@ -527,51 +403,34 @@ svg {
 
 .app-header-brand {
   display: inline-flex;
-
   align-items: center;
-
   gap: 8px;
-
   font-size: 16px;
-
   font-weight: 700;
 }
 
 .app-header-name {
   font-size: 16px;
-
   font-weight: 600;
-
   color: var(--scrim-text-secondary);
 }
 
 .page-title {
   margin-bottom: 20px;
-
   font-size: 24px;
-
   font-weight: 700;
-
   line-height: 1.2;
 }
 
 .icon-button {
   display: inline-grid;
-
   place-items: center;
-
   width: 36px;
-
   height: 36px;
-
   color: var(--scrim-black);
-
   background: transparent;
-
   border: 0;
-
   border-radius: var(--ui-radius-sm);
-
   cursor: pointer;
 }
 
@@ -585,185 +444,121 @@ svg {
 
 .rail {
   grid-area: rail;
-
   display: flex;
-
   flex-direction: column;
-
   padding: 8px 4px;
-
   overflow-y: auto;
-
   scrollbar-width: none;
-
   background: var(--scrim-white);
-
   border-right: 1px solid var(--ui-border);
 }
 
 .rail-group.after-divider {
   margin-top: 8px;
-
   padding-top: 8px;
-
   border-top: 1px solid var(--ui-border);
 }
 
 .rail-item {
   display: grid;
-
   place-items: center;
-
   align-content: center;
-
   gap: 4px;
-
   width: 100%;
-
   height: 64px;
-
   color: var(--scrim-text-secondary);
-
   background: transparent;
-
   border: 0;
-
   border-radius: var(--ui-radius-md);
-
   cursor: pointer;
-
   transition: background var(--ui-ease);
 }
 
 .rail-item:hover:not(:disabled, .selected) {
   color: var(--scrim-green);
-
   background: var(--scrim-green-tint);
 }
 
 .rail-item.selected {
   color: var(--scrim-green);
-
   background: var(--scrim-green-tint);
 }
 
 .rail-label {
   font-size: 11px;
-
   font-weight: 500;
 }
 
 .shell-main {
   grid-area: main;
-
   min-width: 0;
-
   min-height: 0;
-
   padding: 24px;
-
   overflow-y: auto;
-
   overflow-x: hidden;
-
   scrollbar-width: thin;
 }
 
 .shell-panel {
   grid-area: panel;
-
   min-height: 0;
-
   overflow-y: auto;
-
   scrollbar-width: thin;
-
   background: var(--scrim-white);
-
   border-left: 1px solid var(--ui-border);
 }
 
 .panel-body {
   display: grid;
-
   gap: 24px;
-
   align-content: start;
-
   padding: 24px 20px;
 }
 
 .status-bar {
   grid-area: status;
-
   display: grid;
-
   grid-template-columns: 1fr auto 1fr;
-
   align-items: center;
-
   gap: 16px;
-
   padding: 0 16px;
-
   font-size: 12px;
-
   color: var(--scrim-text-secondary);
-
   background: var(--scrim-white);
-
   border-top: 1px solid var(--ui-border);
 }
 
 .status-end {
   display: flex;
-
   align-items: center;
-
   justify-content: flex-end;
-
   gap: 12px;
 }
 
 .status-bar .ui-keycap {
   padding: 0 6px;
-
   font-size: 11px;
 }
 
 .record-view {
   display: grid;
-
   gap: 24px;
-
   justify-items: center;
-
   align-content: start;
 }
 
 .stage {
   position: relative;
-
   display: grid;
-
   place-items: center;
-
   align-content: center;
-
   gap: 12px;
-
   width: 100%;
-
   aspect-ratio: 16 / 9;
-
   max-height: 55vh;
-
   color: var(--scrim-text-secondary);
-
   background: var(--ui-track);
-
   border-radius: var(--ui-radius-lg);
-
   box-shadow: var(--ui-shadow-soft);
 }
 
@@ -773,89 +568,57 @@ svg {
 
 .stage-shortcut {
   position: absolute;
-
   top: 12px;
-
   right: 12px;
-
   display: flex;
-
   align-items: center;
-
   gap: 8px;
-
   font-size: 12px;
 }
 
 .stage-shortcut .ui-keycap {
   min-width: 0;
-
   padding: 0 6px;
-
   font-size: 11px;
-}
-
-.record-actions {
-  display: grid;
-
-  gap: 12px;
-
-  justify-items: center;
 }
 
 .record-button {
   min-height: 48px;
-
   min-width: 220px;
-
   font-size: 16px;
-
   border-radius: var(--ui-radius-md);
-
   box-shadow: var(--ui-shadow-soft);
 }
 
 .record-dot {
   width: 10px;
-
   height: 10px;
-
   background: var(--scrim-record);
-
   border-radius: 50%;
 }
 
 .recent {
   display: grid;
-
   gap: 12px;
-
   justify-self: stretch;
 }
 
 .placeholder {
   display: grid;
-
   gap: 8px;
-
   align-content: start;
 }
 
 .shortcut-list {
   display: grid;
-
   gap: 12px;
-
   margin: 0;
 }
 
 .shortcut-row {
   display: flex;
-
   align-items: center;
-
   justify-content: space-between;
-
   gap: 16px;
 }
 
@@ -865,113 +628,77 @@ svg {
 
 .welcome {
   display: grid;
-
   height: 100%;
-
   grid-template-columns: 1fr auto;
-
   grid-template-rows: 1fr auto;
-
   align-items: end;
-
   padding: 40px 48px;
 }
 
 .welcome-top {
   grid-column: 1 / -1;
-
   align-self: start;
-
   display: grid;
-
   gap: 12px;
 }
 
 .welcome-title {
   display: flex;
-
   align-items: center;
-
   gap: 12px;
 }
 
 .welcome-brand {
   display: flex;
-
   align-items: center;
-
   gap: 12px;
-
   font-size: 28px;
-
   font-weight: 600;
-
   line-height: 1;
 }
 
 .version-pill {
   min-width: 56px;
-
   min-height: 22px;
-
   padding: 2px 10px;
-
   font-size: 12px;
-
   font-weight: 500;
-
   text-align: center;
-
   background: var(--scrim-white);
-
   border: 1px solid var(--ui-border);
-
   border-radius: 999px;
 }
 
 .welcome-tagline {
   font-size: 22px;
-
   color: var(--scrim-text-secondary);
 }
 
 .welcome-credit {
   font-size: 13px;
-
   color: var(--scrim-text-secondary);
 }
 
 .welcome-credit a {
   color: var(--scrim-green);
-
   font-weight: 600;
 }
 
 .welcome-button {
   min-width: 180px;
-
   min-height: 48px;
-
   font-size: 16px;
 }
 
 .ui-select {
   width: 100%;
-
   min-height: 36px;
-
   padding: 0 12px;
-
   font: inherit;
-
   font-size: 14px;
-
   color: var(--scrim-black);
-
   background: var(--scrim-white);
-
   border: 1px solid var(--ui-border);
-
   border-radius: var(--ui-radius-sm);
 }
 
