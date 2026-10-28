@@ -13,8 +13,7 @@
         "src/renderer/src/main.tsx",
         "src/recorder/page/main.ts"
       ],
-      "project": ["build/**", "src/**", "tests/**", "*.ts", "*.mts"],
-      "ignoreDependencies": ["@scrim/tokens"]
+      "project": ["build/**", "src/**", "tests/**", "*.ts", "*.mts"]
     },
     "apps/landing": {
       "entry": ["tests/stubs/server-only.ts"],
