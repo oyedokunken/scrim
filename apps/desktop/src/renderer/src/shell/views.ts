@@ -44,3 +44,8 @@ export function isSettingsPanel(view: ViewId): boolean {
 export function isViewId(value: string): value is ViewId {
   return (VIEW_IDS as readonly string[]).includes(value);
 }
+
+/** The "Recording saved" card belongs to the Record view alone, never to the shared layout. */
+export function showsSavedCard(view: ViewId): boolean {
+  return view === 'record';
+}

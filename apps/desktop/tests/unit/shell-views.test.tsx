@@ -15,6 +15,7 @@ import {
   hasPanel,
   isSettingsPanel,
   isViewId,
+  showsSavedCard,
 } from '../../src/renderer/src/shell/views';
 import { Welcome } from '../../src/renderer/src/shell/welcome';
 import { DEFAULT_SETTINGS } from '../../src/shared/settings';
@@ -56,6 +57,10 @@ describe('views', () => {
       'audio',
       'background',
     ]);
+  });
+
+  it('shows the saved recording card on the Record view and nowhere else', () => {
+    expect(VIEW_IDS.filter(showsSavedCard)).toEqual(['record']);
   });
 
   it('recognises a view id', () => {

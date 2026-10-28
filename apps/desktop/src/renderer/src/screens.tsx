@@ -1,7 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Settings } from '../../shared/settings';
 import { ControlView } from './components/control-view';
-import { EditorPlaceholder } from './components/editor-placeholder';
 import { RecordingView } from './components/recording-view';
 import { formatTimer } from './format';
 import { AppShell } from './shell/app-shell';
@@ -19,7 +18,7 @@ import { Placeholder } from './shell/placeholder';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
-import { VIEW_LABELS, type ViewId } from './shell/views';
+import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
 import { Camera } from 'lucide-react';
@@ -101,6 +100,12 @@ export function MainScreen() {
   const [shot, setShot] = useState<ShotInfo | null>(null);
   const [entered, setEntered] = useState(false);
   const [checking, setChecking] = useState(false);
+  const phase = snapshot.phase;
+
+  // A new recording replaces the card of the last one.
+  useEffect(() => {
+    if (LIVE.has(phase)) dismiss();
+  }, [phase, dismiss]);
 
   const start = useCallback(async (chosen: Settings) => {
     setStarting(true);
@@ -255,22 +260,23 @@ export function MainScreen() {
         onStop={controls.stop}
       />
     );
-  } else if (finished !== null) {
-    main = (
-      <EditorPlaceholder
-        finished={finished}
-        onShowInFolder={() => {
-          void window.scrim.invoke('shell:show-in-folder', { path: finished.folder });
-        }}
-        onRecordAgain={dismiss}
-      />
-    );
   } else if (view === 'record') {
     main = (
       <RecordView
         busy={starting}
         error={startError ?? failure}
         onStart={() => void start(settings)}
+        saved={
+          finished === null || !showsSavedCard(view)
+            ? undefined
+            : {
+                finished,
+                onShowInFolder: () => {
+                  void window.scrim.invoke('shell:show-in-folder', { path: finished.folder });
+                },
+                onRecordAgain: dismiss,
+              }
+        }
       />
     );
   } else if (view === 'screenshot') {

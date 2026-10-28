@@ -785,3 +785,50 @@ input[type='checkbox'] {
   justify-content: flex-end;
   width: min(560px, 100%);
 }
+
+/* The card after a recording, on the Record view only. */
+.saved-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-self: stretch;
+  padding: 16px;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.saved-card-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--scrim-green);
+  background: var(--ui-track);
+  border-radius: 50%;
+}
+
+.saved-card-text {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.saved-card-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.saved-card-meta {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--scrim-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

@@ -1,9 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { ControlView } from '../../src/renderer/src/components/control-view';
-import { EditorPlaceholder } from '../../src/renderer/src/components/editor-placeholder';
 import { ErrorNotice } from '../../src/renderer/src/components/error-notice';
 import { RecordingView } from '../../src/renderer/src/components/recording-view';
+import { SavedCard } from '../../src/renderer/src/shell/saved-card';
 import type { Finished, Snapshot } from '../../src/renderer/src/hooks';
 
 const recording: Snapshot = {
@@ -118,16 +118,15 @@ const finished: Finished = {
 describe('what opens after a recording', () => {
   const view = (result: Finished) =>
     renderToStaticMarkup(
-      <EditorPlaceholder finished={result} onShowInFolder={noop} onRecordAgain={noop} />,
+      <SavedCard finished={result} onShowInFolder={noop} onRecordAgain={noop} />,
     );
 
-  it('says it was saved, with its name, length, size and tracks', () => {
+  it('says it was saved, with its name, length and size', () => {
     const html = view(finished);
     expect(html).toContain('Recording saved');
     expect(html).toContain('take 1');
     expect(html).toContain('00:12');
     expect(html).toContain('4.0 KB');
-    expect(html).toContain('screen, mic');
   });
 
   it('says so when the recording was recovered after a crash', () => {
@@ -161,5 +160,24 @@ describe('ErrorNotice', () => {
     expect(html).toContain('role="alert"');
     expect(html).toContain('Scrim cannot write to this folder.');
     expect(html).toContain('Choose another one.');
+  });
+});
+
+describe('the saved card', () => {
+  it('has no logo and offers Open in editor only when there is an editor', () => {
+    const without = renderToStaticMarkup(
+      <SavedCard finished={finished} onShowInFolder={noop} onRecordAgain={noop} />,
+    );
+    expect(without).not.toContain('brand-mark');
+    expect(without).not.toContain('Open in editor');
+    const withEditor = renderToStaticMarkup(
+      <SavedCard
+        finished={finished}
+        onOpenEditor={noop}
+        onShowInFolder={noop}
+        onRecordAgain={noop}
+      />,
+    );
+    expect(withEditor).toContain('>Open in editor<');
   });
 });
