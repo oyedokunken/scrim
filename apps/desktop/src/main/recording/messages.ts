@@ -52,7 +52,7 @@ const COPY: Readonly<Record<RecordingErrorCode, { message: string; nextStep: str
   },
   'ffmpeg-missing': {
     message: 'Scrim could not find the tool it needs to finish the recording.',
-    nextStep: 'Your footage is safe in the recording folder. Install FFmpeg, then recover it.',
+    nextStep: 'Your footage is safe in the recording folder. Reinstall Scrim, then recover it.',
   },
   'remux-failed': {
     message: 'Scrim could not make a playable copy of the recording.',
