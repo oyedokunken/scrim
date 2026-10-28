@@ -64,7 +64,7 @@ Phase 2 is in progress on `feat/desktop`. The web and the desktop app are separa
 
 ## Product requirements
 
-These come from studying a reference app (screenrecorderapp.vercel.app) and from the owner's use of it. Scrim must match its strengths and fix its failures. The reference is a source of feature ideas. Do not copy its layout, copy text, icons or screenshots.
+These come from studying a reference app (screenrecorderapp.vercel.app) and from the owner's use of it. Scrim must match its strengths and fix its failures. The reference is a source of feature ideas. Scrim may use common editor layout patterns (icon rail, preview stage, settings panel, timeline). Never copy another app's copy text, icons, illustrations, colors or assets.
 
 ### Headline claims (all six are required)
 
