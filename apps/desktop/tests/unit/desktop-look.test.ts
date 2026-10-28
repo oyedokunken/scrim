@@ -40,3 +40,20 @@ describe('the desktop look', () => {
     expect(css).toContain('prefers-reduced-motion: reduce');
   });
 });
+
+describe('the shared primitives stylesheet', () => {
+  const ui = readFileSync(join(__dirname, '../../src/renderer/ui/ui.css'), 'utf8');
+
+  it('is part of the app', () => {
+    expect(css).toContain("@import '../ui/ui.css'");
+  });
+
+  it('uses only palette colors, no raw hex values', () => {
+    expect(ui).not.toMatch(/#[0-9a-fA-F]{3,8}(?![0-9a-zA-Z])/);
+  });
+
+  it('uses the radii and 32 px minimum targets from the design', () => {
+    for (const radius of ['16px', '12px', '8px', '6px']) expect(ui).toContain(radius);
+    expect(ui).toMatch(/\.ui-segment\s*\{[^}]*min-height: 32px/s);
+  });
+});
