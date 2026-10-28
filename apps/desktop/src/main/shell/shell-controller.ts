@@ -191,6 +191,11 @@ export function createShell({ recorder, platform, appPath, env }: ShellOptions) 
     /** The dock icon was clicked on macOS, or the window was hidden: bring it back. */
     show: showWindow,
 
+    /** Gets the main window out of the way while a recording runs, without closing anything. */
+    hide(): void {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+    },
+
     start(): void {
       createTray();
       recorder.onChange(() => {

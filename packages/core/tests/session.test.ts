@@ -172,3 +172,25 @@ describe('input that cannot follow a window', () => {
     expect(sessionFileSchema.safeParse(session).success).toBe(true);
   });
 });
+
+describe('the style in the session file', () => {
+  it('accepts a cursor style and zoom settings inside their limits', () => {
+    const style = {
+      cursor: { style: 'ripples' },
+      zoom: { enabled: true, maxZoom: 3, holdMs: 0, easeMs: 200 },
+    };
+    expect(sessionFileSchema.safeParse({ ...valid, style }).success).toBe(true);
+    expect(sessionFileSchema.safeParse({ ...valid, style: {} }).success).toBe(true);
+  });
+
+  it.each([
+    ['an unknown cursor style', { cursor: { style: 'spark' } }],
+    ['a zoom below the limit', { zoom: { maxZoom: 1.1 } }],
+    ['a zoom above the limit', { zoom: { maxZoom: 3.1 } }],
+    ['an ease outside its range', { zoom: { easeMs: 5000 } }],
+    ['a negative hold', { zoom: { holdMs: -1 } }],
+    ['a field it does not hold', { background: { kind: 'solid' } }],
+  ])('rejects %s', (_label, style) => {
+    expect(sessionFileSchema.safeParse({ ...valid, style }).success).toBe(false);
+  });
+});

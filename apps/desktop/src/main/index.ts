@@ -11,9 +11,11 @@ import type { SettingsStore } from './settings/settings-store';
 import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { applyApplicationMenu } from './shell/menu';
 import { createStubRecorder } from './shell/recorder-control';
+import { createRecordingWindows } from './shell/recording-windows';
 import { createRecordingControl } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
 import { createWindowStateTracker } from './shell/window-state-tracker';
+import { createControlWindow } from './windows/control-window';
 import { createMainWindow, MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MINIMUM } from './windows/main-window';
 
 // Groups the taskbar buttons and keeps the icon on pinned shortcuts. Same id as the installer.
@@ -126,6 +128,25 @@ if (!app.requestSingleInstanceLock()) {
     logger.info('app.start', { version: app.getVersion(), platform: process.platform });
     const recording = registerRecording({ appOrigin: target.origin });
     control.attach(recording);
+    // The main window steps aside while recording and the small control takes over, then they swap back.
+    const controlWindow = createControlWindow(target.url);
+    const recordingWindows = createRecordingWindows({
+      hideMain: () => {
+        shell.hide();
+      },
+      showControl: () => {
+        controlWindow.show();
+      },
+      closeControl: () => {
+        controlWindow.close();
+      },
+      showMain: () => {
+        shell.show();
+      },
+    });
+    recording.on((event) => {
+      recordingWindows.onEvent(event);
+    });
     settings = await startIpc({ appOrigin: target.origin, logger, recording });
     shell.start();
     await openMainWindow();

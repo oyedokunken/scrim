@@ -8,6 +8,7 @@ import {
   type RecorderEvent as PhaseEvent,
   type RecorderPhase,
   type SessionFile,
+  type SessionStyle,
   type TrackKind,
 } from '@scrim/core';
 import { join } from 'node:path';
@@ -237,7 +238,13 @@ export class RecordingService {
       const folderResult = await this.prepareFolder(destination, name);
       if (!folderResult.ok) return await this.failStart(active, folderResult.error);
 
-      active = this.createActive(folderResult.value, destination, name, resolved.value);
+      active = this.createActive(
+        folderResult.value,
+        destination,
+        name,
+        resolved.value,
+        options.style,
+      );
       await writeSession(deps.fs, active.folder, active.session);
       await ensureEditList(deps.fs, active.folder);
       await deps.index.add(active.folder);
@@ -489,6 +496,7 @@ export class RecordingService {
     destination: string,
     name: string,
     source: ResolvedSource,
+    style: SessionStyle | undefined,
   ): Active {
     const { deps } = this;
     const session: SessionFile = {
@@ -513,6 +521,7 @@ export class RecordingService {
       pauses: [],
       input: { status: 'unavailable', reason: 'error' },
       warnings: [],
+      ...(style === undefined ? {} : { style }),
       heartbeatAt: deps.wallNow().toISOString(),
       heartbeatElapsedMs: 0,
       cleanClose: false,

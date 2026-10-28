@@ -1,4 +1,4 @@
-import type { RecorderPhase, TrackKind } from '@scrim/core';
+import type { RecorderPhase, SessionStyle, TrackKind } from '@scrim/core';
 
 /**
  * The recording service boundary. Everything the rest of the app needs from the engine is a type in
@@ -26,6 +26,8 @@ export interface RecordingOptions {
   destination?: string | undefined;
   /** The recording name, used for the folder and the files. A dated name when left out. */
   name?: string | undefined;
+  /** The cursor effect and auto zoom picked on the home screen, kept in the session file. */
+  style?: SessionStyle | undefined;
 }
 
 /** What a display or window looks like on the desktop, so mouse positions can be mapped to pixels. */

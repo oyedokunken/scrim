@@ -889,3 +889,35 @@ describe('chooseFirstFrame', () => {
     expect(chooseFirstFrame(1000, undefined, 25)).toBeUndefined();
   });
 });
+
+describe('the look chosen before recording', () => {
+  it('is written into the session at start and survives stop and recovery', async () => {
+    const style = {
+      cursor: { style: 'halo' as const },
+      zoom: { enabled: true, maxZoom: 2.2, holdMs: 1500, easeMs: 600 },
+    };
+    const { h, folder } = await started({}, { style });
+    expect((await readSessionFile(folder)).style).toEqual(style);
+    h.sendChunk('screen');
+    await h.service.stop();
+    expect((await readSessionFile(folder)).style).toEqual(style);
+  });
+
+  it('is left out when no look was chosen', async () => {
+    const { h, folder } = await started();
+    await h.service.stop();
+    expect((await readSessionFile(folder)).style).toBeUndefined();
+  });
+
+  it('is kept when a crashed recording is recovered', async () => {
+    const style = { zoom: { enabled: false } };
+    const { h, folder } = await started({}, { style });
+    h.sendChunk('screen', 100);
+    await flushWork();
+    h.page.die('crashed');
+    await flushWork();
+    await flushWork();
+    await h.service.recover(folder);
+    expect((await readSessionFile(folder)).style).toEqual(style);
+  });
+});

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { EASE_LIMITS, ZOOM_LIMITS } from '../render/constants';
+import type { RenderStyle } from '../render/model';
 
 const nonNegative = z.number().nonnegative();
 
@@ -52,6 +54,28 @@ const inputSchema = z.discriminatedUnion('status', [
     reason: z.enum(['wayland', 'permission', 'error', 'window-bounds-unsupported']),
   }),
 ]);
+
+/**
+ * The look chosen on the home screen before recording: the cursor effect and the auto zoom. They
+ * are the starting point for the editor and for export, which can still change them afterwards. It
+ * is a part of `RenderStyle`, and the type below fails to compile if it ever stops being one.
+ */
+const styleSchema = z.strictObject({
+  cursor: z
+    .strictObject({ style: z.enum(['halo-ripples', 'halo', 'ripples', 'off']).optional() })
+    .optional(),
+  zoom: z
+    .strictObject({
+      enabled: z.boolean().optional(),
+      maxZoom: z.number().min(ZOOM_LIMITS.min).max(ZOOM_LIMITS.max).optional(),
+      holdMs: z.number().min(0).max(5000).optional(),
+      easeMs: z.number().min(EASE_LIMITS.minMs).max(EASE_LIMITS.maxMs).optional(),
+    })
+    .optional(),
+});
+
+type AssignableToRenderStyle<T extends RenderStyle> = T;
+export type SessionStyle = AssignableToRenderStyle<z.infer<typeof styleSchema>>;
 
 /**
  * `session.json`, version 1. It is rewritten atomically on every heartbeat, so after a crash it
@@ -112,6 +136,8 @@ export const sessionFileSchema = z.strictObject({
   pauses: z.array(z.strictObject({ pausedAt: nonNegative, resumedAt: nonNegative.nullable() })),
   input: inputSchema,
   warnings: z.array(z.string()),
+  /** The look picked before recording. Absent for sessions made without a choice. */
+  style: styleSchema.optional(),
   heartbeatAt: z.iso.datetime(),
   /** The main clock at the last heartbeat, in milliseconds, so recovery knows how far it got. */
   heartbeatElapsedMs: nonNegative,
