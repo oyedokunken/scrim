@@ -50,5 +50,6 @@ export const imageContract = {
     input: z.object({ path: pathSchema }).strict(),
     output: pngDataUrlSchema,
   },
+  'image:share': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
   'image:delete': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
 } as const;
