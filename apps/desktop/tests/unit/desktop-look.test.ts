@@ -22,9 +22,10 @@ describe('the desktop look', () => {
     expect(css).toContain('var(--scrim-font');
   });
 
-  it('fixes the window and scrolls inside the screen only', () => {
+  it('fixes the window and scrolls inside the main area and the panel only', () => {
     expect(css).toMatch(/html,\s*body\s*\{[^}]*height: 100%;[^}]*overflow: hidden/s);
-    expect(css).toMatch(/\.screen\s*\{[^}]*overflow-y: auto/s);
+    expect(css).toMatch(/\.shell-main\s*\{[^}]*overflow-y: auto/s);
+    expect(css).toMatch(/\.shell-panel\s*\{[^}]*overflow-y: auto/s);
   });
 
   it('has no centered column', () => {

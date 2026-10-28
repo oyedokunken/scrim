@@ -2,8 +2,15 @@ import { useCallback, useState } from 'react';
 import type { Settings } from '../../shared/settings';
 import { ControlView } from './components/control-view';
 import { EditorPlaceholder } from './components/editor-placeholder';
-import { HomeView } from './components/home-view';
 import { RecordingView } from './components/recording-view';
+import { formatTimer } from './format';
+import { AppShell } from './shell/app-shell';
+import { Placeholder } from './shell/placeholder';
+import { RecordPanel } from './shell/record-panel';
+import { RecordView } from './shell/record-view';
+import { VIEW_LABELS, type ViewId } from './shell/views';
+import { Welcome } from './shell/welcome';
+import { Button } from '../ui';
 import {
   useDevices,
   useRecordingOutcome,
@@ -63,7 +70,7 @@ export function ControlScreen() {
   );
 }
 
-/** The main window: home, the recording in progress, or what was just saved. */
+/** The main window: the welcome screen, then the app shell around whichever view is open. */
 export function MainScreen() {
   const { settings, update, chooseFolder } = useSettings();
   const snapshot = useRecordingSnapshot();
@@ -72,6 +79,8 @@ export function MainScreen() {
   const controls = useRecordingControls();
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<UserError | null>(null);
+  const [view, setView] = useState<ViewId>('record');
+  const [entered, setEntered] = useState(false);
 
   const start = useCallback(async (chosen: Settings) => {
     setStarting(true);
@@ -92,14 +101,47 @@ export function MainScreen() {
 
   if (settings === null) {
     return (
-      <main className="screen" aria-busy="true">
-        <p className="hint">Loading</p>
+      <main className="welcome" aria-busy="true">
+        <p className="ui-help">Loading</p>
       </main>
     );
   }
 
-  if (LIVE.has(snapshot.phase)) {
+  if (!entered && (settings.showWelcome || !settings.firstRunDone)) {
     return (
+      <Welcome
+        firstRun={!settings.firstRunDone}
+        onContinue={() => {
+          if (!settings.firstRunDone) update({ firstRunDone: true });
+          setEntered(true);
+        }}
+      />
+    );
+  }
+
+  const live = LIVE.has(snapshot.phase);
+  const folder = settings.destinationFolder ?? 'Videos\\Scrim';
+  const state = live
+    ? `${snapshot.phase === 'paused' ? 'Paused' : 'Recording'} ${formatTimer(snapshot.elapsedMs)}`
+    : 'Ready';
+
+  const startButton = (
+    <Button
+      variant="primary"
+      disabled={starting || live}
+      onClick={() => {
+        setView('record');
+        void start(settings);
+      }}
+    >
+      <span className="record-dot" aria-hidden="true" />
+      Start recording
+    </Button>
+  );
+
+  let main;
+  if (live) {
+    main = (
       <RecordingView
         snapshot={snapshot}
         busy={controls.busy}
@@ -109,10 +151,8 @@ export function MainScreen() {
         onStop={controls.stop}
       />
     );
-  }
-
-  if (finished !== null) {
-    return (
+  } else if (finished !== null) {
+    main = (
       <EditorPlaceholder
         finished={finished}
         onShowInFolder={() => {
@@ -121,18 +161,41 @@ export function MainScreen() {
         onRecordAgain={dismiss}
       />
     );
+  } else if (view === 'record') {
+    main = (
+      <RecordView
+        busy={starting}
+        error={startError ?? failure}
+        onStart={() => void start(settings)}
+      />
+    );
+  } else {
+    main = <Placeholder view={view} />;
   }
 
+  const panel =
+    view === 'record' ? (
+      <RecordPanel
+        settings={settings}
+        cameras={devices.cameras}
+        mics={devices.mics}
+        onChange={update}
+        onChooseFolder={() => void chooseFolder()}
+      />
+    ) : (
+      <Placeholder view={view} inPanel />
+    );
+
   return (
-    <HomeView
-      settings={settings}
-      cameras={devices.cameras}
-      mics={devices.mics}
-      busy={starting}
-      error={startError ?? failure}
-      onChange={update}
-      onChooseFolder={() => void chooseFolder()}
-      onStart={() => void start(settings)}
-    />
+    <AppShell
+      view={view}
+      onView={setView}
+      title={VIEW_LABELS[view]}
+      primary={view === 'record' ? startButton : undefined}
+      status={{ state, folder }}
+      panel={panel}
+    >
+      {main}
+    </AppShell>
   );
 }

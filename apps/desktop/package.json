@@ -31,6 +31,7 @@
     "electron": "catalog:",
     "electron-builder": "catalog:",
     "electron-vite": "catalog:",
+    "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "sharp": "catalog:",

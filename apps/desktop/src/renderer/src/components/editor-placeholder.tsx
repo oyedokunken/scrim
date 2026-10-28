@@ -18,7 +18,7 @@ export function EditorPlaceholder({
   onRecordAgain,
 }: EditorPlaceholderProps) {
   return (
-    <main className="screen editor-placeholder">
+    <div className="screen editor-placeholder">
       <h1 className="brand">
         <BrandMark />
         Scrim
@@ -54,6 +54,6 @@ export function EditorPlaceholder({
           Record again
         </button>
       </div>
-    </main>
+    </div>
   );
 }

@@ -17,6 +17,8 @@ const fields = {
   cameraOn: z.boolean(),
   micOn: z.boolean(),
   frameRate: z.union([z.literal(30), z.literal(60)]),
+  firstRunDone: z.boolean(),
+  showWelcome: z.boolean(),
 };
 
 export const settingsSchema = z.object(fields).strict();
@@ -59,6 +61,8 @@ export const settingsFileSchema = z
     cameraOn: true,
     micOn: true,
     frameRate: true,
+    firstRunDone: true,
+    showWelcome: true,
   });
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
@@ -74,4 +78,6 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   cameraOn: false,
   micOn: false,
   frameRate: 30,
+  firstRunDone: false,
+  showWelcome: true,
 });

@@ -18,7 +18,7 @@
     "tests/unit/track-recorder.test.ts",
     "tests/unit/recorder-controller.test.ts",
     "tests/unit/support/recorder-fakes.ts",
-    "tests/unit/home-screen.test.tsx",
+    "tests/unit/shell-views.test.tsx",
     "tests/unit/ui-primitives.test.tsx",
     "tests/unit/renderer-*.test.ts",
     "tests/unit/renderer-*.test.tsx"

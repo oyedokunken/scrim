@@ -26,7 +26,7 @@ export function RecordingView({
   const working = busy || saving;
 
   return (
-    <main className="screen recording">
+    <div className="screen recording">
       <h1 className="brand">
         <BrandMark />
         Scrim
@@ -57,6 +57,6 @@ export function RecordingView({
           Stop and save
         </button>
       </div>
-    </main>
+    </div>
   );
 }
