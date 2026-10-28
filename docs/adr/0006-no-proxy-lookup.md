@@ -22,8 +22,7 @@ Start the app with the Chromium switch `--no-proxy-server`, set with
 a stop and a recovery contains no request outside `app://scrim/` and no name lookup. The test that
 checks this first proves it can see a request, using a throwaway app and a local server.
 
-Until the main entry sets the switch itself, it is set at the top of `src/main/recording/index.ts`,
-which the entry imports first. The request to move it is in the coordination log.
+The main entry, `src/main/index.ts`, sets the switch, before the app is ready.
 
 ## Consequences
 

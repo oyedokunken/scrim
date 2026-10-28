@@ -17,6 +17,12 @@ import { createMainWindow, MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MINIMUM } from './wi
 // Groups the taskbar buttons and keeps the icon on pinned shortcuts. Same id as the installer.
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 
+// At startup Chromium looks up a host called wpad to find a proxy configuration. That is a name
+// lookup nobody asked for, in an app that promises no network during recording. With no proxy
+// there is no lookup. It must be set before the app is ready. The optional update check will need
+// its own session if it has to use the system proxy (see docs/adr/0006-no-proxy-lookup.md).
+app.commandLine.appendSwitch('no-proxy-server');
+
 // Sandbox every renderer, including any window or frame created later. Must run before ready.
 app.enableSandbox();
 

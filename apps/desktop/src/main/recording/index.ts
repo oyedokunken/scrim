@@ -4,13 +4,6 @@ import { startMarker } from './dev-marker';
 import { readDevTrigger, runDevTrigger } from './dev-trigger';
 import type { RecordingService } from './recording-service';
 
-// Runs when this file is first loaded, which is before the app is ready, as the switch requires.
-// At startup Chromium asks the network for a host called wpad to find a proxy configuration. That
-// is a name lookup nobody asked for, in an app that promises no network during recording. With no
-// proxy there is no lookup. The optional update check, the one allowed use of the network, will
-// need its own session if it has to go through a proxy.
-app.commandLine.appendSwitch('no-proxy-server');
-
 export type { RecordingService } from './recording-service';
 export type * from './types';
 
