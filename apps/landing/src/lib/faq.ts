@@ -18,7 +18,7 @@ export const FAQ: readonly FaqItem[] = [
   {
     question: 'Are my videos saved to the cloud?',
     answer:
-      'No. Your videos are saved in a folder on your computer, and nothing is uploaded, synced or shared unless you choose to send the exported file yourself. The only network request the app may make is an optional check for a newer version on GitHub.',
+      'No. Your videos are saved in a folder on your computer, and nothing is uploaded, synced or shared unless you choose to send the exported file yourself.',
   },
   {
     question: 'Which systems does it run on?',

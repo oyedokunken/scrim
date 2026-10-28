@@ -14,10 +14,10 @@ export const siteConfig = {
   licenseUrl: 'https://github.com/oyedokunken/scrim/blob/main/LICENSE',
   changelogUrl: 'https://github.com/oyedokunken/scrim/blob/main/CHANGELOG.md',
   maltUrl: 'https://buymeamalt.com/@oyedokunken',
-  /** The address people see. */
-  contactEmail: 'hello@scrim.app',
-  /** Where mail to that address goes. Links open a message to this inbox. */
+  /** The owner's inbox. Only the privacy page links to it, for access and deletion requests. */
   contactInbox: 'oyedokunken@gmail.com',
+  /** The address shown on the last card of the hero video. Switch it when the domain changes. */
+  heroAddress: 'scrim.app',
   author: {
     name: 'Oyedokun Kehinde',
     handle: '@oyedokunken',

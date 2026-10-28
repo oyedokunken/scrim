@@ -188,12 +188,11 @@ describe('the sections in detail', () => {
     ]);
   });
 
-  it('Contact offers the email, the issues and the security policy, and no form', () => {
+  it('Contact offers the issues and the security policy, no email and no form', () => {
     const html = renderToStaticMarkup(<Contact />);
-    // People see hello@scrim.app, and the link writes to the inbox that receives it.
-    expect(html).toContain('>hello@scrim.app<');
-    expect(html).toContain('href="mailto:oyedokunken@gmail.com"');
-    expect(html).not.toContain('>oyedokunken@gmail.com<');
+    expect(html).not.toContain('hello@scrim.app');
+    expect(html).not.toContain('mailto:');
+    expect(html).not.toContain('gmail.com');
     expect(html).toContain(`href="${siteConfig.issuesUrl}"`);
     expect(html).toContain(`href="${siteConfig.securityUrl}"`);
     expect(html).not.toContain('<form');
@@ -218,7 +217,7 @@ describe('the privacy page', () => {
   it('is one article with one h1 and a last updated date', () => {
     expect(html.match(/<h1[ >]/g)).toHaveLength(1);
     expect(html).toContain('Last updated');
-    expect(html).toContain('<time dateTime="2026-10-26">26 October 2026</time>');
+    expect(html).toContain('<time dateTime="2026-10-28">28 October 2026</time>');
   });
 
   it('lists everything the download form stores, and nothing else', () => {
@@ -253,6 +252,11 @@ describe('the privacy page', () => {
   it('says how to ask for access or deletion and how to unsubscribe', () => {
     expect(html).toContain('href="mailto:oyedokunken@gmail.com"');
     expect(html).toContain('unsubscribe link');
+    expect(html).not.toContain('hello@scrim.app');
+  });
+
+  it('mentions the note sent to the site owner', () => {
+    expect(html).toContain('a short note that a download happened');
   });
 
   it('cites no laws and makes no legal claims', () => {

@@ -3,124 +3,219 @@ import type { CameraKeyframe, CameraPose } from '../camera/camera';
 import type { ClickEvent, Frame, InputEvent, InputLog } from '../input/types';
 import { cursorAt } from './cursor';
 import type { Point } from './cursor';
+import { normalizeMoments } from './moments';
+import type { ZoomMoment } from './moments';
 import { resolveZoomOptions } from './options';
 import type { ZoomOptions } from './options';
+import { chain, omegaFor, stepChain } from './spring';
 
-/** While zoomed, the camera pans only when the cursor leaves this share of the half view. */
-const FOLLOW_DEAD_ZONE = 0.5;
-
-interface Interval {
-  /** Where the zoom in starts. */
-  start: number;
-  /** Where the zoom out starts. */
-  end: number;
-  /** The first click, which the camera aims at when the zoom in lands. */
-  focus: Point;
-}
+/** The camera is simulated at this step, and a keyframe is written every second step. */
+const STEP_MS = 1000 / 120;
+const KEYFRAME_EVERY = 2;
+/** After the last moment the spring is given this many eases to come to rest. */
+const SETTLE_EASES = 2.5;
+/** The scale counts as arrived when it is this close to its goal. */
+const SNAP_SCALE = 0.002;
 
 function isLeftClick(event: InputEvent): event is ClickEvent {
   return event.type === 'click' && event.button === 'left';
 }
 
-/** Groups left clicks into bursts, where each click is within `windowMs` of the one before. */
-function groupBursts(clicks: readonly ClickEvent[], windowMs: number): ClickEvent[][] {
-  const bursts: ClickEvent[][] = [];
+/**
+ * Finds the moments to zoom on: one around each left click, joined when the camera could not
+ * finish zooming out before the next click needs it back in. A run of nearby clicks therefore
+ * stays in one zoom. The first click of a moment is where the camera first aims.
+ */
+export function planZoomMoments(log: InputLog, options: Partial<ZoomOptions> = {}): ZoomMoment[] {
+  const resolved = resolveZoomOptions(options);
+  const clicks = log.events.filter(isLeftClick).sort((a, b) => a.t - b.t);
+  if (clicks.length === 0 || resolved.maxZoom === 1) {
+    return [];
+  }
+  const moments: ZoomMoment[] = [];
   for (const click of clicks) {
-    const burst = bursts[bursts.length - 1];
-    const previous = burst?.[burst.length - 1];
-    if (burst !== undefined && previous !== undefined && click.t - previous.t <= windowMs) {
-      burst.push(click);
-    } else {
-      bursts.push([click]);
-    }
-  }
-  return bursts;
-}
-
-/**
- * Turns bursts into zoom intervals. Two intervals merge when the gap between them is too short
- * for a full zoom out, so the camera pans across instead of bouncing out and back in.
- */
-function toIntervals(bursts: readonly ClickEvent[][], options: ZoomOptions): Interval[] {
-  const intervals: Interval[] = [];
-  for (const burst of bursts) {
-    const first = burst[0];
-    const last = burst[burst.length - 1];
-    if (first === undefined || last === undefined) {
-      continue;
-    }
-    const next: Interval = {
-      start: Math.max(0, first.t - options.leadInMs),
-      end: last.t + options.holdMs,
-      focus: { x: first.x, y: first.y },
+    const next: ZoomMoment = {
+      startMs: Math.max(0, click.t - resolved.leadInMs),
+      endMs: click.t + resolved.holdMs,
+      x: click.x,
+      y: click.y,
     };
-    const previous = intervals[intervals.length - 1];
-    // The zoom out cannot begin before the zoom in has landed, so a hold shorter than the ease
-    // still ends at start plus ease. Judging by `end` alone let the next zoom start too early.
-    const previousOut =
-      previous === undefined ? 0 : Math.max(previous.end, previous.start + options.easeMs);
-    if (previous !== undefined && next.start < previousOut + options.easeMs) {
-      previous.end = Math.max(previous.end, next.end);
+    const previous = moments[moments.length - 1];
+    if (previous !== undefined && next.startMs < previous.endMs + resolved.easeMs) {
+      previous.endMs = Math.max(previous.endMs, next.endMs);
     } else {
-      intervals.push(next);
+      moments.push(next);
     }
   }
-  return intervals;
+  return moments;
 }
 
 /**
- * Moves the camera center as little as possible so the cursor stays inside the inner part of
- * the view. A cursor that wanders near the middle does not move the camera at all.
+ * Moves the target center as little as possible so the cursor stays inside the inner part of the
+ * view. A cursor that wanders near the middle does not move the camera at all.
  */
-function followCursor(current: CameraPose, cursor: Point, frame: Frame): CameraPose {
-  const reachX = (frame.width / (2 * current.scale)) * FOLLOW_DEAD_ZONE;
-  const reachY = (frame.height / (2 * current.scale)) * FOLLOW_DEAD_ZONE;
-  return clampPose(
-    {
-      scale: current.scale,
-      cx: Math.min(cursor.x + reachX, Math.max(cursor.x - reachX, current.cx)),
-      cy: Math.min(cursor.y + reachY, Math.max(cursor.y - reachY, current.cy)),
-    },
-    frame,
+function followCursor(
+  target: Point,
+  cursor: Point,
+  frame: Frame,
+  scale: number,
+  deadZone: number,
+): Point {
+  const reachX = (frame.width / (2 * scale)) * deadZone;
+  const reachY = (frame.height / (2 * scale)) * deadZone;
+  return {
+    x: Math.min(cursor.x + reachX, Math.max(cursor.x - reachX, target.x)),
+    y: Math.min(cursor.y + reachY, Math.max(cursor.y - reachY, target.y)),
+  };
+}
+
+function samePose(a: CameraPose, b: CameraPose): boolean {
+  return (
+    Math.abs(a.scale - b.scale) < 1e-4 &&
+    Math.abs(a.cx - b.cx) < 0.02 &&
+    Math.abs(a.cy - b.cy) < 0.02
   );
 }
 
 /**
- * Plans camera keyframes that zoom in around bursts of left clicks: a short lead in, an ease in,
- * a hold that pans with the cursor, and an ease back out to the full frame. A log with no left
- * clicks, or a `maxZoom` of 1, yields no keyframes. The same input always yields the same plan.
+ * Turns zoom moments into camera keyframes by simulating a critically damped spring that chases
+ * a target: full zoom on the aim point while a moment is active, the whole frame otherwise. While
+ * zoomed the aim point follows the cursor, a little ahead of the clock, and stays put while the
+ * cursor moves inside a dead zone. The result has no corners, never overshoots, and the view
+ * stays inside the frame. Keyframes are dense while the camera moves and sparse while it rests,
+ * and every segment is linear because the spring already made the motion smooth.
  */
-export function planZoom(log: InputLog, options: Partial<ZoomOptions> = {}): CameraKeyframe[] {
+export function planCamera(
+  moments: readonly ZoomMoment[],
+  log: InputLog,
+  options: Partial<ZoomOptions> = {},
+): CameraKeyframe[] {
   const resolved = resolveZoomOptions(options);
   const { frame } = log;
-  const events = [...log.events].sort((a, b) => a.t - b.t);
-  const clicks = events.filter(isLeftClick);
-  if (clicks.length === 0 || resolved.maxZoom === 1) {
+  const list = normalizeMoments(moments);
+  if (list.length === 0 || resolved.maxZoom === 1) {
     return [];
   }
-
-  const keyframes: CameraKeyframe[] = [];
+  const events = [...log.events].sort((a, b) => a.t - b.t);
   const rest = identityPose(frame);
+  const omega = omegaFor(resolved.easeMs);
+  const settleMs = resolved.easeMs * SETTLE_EASES;
+  const keyframes: CameraKeyframe[] = [];
 
-  for (const interval of toIntervals(groupBursts(clicks, resolved.mergeWindowMs), resolved)) {
-    const zoomedAt = interval.start + resolved.easeMs;
-    const end = Math.max(interval.end, zoomedAt);
-
-    let pose = clampPose(
-      { scale: resolved.maxZoom, cx: interval.focus.x, cy: interval.focus.y },
-      frame,
-    );
-    keyframes.push({ t: interval.start, pose: rest, ease: 'inOut' });
-    keyframes.push({ t: zoomedAt, pose, ease: 'inOut' });
-
-    // Pan segments are linear so a steady drift of the cursor does not pulse the camera.
-    for (let t = zoomedAt + resolved.followIntervalMs; t < end; t += resolved.followIntervalMs) {
-      pose = followCursor(pose, cursorAt(events, t, frame), frame);
-      keyframes.push({ t, pose, ease: 'linear' });
+  let index = 0;
+  while (index < list.length) {
+    const first = list[index];
+    if (first === undefined) break;
+    // Moments close enough together share one simulation, so the spring keeps its momentum.
+    let last = first;
+    let end = index;
+    for (let i = index + 1; i < list.length; i += 1) {
+      const candidate = list[i];
+      if (candidate === undefined || candidate.startMs - last.endMs >= settleMs) break;
+      last = candidate;
+      end = i;
     }
-    pose = followCursor(pose, cursorAt(events, end, frame), frame);
-    keyframes.push({ t: end, pose, ease: 'linear' });
-    keyframes.push({ t: end + resolved.easeMs, pose: rest, ease: 'inOut' });
+    const group = list.slice(index, end + 1);
+    index = end + 1;
+
+    const from = first.startMs;
+    const to = last.endMs + settleMs;
+    const scale = chain(1);
+    const px = chain(rest.cx);
+    const py = chain(rest.cy);
+    let target: Point = { x: rest.cx, y: rest.cy };
+    let activeMoment: ZoomMoment | undefined;
+    const hold: { last?: CameraPose | undefined; pending?: CameraKeyframe | undefined } = {};
+
+    const emit = (t: number, pose: CameraPose): void => {
+      if (hold.last === undefined) {
+        keyframes.push({ t, pose, ease: 'linear' });
+        hold.last = pose;
+        return;
+      }
+      if (samePose(pose, hold.last)) {
+        hold.pending = { t, pose, ease: 'linear' };
+        return;
+      }
+      if (hold.pending !== undefined) {
+        keyframes.push(hold.pending);
+        hold.pending = undefined;
+      }
+      keyframes.push({ t, pose, ease: 'linear' });
+      hold.last = pose;
+    };
+
+    const dt = STEP_MS / 1000;
+    for (let step = 0; ; step += 1) {
+      const t = from + step * STEP_MS;
+      if (t > to) break;
+      const moment = group.find((m) => t >= m.startMs && t < m.endMs);
+      let targetScale = 1;
+      if (moment === undefined) {
+        activeMoment = undefined;
+        target = { x: rest.cx, y: rest.cy };
+      } else {
+        targetScale = resolved.maxZoom;
+        if (moment !== activeMoment) {
+          activeMoment = moment;
+          const aim = clampPose({ scale: targetScale, cx: moment.x, cy: moment.y }, frame);
+          target = { x: aim.cx, y: aim.cy };
+        } else if (events.length > 0 && t >= moment.startMs + resolved.leadInMs) {
+          const cursor = cursorAt(events, t + resolved.lookAheadMs, frame);
+          const moved = followCursor(target, cursor, frame, targetScale, resolved.deadZone);
+          const clamped = clampPose({ scale: targetScale, cx: moved.x, cy: moved.y }, frame);
+          target = { x: clamped.cx, y: clamped.cy };
+        }
+      }
+
+      // Close to a resting value the spring only creeps. Snap there so rest and full zoom are exact.
+      const goal = moment === undefined ? 1 : resolved.maxZoom;
+      if (Math.abs(scale.out.x - goal) < SNAP_SCALE && Math.abs(scale.lead.x - goal) < SNAP_SCALE) {
+        scale.out.x = goal;
+        scale.lead.x = goal;
+        scale.out.v = 0;
+        scale.lead.v = 0;
+        if (moment === undefined) {
+          for (const axis of [px, py]) {
+            axis.out.v = 0;
+            axis.lead.v = 0;
+          }
+          px.out.x = rest.cx;
+          px.lead.x = rest.cx;
+          py.out.x = rest.cy;
+          py.lead.x = rest.cy;
+        }
+      }
+
+      // Write the state before stepping, so the first keyframe is exactly the whole frame.
+      if (step % KEYFRAME_EVERY === 0) {
+        emit(t, clampPose({ scale: scale.out.x, cx: px.out.x, cy: py.out.x }, frame));
+      }
+      stepChain(scale, targetScale, omega, dt);
+      if (scale.out.x < 1 || scale.out.x > resolved.maxZoom) {
+        scale.out.x = Math.min(resolved.maxZoom, Math.max(1, scale.out.x));
+        scale.out.v = 0;
+      }
+      stepChain(px, target.x, omega, dt);
+      stepChain(py, target.y, omega, dt);
+    }
+    // Snap to rest so the plan ends exactly on the whole frame, and flush a held pose first.
+    if (hold.pending !== undefined) {
+      keyframes.push(hold.pending);
+    }
+    const tail = keyframes[keyframes.length - 1];
+    if (tail === undefined || tail.t < to || tail.pose.scale !== 1) {
+      keyframes.push({ t: to, pose: rest, ease: 'linear' });
+    }
   }
   return keyframes;
+}
+
+/**
+ * Plans camera keyframes that zoom in around left clicks, follow the cursor while zoomed and ease
+ * back out to the full frame. A log with no left clicks, or a `maxZoom` of 1, yields no
+ * keyframes. The same input always yields the same plan.
+ */
+export function planZoom(log: InputLog, options: Partial<ZoomOptions> = {}): CameraKeyframe[] {
+  return planCamera(planZoomMoments(log, options), log, options);
 }

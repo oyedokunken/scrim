@@ -14,6 +14,7 @@ import {
   FFMPEG_SOURCE_URL,
   FFMPEG_URL,
 } from './ffmpeg-pin.mts';
+import { defaultOutDir, fetchFfmpegUnix, pickTarget } from './fetch-ffmpeg-unix.mts';
 
 // Fetches the pinned FFmpeg build into apps/desktop/resources/ffmpeg, which the installer copies
 // into the app. Run it with `pnpm --filter @scrim/desktop fetch:ffmpeg`, and before packaging. It
@@ -82,8 +83,18 @@ async function findFile(root: string, relative: string): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  if (process.platform !== 'win32') {
-    console.log('The bundled FFmpeg is for the Windows build. Nothing to fetch on this system.');
+  // macOS and Linux, or a cross build with `--target linux-x64 --out <folder>`. Windows below is
+  // unchanged.
+  const argv = process.argv.slice(2);
+  if (process.platform !== 'win32' || argv.includes('--target')) {
+    const target = pickTarget(argv);
+    if (target === undefined) {
+      console.log('There is no bundled FFmpeg for this system and architecture.');
+      return;
+    }
+    const outIndex = argv.indexOf('--out');
+    const out = outIndex === -1 ? defaultOutDir : (argv[outIndex + 1] ?? defaultOutDir);
+    await fetchFfmpegUnix(target, out);
     return;
   }
   if (await alreadyInstalled()) {

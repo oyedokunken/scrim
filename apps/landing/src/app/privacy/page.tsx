@@ -58,6 +58,10 @@ export default function PrivacyPage() {
         <ul>
           <li>To count how many times Scrim is downloaded.</li>
           <li>To send you the download email.</li>
+          <li>
+            To send the site owner a short note that a download happened. It carries your name, your
+            email and the system you chose, and nothing else.
+          </li>
           <li>To send release notices, only if you ticked the box to get them.</li>
         </ul>
       </section>
@@ -94,8 +98,8 @@ export default function PrivacyPage() {
         <h2 id="choices-title">Your choices</h2>
         <ul>
           <li>
-            To see what we hold about you, or to have it deleted, email{' '}
-            <a href={`mailto:${siteConfig.contactInbox}`}>{siteConfig.contactEmail}</a>.
+            To see what we hold about you, or to have it deleted,{' '}
+            <a href={`mailto:${siteConfig.contactInbox}`}>email the site owner</a>.
           </li>
           <li>Every release notice has an unsubscribe link, and unsubscribing takes one step.</li>
           <li>The download form works without ticking the box for release notices.</li>
@@ -105,8 +109,8 @@ export default function PrivacyPage() {
       <section aria-labelledby="contact-title">
         <h2 id="contact-title">Contact</h2>
         <p>
-          Questions about this page? Write to{' '}
-          <a href={`mailto:${siteConfig.contactInbox}`}>{siteConfig.contactEmail}</a>.
+          Questions about this page? Open an issue on <a href={siteConfig.issuesUrl}>GitHub</a>, and
+          keep personal details out of it. For anything private, use the email link above.
         </p>
       </section>
     </article>

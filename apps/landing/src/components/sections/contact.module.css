@@ -10,29 +10,6 @@
   gap: var(--scrim-space-4);
 }
 
-.email {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--scrim-space-3);
-  min-height: 3.5rem;
-  color: var(--scrim-black);
-  font-size: var(--scrim-text-h3);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  overflow-wrap: anywhere;
-  text-decoration-color: var(--scrim-green);
-  text-decoration-thickness: 3px;
-}
-
-.email svg {
-  flex: none;
-  color: var(--scrim-green);
-}
-
-.email:hover {
-  color: var(--scrim-green);
-}
-
 .channels ul {
   display: grid;
   gap: var(--scrim-space-2);

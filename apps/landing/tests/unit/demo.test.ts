@@ -61,8 +61,14 @@ describe('the scripted demo path', () => {
   });
 
   it('zooms out fully between the zooms, and stays in across the first two clicks', () => {
-    const rests = DEMO_KEYFRAMES.filter((keyframe) => keyframe.pose.scale === 1).map((k) => k.t);
-    expect(rests).toEqual([1250, 4950, 5750, 7650, 8150, 10_050, 10_750, 12_650, 13_750, 15_650]);
+    expect(DEMO_ZOOM_SPANS).toHaveLength(5);
+    for (const [index, span] of DEMO_ZOOM_SPANS.entries()) {
+      const next = DEMO_ZOOM_SPANS[index + 1];
+      if (next !== undefined) {
+        const middle = (span.end + next.start) / 2;
+        expect(sampleCamera(DEMO_KEYFRAMES, middle, DEMO_FRAME).scale).toBe(1);
+      }
+    }
   });
 
   it('ends the loop at rest, before the cursor starts again', () => {
@@ -74,12 +80,16 @@ describe('the scripted demo path', () => {
   });
 
   it('is zoomed in on the static frame shown for reduced motion', () => {
-    expect(sampleCamera(DEMO_KEYFRAMES, STATIC_FRAME_TIME_MS, DEMO_FRAME).scale).toBe(2);
+    expect(sampleCamera(DEMO_KEYFRAMES, STATIC_FRAME_TIME_MS, DEMO_FRAME).scale).toBeGreaterThan(
+      1.98,
+    );
   });
 
   it('stays zoomed between the first two clicks instead of zooming out and back in', () => {
     for (const t of [2000, 2600, 3000, 3600, 4200]) {
-      expect(sampleCamera(DEMO_KEYFRAMES, t, DEMO_FRAME).scale, 'at ' + String(t)).toBe(2);
+      expect(sampleCamera(DEMO_KEYFRAMES, t, DEMO_FRAME).scale, 'at ' + String(t)).toBeGreaterThan(
+        1.98,
+      );
     }
   });
 
@@ -363,11 +373,11 @@ describe('the typed search word', () => {
 describe('the timeline helpers', () => {
   it('finds the five zoom regions the planner made', () => {
     expect(DEMO_ZOOM_SPANS).toEqual([
-      { start: 1250, end: 4950 },
-      { start: 5750, end: 7650 },
-      { start: 8150, end: 10_050 },
-      { start: 10_750, end: 12_650 },
-      { start: 13_750, end: 15_650 },
+      { start: 1250, end: 5250 },
+      { start: 5750, end: 7950 },
+      { start: 8150, end: 10_350 },
+      { start: 10_750, end: 12_950 },
+      { start: 13_750, end: 15_950 },
     ]);
   });
 
