@@ -4,6 +4,7 @@
  * contract declares exactly these channels, so the two cannot drift apart.
  */
 export const CHANNELS = [
+  'app:version',
   'settings:get',
   'settings:set',
   'folder:choose',

@@ -12,6 +12,7 @@ import { VIEW_LABELS, type ViewId } from './shell/views';
 import { Welcome } from './shell/welcome';
 import { Button } from '../ui';
 import {
+  useAppVersion,
   useDevices,
   useRecordingOutcome,
   useRecordingSnapshot,
@@ -77,6 +78,7 @@ export function MainScreen() {
   const { finished, failure, dismiss } = useRecordingOutcome();
   const devices = useDevices();
   const controls = useRecordingControls();
+  const version = useAppVersion();
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<UserError | null>(null);
   const [view, setView] = useState<ViewId>('record');
@@ -111,6 +113,10 @@ export function MainScreen() {
     return (
       <Welcome
         firstRun={!settings.firstRunDone}
+        version={version}
+        onOpenLink={(url) => {
+          void window.scrim.invoke('shell:open-external', { url });
+        }}
         onContinue={() => {
           if (!settings.firstRunDone) update({ firstRunDone: true });
           setEntered(true);

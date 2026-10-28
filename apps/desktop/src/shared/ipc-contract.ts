@@ -28,6 +28,7 @@ const allowedUrlSchema = z
  * preload bridge (automatic), then tests.
  */
 export const contract = {
+  'app:version': { input: z.void(), output: z.string().min(1).max(64) },
   'settings:get': { input: z.void(), output: settingsSchema },
   'settings:set': { input: settingsPatchSchema, output: settingsSchema },
   'folder:choose': { input: z.void(), output: z.string().nullable() },

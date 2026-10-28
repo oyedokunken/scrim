@@ -601,24 +601,44 @@ svg {
 .welcome {
   display: grid;
   height: 100%;
-  place-content: center;
-  justify-items: center;
-  gap: 20px;
-  text-align: center;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 1fr auto;
+  align-items: end;
+  padding: 40px 48px;
+}
+
+.welcome-top {
+  grid-column: 1 / -1;
+  align-self: start;
+  display: grid;
+  gap: 12px;
+}
+
+.welcome-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .welcome-brand {
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 40px;
+  gap: 12px;
+  font-size: 28px;
   font-weight: 600;
   line-height: 1;
 }
 
-.welcome-brand .brand-mark {
-  width: 72px;
-  height: 72px;
+.version-pill {
+  min-width: 56px;
+  min-height: 22px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
 }
 
 .welcome-tagline {
@@ -626,19 +646,20 @@ svg {
   color: var(--scrim-text-secondary);
 }
 
-.welcome-button {
-  min-width: 200px;
-  min-height: 48px;
-  font-size: 16px;
-}
-
-.welcome-note {
-  position: fixed;
-  bottom: 24px;
-  left: 0;
-  right: 0;
+.welcome-credit {
   font-size: 13px;
   color: var(--scrim-text-secondary);
+}
+
+.welcome-credit a {
+  color: var(--scrim-green);
+  font-weight: 600;
+}
+
+.welcome-button {
+  min-width: 180px;
+  min-height: 48px;
+  font-size: 16px;
 }
 
 .ui-select {

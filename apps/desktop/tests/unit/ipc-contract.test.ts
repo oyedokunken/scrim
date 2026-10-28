@@ -37,6 +37,8 @@ describe('every channel rejects input that does not fit', () => {
     ['shell:open-external', undefined],
     ['shell:open-external', {}],
     ['shell:open-external', { url: 'https://example.com/' }],
+    ['shell:open-external', { url: 'https://www.oyedokun.dev/about' }],
+    ['shell:open-external', { url: 'https://evil.oyedokun.dev/' }],
     ['shell:open-external', { url: 'file:///C:/Windows/win.ini' }],
     ['shell:open-external', { url: 'https://github.com:8443/oyedokunken/scrim' }],
     ['shell:open-external', { url: 'https://github.com/oyedokunken/scrim', extra: 1 }],
@@ -57,6 +59,8 @@ describe('every channel accepts input that fits', () => {
     ['settings:set', { zoomLevel: 2.5, cameraOn: true }],
     ['folder:choose', undefined],
     ['shell:open-external', { url: 'https://github.com/oyedokunken/scrim/releases' }],
+    ['shell:open-external', { url: 'https://www.oyedokun.dev/' }],
+    ['shell:open-external', { url: 'https://oyedokun.dev/' }],
     ['shell:show-in-folder', { path: 'C:\\Recordings\\one' }],
     ['logs:open-folder', undefined],
   ] as const)('%s accepts %j', (channel, value) => {

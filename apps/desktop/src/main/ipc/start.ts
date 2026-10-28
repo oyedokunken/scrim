@@ -100,6 +100,7 @@ export async function startIpc(options: {
       },
       openPath: (path) => shell.openPath(path),
       openExternal: (url) => openExternalChecked(url),
+      version: app.getVersion(),
       logsFolder: logger.directory,
     }),
     // Only the failure kind and the channel name, never the input or the error text.

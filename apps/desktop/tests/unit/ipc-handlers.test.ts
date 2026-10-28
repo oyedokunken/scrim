@@ -20,6 +20,7 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
     },
     recording: fakeRecording(),
     platform: process.platform,
+    version: '1.0.0',
     chooseFolder: vi.fn(() => Promise.resolve(null)),
     showItemInFolder: vi.fn(),
     openPath: vi.fn(() => Promise.resolve('')),
@@ -87,9 +88,14 @@ describe('the handlers', () => {
     expect(await setup().handlers['folder:choose'](undefined)).toBeNull();
   });
 
+  it('reports the app version it was given', () => {
+    expect(setup().handlers['app:version'](undefined)).toBe('1.0.0');
+  });
+
   it('opens an allowed link and refuses one the opener turns down', async () => {
     const { handlers, deps } = setup();
     await handlers['shell:open-external']({ url: 'https://github.com/oyedokunken/scrim' });
+    await handlers['shell:open-external']({ url: 'https://www.oyedokun.dev/' });
     expect(deps.openExternal).toHaveBeenCalledWith('https://github.com/oyedokunken/scrim');
 
     const refused = setup({ openExternal: () => Promise.resolve(false) });

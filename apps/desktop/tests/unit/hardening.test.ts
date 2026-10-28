@@ -77,6 +77,18 @@ describe('isOwnUrl', () => {
 describe('isAllowedExternalUrl', () => {
   it.each([
     ['https://github.com/oyedokunken/scrim', true],
+    ['https://www.oyedokun.dev/', true],
+    ['https://oyedokun.dev/', true],
+    ['https://www.oyedokun.dev', true],
+    ['https://www.oyedokun.dev/about', false],
+    ['https://www.oyedokun.dev/?next=evil', false],
+    ['https://www.oyedokun.dev/#x', false],
+    ['http://www.oyedokun.dev/', false],
+    ['https://www.oyedokun.dev:443/', false],
+    ['https://evil.oyedokun.dev/', false],
+    ['https://oyedokun.dev.evil.example/', false],
+    ['https://user@www.oyedokun.dev/', false],
+    ['https://example.com/', false],
     ['https://github.com/oyedokunken/scrim/releases', true],
     ['https://github.com/oyedokunken/scrim-evil', false],
     ['https://github.com/someone/else', false],

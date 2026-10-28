@@ -165,3 +165,23 @@ export function useDevices(): { cameras: DeviceOption[]; mics: DeviceOption[] } 
 
   return devices;
 }
+
+/** The app version from the main process, or null until it arrives. */
+export function useAppVersion(): string | null {
+  const [version, setVersion] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    window.scrim
+      .invoke('app:version')
+      .then((value) => {
+        if (alive) setVersion(value);
+      })
+      .catch(() => {
+        // The pill simply stays empty.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return version;
+}

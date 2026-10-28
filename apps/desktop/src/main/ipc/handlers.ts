@@ -9,6 +9,8 @@ export interface HandlerDeps {
   settings: SettingsStore;
   recording: RecordingApi;
   platform: NodeJS.Platform;
+  /** The app version from the package, never typed in by hand. */
+  version: string;
   /** Opens the system folder picker. Null when the person cancels. */
   chooseFolder: () => Promise<string | null>;
   showItemInFolder: (path: string) => void;
@@ -49,6 +51,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       if (chosen !== null) await deps.settings.set({ destinationFolder: chosen });
       return chosen;
     },
+    'app:version': () => deps.version,
     'shell:open-external': async ({ url }) => {
       if (!(await deps.openExternal(url))) throw new Error('link not allowed');
     },

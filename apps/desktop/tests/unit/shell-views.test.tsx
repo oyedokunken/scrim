@@ -154,19 +154,37 @@ describe('the shell', () => {
 });
 
 describe('the welcome screen', () => {
+  const welcome = (firstRun: boolean, version: string | null = '1.0.0') =>
+    renderToStaticMarkup(
+      <Welcome firstRun={firstRun} version={version} onContinue={noop} onOpenLink={noop} />,
+    );
+
   it('says Get started on the first launch and Continue after', () => {
-    expect(renderToStaticMarkup(<Welcome firstRun onContinue={noop} />)).toContain('>Get started<');
-    const again = renderToStaticMarkup(<Welcome firstRun={false} onContinue={noop} />);
-    expect(again).toContain('>Continue<');
-    expect(again).not.toContain('Get started');
+    expect(welcome(true)).toContain('>Get started<');
+    expect(welcome(false)).toContain('>Continue<');
+    expect(welcome(false)).not.toContain('Get started');
   });
 
-  it('shows the name, the line, and the privacy promise, and nothing else to press', () => {
-    const html = renderToStaticMarkup(<Welcome firstRun onContinue={noop} />);
+  it('shows the mark, the name, the version pill and the line', () => {
+    const html = welcome(true);
     expect(html).toContain('Scrim');
+    expect(html).toContain('<span class="version-pill">v1.0.0</span>');
     expect(html).toContain('Record anything on your screen effortlessly');
-    expect(html).toContain('Nothing leaves your computer.');
-    expect(html.match(/<button/g)).toHaveLength(1);
+  });
+
+  it('keeps the pill in place and empty until the version arrives', () => {
+    expect(welcome(true, null)).toContain('<span class="version-pill"></span>');
+  });
+
+  it('credits the owner with a link to the site, and has no privacy line', () => {
+    const html = welcome(true);
+    expect(html).toContain('Built by');
+    expect(html).toMatch(/<a href="https:\/\/www\.oyedokun\.dev\/"[^>]*>@oyedokunken<\/a>/);
+    expect(html).not.toContain('Nothing leaves your computer');
+  });
+
+  it('has one button besides the link', () => {
+    expect(welcome(true).match(/<button/g)).toHaveLength(1);
   });
 });
 
