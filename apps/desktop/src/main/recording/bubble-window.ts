@@ -2,8 +2,9 @@ import { ipcMain } from 'electron';
 import { join } from 'node:path';
 import { BUBBLE_CHANNELS } from '../../recorder/bubble/channels';
 import {
-  WINDOW_SIZE,
+  windowSizeFor,
   hitRects,
+  type BubbleShape,
   windowOrigin,
   type DotSide,
   type Point,
@@ -30,6 +31,7 @@ export function createBubbleWindow(options: {
 }): BubbleWindow {
   let window: ReturnType<typeof createAppWindow> | undefined;
   let side: DotSide = 'right';
+  let look: { size: number; shape: BubbleShape } = { size: 180, shape: 'circle' };
   let pending: BubbleCommand | undefined;
   let ready = false;
   const dragStart: (() => void)[] = [];
@@ -52,17 +54,18 @@ export function createBubbleWindow(options: {
   ipcMain.on(BUBBLE_CHANNELS.event, onEvent);
 
   const applyShape = (target: NonNullable<typeof window>): void => {
-    target.setShape(hitRects(side));
+    target.setShape(hitRects(side, look.size, look.shape));
   };
 
   return {
     open(input) {
       if (current() !== undefined) return;
       side = input.side;
+      look = { size: input.size, shape: input.shape };
       const origin = windowOrigin(input.circle, side);
       const created = createAppWindow(
         {
-          ...WINDOW_SIZE,
+          ...windowSizeFor(input.size),
           x: Math.round(origin.x),
           y: Math.round(origin.y),
           show: false,
@@ -108,6 +111,8 @@ export function createBubbleWindow(options: {
         cameraDeviceId: input.camera.deviceId,
         mic: input.mic,
         side,
+        size: input.size,
+        shape: input.shape,
       };
       void created.loadURL(`${options.appOrigin}/bubble.html`).catch((error: unknown) => {
         options.log(

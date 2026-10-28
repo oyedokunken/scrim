@@ -33,11 +33,40 @@ export const BUBBLE = {
   moveMs: 200,
 } as const;
 
+/** The three sizes the Camera page offers, as the picture's diameter. */
+export const BUBBLE_DIAMETERS = { S: 120, M: 180, L: 240 } as const;
+export type BubbleSizeName = keyof typeof BUBBLE_DIAMETERS;
+
+export type BubbleShape = 'circle' | 'rounded-square';
+
+/** The corner radius of the rounded square, as a share of its side. */
+export const SQUARE_RADIUS = 0.22;
+
 /** The window holds the picture, its shadow and the dot beside it. */
-export const WINDOW_SIZE = {
-  width: BUBBLE.pad + BUBBLE.size + BUBBLE.gap + BUBBLE.dot + BUBBLE.pad,
-  height: BUBBLE.pad + BUBBLE.size + BUBBLE.pad,
-} as const;
+export function windowSizeFor(size: number = BUBBLE.size): { width: number; height: number } {
+  return {
+    width: BUBBLE.pad + size + BUBBLE.gap + BUBBLE.dot + BUBBLE.pad,
+    height: BUBBLE.pad + size + BUBBLE.pad,
+  };
+}
+
+export const WINDOW_SIZE = windowSizeFor();
+
+/** The settings name of a corner, as the app's corner code. */
+export function cornerFromSetting(
+  corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right',
+): Corner {
+  switch (corner) {
+    case 'top-left':
+      return 'tl';
+    case 'top-right':
+      return 'tr';
+    case 'bottom-left':
+      return 'bl';
+    case 'bottom-right':
+      return 'br';
+  }
+}
 
 /** The dot sits on the side of the picture that faces the middle of the display. */
 export type DotSide = 'left' | 'right';
@@ -51,11 +80,12 @@ export function cornerPositions(
   area: Rect,
   /** Extra room kept at the bottom, so the picture clears the recording pill. */
   bottomInset = 0,
+  size: number = BUBBLE.size,
 ): Record<Corner, Point> {
   const left = area.x + BUBBLE.margin;
-  const right = area.x + area.width - BUBBLE.margin - BUBBLE.size;
+  const right = area.x + area.width - BUBBLE.margin - size;
   const top = area.y + BUBBLE.margin;
-  const bottom = area.y + area.height - BUBBLE.margin - bottomInset - BUBBLE.size;
+  const bottom = area.y + area.height - BUBBLE.margin - bottomInset - size;
   return {
     tl: { x: left, y: top },
     tr: { x: right, y: top },
@@ -70,8 +100,8 @@ export function windowOrigin(circle: Point, side: DotSide): Point {
   return { x: circle.x - toPicture, y: circle.y - BUBBLE.pad };
 }
 
-function centerOf(topLeft: Point): Point {
-  return { x: topLeft.x + BUBBLE.size / 2, y: topLeft.y + BUBBLE.size / 2 };
+function centerOf(topLeft: Point, size: number): Point {
+  return { x: topLeft.x + size / 2, y: topLeft.y + size / 2 };
 }
 
 function distance(a: Point, b: Point): number {
@@ -79,8 +109,12 @@ function distance(a: Point, b: Point): number {
 }
 
 /** How far the cursor is from the edge of the round picture, zero when it is over it. */
-export function distanceToBubble(cursor: Point, topLeft: Point): number {
-  return Math.max(0, distance(cursor, centerOf(topLeft)) - BUBBLE.size / 2);
+export function distanceToBubble(
+  cursor: Point,
+  topLeft: Point,
+  size: number = BUBBLE.size,
+): number {
+  return Math.max(0, distance(cursor, centerOf(topLeft, size)) - size / 2);
 }
 
 /** The corner whose spot is closest to where the picture was let go. */
@@ -107,6 +141,8 @@ export interface DodgeInput {
   lastMoveAt: number;
   /** True while the person holds the picture, when it must never jump away. */
   dragging?: boolean;
+  /** The picture's diameter. The medium size when left out. */
+  size?: number;
 }
 
 /**
@@ -118,17 +154,18 @@ export interface DodgeInput {
 export function dodgeCorner(input: DodgeInput): Corner | undefined {
   if (input.dragging === true) return undefined;
   if (input.now - input.lastMoveAt < BUBBLE.dodgeCooldownMs) return undefined;
+  const size = input.size ?? BUBBLE.size;
   const here = input.positions[input.current];
-  if (distanceToBubble(input.cursor, here) >= BUBBLE.dodgeRadius) return undefined;
+  if (distanceToBubble(input.cursor, here, size) >= BUBBLE.dodgeRadius) return undefined;
   const others = (['tl', 'tr', 'bl', 'br'] as const).filter((corner) => corner !== input.current);
   const free = others.filter(
-    (corner) => distanceToBubble(input.cursor, input.positions[corner]) >= BUBBLE.dodgeRadius,
+    (corner) => distanceToBubble(input.cursor, input.positions[corner], size) >= BUBBLE.dodgeRadius,
   );
   const pool = free.length > 0 ? free : others;
   const score = (corner: Corner): number =>
     free.length > 0
       ? distance(here, input.positions[corner])
-      : -distanceToBubble(input.cursor, input.positions[corner]);
+      : -distanceToBubble(input.cursor, input.positions[corner], size);
   return pool.reduce((best, corner) => (score(corner) < score(best) ? corner : best));
 }
 
@@ -143,13 +180,27 @@ export function easeBetween(from: Point, to: Point, t: number): Point {
  * The parts of the window that take the mouse, as rows, so the rest of it clicks through to what
  * is underneath: the round picture and the round dot. In window coordinates.
  */
-export function hitRects(side: DotSide): Rect[] {
+export function hitRects(
+  side: DotSide,
+  size: number = BUBBLE.size,
+  shape: BubbleShape = 'circle',
+): Rect[] {
   const rects: Rect[] = [];
   const pictureX = side === 'right' ? BUBBLE.pad : BUBBLE.pad + BUBBLE.dot + BUBBLE.gap;
-  const radius = BUBBLE.size / 2;
-  for (let row = 0; row < BUBBLE.size; row += 1) {
+  const radius = size / 2;
+  const corner = size * SQUARE_RADIUS;
+  for (let row = 0; row < size; row += 1) {
     const dy = row + 0.5 - radius;
-    const half = Math.sqrt(Math.max(0, radius * radius - dy * dy));
+    let half: number;
+    if (shape === 'circle') {
+      half = Math.sqrt(Math.max(0, radius * radius - dy * dy));
+    } else {
+      // Straight sides, with the rounded corners cut off at the top and bottom rows.
+      const fromEdge = Math.min(row + 0.5, size - row - 0.5);
+      const inset =
+        fromEdge >= corner ? 0 : corner - Math.sqrt(corner * corner - (corner - fromEdge) ** 2);
+      half = radius - inset;
+    }
     const x = Math.round(radius - half);
     rects.push({
       x: pictureX + x,

@@ -39,6 +39,13 @@ export interface AreaDeps {
     source: ScreenshotSource,
     options: ScreenshotOptions,
   ): Promise<Outcome<ScreenshotResult>>;
+  /**
+   * Shows the camera bubble on a display while the person centres themselves, before Start. Called
+   * again when the camera or microphone choice changes. `hidePreview` takes it away. A recording
+   * that starts takes the same bubble over.
+   */
+  showPreview?: (input: { displayId: string; camera: DeviceChoice; mic: DeviceChoice }) => void;
+  hidePreview?: () => void;
   /** Runs before any overlay shows, so the main window can step aside and is never captured. */
   beforeOpen?: () => Promise<void>;
   wait: (ms: number) => Promise<void>;
@@ -100,6 +107,19 @@ export function createAreaFlow(deps: AreaDeps): {
       if (displays.length === 0) return { ok: false, reason: 'failed' };
 
       let cancelled = false;
+      let handedOver = false;
+      const preview = { shown: false };
+      const tracked: AreaDeps = {
+        ...deps,
+        showPreview: (input) => {
+          preview.shown = true;
+          deps.showPreview?.(input);
+        },
+        hidePreview: () => {
+          preview.shown = false;
+          deps.hidePreview?.();
+        },
+      };
       let finish: (outcome: AreaOutcome) => void = () => undefined;
       const done = new Promise<AreaOutcome>((resolve) => {
         finish = resolve;
@@ -113,9 +133,13 @@ export function createAreaFlow(deps: AreaDeps): {
 
       try {
         await deps.beforeOpen?.();
-        return await choose(deps, request, displays, done, finish, () => cancelled);
+        const outcome = await choose(tracked, request, displays, done, finish, () => cancelled);
+        handedOver = outcome.ok && outcome.mode === 'record';
+        return outcome;
       } finally {
         running = undefined;
+        // A recording that started keeps the bubble. Anything else takes it away.
+        if (!handedOver && preview.shown) deps.hidePreview?.();
       }
     },
     cancel() {
@@ -151,6 +175,24 @@ async function choose(
   const confirmedPromise = new Promise<void>((resolve) => {
     confirmedSignal = resolve;
   });
+
+  // The overlay that has something chosen and Start on offer, and the bubble it caused to show.
+  let staged: Entry | undefined;
+  let previewKey: string | undefined;
+  const syncPreview = (): void => {
+    const wanted =
+      request.mode === 'record' && phase !== 'closing' && staged !== undefined && camera.enabled;
+    if (!wanted || staged === undefined) {
+      if (previewKey !== undefined) deps.hidePreview?.();
+      previewKey = undefined;
+      return;
+    }
+    const key = JSON.stringify([staged.display.id, camera.deviceId, mic.enabled, mic.deviceId]);
+    if (key === previewKey) return;
+    if (previewKey !== undefined) deps.hidePreview?.();
+    previewKey = key;
+    deps.showPreview?.({ displayId: staged.display.id, camera, mic });
+  };
 
   const others = (entry: Entry): Entry[] => entries.filter((other) => other !== entry);
   // Overlays this flow closes itself, whose closing is not the person cancelling.
@@ -229,6 +271,12 @@ async function choose(
           if (windows.length > 0) handle.send({ type: 'windows', tiles: windows });
           if (area === 'window') loadWindows();
           return;
+        case 'staged':
+          if (phase !== 'choosing') return;
+          if (event.ready) staged = entry;
+          else if (staged === entry) staged = undefined;
+          syncPreview();
+          return;
         case 'begin':
           if (phase !== 'choosing') return;
           for (const other of others(entry)) other.handle.send({ type: 'clear' });
@@ -236,6 +284,8 @@ async function choose(
         case 'area':
           if (phase !== 'choosing') return;
           area = event.area;
+          staged = undefined;
+          syncPreview();
           if (area === 'window') loadWindows();
           for (const other of others(entry)) {
             other.handle.send({ type: 'clear' });
@@ -248,6 +298,7 @@ async function choose(
           for (const other of others(entry)) {
             other.handle.send({ type: 'set-devices', camera, mic });
           }
+          syncPreview();
           return;
         case 'cancel':
           finish({ ok: false, reason: 'cancelled' });

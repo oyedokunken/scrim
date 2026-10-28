@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   BUBBLE,
+  BUBBLE_DIAMETERS,
+  cornerFromSetting,
+  windowSizeFor,
   WINDOW_SIZE,
   cornerPositions,
   distanceToBubble,
@@ -135,5 +138,40 @@ describe('easeBetween', () => {
     const half = easeBetween(from, to, 0.5);
     expect(half.x).toBeGreaterThan(50);
     expect(half.x).toBeLessThan(100);
+  });
+});
+
+describe('sizes and shapes', () => {
+  it('has three sizes, in order', () => {
+    expect(BUBBLE_DIAMETERS).toEqual({ S: 120, M: 180, L: 240 });
+  });
+
+  it('sizes the window and the corners from the diameter', () => {
+    expect(windowSizeFor(240).width).toBe(WINDOW_SIZE.width + 60);
+    expect(windowSizeFor().height).toBe(WINDOW_SIZE.height);
+    const large = cornerPositions(area, 52, 240);
+    expect(large.br.x).toBe(area.x + area.width - BUBBLE.margin - 240);
+    expect(large.br.y).toBe(area.y + area.height - BUBBLE.margin - 52 - 240);
+  });
+
+  it('measures distance from the edge of a picture of any size', () => {
+    const topLeft = { x: 100, y: 100 };
+    expect(distanceToBubble({ x: 100 + 60 + 160, y: 160 }, topLeft, 120)).toBeCloseTo(100);
+  });
+
+  it('gives one hit row per pixel, and a rounded square is wider than a circle at the top', () => {
+    const round = hitRects('right', 120, 'circle');
+    const square = hitRects('right', 120, 'rounded-square');
+    expect(round).toHaveLength(120);
+    expect(square).toHaveLength(120);
+    expect(square[0]?.width).toBeGreaterThan(round[0]?.width ?? 0);
+    expect(square[60]?.width).toBe(120);
+  });
+
+  it('maps the settings corners', () => {
+    expect(cornerFromSetting('top-left')).toBe('tl');
+    expect(cornerFromSetting('top-right')).toBe('tr');
+    expect(cornerFromSetting('bottom-left')).toBe('bl');
+    expect(cornerFromSetting('bottom-right')).toBe('br');
   });
 });

@@ -14,10 +14,12 @@ import { devDockIconPath } from './app-icon';
 import { handleAppRequest } from './app-protocol';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
-import { createAppLogger, startIpc } from './ipc/start';
+import { screenshotFolderOf } from './ipc/handlers';
+import { broadcastScreenshotTaken, createAppLogger, startIpc } from './ipc/start';
 import { registerRecording } from './recording';
 import { createPillController } from './recording/pill-controller';
 import { createBubbleController } from './recording/bubble-controller';
+import { BUBBLE_DIAMETERS, cornerFromSetting } from '../recorder/bubble/geometry';
 import { createBubbleWindow } from './recording/bubble-window';
 import { PILL_SIZE } from './recording/pill-position';
 import { createPillWindow } from './recording/pill-window';
@@ -189,8 +191,16 @@ if (!app.requestSingleInstanceLock()) {
         },
       }),
       devices: () => recording.recordingDevices(),
-      area: () => {
-        const id = recording.recordedArea()?.displayId;
+      look: () => {
+        const saved = settings?.get();
+        return {
+          corner: cornerFromSetting(saved?.bubbleCorner ?? 'bottom-right'),
+          size: BUBBLE_DIAMETERS[saved?.bubbleSize ?? 'M'],
+          shape: saved?.bubbleShape ?? 'circle',
+        };
+      },
+      area: (displayId) => {
+        const id = displayId ?? recording.recordedArea()?.displayId;
         const display =
           screen.getAllDisplays().find((candidate) => String(candidate.id) === id) ??
           screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
@@ -223,6 +233,18 @@ if (!app.requestSingleInstanceLock()) {
     const picker = createAreaPicker({
       appOrigin: target.origin,
       service: recording,
+      preview: {
+        show: (input) => {
+          bubble.preview({
+            displayId: input.displayId,
+            camera: { deviceId: input.camera.deviceId },
+            mic: input.mic,
+          });
+        },
+        hide: () => {
+          bubble.endPreview();
+        },
+      },
       beforeOpen: () => {
         shell.minimize();
         return Promise.resolve();
@@ -232,6 +254,14 @@ if (!app.requestSingleInstanceLock()) {
       run: async (request) => {
         const outcome = await picker.run(request);
         if (!(outcome.ok && outcome.mode === 'record')) shell.show();
+        if (outcome.ok && outcome.mode === 'screenshot' && outcome.result.path !== undefined) {
+          // The result view opens in the main window for the button and for the shortcut alike.
+          broadcastScreenshotTaken(target.origin, {
+            path: outcome.result.path,
+            width: outcome.result.width,
+            height: outcome.result.height,
+          });
+        }
         return outcome;
       },
       cancel: () => {
@@ -246,7 +276,7 @@ if (!app.requestSingleInstanceLock()) {
         buildAreaRequest(
           { mode, ...devicesFromSettings(saved) },
           saved,
-          join(app.getPath('pictures'), 'Scrim'),
+          screenshotFolderOf(saved, join(app.getPath('pictures'), 'Scrim')),
         ),
       );
     };
