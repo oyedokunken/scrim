@@ -56,8 +56,10 @@ export interface AreaRequest {
   area?: AreaKind | undefined;
   camera: DeviceChoice;
   mic: DeviceChoice;
-  /** Recording only. */
+  /** Recording only. The export folder. The working folder is made in the projects folder. */
   destination?: string | undefined;
+  /** Recording only. Seconds counted down before the start: 0 is off, 3 is the default. */
+  countdownSeconds?: 0 | 3 | undefined;
   name?: string | undefined;
   style?: RecordingOptions['style'];
   /** Screenshot only. A folder to save to, and whether to copy. */
@@ -319,7 +321,7 @@ async function choose(
   // Recording: count down on the display that was chosen, then close everything and start.
   phase = 'counting';
   closeAll(entry);
-  const seconds = deps.countdownSeconds ?? DEFAULT_COUNTDOWN;
+  const seconds = request.countdownSeconds ?? deps.countdownSeconds ?? DEFAULT_COUNTDOWN;
   for (let n = seconds; n >= 1; n -= 1) {
     entry.handle.send({ type: 'count', n });
     const next = await Promise.race([

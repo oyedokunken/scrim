@@ -142,12 +142,17 @@ export function createRecordingService(options: CreateServiceOptions): Recording
     createBoundsSource: () =>
       createUnavailableBoundsSource('Reading another window needs a native module.'),
     run: runProcess,
-    ffmpeg: resolveFfmpegPaths({
-      isPackaged: app.isPackaged,
-      resourcesPath: process.resourcesPath,
-      platform: process.platform,
-      env: process.env,
-    }),
+    ffmpeg: (() => {
+      const paths = resolveFfmpegPaths({
+        isPackaged: app.isPackaged,
+        resourcesPath: process.resourcesPath,
+        platform: process.platform,
+        env: process.env,
+      });
+      // Which FFmpeg runs is worth one line in the log, because an installed app must use its own.
+      log(`FFmpeg resolved to ${paths.ffmpeg}`);
+      return paths;
+    })(),
     resolveSource,
     setCaptureTarget: (spec) => {
       target = spec;

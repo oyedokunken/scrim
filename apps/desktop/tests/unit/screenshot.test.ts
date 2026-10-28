@@ -59,7 +59,7 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-const STAMP = 'Scrim screenshot 2026-10-28 14.22.05';
+const STAMP = 'Screenshot 2026-10-28 at 14.22.05';
 
 function setup(overrides: Partial<ScreenshotDeps> = {}) {
   const copied: ImageLike[] = [];
@@ -138,6 +138,30 @@ describe('takeScreenshot', () => {
     expect(display.crops).toEqual([{ x: 150, y: 60, width: 600, height: 300 }]);
     expect(result.ok && [result.value.width, result.value.height]).toEqual([600, 300]);
   });
+
+  it.each([1, 1.25, 1.5, 2])(
+    'cuts exactly the box in physical pixels at %s scale, on a second display',
+    async (scaleFactor) => {
+      const { deps, display } = setup({
+        displayGeometry: () => ({ origin: { x: 1920, y: 0 }, scaleFactor }),
+      });
+      const crop = { x: 2020, y: 100, width: 400, height: 300 };
+      const result = await takeScreenshot(
+        deps,
+        { kind: 'region', displayId: '2', crop },
+        { folder: dir, copyToClipboard: false },
+      );
+      expect(display.crops).toEqual([
+        {
+          x: Math.round(100 * scaleFactor),
+          y: Math.round(100 * scaleFactor),
+          width: Math.round(400 * scaleFactor),
+          height: Math.round(300 * scaleFactor),
+        },
+      ]);
+      expect(result.ok && result.value.width).toBe(Math.round(400 * scaleFactor));
+    },
+  );
 
   it('holds a region inside the picture when it runs a pixel past the edge', async () => {
     const { deps, display } = setup();

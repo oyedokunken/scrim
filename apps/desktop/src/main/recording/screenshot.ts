@@ -51,10 +51,10 @@ export interface ScreenshotDeps {
   log(message: string): void;
 }
 
-/** `Scrim screenshot 2026-10-28 14.22.05`, the same on every system. */
+/** `Screenshot 2026-10-28 at 14.22.05`, the same on every system. */
 function stampName(date: Date): string {
   const pad = (value: number): string => String(value).padStart(2, '0');
-  return `Scrim screenshot ${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}.${pad(date.getMinutes())}.${pad(date.getSeconds())}`;
+  return `Screenshot ${String(date.getFullYear())}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} at ${pad(date.getHours())}.${pad(date.getMinutes())}.${pad(date.getSeconds())}`;
 }
 
 async function freeName(fs: ServiceFs, folder: string, base: string): Promise<string> {

@@ -355,31 +355,34 @@ describe('recording', () => {
     expect(await pending).toEqual({ ok: false, reason: 'cancelled' });
   });
 
-  it('skips the rest of the countdown on Enter', async () => {
-    const { overlays, started } = setup({ displays: [primary] });
-    const waitsForever = createAreaFlow({
-      displays: () => [primary],
-      pointerDisplayId: () => '111',
-      openOverlay: () => overlays.get('111') ?? new FakeOverlay(),
-      listWindows: () => Promise.resolve([]),
-      startRecording: (options) => {
-        started.push(options);
-        return Promise.resolve({ ok: true, value: { folder: 'f' } });
-      },
-      takeScreenshot: () => Promise.reject(new Error('unused')),
-      wait: (ms) => (ms === 1000 ? new Promise<void>(() => undefined) : Promise.resolve()),
-      log: () => undefined,
-      captureDelayMs: 0,
-    });
-    const overlay = new FakeOverlay();
-    overlays.set('111', overlay);
-    const pending = waitsForever.run(record);
+  it('counts 3, 2, 1 one second apart and only then starts', async () => {
+    const { flow, overlays, started, waits } = setup({ displays: [primary] });
+    const pending = flow.run(record);
     await flush();
-    overlay.emit({ type: 'confirm-display' });
+    const overlay = overlays.get('111');
+    overlay?.emit({ type: 'confirm-display' });
+    expect(await pending).toMatchObject({ ok: true, mode: 'record' });
+    const counts = (overlay?.sent ?? []).flatMap((command) =>
+      command.type === 'count' ? [command.n] : [],
+    );
+    expect(counts).toEqual([3, 2, 1, null]);
+    expect(waits.filter((ms) => ms === 1000)).toHaveLength(3);
+    expect(started).toHaveLength(1);
+  });
+
+  it('starts at once, with no numbers, when the countdown is off', async () => {
+    const { flow, overlays, started, waits } = setup({ displays: [primary] });
+    const pending = flow.run({ ...record, countdownSeconds: 0 });
     await flush();
-    expect(started).toEqual([]);
-    overlay.emit({ type: 'skip' });
-    expect(await pending).toEqual({ ok: true, mode: 'record', folder: 'f' });
+    const overlay = overlays.get('111');
+    overlay?.emit({ type: 'confirm-display' });
+    expect(await pending).toMatchObject({ ok: true, mode: 'record' });
+    const counts = (overlay?.sent ?? []).flatMap((command) =>
+      command.type === 'count' ? [command.n] : [],
+    );
+    expect(counts).toEqual([null]);
+    expect(waits.filter((ms) => ms === 1000)).toHaveLength(0);
+    expect(started).toHaveLength(1);
   });
 
   it('cancels during the countdown with Escape, and never starts', async () => {
