@@ -8,6 +8,7 @@ import {
   type BrowserWindow,
   type NativeImage,
 } from 'electron';
+import { createRecordingMark, redDotBitmap } from './recording-mark';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { dialogIconPath } from '../app-icon';
@@ -41,6 +42,9 @@ export function createShell({ recorder, platform, appPath, env }: ShellOptions) 
   let mainWindow: BrowserWindow | null = null;
 
   const iconsDir = join(appPath, 'resources', 'icons');
+  const mark = createRecordingMark({
+    makeDot: () => nativeImage.createFromBitmap(redDotBitmap(16), { width: 16, height: 16 }),
+  });
 
   function trayImage(recording: boolean): NativeImage {
     const choice = chooseTrayIcon(platform, screen.getPrimaryDisplay().scaleFactor, recording);
@@ -191,9 +195,14 @@ export function createShell({ recorder, platform, appPath, env }: ShellOptions) 
     /** The dock icon was clicked on macOS, or the window was hidden: bring it back. */
     show: showWindow,
 
-    /** Gets the main window out of the way while a recording runs, without closing anything. */
-    hide(): void {
-      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+    /** Minimizes the main window for a recording. It keeps its taskbar button, with a red dot. */
+    beginRecordingMark(): void {
+      mark.begin(mainWindow);
+    },
+
+    /** Brings the main window back and removes the dot and the capture exclusion. */
+    endRecordingMark(): void {
+      mark.end(mainWindow);
     },
 
     start(): void {

@@ -10,10 +10,10 @@ import { error, finished, snapshot } from './support/recording-api-fake';
 
 describe('windowActions', () => {
   it.each<[RecorderPhase, RecorderPhase, WindowAction[]]>([
-    ['idle', 'starting', ['hide-main', 'show-control']],
-    ['idle', 'recording', ['hide-main', 'show-control']],
-    ['stopped', 'starting', ['hide-main', 'show-control']],
-    ['failed', 'starting', ['hide-main', 'show-control']],
+    ['idle', 'starting', ['minimize-main', 'show-control']],
+    ['idle', 'recording', ['minimize-main', 'show-control']],
+    ['stopped', 'starting', ['minimize-main', 'show-control']],
+    ['failed', 'starting', ['minimize-main', 'show-control']],
     ['starting', 'recording', []],
     ['recording', 'paused', []],
     ['paused', 'recording', []],
@@ -41,7 +41,7 @@ function effects() {
   return {
     calls,
     effects: {
-      hideMain: vi.fn(() => calls.push('hideMain')),
+      minimizeMain: vi.fn(() => calls.push('minimizeMain')),
       showControl: vi.fn(() => calls.push('showControl')),
       closeControl: vi.fn(() => calls.push('closeControl')),
       showMain: vi.fn(() => calls.push('showMain')),
@@ -63,7 +63,7 @@ describe('createRecordingWindows', () => {
     ] as const) {
       windows.onEvent(state(phase));
     }
-    expect(calls).toEqual(['hideMain', 'showControl', 'closeControl', 'showMain']);
+    expect(calls).toEqual(['minimizeMain', 'showControl', 'closeControl', 'showMain']);
   });
 
   it('brings the main window back with the result when a recording finishes', () => {
@@ -71,7 +71,7 @@ describe('createRecordingWindows', () => {
     const windows = createRecordingWindows(fx);
     windows.onEvent(state('recording'));
     windows.onEvent({ type: 'finished', result: finished });
-    expect(calls).toEqual(['hideMain', 'showControl', 'closeControl', 'showMain']);
+    expect(calls).toEqual(['minimizeMain', 'showControl', 'closeControl', 'showMain']);
   });
 
   it('brings the main window back to explain a failure the person did not cause', () => {
@@ -79,7 +79,7 @@ describe('createRecordingWindows', () => {
     const windows = createRecordingWindows(fx);
     windows.onEvent(state('recording'));
     windows.onEvent({ type: 'error', error });
-    expect(calls).toEqual(['hideMain', 'showControl', 'closeControl', 'showMain']);
+    expect(calls).toEqual(['minimizeMain', 'showControl', 'closeControl', 'showMain']);
   });
 
   it('is safe when a finished event follows the stopped state, which closes and shows twice', () => {
@@ -109,11 +109,11 @@ describe('createRecordingWindows', () => {
     windows.onEvent(state('failed'));
     windows.onEvent(state('starting'));
     expect(calls).toEqual([
-      'hideMain',
+      'minimizeMain',
       'showControl',
       'closeControl',
       'showMain',
-      'hideMain',
+      'minimizeMain',
       'showControl',
     ]);
   });

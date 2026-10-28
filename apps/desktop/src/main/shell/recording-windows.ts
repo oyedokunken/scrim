@@ -2,7 +2,7 @@ import type { RecorderPhase } from '@scrim/core';
 import type { RecordingEvent } from '../recording/types';
 import { isLivePhase } from './recording-control';
 
-export type WindowAction = 'hide-main' | 'show-control' | 'close-control' | 'show-main';
+export type WindowAction = 'minimize-main' | 'show-control' | 'close-control' | 'show-main';
 
 /**
  * What the windows do when the recording moves from one phase to another. Recording starts: the
@@ -12,13 +12,13 @@ export type WindowAction = 'hide-main' | 'show-control' | 'close-control' | 'sho
 export function windowActions(previous: RecorderPhase, next: RecorderPhase): WindowAction[] {
   const wasLive = isLivePhase(previous);
   const isLive = isLivePhase(next);
-  if (!wasLive && isLive) return ['hide-main', 'show-control'];
+  if (!wasLive && isLive) return ['minimize-main', 'show-control'];
   if (wasLive && !isLive) return ['close-control', 'show-main'];
   return [];
 }
 
 export interface WindowEffects {
-  hideMain: () => void;
+  minimizeMain: () => void;
   showControl: () => void;
   closeControl: () => void;
   showMain: () => void;
@@ -34,7 +34,7 @@ export function createRecordingWindows(effects: WindowEffects) {
 
   const run = (actions: WindowAction[]): void => {
     for (const action of actions) {
-      if (action === 'hide-main') effects.hideMain();
+      if (action === 'minimize-main') effects.minimizeMain();
       else if (action === 'show-control') effects.showControl();
       else if (action === 'close-control') effects.closeControl();
       else effects.showMain();

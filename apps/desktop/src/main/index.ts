@@ -1,4 +1,12 @@
-import { app, BrowserWindow, globalShortcut, protocol, session } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  protocol,
+  session,
+  shell as electronShell,
+} from 'electron';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { APP_ID, APP_NAME } from '../shared/app-id';
 import { devDockIconPath } from './app-icon';
@@ -7,6 +15,8 @@ import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
 import { createAppLogger, startIpc } from './ipc/start';
 import { registerRecording } from './recording';
+import { createPillController } from './recording/pill-controller';
+import { createPillWindow } from './recording/pill-window';
 import type { SettingsStore } from './settings/settings-store';
 import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
 import { applyApplicationMenu } from './shell/menu';
@@ -16,7 +26,6 @@ import { registerGlobalShortcuts } from './shell/global-shortcuts';
 import { createRecordingControl } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
 import { createWindowStateTracker } from './shell/window-state-tracker';
-import { createControlWindow } from './windows/control-window';
 import { createMainWindow, MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MINIMUM } from './windows/main-window';
 
 // Groups the taskbar buttons and keeps the icon on pinned shortcuts. Same id as the installer.
@@ -130,22 +139,42 @@ if (!app.requestSingleInstanceLock()) {
     const recording = registerRecording({ appOrigin: target.origin });
     control.attach(recording);
     // The main window steps aside while recording and the small control takes over, then they swap back.
-    const controlWindow = createControlWindow(target.url);
+    const pillFile = join(app.getPath('userData'), 'pill-position.json');
+    const pill = createPillController({
+      service: recording,
+      window: createPillWindow({
+        appOrigin: target.origin,
+        recordedArea: () => recording.recordedArea(),
+        loadPosition: async () => JSON.parse(await readFile(pillFile, 'utf8')) as unknown,
+        savePosition: (point) => writeFile(pillFile, JSON.stringify(point)),
+        onAction: (action) => {
+          void pill.handle(action);
+        },
+        log: (message) => {
+          logger.info('pill', { message });
+        },
+      }),
+      trash: (folder) => electronShell.trashItem(folder),
+      log: (message) => {
+        logger.info('pill', { message });
+      },
+    });
     const recordingWindows = createRecordingWindows({
-      hideMain: () => {
-        shell.hide();
+      minimizeMain: () => {
+        shell.beginRecordingMark();
       },
       showControl: () => {
-        controlWindow.show();
+        pill.open();
       },
       closeControl: () => {
-        controlWindow.close();
+        pill.close();
       },
       showMain: () => {
-        shell.show();
+        shell.endRecordingMark();
       },
     });
     recording.on((event) => {
+      pill.onEvent(event);
       recordingWindows.onEvent(event);
     });
     settings = await startIpc({ appOrigin: target.origin, logger, recording });
