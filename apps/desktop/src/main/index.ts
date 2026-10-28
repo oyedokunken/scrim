@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   globalShortcut,
   protocol,
+  screen,
   session,
   shell as electronShell,
 } from 'electron';
@@ -16,6 +17,9 @@ import { hardenSession, hardenWebContents } from './harden';
 import { createAppLogger, startIpc } from './ipc/start';
 import { registerRecording } from './recording';
 import { createPillController } from './recording/pill-controller';
+import { createBubbleController } from './recording/bubble-controller';
+import { createBubbleWindow } from './recording/bubble-window';
+import { PILL_SIZE } from './recording/pill-position';
 import { createPillWindow } from './recording/pill-window';
 import type { SettingsStore } from './settings/settings-store';
 import { APP_SCHEME, resolveRendererTarget } from './renderer-target';
@@ -25,7 +29,7 @@ import { createRecordingWindows } from './shell/recording-windows';
 import { createAreaPicker } from './recording/area-picker';
 import { buildAreaRequest, devicesFromSettings, type AreaApi } from './ipc/area-handlers';
 import { registerGlobalShortcuts } from './shell/global-shortcuts';
-import { createRecordingControl } from './shell/recording-control';
+import { createRecordingControl, isLivePhase } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
 import { createWindowStateTracker } from './shell/window-state-tracker';
 import { createMainWindow, MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MINIMUM } from './windows/main-window';
@@ -175,9 +179,45 @@ if (!app.requestSingleInstanceLock()) {
         shell.endRecordingMark();
       },
     });
+    // The live camera bubble, for a recording that has the camera on. It opens when recording
+    // begins and closes when the recording is no longer live, for any reason.
+    const bubble = createBubbleController({
+      window: createBubbleWindow({
+        appOrigin: target.origin,
+        log: (message) => {
+          logger.info('bubble', { message });
+        },
+      }),
+      devices: () => recording.recordingDevices(),
+      area: () => {
+        const id = recording.recordedArea()?.displayId;
+        const display =
+          screen.getAllDisplays().find((candidate) => String(candidate.id) === id) ??
+          screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+        // Bottom corners stay clear of the recording pill, which sits in the bottom left.
+        return { workArea: display.workArea, bottomInset: PILL_SIZE.height + 12 };
+      },
+      cursor: () => screen.getCursorScreenPoint(),
+      now: () => performance.now(),
+      timers: {
+        setInterval: (callback, ms) => setInterval(callback, ms),
+        clearInterval: (handle) => {
+          clearInterval(handle as ReturnType<typeof setInterval>);
+        },
+      },
+      record: (keyframe) => {
+        recording.recordBubble(keyframe);
+      },
+    });
     recording.on((event) => {
       pill.onEvent(event);
       recordingWindows.onEvent(event);
+      if (event.type === 'state') {
+        if (event.snapshot.phase === 'recording') bubble.start();
+        else if (!isLivePhase(event.snapshot.phase)) bubble.stop();
+      } else if (event.type === 'finished' || event.type === 'error') {
+        bubble.stop();
+      }
     });
     // The main window steps aside while the area is chosen and comes back unless a recording began.
     const picker = createAreaPicker({

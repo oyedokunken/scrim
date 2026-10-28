@@ -41,7 +41,7 @@ const readSessionFile = async (folder: string) =>
 describe('a normal recording', () => {
   it('records, stops and leaves playable files, the mouse log and a clean session', async () => {
     const { h, folder } = await started();
-    expect(folder).toBe(join(h.destination, 'Demo.scrim'));
+    expect(folder).toBe(join(h.projects, 'Demo.scrim'));
     expect(h.service.snapshot().phase).toBe('recording');
 
     h.sendChunk('screen', 100, 7);
@@ -140,7 +140,7 @@ describe('a normal recording', () => {
     h.sendChunk('screen');
     await h.service.stop();
     const again = await h.service.start({ ...h.options, name: 'Demo' });
-    expect(again.ok && again.value.folder).toBe(join(h.destination, 'Demo 2.scrim'));
+    expect(again.ok && again.value.folder).toBe(join(h.projects, 'Demo 2.scrim'));
     await h.service.stop();
   });
 
@@ -939,5 +939,41 @@ describe('the recorded area on a second display', () => {
     expect(source.origin).toEqual({ x: 1280, y: -100 });
     expect(source.crop).toEqual({ x: 1330, y: -75, width: 300, height: 200 });
     expect(source.cropPx).toEqual({ x: 100, y: 50, width: 600, height: 400 });
+  });
+});
+
+describe('where the working folder goes', () => {
+  it('is the projects folder, and the chosen destination gets no folder', async () => {
+    const { h, folder } = await started({}, { destination: 'unused-export-folder' });
+    expect(folder).toBe(join(h.projects, 'Demo.scrim'));
+    expect(folder.startsWith(h.destination)).toBe(false);
+    await h.service.stop();
+  });
+});
+
+describe('camera bubble keyframes', () => {
+  it('writes each position with its media time into the session file', async () => {
+    const { h, folder } = await started({}, { camera: { enabled: true } });
+    expect(h.service.recordingDevices()?.camera.enabled).toBe(true);
+    h.sendChunk('screen', 10);
+    h.service.recordBubble({ corner: 'bl', x: 24, y: 700, size: 180 });
+    h.clock.time += 3000;
+    h.service.recordBubble({ corner: 'tl', x: 24, y: 24, size: 180 });
+    const stopped = await h.service.stop();
+    expect(stopped.ok).toBe(true);
+    const session = await readSessionFile(folder);
+    expect(session.bubble).toHaveLength(2);
+    expect(session.bubble?.[0]).toMatchObject({ corner: 'bl', size: 180 });
+    expect(session.bubble?.[1]).toMatchObject({ corner: 'tl', x: 24, y: 24 });
+    const [first, second] = session.bubble ?? [];
+    expect((second?.t ?? 0) - (first?.t ?? 0)).toBeGreaterThanOrEqual(2900);
+  });
+
+  it('ignores a position when nothing is recording', async () => {
+    const h = await createHarness();
+    harness = h;
+    expect(h.service.recordingDevices()).toBeUndefined();
+    h.service.recordBubble({ corner: 'bl', x: 1, y: 1, size: 180 });
+    expect(h.service.snapshot().phase).toBe('idle');
   });
 });

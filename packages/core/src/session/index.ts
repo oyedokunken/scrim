@@ -16,4 +16,4 @@ export {
   trackEndReasonSchema,
   trackKindSchema,
 } from './schema';
-export type { SessionFile, SessionStyle, SessionTrack, TrackKind } from './schema';
+export type { BubbleKeyframe, SessionFile, SessionStyle, SessionTrack, TrackKind } from './schema';

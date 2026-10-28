@@ -82,6 +82,21 @@ export type SessionStyle = AssignableToRenderStyle<z.infer<typeof styleSchema>>;
  * says what was being recorded, how much reached the disk and that the recording never closed
  * cleanly. `cleanClose` is true only when every track is complete and the input log is saved.
  */
+/**
+ * Where the camera bubble sat while recording, so export draws it exactly there. One entry per
+ * change of position, in order of media time (milliseconds of recorded time, pauses left out).
+ * `x` and `y` are the top left of the round picture on the desktop, in device independent
+ * pixels, and `size` is its diameter in the same unit.
+ */
+const bubbleKeyframeSchema = z.strictObject({
+  t: nonNegative,
+  corner: z.enum(['tl', 'tr', 'bl', 'br']),
+  x: z.number(),
+  y: z.number(),
+  size: z.number().positive(),
+});
+export type BubbleKeyframe = z.infer<typeof bubbleKeyframeSchema>;
+
 export const sessionFileSchema = z.strictObject({
   version: z.literal(1),
   id: z.uuid(),
@@ -141,6 +156,8 @@ export const sessionFileSchema = z.strictObject({
   warnings: z.array(z.string()),
   /** The look picked before recording. Absent for sessions made without a choice. */
   style: styleSchema.optional(),
+  /** The camera bubble's positions over time. Absent when the camera was off. */
+  bubble: z.array(bubbleKeyframeSchema).max(5000).optional(),
   heartbeatAt: z.iso.datetime(),
   /** The main clock at the last heartbeat, in milliseconds, so recovery knows how far it got. */
   heartbeatElapsedMs: nonNegative,

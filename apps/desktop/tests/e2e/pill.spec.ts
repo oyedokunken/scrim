@@ -172,15 +172,15 @@ async function waitForPhase(main: Page, expected: string): Promise<void> {
   throw new Error(`The recorder never reached "${expected}", last saw "${seen}".\n${recent()}`);
 }
 
-async function startRecording(main: Page): Promise<void> {
-  const result = await main.evaluate(async () => {
+async function startRecording(main: Page, camera = false): Promise<void> {
+  const result = await main.evaluate(async (cameraOn) => {
     const bridge = (window as unknown as { scrim: Bridge }).scrim;
     return await bridge.invoke('recording:start', {
       source: { kind: 'display' },
-      camera: { enabled: false },
+      camera: { enabled: cameraOn },
       mic: { enabled: false },
     });
-  });
+  }, camera);
   expect((result as { ok: boolean }).ok, JSON.stringify(result)).toBe(true);
   await waitForPhase(main, 'recording');
 }
@@ -341,3 +341,76 @@ async function findPill(browser: Browser): Promise<Page> {
   pageErrors.push(`pill bridge is ${bridge}`);
   return page;
 }
+
+test('the camera bubble opens with the camera on, stays out of the video and writes keyframes', async () => {
+  test.setTimeout(120_000);
+  const running = await launch();
+  try {
+    await startRecording(running.main, true);
+    const bubble = await findPage(running.browser, (url) => url.includes('bubble.html'), 20_000);
+    // Whatever the camera shows, paint the round picture and the dot in a colour no desktop has,
+    // so a frame that contains them is easy to tell.
+    await bubble.evaluate(() => {
+      document.querySelector('video')?.setAttribute('hidden', '');
+      const picture = document.getElementById('bubble');
+      if (picture) picture.style.background = 'rgb(255, 0, 255)';
+      const dot = document.getElementById('dot');
+      if (dot) dot.style.background = 'rgb(255, 0, 255)';
+    });
+    const scale = await running.main.evaluate(() => window.devicePixelRatio);
+    await sleep(3500);
+    const pill = await findPill(running.browser);
+    await tolerateClose(() => pill.locator('#stop').click());
+    await waitForPhase(running.main, 'stopped');
+    await expect.poll(() => bubble.isClosed(), { timeout: 15_000 }).toBe(true);
+
+    const folder = join(running.folder, sessionFolders(running.folder)[0] ?? '');
+    const session = JSON.parse(readFileSync(join(folder, 'session.json'), 'utf8')) as {
+      source: { origin: { x: number; y: number } };
+      bubble?: { t: number; corner: string; x: number; y: number; size: number }[];
+    };
+    expect(session.bubble?.length ?? 0).toBeGreaterThanOrEqual(1);
+    const first = session.bubble?.[0];
+    expect(first?.corner).toBe('bl');
+    expect(first?.size).toBe(180);
+    expect(first?.t ?? -1).toBeGreaterThanOrEqual(0);
+
+    const video = readdirSync(folder).find((name) => /^screen.(mp4|webm|mkv)$/.test(name));
+    expect(video).toBeDefined();
+    const left = Math.round(((first?.x ?? 0) - session.source.origin.x) * scale);
+    const top = Math.round(((first?.y ?? 0) - session.source.origin.y) * scale);
+    const side = Math.round(180 * scale);
+    const frame = spawnSync(
+      ffmpeg,
+      [
+        '-v',
+        'error',
+        '-ss',
+        '2',
+        '-i',
+        join(folder, video ?? ''),
+        '-frames:v',
+        '1',
+        '-vf',
+        `crop=${String(side)}:${String(side)}:${String(left)}:${String(top)}`,
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-',
+      ],
+      { maxBuffer: 64 * 1024 * 1024 },
+    );
+    expect(frame.status, String(frame.stderr)).toBe(0);
+    let magenta = 0;
+    const pixels = frame.stdout;
+    for (let i = 0; i < pixels.length; i += 3) {
+      if ((pixels[i] ?? 0) > 230 && (pixels[i + 1] ?? 255) < 40 && (pixels[i + 2] ?? 0) > 230)
+        magenta += 1;
+    }
+    expect(magenta, 'bubble coloured pixels where the bubble sat').toBeLessThan(5);
+  } finally {
+    running.child.kill();
+    killHard(running.child);
+  }
+});
