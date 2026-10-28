@@ -6,7 +6,7 @@ import {
   editedPath,
   type ImageDeps,
 } from '../../src/main/ipc/image-handlers';
-import { contract } from '../../src/shared/ipc-contract';
+import { contract, events } from '../../src/shared/ipc-contract';
 
 const FOLDER = process.platform === 'win32' ? 'C:\\Pictures\\Scrim' : '/pictures/Scrim';
 const inFolder = (name: string) => join(FOLDER, name);
@@ -170,5 +170,14 @@ describe('the image contract', () => {
   it('never lets the page choose where an edit goes', () => {
     const keys = Object.keys(contract['image:save-edited'].input.shape);
     expect(keys.sort()).toEqual(['copy', 'dataUrl', 'sourcePath']);
+  });
+});
+
+describe('the screenshot taken event', () => {
+  it('carries the path and size, and nothing else', () => {
+    const shot = { path: 'a.png', width: 10, height: 10 };
+    expect(events['screenshot:taken'].safeParse(shot).success).toBe(true);
+    expect(events['screenshot:taken'].safeParse({ ...shot, extra: 1 }).success).toBe(false);
+    expect(events['screenshot:taken'].safeParse({ ...shot, width: 0 }).success).toBe(false);
   });
 });

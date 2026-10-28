@@ -4,6 +4,7 @@ import {
   sanitizeName,
   toMediaTime,
   SESSION_FILES,
+  type BubbleKeyframe,
   type Pause,
   type RecorderEvent as PhaseEvent,
   type RecorderPhase,
@@ -107,6 +108,9 @@ interface Active {
 
 const HEARTBEAT_MS = 1000;
 
+/** Matches the session file's own limit. */
+const BUBBLE_KEYFRAME_LIMIT = 5000;
+
 /**
  * How long after `start()` a video recorder's first frame is stamped, in milliseconds, used only
  * when the frame's own capture time cannot be read. Measured with the on screen marker over six
@@ -172,6 +176,10 @@ export class RecordingService {
   private readonly listeners = new Set<(event: RecordingEvent) => void>();
   private phase: RecorderPhase = 'idle';
   private active: Active | undefined;
+  private devices: Pick<RecordingOptions, 'camera' | 'mic'> = {
+    camera: { enabled: false },
+    mic: { enabled: false },
+  };
 
   constructor(deps: ServiceDeps) {
     this.deps = deps;
@@ -204,6 +212,24 @@ export class RecordingService {
             },
           }),
     };
+  }
+
+  /** The camera and microphone this recording was asked for, or nothing when not recording. */
+  recordingDevices(): Pick<RecordingOptions, 'camera' | 'mic'> | undefined {
+    return this.active === undefined ? undefined : this.devices;
+  }
+
+  /**
+   * Notes where the camera bubble is now, stamped with the media time, so export can draw it where
+   * it was. The session file is rewritten at once, so a crash keeps the positions up to then.
+   */
+  recordBubble(position: Omit<BubbleKeyframe, 't'>): void {
+    const active = this.active;
+    if (active === undefined) return;
+    const list = active.session.bubble ?? [];
+    if (list.length >= BUBBLE_KEYFRAME_LIMIT) return;
+    active.session.bubble = [...list, { ...position, t: this.elapsed(active) }];
+    void this.persist(active).catch(() => undefined);
   }
 
   snapshot(): RecordingSnapshot {
@@ -258,6 +284,7 @@ export class RecordingService {
         resolved.value,
         options.style,
       );
+      this.devices = { camera: options.camera, mic: options.mic };
       await writeSession(deps.fs, active.folder, active.session);
       await ensureEditList(deps.fs, active.folder);
       await deps.index.add(active.folder);

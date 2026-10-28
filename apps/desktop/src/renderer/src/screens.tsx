@@ -14,6 +14,7 @@ import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
 import { VIEW_LABELS, type ViewId } from './shell/views';
+import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
 import { Camera } from 'lucide-react';
 import { Button } from '../ui';
@@ -22,6 +23,7 @@ import {
   useDevices,
   useRecordingOutcome,
   useRecordingSnapshot,
+  useScreenshotTaken,
   useSettings,
   type UserError,
 } from './hooks';
@@ -92,6 +94,7 @@ export function MainScreen() {
   const [shotError, setShotError] = useState<UserError | null>(null);
   const [shot, setShot] = useState<ShotInfo | null>(null);
   const [entered, setEntered] = useState(false);
+  const [checking, setChecking] = useState(false);
 
   const start = useCallback(async (chosen: Settings) => {
     setStarting(true);
@@ -115,6 +118,12 @@ export function MainScreen() {
       setStarting(false);
     }
   }, []);
+
+  // A capture from the shortcut opens the result too, whichever view was showing.
+  useScreenshotTaken(({ path, width, height }) => {
+    setShot({ path, width, height });
+    setView('screenshot');
+  });
 
   const shoot = useCallback(async () => {
     setShooting(true);
@@ -149,6 +158,17 @@ export function MainScreen() {
     );
   }
 
+  if (checking && !entered) {
+    return (
+      <PermissionCheck
+        onDone={() => {
+          update({ firstRunDone: true });
+          setEntered(true);
+        }}
+      />
+    );
+  }
+
   if (!entered && (settings.showWelcome || !settings.firstRunDone)) {
     return (
       <Welcome
@@ -158,8 +178,8 @@ export function MainScreen() {
           void window.scrim.invoke('shell:open-external', { url });
         }}
         onContinue={() => {
-          if (!settings.firstRunDone) update({ firstRunDone: true });
-          setEntered(true);
+          if (settings.firstRunDone) setEntered(true);
+          else setChecking(true);
         }}
       />
     );

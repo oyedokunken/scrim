@@ -37,5 +37,6 @@ export const EVENT_CHANNELS = [
   'recording:warning',
   'recording:error',
   'recording:finished',
+  'screenshot:taken',
 ] as const;
 export type EventChannel = (typeof EVENT_CHANNELS)[number];

@@ -76,6 +76,14 @@ export const events = {
   'recording:warning': warningSchema,
   'recording:error': recordingErrorSchema,
   'recording:finished': finishedSchema,
+  /** After every capture, whether it came from the button or the shortcut. */
+  'screenshot:taken': z
+    .object({
+      path: pathSchema,
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+    })
+    .strict(),
 } as const satisfies Record<EventChannel, z.ZodType>;
 
 export type InputOf<C extends Channel> = z.input<(typeof contract)[C]['input']>;

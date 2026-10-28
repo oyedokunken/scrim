@@ -181,3 +181,20 @@ export function useAppVersion(): string | null {
 }
 
 export type { DeviceOption };
+
+export type ScreenshotTaken = EventPayload<'screenshot:taken'>;
+
+/** Calls back after every capture, including one made with the shortcut while another app has focus. */
+export function useScreenshotTaken(onTaken: (shot: ScreenshotTaken) => void): void {
+  const latest = useRef(onTaken);
+  useEffect(() => {
+    latest.current = onTaken;
+  });
+  useEffect(
+    () =>
+      window.scrim.on('screenshot:taken', (shot) => {
+        latest.current(shot);
+      }),
+    [],
+  );
+}
