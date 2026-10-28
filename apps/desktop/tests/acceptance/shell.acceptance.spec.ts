@@ -119,7 +119,7 @@ test.describe('acceptance: shell', () => {
     };
 
     await checkHover('.welcome-button', 'welcome button');
-    await checkHover('.welcome-credit a', 'credit link');
+    await checkHover('.built-by-handle', 'credit handle');
 
     await enterApp(page);
     const rail = page.getByRole('navigation', { name: 'Sections' }).getByRole('button');
