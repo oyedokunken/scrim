@@ -1,5 +1,6 @@
 import { CircleHelp } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Tooltip } from '../../ui';
 import { BrandMark } from '../brand-mark';
 
 export interface HeaderProps {
@@ -27,15 +28,16 @@ export function Header({ recordingName, center, primary, onHelp }: HeaderProps) 
       <div className="app-header-center">{center}</div>
       <div className="app-header-right">
         {primary}
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Keyboard shortcuts"
-          title="Keyboard shortcuts"
-          onClick={onHelp}
-        >
-          <CircleHelp size={20} strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        <Tooltip label="Keyboard shortcuts">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Keyboard shortcuts"
+            onClick={onHelp}
+          >
+            <CircleHelp size={20} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </Tooltip>
       </div>
     </header>
   );

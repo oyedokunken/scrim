@@ -229,7 +229,10 @@ describe('the Record panel', () => {
     renderToStaticMarkup(
       <RecordPanel
         settings={{ ...DEFAULT_SETTINGS, ...overrides }}
-        cameras={[{ deviceId: 'c1', label: 'Front camera' }]}
+        cameras={[
+          { deviceId: 'c1', label: 'Front camera', isDefault: true },
+          { deviceId: 'c2', label: 'Desk camera', isDefault: false },
+        ]}
         mics={[]}
         onChange={noop}
         onChooseFolder={noop}
@@ -251,6 +254,14 @@ describe('the Record panel', () => {
     expect(html).toContain('Front camera');
     expect(html).toMatch(/id="camera-device"[^>]*disabled=""/);
     expect(panel({ cameraOn: true })).not.toMatch(/id="camera-device"[^>]*disabled=""/);
+  });
+
+  it('uses the custom select, never a native one, and tags the system default', () => {
+    const html = panel();
+    expect(html).not.toContain('<select');
+    expect(html).toContain('role="combobox"');
+    expect(html).toContain('role="listbox"');
+    expect(html).toContain('ui-select-tag">Default<');
   });
 
   it('says so when there is no microphone', () => {

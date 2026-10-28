@@ -1,5 +1,5 @@
 import type { Settings, SettingsPatch } from '../../../shared/settings';
-import { Button, PanelSection, Switch } from '../../ui';
+import { Button, PanelSection, Select, Switch } from '../../ui';
 import type { DeviceOption } from '../hooks';
 
 export interface RecordPanelProps {
@@ -24,26 +24,27 @@ function DevicePicker({ id, label, devices, value, enabled, noneText, onPick }: 
   if (devices.length === 0) {
     return <p className="ui-help">{noneText}</p>;
   }
+  // A saved id that is gone, or none yet, shows the system default, else the first device.
+  const chosen = devices.some((device) => device.deviceId === value)
+    ? (value ?? '')
+    : ((devices.find((device) => device.isDefault) ?? devices[0])?.deviceId ?? '');
   return (
     <div className="field">
       <label htmlFor={id} className="ui-help">
         {label}
       </label>
-      <select
+      <Select
         id={id}
-        className="ui-select"
-        value={value ?? devices[0]?.deviceId ?? ''}
+        label={label}
+        value={chosen}
         disabled={!enabled}
-        onChange={(event) => {
-          onPick(event.target.value);
-        }}
-      >
-        {devices.map((device) => (
-          <option key={device.deviceId} value={device.deviceId}>
-            {device.label}
-          </option>
-        ))}
-      </select>
+        options={devices.map((device) => ({
+          value: device.deviceId,
+          label: device.label,
+          ...(device.isDefault ? { tag: 'Default' } : {}),
+        }))}
+        onChange={onPick}
+      />
     </div>
   );
 }

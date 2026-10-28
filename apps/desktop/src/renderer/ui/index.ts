@@ -1,8 +1,13 @@
 export { Button, type ButtonProps, type ButtonVariant } from './button';
 export { Card, type CardProps } from './card';
+export { ConfirmDialog, type ConfirmDialogProps } from './confirm-dialog';
+export { Dialog, type DialogProps } from './dialog';
 export { Keycaps, type KeycapsProps } from './keycap';
 export { PanelSection, type PanelSectionProps } from './panel-section';
 export { Segmented, type SegmentedProps, type SegmentOption } from './segmented';
+export { Select, type SelectOption, type SelectProps } from './select';
 export { Sheet, type SheetProps } from './sheet';
 export { Switch, type SwitchProps } from './switch';
 export { Tile, type TileProps } from './tile';
+export { ToastProvider, useToast } from './toast';
+export { Tooltip, type TooltipProps } from './tooltip';

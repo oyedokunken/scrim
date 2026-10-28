@@ -18,3 +18,29 @@ export function arrowDirection(key: string): 1 | -1 | null {
   if (key === 'ArrowLeft' || key === 'ArrowUp') return -1;
   return null;
 }
+
+/**
+ * Where typing a letter jumps to in a list. A buffer of several letters narrows the match on the
+ * first one (`s`, `st`), and one letter pressed again cycles through the entries that start with it.
+ * Returns null when nothing matches.
+ */
+export function typeaheadIndex(
+  labels: readonly string[],
+  disabled: readonly boolean[],
+  current: number,
+  buffer: string,
+): number | null {
+  const needle = buffer.toLowerCase();
+  if (needle === '') return null;
+  const cycling = Array.from(needle).every((char) => char === needle.charAt(0));
+  const prefix = cycling ? needle[0] : needle;
+  if (prefix === undefined) return null;
+  const count = labels.length;
+  // One repeated letter moves on from the current entry. Longer text may keep the current one.
+  const first = cycling ? 1 : 0;
+  for (let step = first; step < count + first; step += 1) {
+    const index = (((current + step) % count) + count) % count;
+    if (!disabled[index] && (labels[index] ?? '').toLowerCase().startsWith(prefix)) return index;
+  }
+  return null;
+}

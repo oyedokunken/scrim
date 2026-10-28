@@ -30,7 +30,8 @@ test.describe('the shortcuts sheet', () => {
     // A second click on the help button, which sits over the backdrop
     await help.click();
     await expect(sheet).toBeVisible();
-    await help.click();
+    // The modal covers the button, so this click lands on the backdrop, which closes the sheet.
+    await help.click({ force: true });
     await expect(sheet).toBeHidden();
 
     // The app still works.

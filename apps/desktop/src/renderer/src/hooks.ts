@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { listDevices, type DeviceOption } from './devices';
 import type { Settings, SettingsPatch } from '../../shared/settings';
 import type { EventPayload, OutputOf } from '../../shared/ipc-contract';
 
@@ -119,11 +120,6 @@ export function useRecordingOutcome(): {
   return { finished, failure, dismiss };
 }
 
-export interface DeviceOption {
-  deviceId: string;
-  label: string;
-}
-
 /** The cameras and microphones on this computer. Names appear once the person has allowed access. */
 export function useDevices(): { cameras: DeviceOption[]; mics: DeviceOption[] } {
   const [devices, setDevices] = useState<{ cameras: DeviceOption[]; mics: DeviceOption[] }>({
@@ -138,12 +134,10 @@ export function useDevices(): { cameras: DeviceOption[]; mics: DeviceOption[] } 
         const all = await navigator.mediaDevices.enumerateDevices();
         if (!alive) return;
         const named = (kind: MediaDeviceKind, fallback: string): DeviceOption[] =>
-          all
-            .filter((device) => device.kind === kind && device.deviceId !== '')
-            .map((device, index) => ({
-              deviceId: device.deviceId,
-              label: device.label === '' ? `${fallback} ${String(index + 1)}` : device.label,
-            }));
+          listDevices(
+            all.filter((device) => device.kind === kind),
+            fallback,
+          );
         setDevices({
           cameras: named('videoinput', 'Camera'),
           mics: named('audioinput', 'Microphone'),
@@ -185,3 +179,5 @@ export function useAppVersion(): string | null {
   }, []);
   return version;
 }
+
+export type { DeviceOption };

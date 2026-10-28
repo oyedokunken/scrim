@@ -1,7 +1,14 @@
+import { ToastProvider } from '../ui';
 import { routeFromHash } from './routes';
 import { ControlScreen, MainScreen } from './screens';
 
 /** One page, two windows: the recording control at `#/control`, the app everywhere else. */
 export function App() {
-  return routeFromHash(window.location.hash) === 'control' ? <ControlScreen /> : <MainScreen />;
+  return routeFromHash(window.location.hash) === 'control' ? (
+    <ControlScreen />
+  ) : (
+    <ToastProvider>
+      <MainScreen />
+    </ToastProvider>
+  );
 }
