@@ -1,13 +1,7 @@
-import { BrandMark } from './brand-mark';
+import { routeFromHash } from './routes';
+import { ControlScreen, MainScreen } from './screens';
 
+/** One page, two windows: the recording control at `#/control`, the app everywhere else. */
 export function App() {
-  return (
-    <main>
-      <h1>
-        <BrandMark />
-        Scrim
-      </h1>
-      <p>Record anything on your screen effortlessly</p>
-    </main>
-  );
+  return routeFromHash(window.location.hash) === 'control' ? <ControlScreen /> : <MainScreen />;
 }

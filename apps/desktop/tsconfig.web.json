@@ -11,9 +11,15 @@
     "src/shared/**/*",
     "src/recorder/page/**/*",
     "src/recorder/protocol.ts",
+    "src/recorder/region/geometry.ts",
+    "src/recorder/region/picker.ts",
+    "src/recorder/region/protocol.ts",
+    "src/recorder/region/page/**/*",
     "tests/unit/track-recorder.test.ts",
     "tests/unit/recorder-controller.test.ts",
     "tests/unit/support/recorder-fakes.ts",
-    "tests/unit/home-screen.test.tsx"
+    "tests/unit/home-screen.test.tsx",
+    "tests/unit/renderer-*.test.ts",
+    "tests/unit/renderer-*.test.tsx"
   ]
 }

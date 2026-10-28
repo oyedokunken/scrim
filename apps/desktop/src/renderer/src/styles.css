@@ -1,21 +1,43 @@
 @import '@scrim/tokens/tokens.css';
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background: var(--scrim-butter);
   color: var(--scrim-black);
-  font-family: system-ui, sans-serif;
+  font-family: var(--scrim-font, system-ui, sans-serif);
+  font-size: var(--scrim-text-body, 1rem);
+  line-height: var(--scrim-leading-body, 1.5);
 }
 
-main {
-  padding: 2rem;
+/* The recording control is a transparent window, so only its own bar is painted. */
+:root[data-route='control'],
+:root[data-route='control'] body {
+  background: transparent;
+  overflow: hidden;
 }
 
-h1 {
+.screen {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--scrim-space-5) var(--scrim-space-5) var(--scrim-space-6);
+  display: grid;
+  gap: var(--scrim-space-4);
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.brand {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 0 0 0.5rem;
   font-size: 2rem;
   line-height: 1;
 }
@@ -27,7 +49,261 @@ h1 {
   height: 1em;
 }
 
-p {
-  margin: 0;
+.tagline,
+.hint {
   color: var(--scrim-text-secondary);
+}
+
+.hint {
+  font-size: var(--scrim-text-small, 0.875rem);
+}
+
+.home-header {
+  display: grid;
+  gap: var(--scrim-space-2);
+}
+
+.panel {
+  display: grid;
+  gap: var(--scrim-space-3);
+  padding: var(--scrim-space-4) var(--scrim-space-5);
+  background: var(--scrim-white);
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: var(--scrim-radius-md);
+}
+
+.panel h2 {
+  font-size: 1.125rem;
+}
+
+.field {
+  display: grid;
+  gap: var(--scrim-space-1);
+}
+
+.field-check {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--scrim-space-2);
+}
+
+label {
+  font-weight: 600;
+}
+
+output {
+  font-weight: 400;
+  color: var(--scrim-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+select,
+input[type='range'] {
+  width: 100%;
+  font: inherit;
+}
+
+select {
+  min-height: 2.5rem;
+  padding: 0 var(--scrim-space-2);
+  background: var(--scrim-white);
+  color: var(--scrim-black);
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: var(--scrim-radius-sm);
+}
+
+input[type='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--scrim-green);
+}
+
+input[type='range'] {
+  accent-color: var(--scrim-green);
+}
+
+select:disabled,
+input:disabled {
+  opacity: 0.5;
+}
+
+:focus-visible {
+  outline: 3px solid var(--scrim-green);
+  outline-offset: 2px;
+}
+
+.folder-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--scrim-space-3);
+}
+
+.folder {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.button {
+  min-height: 2.75rem;
+  padding: 0 var(--scrim-space-5);
+  font: inherit;
+  font-weight: 700;
+  border: 1px solid var(--scrim-green);
+  border-radius: var(--scrim-radius-pill);
+  cursor: pointer;
+}
+
+.button.primary {
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+}
+
+.button.primary:hover:not(:disabled) {
+  background: var(--scrim-green-hover);
+}
+
+.button.secondary {
+  background: var(--scrim-white);
+  color: var(--scrim-green);
+}
+
+.button.secondary:hover:not(:disabled) {
+  background: var(--scrim-green-tint);
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.actions {
+  display: grid;
+  gap: var(--scrim-space-2);
+  justify-items: start;
+}
+
+.actions.row {
+  grid-auto-flow: column;
+  justify-content: start;
+  gap: var(--scrim-space-3);
+}
+
+.start {
+  min-width: 14rem;
+}
+
+.notice {
+  padding: var(--scrim-space-3) var(--scrim-space-4);
+  background: var(--scrim-white);
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: var(--scrim-radius-md);
+}
+
+/* A failure is dark red, mixed from the record red and black, which keeps its text readable. */
+.notice.error {
+  color: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
+  border-color: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
+}
+
+.notice-title {
+  font-weight: 700;
+}
+
+.rec-dot {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: var(--scrim-record);
+}
+
+.rec-dot.paused {
+  background: transparent;
+  border: 2px solid var(--scrim-record);
+}
+
+.recording-phase {
+  display: flex;
+  align-items: center;
+  gap: var(--scrim-space-2);
+  font-weight: 700;
+}
+
+.recording-time {
+  font-size: 3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.saved-name {
+  font-weight: 700;
+}
+
+.summary {
+  display: grid;
+  grid-auto-flow: column;
+  justify-content: start;
+  gap: var(--scrim-space-6);
+  margin: 0;
+}
+
+.summary dt {
+  color: var(--scrim-text-secondary);
+  font-size: var(--scrim-text-small, 0.875rem);
+}
+
+.summary dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+/* The control bar. Dragging it moves the window, and its buttons stay clickable. */
+.control {
+  display: flex;
+  align-items: center;
+  gap: var(--scrim-space-3);
+  height: 100vh;
+  padding: 0 var(--scrim-space-3) 0 var(--scrim-space-4);
+  background: var(--scrim-white);
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: var(--scrim-radius-pill);
+  box-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--scrim-black) 25%, transparent);
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.control-state {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.control-time {
+  min-width: 3.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.control-button {
+  min-height: 2.25rem;
+  padding: 0 var(--scrim-space-4);
+  background: var(--scrim-white);
+  color: var(--scrim-green);
+  -webkit-app-region: no-drag;
+}
+
+.control-button.stop {
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+}
+
+.control-button:hover:not(:disabled) {
+  background: var(--scrim-green-tint);
+}
+
+.control-button.stop:hover:not(:disabled) {
+  background: var(--scrim-green-hover);
 }
