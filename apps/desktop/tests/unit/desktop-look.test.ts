@@ -78,3 +78,39 @@ describe('the shared primitives stylesheet', () => {
     }
   });
 });
+
+describe('hover and focus', () => {
+  const ui = readFileSync(join(__dirname, '../../src/renderer/ui/ui.css'), 'utf8');
+  const welcome = readFileSync(join(__dirname, '../../src/renderer/src/shell/welcome.tsx'), 'utf8');
+
+  it('tints rail items, greys secondary buttons and lifts primary buttons on hover', () => {
+    expect(css).toMatch(/\.rail-item:hover[^{]*\{[^}]*green-tint/s);
+    expect(ui).toMatch(/\.ui-button-secondary:hover[^{]*\{[^}]*--ui-track/s);
+    expect(ui).toMatch(/\.ui-button-primary:hover[^{]*\{[^}]*translateY\(-1px\)/s);
+    expect(ui).toMatch(/:where\(a\):hover\s*\{[^}]*underline/s);
+  });
+
+  it('keeps keycaps static and shows not-allowed on every disabled control', () => {
+    const keycap = ui.slice(
+      ui.indexOf('.ui-keycap {'),
+      ui.indexOf('}', ui.indexOf('.ui-keycap {')),
+    );
+    expect(keycap).not.toContain('cursor');
+    expect(ui).not.toContain('.ui-keycap:hover');
+    expect(css).toMatch(/\.button:disabled\s*\{[^}]*not-allowed/s);
+  });
+
+  it('shows a focus ring for the keyboard only, never after a click', () => {
+    expect(css).toContain(':focus-visible');
+    expect(ui).toMatch(/:focus:not\(:focus-visible\)\s*\{\s*outline: none/);
+  });
+
+  it('does not move focus to the welcome button on load', () => {
+    expect(welcome).not.toContain('.focus()');
+    expect(welcome).toContain("event.key !== 'Enter'");
+  });
+
+  it('keeps transitions between 120 and 160 ms', () => {
+    expect(ui).toContain('--ui-ease: 160ms');
+  });
+});

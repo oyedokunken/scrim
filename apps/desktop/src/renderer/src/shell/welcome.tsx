@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MouseEvent } from 'react';
+import { useEffect, type MouseEvent } from 'react';
 import { Button } from '../../ui';
 import { BrandMark } from '../brand-mark';
 
@@ -13,13 +13,23 @@ export interface WelcomeProps {
   onOpenLink: (url: string) => void;
 }
 
-/** Brand and line at the top left, the button at the bottom right. Enter works at once. */
+/**
+ * Brand and line at the top left, the credit at the bottom left, the button at the bottom right. Enter
+ * works at once through a key listener, so the button never takes focus on load and shows no ring.
+ */
 export function Welcome({ firstRun, version, onContinue, onOpenLink }: WelcomeProps) {
-  const button = useRef<HTMLButtonElement>(null);
-
   useEffect(() => {
-    button.current?.focus();
-  }, []);
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== 'Enter' || event.defaultPrevented) return;
+      // A focused link or button handles its own Enter.
+      if (event.target instanceof HTMLElement && event.target !== document.body) return;
+      onContinue();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onContinue]);
 
   const open = (event: MouseEvent): void => {
     event.preventDefault();
@@ -44,7 +54,7 @@ export function Welcome({ firstRun, version, onContinue, onOpenLink }: WelcomePr
           @oyedokunken
         </a>
       </p>
-      <Button ref={button} variant="primary" className="welcome-button" onClick={onContinue}>
+      <Button variant="primary" className="welcome-button" onClick={onContinue}>
         {firstRun ? 'Get started' : 'Continue'}
       </Button>
     </main>

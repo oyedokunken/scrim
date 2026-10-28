@@ -196,7 +196,7 @@ input:disabled {
 }
 
 .button:disabled {
-  cursor: pointer;
+  cursor: not-allowed;
   opacity: 0.55;
 }
 
@@ -321,6 +321,10 @@ input:disabled {
   color: var(--scrim-white);
 }
 
+.control-button {
+  cursor: pointer;
+}
+
 .control-button:hover:not(:disabled) {
   background: var(--scrim-green-tint);
 }
@@ -422,7 +426,11 @@ svg {
   cursor: pointer;
 }
 
-.icon-button:hover {
+.icon-button {
+  transition: background var(--ui-ease);
+}
+
+.icon-button:hover:not(:disabled) {
   background: var(--ui-track);
 }
 
@@ -458,8 +466,9 @@ svg {
   transition: background var(--ui-ease);
 }
 
-.rail-item:hover {
-  background: var(--ui-track);
+.rail-item:hover:not(:disabled, .selected) {
+  color: var(--scrim-green);
+  background: var(--scrim-green-tint);
 }
 
 .rail-item.selected {
@@ -654,10 +663,6 @@ svg {
 .welcome-credit a {
   color: var(--scrim-green);
   font-weight: 600;
-}
-
-.welcome-button:hover:not(:disabled) {
-  transform: translateY(-2px);
 }
 
 .welcome-button {

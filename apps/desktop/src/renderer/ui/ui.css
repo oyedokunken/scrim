@@ -30,7 +30,9 @@
   border: 1px solid transparent;
   border-radius: var(--ui-radius-sm);
   cursor: pointer;
-  transition: background var(--ui-ease);
+  transition:
+    background var(--ui-ease),
+    transform var(--ui-ease);
 }
 
 .ui-button-icon {
@@ -53,7 +55,7 @@
 }
 
 .ui-button-secondary:hover:not(:disabled) {
-  background: var(--scrim-green-tint);
+  background: var(--ui-track);
 }
 
 .ui-button-ghost {
@@ -186,6 +188,7 @@
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
   cursor: pointer;
+  transition: border-color var(--ui-ease);
 }
 
 .ui-tile.selected {
@@ -220,7 +223,9 @@
 
 .ui-card-button {
   cursor: pointer;
-  transition: border-color var(--ui-ease);
+  transition:
+    border-color var(--ui-ease),
+    transform var(--ui-ease);
 }
 
 .ui-card-button:hover {
@@ -316,4 +321,26 @@
   .ui-button-primary:hover:not(:disabled) {
     transform: none;
   }
+}
+
+/* One rule for every control: links underline, switches and tiles respond, keycaps stay static. */
+:where(a):hover {
+  text-decoration: underline;
+}
+
+:where(
+  .ui-button,
+  .ui-segment,
+  .ui-switch,
+  .ui-tile,
+  .ui-card-button,
+  .icon-button,
+  .rail-item
+)[disabled] {
+  cursor: not-allowed;
+}
+
+/* A mouse click never leaves a ring behind. Only keyboard focus does. */
+:where(button, a, select, input, [tabindex]):focus:not(:focus-visible) {
+  outline: none;
 }
