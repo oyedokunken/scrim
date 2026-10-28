@@ -1,4 +1,4 @@
-import { VIEW_LABELS, type ViewId } from './views';
+import type { ViewId } from './views';
 
 const TEXT: Partial<Record<ViewId, string>> = {
   screenshot: 'Screenshots you take will show up here.',
@@ -18,14 +18,12 @@ export function Placeholder({ view, inPanel = false }: PlaceholderProps) {
   if (inPanel) {
     return (
       <div className="panel-body">
-        <h2 className="ui-section-title">{VIEW_LABELS[view]}</h2>
         <p className="ui-help">{text}</p>
       </div>
     );
   }
   return (
     <div className="placeholder">
-      <h2 className="ui-section-title">{VIEW_LABELS[view]}</h2>
       <p className="ui-help">{text}</p>
     </div>
   );

@@ -8,8 +8,10 @@ import { AppShell } from './shell/app-shell';
 import { Placeholder } from './shell/placeholder';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
+import { ScreenshotView } from './shell/screenshot-view';
 import { VIEW_LABELS, type ViewId } from './shell/views';
 import { Welcome } from './shell/welcome';
+import { Camera } from 'lucide-react';
 import { Button } from '../ui';
 import {
   useAppVersion,
@@ -82,6 +84,8 @@ export function MainScreen() {
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<UserError | null>(null);
   const [view, setView] = useState<ViewId>('record');
+  const [shooting, setShooting] = useState(false);
+  const [shotError, setShotError] = useState<UserError | null>(null);
   const [entered, setEntered] = useState(false);
 
   const start = useCallback(async (chosen: Settings) => {
@@ -104,6 +108,28 @@ export function MainScreen() {
       }
     } finally {
       setStarting(false);
+    }
+  }, []);
+
+  const shoot = useCallback(async () => {
+    setShooting(true);
+    setShotError(null);
+    try {
+      const result = await window.scrim.invoke('area:run', {
+        mode: 'screenshot',
+        camera: deviceChoice(false, null),
+        mic: deviceChoice(false, null),
+      });
+      if (!result.ok && result.reason === 'rejected') {
+        setShotError({ message: result.error.message, nextStep: result.error.nextStep });
+      } else if (!result.ok && result.reason === 'failed') {
+        setShotError({
+          message: 'Scrim could not open the area chooser.',
+          nextStep: 'Try again. If it keeps happening, restart Scrim.',
+        });
+      }
+    } finally {
+      setShooting(false);
     }
   }, []);
 
@@ -151,6 +177,19 @@ export function MainScreen() {
     </Button>
   );
 
+  const shotButton = (
+    <Button
+      variant="primary"
+      icon={<Camera size={16} strokeWidth={2} />}
+      disabled={shooting || live}
+      onClick={() => {
+        void shoot();
+      }}
+    >
+      Take screenshot
+    </Button>
+  );
+
   let main;
   if (live) {
     main = (
@@ -181,6 +220,8 @@ export function MainScreen() {
         onStart={() => void start(settings)}
       />
     );
+  } else if (view === 'screenshot') {
+    main = <ScreenshotView busy={shooting} error={shotError} onTake={() => void shoot()} />;
   } else {
     main = <Placeholder view={view} />;
   }
@@ -203,7 +244,7 @@ export function MainScreen() {
       view={view}
       onView={setView}
       title={VIEW_LABELS[view]}
-      primary={view === 'record' ? startButton : undefined}
+      primary={view === 'record' ? startButton : view === 'screenshot' ? shotButton : undefined}
       status={{ state, folder }}
       panel={panel}
     >

@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { AppShell } from '../../src/renderer/src/shell/app-shell';
 import { Header } from '../../src/renderer/src/shell/header';
+import { ScreenshotView } from '../../src/renderer/src/shell/screenshot-view';
 import { Placeholder } from '../../src/renderer/src/shell/placeholder';
 import { Rail } from '../../src/renderer/src/shell/rail';
 import { RecordPanel } from '../../src/renderer/src/shell/record-panel';
@@ -90,12 +91,13 @@ describe('the icon rail', () => {
 
 describe('the header', () => {
   const html = renderToStaticMarkup(
-    <Header title="Record" primary={<button type="button">Go</button>} onHelp={noop} />,
+    <Header primary={<button type="button">Go</button>} onHelp={noop} />,
   );
 
-  it('shows the mark, the name and the view title', () => {
+  it('shows the mark and the name, and no view title', () => {
     expect(html).toContain('Scrim');
-    expect(html).toContain('<h1 class="app-header-title">Record</h1>');
+    expect(html).not.toContain('<h1');
+    expect(html).not.toContain('app-header-title');
     expect(html).toContain('brand-mark');
   });
 
@@ -192,9 +194,13 @@ describe('the Record view', () => {
   const view = (busy = false, error: { message: string; nextStep: string } | null = null) =>
     renderToStaticMarkup(<RecordView busy={busy} error={error} onStart={noop} />);
 
-  it('has the stage, the big button with the red dot, and the shortcut', () => {
+  it('has the stage holding the big button with the red dot and the shortcut in its corner', () => {
     const html = view();
     expect(html).toContain('class="stage"');
+    expect(html).toMatch(/stage-shortcut"><span>Shortcut<\/span>.*Ctrl Shift R/s);
+    expect(html.indexOf('record-button')).toBeGreaterThan(html.indexOf('class="stage"'));
+    expect(html.indexOf('record-button')).toBeLessThan(html.indexOf('</section>'));
+    expect(html.match(/ui-keycaps/g)).toHaveLength(1);
     expect(html).toMatch(
       /record-button[^>]*><span class="record-dot" aria-hidden="true"><\/span>Start recording/,
     );
@@ -266,5 +272,34 @@ describe('the placeholder', () => {
     expect(renderToStaticMarkup(<Placeholder view="zoom" inPanel />)).toContain(
       'These settings arrive with the editor.',
     );
+  });
+});
+
+describe('the Screenshot view', () => {
+  const html = renderToStaticMarkup(<ScreenshotView busy={false} error={null} onTake={noop} />);
+
+  it('uses the same stage with the button inside and Ctrl Shift X in the corner', () => {
+    expect(html).toContain('class="stage"');
+    expect(html).toContain('Take screenshot');
+    expect(html).toContain('aria-label="Ctrl Shift X"');
+    expect(html.indexOf('record-button')).toBeLessThan(html.indexOf('</section>'));
+  });
+});
+
+describe('the app shell title', () => {
+  it('puts the view title in the main area once, not in the header', () => {
+    const html = renderToStaticMarkup(
+      <AppShell
+        view="screenshot"
+        onView={noop}
+        title="Screenshot"
+        status={{ state: 'Ready', folder: 'x' }}
+        panel={null}
+      >
+        <p>body</p>
+      </AppShell>,
+    );
+    expect(html.match(/<h1/g)).toHaveLength(1);
+    expect(html).toMatch(/<main class="shell-main"><h1 class="page-title">Screenshot<\/h1>/);
   });
 });

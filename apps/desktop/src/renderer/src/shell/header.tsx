@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import { BrandMark } from '../brand-mark';
 
 export interface HeaderProps {
-  /** The view title, or the recording name in the editor. */
-  title: string;
+  /** The editable recording name, shown after the brand in the editor only. */
+  recordingName?: ReactNode;
   /** View controls, such as the editor's Before, Compare and After. */
   center?: ReactNode;
   /** The primary action of the current view, a green button. */
@@ -12,7 +12,7 @@ export interface HeaderProps {
   onHelp: () => void;
 }
 
-export function Header({ title, center, primary, onHelp }: HeaderProps) {
+export function Header({ recordingName, center, primary, onHelp }: HeaderProps) {
   return (
     <header className="app-header">
       <div className="app-header-left">
@@ -20,7 +20,9 @@ export function Header({ title, center, primary, onHelp }: HeaderProps) {
           <BrandMark />
           Scrim
         </span>
-        <h1 className="app-header-title">{title}</h1>
+        {recordingName === undefined ? null : (
+          <span className="app-header-name">{recordingName}</span>
+        )}
       </div>
       <div className="app-header-center">{center}</div>
       <div className="app-header-right">

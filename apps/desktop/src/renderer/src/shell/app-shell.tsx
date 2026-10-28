@@ -9,7 +9,10 @@ import { hasPanel, type ViewId } from './views';
 export interface AppShellProps {
   view: ViewId;
   onView: (view: ViewId) => void;
+  /** The view title, shown at the top of the main area. The header carries only the brand. */
   title: string;
+  /** The recording name, editable, for the editor. */
+  recordingName?: ReactNode;
   headerCenter?: ReactNode;
   primary?: ReactNode;
   status: { state: string; folder: string };
@@ -24,6 +27,7 @@ export function AppShell({
   view,
   onView,
   title,
+  recordingName,
   headerCenter,
   primary,
   status,
@@ -36,7 +40,7 @@ export function AppShell({
   return (
     <div className={showPanel ? 'shell' : 'shell no-panel'}>
       <Header
-        title={title}
+        recordingName={recordingName}
         center={headerCenter}
         primary={primary}
         onHelp={() => {
@@ -44,7 +48,10 @@ export function AppShell({
         }}
       />
       <Rail view={view} onView={onView} />
-      <main className="shell-main">{children}</main>
+      <main className="shell-main">
+        <h1 className="page-title">{title}</h1>
+        {children}
+      </main>
       {showPanel ? (
         <aside className="shell-panel" aria-label={`${title} settings`}>
           {panel}
