@@ -75,7 +75,7 @@ function extract(archive: string, into: string): void {
   if (result.status !== 0) throw new Error('Could not unpack the archive with Windows tar.');
 }
 
-async function findFile(root: string, relative: string): Promise<string> {
+function findFile(root: string, relative: string): string {
   const top = spawnSync(TAR, ['-tf', join(cacheDir, FFMPEG_PIN.file)], { encoding: 'utf8' });
   const entry = top.stdout.split(/\r?\n/).find((line) => line.endsWith(`/${relative}`));
   if (entry === undefined) throw new Error(`${relative} is not in the archive.`);
@@ -109,9 +109,9 @@ async function main(): Promise<void> {
     await rm(outDir, { recursive: true, force: true });
     await mkdir(outDir, { recursive: true });
     for (const name of FFMPEG_BINARIES) {
-      await copyFile(await findFile(work, `bin/${name}`), join(outDir, name));
+      await copyFile(findFile(work, `bin/${name}`), join(outDir, name));
     }
-    await copyFile(await findFile(work, 'LICENSE.txt'), join(outDir, 'LICENSE.txt'));
+    await copyFile(findFile(work, 'LICENSE.txt'), join(outDir, 'LICENSE.txt'));
     await writeFile(
       join(outDir, 'SOURCE.txt'),
       [

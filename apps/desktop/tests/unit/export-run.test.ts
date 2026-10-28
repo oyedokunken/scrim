@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { readdirSync, rmSync } from 'node:fs';
+import { readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { exportRecording } from '../../src/main/export/exporter';
 import { cursorPaintFor } from '../../src/main/export/look';
@@ -141,4 +142,49 @@ describe.skipIf(tools === undefined)('exportRecording', () => {
     expect(outcome.error.code).toBe('cancelled');
     expect(readdirSync(fixture.outputDir)).toEqual([]);
   }, 45_000);
+
+  it('uses the edited zoom moments instead of the planner, and no zoom for an empty list', async () => {
+    if (tools === undefined) return;
+    const fixture = makeFixture(tools, { seconds: 4 });
+    made.push(fixture);
+    const deps = { paths: tools, run: runProcess, log: () => undefined };
+    const noBackground = {
+      ...requestFor(fixture, { collision: 'replace' }),
+      style: {
+        zoom: { enabled: true, maxZoom: 2 },
+        background: { spec: { kind: 'none' as const } },
+      },
+    };
+    const frameHash = (path: string): string =>
+      execFileSync(
+        tools.ffmpeg,
+        ['-v', 'error', '-ss', '1.6', '-i', path, '-frames:v', '1', '-f', 'md5', '-'],
+        { encoding: 'utf8' },
+      );
+    const edit = (zoom: unknown): void => {
+      writeFileSync(
+        join(fixture.folder, 'edits.json'),
+        JSON.stringify({
+          version: 1,
+          trim: null,
+          cuts: [],
+          ...(zoom === undefined ? {} : { zoom }),
+        }),
+      );
+    };
+    const run = async (name: string): Promise<string> => {
+      const outcome = await exportRecording(deps, { ...noBackground, fileName: name });
+      if (!outcome.ok) throw new Error(outcome.error.message);
+      return frameHash(outcome.path);
+    };
+    edit(undefined);
+    const planned = await run('planned');
+    edit({ moments: [] });
+    const none = await run('none');
+    edit({ moments: [{ startMs: 1200, endMs: 3000, x: 200, y: 150 }] });
+    const added = await run('added');
+    expect(none).not.toBe(planned);
+    expect(added).not.toBe(none);
+    expect(added).not.toBe(planned);
+  }, 180_000);
 });
