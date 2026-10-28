@@ -15,7 +15,7 @@ Done and committed:
 - Monorepo: pnpm 12 workspace with a catalog and a 7 day release age, turbo, strict TypeScript, ESLint boundary rules, a text guard that rejects dashes, emojis and tool names, husky with lint-staged and commitlint.
 - `packages/tokens`: palette (green, butter, black, white, record red), CSS variables, type scale, contrast tests.
 - `packages/core`: `planZoom`, `sampleCamera`, `cursorAt` and a zoom-only subpath, with property tests.
-- Landing page: live zoom hero (18 s scripted demo using the real planner), eight stacking feature cards numbered 01/08 to 08/08, use cases, download section with per system help, FAQ in two columns, contribute, contact, closing call to action, footer with the full white logo that rises on scroll, header pill that shrinks on scroll, floating back to top button styled as a recording with a timer and ring, Built by popover.
+- Landing page: live zoom hero (18 s scripted demo using the real planner), eight stacking feature cards numbered 01/08 to 08/08, use cases, download section with per system help, FAQ in two columns, contribute, contact, closing call to action, footer with the full white logo, which rises on scroll and is a link to the top, header pill that shrinks on scroll, floating back to top button (green, with a ring that fills as the page scrolls, a solid green inner circle and no timer), Built by popover.
 - Download flow: native dialog, React Hook Form with the shared zod schema, system detection with spoofed user agent tests, `/api/downloads` (origin check, honeypot, rate limit, hashed IP, release lookup, Prisma record), confirmation email to the visitor and a note email to the owner (Nodemailer, sent in `after()`), unsubscribe page and `/api/unsubscribe` (POST only).
 - Privacy page, metadata, Open Graph image, sitemap, robots, manifest, icons, JSON-LD, security headers.
 - Docs: README, WIKI, CHANGELOG, SECURITY, CONTRIBUTING.
@@ -447,7 +447,7 @@ Make the hero a live demonstration, not a screenshot. Run the real `planZoom` an
 | Butter | `#FBF8F4` | Page background. The most common surface. |
 | Black | `#000000` | Text, the header and the footer. A neutral black. |
 | White | `#FFFFFF` | Raised surfaces: cards, inputs, the download modal. |
-| Record red | `#FF3B30` | A signal color for recording indicators only: the REC dot and the back to top button. Never for text on butter, never for buttons or links. Form errors use a darker red mixed from it with black (70 percent red), which clears 4.5 to 1 on white. |
+| Record red | `#FF3B30` | A signal color for the REC dot only. Never for text on butter, never for buttons or links, and not for the back to top button, which is green with no timer. Form errors use a darker red mixed from it with black (70 percent red), which clears 4.5 to 1 on white. |
 
 - Green and butter are the main colors. Butter carries the page, green carries the brand, white lifts things off the page, black is for text. Greys support: they are for borders, dividers, secondary text and quiet fills, never for large areas.
 - Greys are the black mixed into butter or white with `color-mix`, so they stay consistent. No separate grey hex values. Suggested steps: secondary text at 72 percent black, a border at 14 percent, a quiet fill at 8 percent.
