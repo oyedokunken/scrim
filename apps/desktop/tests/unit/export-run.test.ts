@@ -187,4 +187,64 @@ describe.skipIf(tools === undefined)('exportRecording', () => {
     expect(added).not.toBe(none);
     expect(added).not.toBe(planned);
   }, 180_000);
+
+  it('draws the camera bubble at its recorded position, with sound in step with the picture', async () => {
+    if (tools === undefined) return;
+    const fixture = makeFixture(tools, { seconds: 4, camera: true, mic: true });
+    made.push(fixture);
+    const outcome = await exportRecording(
+      { paths: tools, run: runProcess, log: () => undefined },
+      {
+        ...requestFor(fixture),
+        style: {
+          cursor: { style: 'off' },
+          zoom: { enabled: false },
+          background: { spec: { kind: 'none' } },
+          bubble: { visible: true, shape: 'circle' },
+        },
+      },
+    );
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const pixelAt = (x: number, y: number): number[] => {
+      const out = execFileSync(tools.ffmpeg, [
+        '-v',
+        'error',
+        '-ss',
+        '1',
+        '-i',
+        outcome.path,
+        '-frames:v',
+        '1',
+        '-vf',
+        `format=rgb24,crop=1:1:${String(x)}:${String(y)}`,
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-',
+      ]);
+      return [...out];
+    };
+    // Recorded at 16, 300 with size 120 on a 1.5 scale display: 24, 450 and 180 wide.
+    const ring = pixelAt(114, 451);
+    expect(Math.min(...ring)).toBeGreaterThan(225);
+    const face = pixelAt(114, 540);
+    expect(face[1]).toBeGreaterThan(120);
+    expect(face[0]).toBeLessThan(110);
+    // Outside the circle, in the corner of the bubble's square, the screen shows.
+    const corner = pixelAt(26, 452);
+    expect(corner).not.toEqual(face);
+    const info = probe(outcome.path);
+    const durations = execFileSync(
+      tools.ffprobe,
+      ['-v', 'error', '-show_entries', 'stream=codec_type,duration', '-of', 'json', outcome.path],
+      { encoding: 'utf8' },
+    );
+    const parsed = JSON.parse(durations) as { streams: { codec_type: string; duration: string }[] };
+    const video = Number(parsed.streams.find((x) => x.codec_type === 'video')?.duration);
+    const audio = Number(parsed.streams.find((x) => x.codec_type === 'audio')?.duration);
+    expect(Math.abs(video - audio)).toBeLessThan(1 / 30 + 0.025);
+    expect(info.streams).toHaveLength(2);
+  }, 180_000);
 });
