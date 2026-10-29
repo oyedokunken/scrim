@@ -126,6 +126,7 @@ export function createRealLibrary(options: {
     },
     imageThumbnail: (path) =>
       nativeImage.createFromPath(path).resize({ width: THUMB_WIDTH, quality: 'good' }).toDataURL(),
+    readImage: async (path) => `data:image/png;base64,${(await readFile(path)).toString('base64')}`,
     trash: (path) => shell.trashItem(path),
     rename,
     openPath: (path) => shell.openPath(path),

@@ -27,6 +27,8 @@ export interface LibraryDeps {
   /** The first picture of a video as a PNG data URL, or null. */
   videoFrame: (path: string, cacheKey: string) => Promise<string | null>;
   imageThumbnail: (path: string) => string;
+  /** The whole picture as a PNG data URL, for the detail view. */
+  readImage: (path: string) => Promise<string>;
   trash: (path: string) => Promise<void>;
   rename: (from: string, to: string) => Promise<void>;
   openPath: (path: string) => Promise<string>;
@@ -50,6 +52,8 @@ interface Entry {
   sourceVideo: string | null;
   width: number;
   height: number;
+  /** Which tracks a recording holds: screen, camera, mic. */
+  tracks: string[];
 }
 
 const PROJECT_SUFFIX = '.scrim';
@@ -169,8 +173,9 @@ export function createLibrary(deps: LibraryDeps) {
         project: folder,
         file: mp4Path,
         sourceVideo,
-        width: 0,
-        height: 0,
+        width: session.source.frame?.width ?? 0,
+        height: session.source.frame?.height ?? 0,
+        tracks: session.tracks.map((track) => track.kind),
       });
     }
 
@@ -188,6 +193,7 @@ export function createLibrary(deps: LibraryDeps) {
         sourceVideo: null,
         width: 0,
         height: 0,
+        tracks: ['screen'],
       });
     }
 
@@ -208,11 +214,37 @@ export function createLibrary(deps: LibraryDeps) {
         project: null,
         file: path,
         sourceVideo: null,
+        tracks: [],
         ...size,
       });
     }
     return entries.sort((a, b) => b.createdMs - a.createdMs).slice(0, MAX_LIBRARY_ITEMS);
   }
+
+  /** The same file gets the same id in every listing, so a dialog opened before a refresh still works. */
+  const toItem = (entry: Entry): LibraryItem => {
+    const id = createHash('sha1')
+      .update(`${entry.kind}|${entry.file ?? ''}|${entry.project ?? ''}`)
+      .digest('hex')
+      .slice(0, 24);
+    known.set(id, entry);
+    const where = entry.file ?? entry.project;
+    return {
+      id,
+      kind: entry.kind,
+      name: entry.name,
+      createdMs: entry.createdMs,
+      durationMs: entry.durationMs,
+      bytes: entry.bytes,
+      width: entry.width > 0 ? entry.width : null,
+      height: entry.height > 0 ? entry.height : null,
+      tracks: entry.tracks,
+      folder: where === null ? '' : dirname(where),
+      canEdit: entry.project !== null,
+      hasVideo: entry.kind === 'recording' && entry.file !== null,
+      isFile: entry.file !== null,
+    };
+  };
 
   const need = (id: string): Entry => {
     const entry = known.get(id);
@@ -224,25 +256,36 @@ export function createLibrary(deps: LibraryDeps) {
     async list(): Promise<LibraryItem[]> {
       const entries = await scan();
       known = new Map();
-      return entries.map((entry) => {
-        // The same file gets the same id in every listing, so a dialog opened before a refresh still works.
-        const id = createHash('sha1')
-          .update(`${entry.kind}|${entry.file ?? ''}|${entry.project ?? ''}`)
-          .digest('hex')
-          .slice(0, 24);
-        known.set(id, entry);
-        return {
-          id,
-          kind: entry.kind,
-          name: entry.name,
-          createdMs: entry.createdMs,
-          durationMs: entry.durationMs,
-          bytes: entry.bytes,
-          canEdit: entry.project !== null,
-          hasVideo: entry.kind === 'recording' && entry.file !== null,
-          isFile: entry.file !== null,
-        };
-      });
+      return entries.map(toItem);
+    },
+
+    /** The item for a file or a working folder, read fresh, or null when there is none. Used right after a capture. */
+    async lookup(path: string): Promise<LibraryItem | null> {
+      const entries = await scan();
+      known = new Map();
+      const items = entries.map(toItem);
+      const wanted = path.toLowerCase();
+      for (const item of items) {
+        const entry = known.get(item.id);
+        if (entry?.file?.toLowerCase() === wanted || entry?.project?.toLowerCase() === wanted) {
+          return item;
+        }
+      }
+      return null;
+    },
+
+    /** The whole picture of a screenshot. Null for a recording, which shows its first frame instead. */
+    async preview(id: string): Promise<string | null> {
+      const entry = need(id);
+      if (entry.kind !== 'screenshot' || entry.file === null) return null;
+      return deps.readImage(entry.file);
+    },
+
+    /** Plays the exported video in the system player. */
+    async play(id: string): Promise<boolean> {
+      const entry = need(id);
+      if (entry.kind !== 'recording' || entry.file === null) return false;
+      return (await deps.openPath(entry.file)) === '';
     },
 
     async thumbnail(id: string): Promise<string | null> {

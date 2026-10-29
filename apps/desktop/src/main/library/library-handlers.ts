@@ -7,6 +7,9 @@ type LibraryHandlers = Pick<
   | 'library:thumbnail'
   | 'library:open'
   | 'library:rename'
+  | 'library:lookup'
+  | 'library:preview'
+  | 'library:play'
   | 'library:reveal'
   | 'library:delete'
   | 'library:share'
@@ -23,6 +26,9 @@ export function createLibraryHandlers(deps: {
     'library:list': () => library.list(),
     'library:thumbnail': ({ id }) => library.thumbnail(id),
     'library:open': ({ id }) => library.open(id),
+    'library:lookup': ({ path }) => library.lookup(path),
+    'library:preview': ({ id }) => library.preview(id),
+    'library:play': ({ id }) => library.play(id),
     'library:rename': ({ id, name }) => library.rename(id, name),
     'library:reveal': ({ id }) => {
       library.reveal(id);

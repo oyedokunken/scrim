@@ -78,6 +78,7 @@ function setup(
     videoDurationMs: vi.fn(() => Promise.resolve(12_000)),
     videoFrame: vi.fn(() => Promise.resolve('data:image/png;base64,AA==')),
     imageThumbnail: vi.fn(() => 'data:image/png;base64,BB=='),
+    readImage: vi.fn(() => Promise.resolve('data:image/png;base64,FULL')),
     trash: vi.fn(() => Promise.resolve()),
     rename: vi.fn(() => Promise.resolve()),
     openPath: vi.fn(() => Promise.resolve('')),
@@ -313,5 +314,50 @@ describe('the library handlers', () => {
     const [item] = await library.list();
     expect(() => none['library:share']({ id: item?.id ?? '' })).toThrow();
     await expect(some['library:share']({ id: item?.id ?? '' })).resolves.toBeUndefined();
+  });
+});
+
+describe('lookup, preview and play', () => {
+  const disk = {
+    shots: [file('Shot.png', 5)],
+    videos: [file('Take 1.mp4', 9)],
+    projects: [dir('Take 1.scrim', 1)],
+  };
+
+  it('finds the item for a file or for a working folder, and null for anything else', async () => {
+    const { library } = setup(disk, projectText('Take 1'));
+    const byShot = await library.lookup(join(SHOTS, 'Shot.png'));
+    expect(byShot).toMatchObject({ kind: 'screenshot', name: 'Shot', width: 800, height: 600 });
+    const byProject = await library.lookup(join(PROJECTS, 'Take 1.scrim'));
+    expect(byProject).toMatchObject({ kind: 'recording', name: 'Take 1', canEdit: true });
+    expect(byProject?.tracks).toEqual(['screen']);
+    expect(byProject?.folder).toBe(VIDEOS);
+    expect(await library.lookup(join(ROOT, 'nothing.png'))).toBeNull();
+  });
+
+  it('gives the whole picture of a screenshot and nothing for a recording', async () => {
+    const { library } = setup(disk, projectText('Take 1'));
+    const items = await library.list();
+    const shot = items.find((item) => item.kind === 'screenshot')?.id ?? '';
+    const video = items.find((item) => item.kind === 'recording')?.id ?? '';
+    expect(await library.preview(shot)).toBe('data:image/png;base64,FULL');
+    expect(await library.preview(video)).toBeNull();
+  });
+
+  it('plays an exported video, and has nothing to play for a screenshot or an unexported recording', async () => {
+    const { library } = setup({ ...disk, videos: [] }, projectText('Take 1'));
+    const none = await library.list();
+    expect(await library.play(none.find((item) => item.kind === 'recording')?.id ?? '')).toBe(
+      false,
+    );
+    const withVideo = setup(disk, projectText('Take 1'));
+    const items = await withVideo.library.list();
+    expect(
+      await withVideo.library.play(items.find((item) => item.kind === 'recording')?.id ?? ''),
+    ).toBe(true);
+    expect(withVideo.deps.openPath).toHaveBeenCalledWith(join(VIDEOS, 'Take 1.mp4'));
+    expect(
+      await withVideo.library.play(items.find((item) => item.kind === 'screenshot')?.id ?? ''),
+    ).toBe(false);
   });
 });

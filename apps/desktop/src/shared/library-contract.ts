@@ -13,6 +13,13 @@ const libraryItemSchema = z
     /** Null for a screenshot, or when the length is not known. */
     durationMs: z.number().nonnegative().nullable(),
     bytes: z.number().nonnegative(),
+    /** Pixels, for a screenshot or a recording whose size is known. */
+    width: z.number().int().positive().nullable(),
+    height: z.number().int().positive().nullable(),
+    /** The tracks a recording holds: screen, camera, mic. */
+    tracks: z.array(z.string().max(16)).max(8),
+    /** The folder that holds it, for the details panel. */
+    folder: z.string().max(1024),
     /** A recording that still has its working folder, so the editor can open it. */
     canEdit: z.boolean(),
     /** A recording that has an exported MP4 beside it. */
@@ -54,6 +61,15 @@ export const libraryContract = {
       .object({ ok: z.boolean(), reason: z.enum(['exists', 'invalid', 'failed']).optional() })
       .strict(),
   },
+  /** The item for a file or working folder that Scrim just made, or null. */
+  'library:lookup': {
+    input: z.object({ path: pathSchema }).strict(),
+    output: libraryItemSchema.nullable(),
+  },
+  /** The whole picture of a screenshot as a PNG data URL. Null for a recording. */
+  'library:preview': { input: idInput, output: z.string().nullable() },
+  /** Plays the exported video in the system player. */
+  'library:play': { input: idInput, output: z.boolean() },
   'library:reveal': { input: idInput, output: z.void() },
   'library:delete': { input: idInput, output: z.void() },
   'library:share': { input: idInput, output: z.void() },
