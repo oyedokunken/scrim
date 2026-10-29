@@ -1,4 +1,5 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
+import { createRealShare } from '../share/share';
 import { access, mkdir, open, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EventPayload } from '../../shared/ipc-contract';
@@ -57,6 +58,7 @@ export async function startIpc(options: {
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
 
+  const share = createRealShare();
   const settings = createSettingsStore({
     path: join(app.getPath('userData'), 'settings.json'),
     fs: realSettingsFs,
@@ -109,7 +111,7 @@ export async function startIpc(options: {
     allowedOrigin: appOrigin,
     handlers: createHandlers({
       settings,
-      share: null,
+      share,
       shortcutStatus: options.shortcutStatus,
       exporter: {
         start: (input) => options.exporter.start(input),
@@ -175,7 +177,7 @@ export async function startIpc(options: {
           settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
         screenshotsFolder: () =>
           screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
-        share: null,
+        share,
       }),
       recording,
       area,
