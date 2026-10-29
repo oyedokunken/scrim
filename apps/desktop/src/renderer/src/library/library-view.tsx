@@ -1,6 +1,15 @@
 import { FolderOpen, Image, Pencil, Search, Share2, Trash2, Video } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Button, ConfirmDialog, Dialog, Menu, Segmented, Tooltip, useToast } from '../../ui';
+import {
+  Button,
+  ConfirmDialog,
+  Dialog,
+  Menu,
+  Segmented,
+  Tooltip,
+  useShowError,
+  useToast,
+} from '../../ui';
 import type { LibraryItem } from '../../../shared/library-contract';
 import { formatWhen } from '../format';
 import { useClock } from '../hooks';
@@ -136,6 +145,7 @@ const ORDERS = [
 /** Every recording and screenshot as cards, with filter chips, search, sort, and the actions on each. */
 export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
   const toast = useToast();
+  const showError = useShowError();
   const now = useClock();
   const library = useLibrary(active);
   const [filter, setFilter] = useState<LibraryFilter>('all');
@@ -156,7 +166,11 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
     void library.open(item.id).then(
       (opened) => {
         if (opened.kind === 'missing') {
-          toast('Scrim could not find that file. It may have been moved.');
+          showError({
+            title: 'Scrim could not find that file',
+            message: 'It may have been moved or deleted. The Library shows what is there now.',
+            code: 'file-missing',
+          });
         } else if (opened.kind === 'played') {
           toast('Opened in your video player');
         } else {
@@ -164,7 +178,14 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
         }
       },
       () => {
-        toast('Scrim could not open that. Try again.');
+        showError({
+          title: 'Scrim could not open that',
+          message: 'Try again. If it keeps happening, restart Scrim.',
+          code: 'open-failed',
+          retry: () => {
+            open(item);
+          },
+        });
       },
     );
   };
@@ -177,11 +198,24 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
         setRenaming(null);
         toast('Renamed');
       } else if (result.reason === 'exists') {
-        toast('A file with that name already exists. Pick another name.');
+        showError({
+          title: 'That name is taken',
+          message: 'A file with that name already exists. Pick another name.',
+          code: 'rename-exists',
+        });
       } else if (result.reason === 'invalid') {
-        toast('That name cannot be used. Avoid slashes, colons and question marks.');
+        showError({
+          title: 'That name cannot be used',
+          message: 'Avoid slashes, colons and question marks.',
+          code: 'rename-invalid',
+        });
       } else {
-        toast('Scrim could not rename it. Close any program that is using the file and try again.');
+        showError({
+          title: 'Scrim could not rename it',
+          message: 'Close any program that is using the file, then try again.',
+          code: 'rename-failed',
+          retry: submitRename,
+        });
       }
     });
   };
@@ -228,7 +262,11 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
                       toast('Recording recovered');
                       onOpened({ kind: 'editor', folder: result.folder });
                     } else {
-                      toast(result.message);
+                      showError({
+                        title: 'Scrim could not recover that recording',
+                        message: result.message,
+                        code: 'recover-failed',
+                      });
                     }
                   });
                 }}
@@ -283,7 +321,13 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
               }}
               onShare={() => {
                 void library.share(item.id).then((ok) => {
-                  if (!ok) toast('Scrim could not open the share sheet. Try again.');
+                  if (!ok) {
+                    showError({
+                      title: 'Scrim could not open the share sheet',
+                      message: 'Try again.',
+                      code: 'share-failed',
+                    });
+                  }
                 });
               }}
               onDelete={() => {
@@ -346,7 +390,14 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
           setDeleting(null);
           if (item === null) return;
           void library.remove(item.id).then((ok) => {
-            toast(ok ? 'Moved to the recycle bin' : 'Scrim could not delete it. Try again.');
+            if (ok) toast('Moved to the recycle bin');
+            else {
+              showError({
+                title: 'Scrim could not delete it',
+                message: 'Close any program that is using the file, then try again.',
+                code: 'delete-failed',
+              });
+            }
           });
         }}
       >

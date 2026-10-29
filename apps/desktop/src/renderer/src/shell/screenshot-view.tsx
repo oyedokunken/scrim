@@ -1,8 +1,6 @@
 import { Camera } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../ui';
-import { ErrorNotice } from '../components/error-notice';
-import type { UserError } from '../hooks';
 import { ScreenshotEditor } from '../screenshot/screenshot-editor';
 import { ScreenshotResult } from '../screenshot/screenshot-result';
 import { SHORTCUTS } from './shortcuts';
@@ -16,7 +14,6 @@ export interface ShotInfo {
 
 export interface ScreenshotViewProps {
   busy: boolean;
-  error: UserError | null;
   onTake: () => void;
   /** The screenshot that was just taken, if any. */
   shot?: ShotInfo | null;
@@ -32,7 +29,6 @@ export interface ScreenshotViewProps {
  */
 export function ScreenshotView({
   busy,
-  error,
   onTake,
   shot = null,
   onClearShot,
@@ -85,7 +81,6 @@ export function ScreenshotView({
           </Button>
         }
       />
-      {error === null ? null : <ErrorNotice error={error} />}
     </div>
   );
 }

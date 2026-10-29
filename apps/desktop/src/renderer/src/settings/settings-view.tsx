@@ -2,7 +2,7 @@ import { FolderOpen } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Settings, SettingsPatch } from '../../../shared/settings';
 import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../../shared/shortcut-keys';
-import { Button, ConfirmDialog, Switch, Tooltip, useToast } from '../../ui';
+import { Button, ConfirmDialog, Switch, Tooltip, useShowError, useToast } from '../../ui';
 import type { FolderKind } from '../hooks';
 import { ShortcutRow } from './shortcut-row';
 
@@ -78,6 +78,7 @@ export function SettingsView({
   onOpenLink,
 }: SettingsViewProps) {
   const toast = useToast();
+  const showError = useShowError();
   const [unavailable, setUnavailable] = useState<readonly ShortcutId[]>([]);
   const [legacy, setLegacy] = useState(0);
   const [confirmMove, setConfirmMove] = useState(false);
@@ -104,7 +105,14 @@ export function SettingsView({
 
   const openFolder = (kind: FolderKind): void => {
     void window.scrim.invoke('folder:open', { kind }).catch(() => {
-      toast('Scrim could not open that folder. Check that the drive is connected.');
+      showError({
+        title: 'Scrim could not open that folder',
+        message: 'Check that the drive is connected.',
+        code: 'folder-open-failed',
+        retry: () => {
+          openFolder(kind);
+        },
+      });
     });
   };
 
@@ -120,7 +128,12 @@ export function SettingsView({
         );
       },
       () => {
-        toast('Scrim could not move the folders. Nothing was changed.');
+        showError({
+          title: 'Scrim could not move the folders',
+          message: 'Nothing was changed. Your recordings are where they were.',
+          code: 'legacy-move-failed',
+          retry: move,
+        });
       },
     );
   };
@@ -234,7 +247,11 @@ export function SettingsView({
             icon={<FolderOpen size={16} strokeWidth={1.75} />}
             onClick={() => {
               void window.scrim.invoke('logs:open-folder').catch(() => {
-                toast('Scrim could not open the logs folder.');
+                showError({
+                  title: 'Scrim could not open the logs folder',
+                  message: 'Try again.',
+                  code: 'logs-open-failed',
+                });
               });
             }}
           >

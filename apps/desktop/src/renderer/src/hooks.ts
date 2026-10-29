@@ -5,7 +5,7 @@ import type { EventPayload, OutputOf } from '../../shared/ipc-contract';
 
 export type Snapshot = OutputOf<'recording:snapshot'>;
 export type Finished = EventPayload<'recording:finished'>;
-export type UserError = { message: string; nextStep: string };
+export type UserError = { message: string; nextStep: string; code?: string };
 
 export type FolderKind = 'recordings' | 'screenshots';
 
@@ -106,7 +106,7 @@ export function useRecordingOutcome(): {
       setFailure(null);
     });
     const offError = window.scrim.on('recording:error', (error) => {
-      setFailure({ message: error.message, nextStep: error.nextStep });
+      setFailure({ message: error.message, nextStep: error.nextStep, code: error.code });
     });
     return () => {
       offFinished();

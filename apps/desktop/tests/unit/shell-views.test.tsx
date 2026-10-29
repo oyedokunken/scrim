@@ -219,8 +219,7 @@ describe('the welcome screen', () => {
 });
 
 describe('the Record view', () => {
-  const view = (busy = false, error: { message: string; nextStep: string } | null = null) =>
-    renderToStaticMarkup(<RecordView busy={busy} error={error} onStart={noop} />);
+  const view = (busy = false) => renderToStaticMarkup(<RecordView busy={busy} onStart={noop} />);
 
   it('has the stage holding the big button with the red dot and the shortcut in its corner', () => {
     const html = view();
@@ -243,12 +242,6 @@ describe('the Record view', () => {
     const html = view(true);
     expect(html).toMatch(/disabled=""[^>]*><span class="record-dot"/);
     expect(html).toContain('Starting...');
-  });
-
-  it('shows what went wrong, as an alert', () => {
-    const html = view(false, { message: 'The disk is full.', nextStep: 'Free some space.' });
-    expect(html).toContain('role="alert"');
-    expect(html).toContain('Free some space.');
   });
 });
 
@@ -315,7 +308,7 @@ describe('the placeholder', () => {
 });
 
 describe('the Screenshot view', () => {
-  const html = renderToStaticMarkup(<ScreenshotView busy={false} error={null} onTake={noop} />);
+  const html = renderToStaticMarkup(<ScreenshotView busy={false} onTake={noop} />);
 
   it('uses the same stage with the button inside and Ctrl Shift X in the corner', () => {
     expect(html).toContain('class="stage"');

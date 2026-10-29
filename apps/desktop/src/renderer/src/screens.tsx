@@ -28,7 +28,7 @@ import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
 import { Camera } from 'lucide-react';
-import { Button } from '../ui';
+import { Button, useShowError, type ShownError } from '../ui';
 import {
   useAppVersion,
   useDevices,
@@ -38,7 +38,6 @@ import {
   useExportJob,
   useScreenshots,
   useSettings,
-  type UserError,
 } from './hooks';
 
 const LIVE = new Set(['starting', 'recording', 'paused', 'stopping']);
@@ -48,29 +47,33 @@ function deviceChoice(enabled: boolean, deviceId: string | null) {
 }
 
 /** Pause, resume and stop, shared by the control bar and the main window while recording. */
-function useRecordingControls() {
+function useRecordingControls(onError: (error: ShownError) => void) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<UserError | null>(null);
-
   const run = useCallback(
     async (channel: 'recording:pause' | 'recording:resume' | 'recording:stop') => {
       setBusy(true);
-      setError(null);
       try {
         const result = await window.scrim.invoke(channel);
         if (!result.ok) {
-          setError({ message: result.error.message, nextStep: result.error.nextStep });
+          onError({
+            title: 'Scrim could not do that to the recording',
+            message: result.error.message,
+            nextStep: result.error.nextStep,
+            code: result.error.code,
+            retry: () => {
+              void run(channel);
+            },
+          });
         }
       } finally {
         setBusy(false);
       }
     },
-    [],
+    [onError],
   );
 
   return {
     busy,
-    error,
     pause: () => void run('recording:pause'),
     resume: () => void run('recording:resume'),
     stop: () => void run('recording:stop'),
@@ -80,7 +83,7 @@ function useRecordingControls() {
 /** The small bar over the screen: the whole content of the control window. */
 export function ControlScreen() {
   const snapshot = useRecordingSnapshot();
-  const controls = useRecordingControls();
+  const controls = useRecordingControls(() => undefined);
   return (
     <ControlView
       snapshot={snapshot}
@@ -99,13 +102,12 @@ export function MainScreen() {
   const { finished, failure, dismiss } = useRecordingOutcome();
   const exportJob = useExportJob();
   const devices = useDevices();
-  const controls = useRecordingControls();
+  const showError = useShowError();
+  const controls = useRecordingControls(showError);
   const version = useAppVersion();
   const [starting, setStarting] = useState(false);
-  const [startError, setStartError] = useState<UserError | null>(null);
   const [view, setView] = useState<ViewId>('record');
   const [shooting, setShooting] = useState(false);
-  const [shotError, setShotError] = useState<UserError | null>(null);
   const [shot, setShot] = useState<ShotInfo | null>(null);
   const [editorFolder, setEditorFolder] = useState<string | null>(null);
   const [shotsVersion, setShotsVersion] = useState(0);
@@ -124,28 +126,42 @@ export function MainScreen() {
     if (LIVE.has(phase)) dismiss();
   }, [phase, dismiss]);
 
-  const start = useCallback(async (chosen: Settings) => {
-    setStarting(true);
-    setStartError(null);
-    try {
-      // The overlay does the choosing, the countdown and the start. A cancel shows nothing.
-      const result = await window.scrim.invoke('area:run', {
-        mode: 'record',
-        camera: deviceChoice(chosen.cameraOn, chosen.cameraDeviceId),
-        mic: deviceChoice(chosen.micOn, chosen.micDeviceId),
-      });
-      if (!result.ok && result.reason === 'rejected') {
-        setStartError({ message: result.error.message, nextStep: result.error.nextStep });
-      } else if (!result.ok && result.reason === 'failed') {
-        setStartError({
-          message: 'Scrim could not open the area chooser.',
-          nextStep: 'Try again. If it keeps happening, restart Scrim.',
+  const start = useCallback(
+    async (chosen: Settings): Promise<void> => {
+      setStarting(true);
+      try {
+        // The overlay does the choosing, the countdown and the start. A cancel shows nothing.
+        const result = await window.scrim.invoke('area:run', {
+          mode: 'record',
+          camera: deviceChoice(chosen.cameraOn, chosen.cameraDeviceId),
+          mic: deviceChoice(chosen.micOn, chosen.micDeviceId),
         });
+        if (!result.ok && result.reason === 'rejected') {
+          showError({
+            title: 'Scrim could not start the recording',
+            message: result.error.message,
+            nextStep: result.error.nextStep,
+            code: result.error.code,
+            retry: () => {
+              void start(chosen);
+            },
+          });
+        } else if (!result.ok && result.reason === 'failed') {
+          showError({
+            title: 'Scrim could not open the area chooser',
+            message: 'Try again. If it keeps happening, restart Scrim.',
+            code: 'area-failed',
+            retry: () => {
+              void start(chosen);
+            },
+          });
+        }
+      } finally {
+        setStarting(false);
       }
-    } finally {
-      setStarting(false);
-    }
-  }, []);
+    },
+    [showError],
+  );
 
   /** A saved capture opens its result. One that was copied but could not be saved says why. */
   const acceptShot = useCallback(
@@ -157,17 +173,18 @@ export function MainScreen() {
     }): void => {
       if (taken.path !== undefined) {
         setShot({ path: taken.path, width: taken.width, height: taken.height });
-        setShotError(null);
       } else if (taken.saveError !== undefined) {
         setShot(null);
-        setShotError({
-          message: `Copied to the clipboard, but not saved. ${taken.saveError.message}`,
+        showError({
+          title: 'Scrim copied the screenshot but could not save it',
+          message: taken.saveError.message,
           nextStep: taken.saveError.nextStep,
+          code: 'screenshot-not-saved',
         });
       }
       refreshShots();
     },
-    [refreshShots],
+    [refreshShots, showError],
   );
 
   // A capture from the shortcut opens the result too, whichever view was showing.
@@ -178,7 +195,6 @@ export function MainScreen() {
 
   const shoot = useCallback(async () => {
     setShooting(true);
-    setShotError(null);
     try {
       const result = await window.scrim.invoke('area:run', {
         mode: 'screenshot',
@@ -188,17 +204,40 @@ export function MainScreen() {
       if (result.ok && result.mode === 'screenshot') {
         acceptShot(result.result);
       } else if (!result.ok && result.reason === 'rejected') {
-        setShotError({ message: result.error.message, nextStep: result.error.nextStep });
+        showError({
+          title: 'Scrim could not take the screenshot',
+          message: result.error.message,
+          nextStep: result.error.nextStep,
+          code: result.error.code,
+          retry: () => {
+            void shoot();
+          },
+        });
       } else if (!result.ok && result.reason === 'failed') {
-        setShotError({
-          message: 'Scrim could not open the area chooser.',
-          nextStep: 'Try again. If it keeps happening, restart Scrim.',
+        showError({
+          title: 'Scrim could not open the area chooser',
+          message: 'Try again. If it keeps happening, restart Scrim.',
+          code: 'area-failed',
+          retry: () => {
+            void shoot();
+          },
         });
       }
     } finally {
       setShooting(false);
     }
-  }, [acceptShot]);
+  }, [acceptShot, showError]);
+
+  // A failure the engine reports on its own, such as a full disk, shows once.
+  useEffect(() => {
+    if (failure === null) return;
+    showError({
+      title: 'Your recording ran into a problem',
+      message: failure.message,
+      nextStep: failure.nextStep,
+      code: failure.code,
+    });
+  }, [failure, showError]);
 
   const openItem = (opened: OpenedItem): void => {
     if (opened.kind === 'editor') {
@@ -314,7 +353,6 @@ export function MainScreen() {
       <RecordingView
         snapshot={snapshot}
         busy={controls.busy}
-        error={controls.error}
         onPause={controls.pause}
         onResume={controls.resume}
         onStop={controls.stop}
@@ -324,7 +362,6 @@ export function MainScreen() {
     main = (
       <RecordView
         busy={starting}
-        error={startError ?? failure}
         onStart={() => void start(settings)}
         saved={
           finished === null || !showsSavedCard(view)
@@ -360,7 +397,6 @@ export function MainScreen() {
       <ScreenshotView
         key={shot?.path ?? 'none'}
         busy={shooting}
-        error={shotError}
         shot={shot}
         onClearShot={() => {
           setShot(null);

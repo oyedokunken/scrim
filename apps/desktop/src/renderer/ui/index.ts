@@ -12,3 +12,4 @@ export { Tile } from './tile';
 export { ToastProvider, useToast } from './toast';
 export { Tooltip } from './tooltip';
 export { Menu } from './menu';
+export { ErrorProvider, useShowError, type ShownError } from './error-dialog';
