@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { zoomEditsSchema } from '../zoom/moments-schema';
 
 const span = z
   .strictObject({ startMs: z.number().nonnegative(), endMs: z.number().nonnegative() })
@@ -13,6 +14,8 @@ export const editListSchema = z.strictObject({
   version: z.literal(1),
   trim: span.nullable(),
   cuts: z.array(span),
+  /** The zoom moments the person edited. Absent means the planner decides, an empty list means no zoom. */
+  zoom: zoomEditsSchema.optional(),
 });
 
 export type EditList = z.infer<typeof editListSchema>;

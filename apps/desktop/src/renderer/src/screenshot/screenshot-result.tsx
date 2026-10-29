@@ -1,6 +1,7 @@
-import { Camera, Copy, FolderOpen, Pencil, Save, Trash2 } from 'lucide-react';
+import { Copy, FolderOpen, Pencil, Save, Share2, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Button, ConfirmDialog, useToast } from '../../ui';
+import { Button, ConfirmDialog, useShowError, useToast } from '../../ui';
+import { useCanShare } from '../hooks';
 
 export interface ScreenshotResultProps {
   path: string;
@@ -8,7 +9,7 @@ export interface ScreenshotResultProps {
   height: number;
   /** Opens the editor for this screenshot. */
   onEdit: () => void;
-  /** Back to taking one. Called after the screenshot is deleted too. */
+  /** Called after the screenshot is deleted, which returns to taking one. */
   onDone: () => void;
 }
 
@@ -19,8 +20,10 @@ function fileName(path: string): string {
 /** What you just captured: a preview, and what to do with it. It was already saved and copied. */
 export function ScreenshotResult({ path, width, height, onEdit, onDone }: ScreenshotResultProps) {
   const toast = useToast();
+  const showError = useShowError();
   const [loaded, setLoaded] = useState<{ path: string; dataUrl: string | null } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const canShare = useCanShare();
 
   useEffect(() => {
     let alive = true;
@@ -50,7 +53,12 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
         toast('Copied to the clipboard');
       })
       .catch(() => {
-        toast('Scrim could not copy the screenshot. Try again.');
+        showError({
+          title: 'Scrim could not copy the screenshot',
+          message: 'Try again.',
+          code: 'copy-failed',
+          retry: copy,
+        });
       });
   };
 
@@ -62,7 +70,12 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
         if (result.path !== null) toast(`Saved ${fileName(result.path)}`);
       })
       .catch(() => {
-        toast('Scrim could not save the screenshot there. Try another folder.');
+        showError({
+          title: 'Scrim could not save the screenshot there',
+          message: 'Try another folder.',
+          code: 'save-failed',
+          retry: saveAs,
+        });
       });
   };
 
@@ -75,7 +88,12 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
         onDone();
       })
       .catch(() => {
-        toast('Scrim could not delete the screenshot. Try again.');
+        showError({
+          title: 'Scrim could not delete the screenshot',
+          message: 'Try again.',
+          code: 'delete-failed',
+          retry: remove,
+        });
       });
   };
 
@@ -138,9 +156,22 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
         >
           Delete
         </Button>
-        <Button icon={<Camera size={16} strokeWidth={1.75} />} onClick={onDone}>
-          Take another
-        </Button>
+        {canShare ? (
+          <Button
+            icon={<Share2 size={16} strokeWidth={1.75} />}
+            onClick={() => {
+              void window.scrim.invoke('image:share', { path }).catch(() => {
+                showError({
+                  title: 'Scrim could not open the share sheet',
+                  message: 'Try again.',
+                  code: 'share-failed',
+                });
+              });
+            }}
+          >
+            Share
+          </Button>
+        ) : null}
       </div>
 
       <ConfirmDialog

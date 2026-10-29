@@ -34,6 +34,16 @@ describe('every channel rejects input that does not fit', () => {
     ['settings:set', { destinationFolder: 'C:/Windows/System32' }],
     ['settings:set', { destinationFolder: null }],
     ['folder:choose', {}],
+    ['folder:choose', undefined],
+    ['folder:choose', { kind: 'C:/Windows' }],
+    ['folder:choose', { kind: 'recordings', path: 'C:/x' }],
+    ['folder:open', { kind: 'desktop' }],
+    ['settings:set', { screenshotFolder: 'C:/Windows' }],
+    ['settings:set', { shortcutRecord: 'R' }],
+    ['settings:set', { shortcutStop: 'Shift+S' }],
+    ['settings:set', { shortcutScreenshot: 'Ctrl+Shift+Space' }],
+    ['image:thumbnail', {}],
+    ['image:list', 1],
     ['shell:open-external', undefined],
     ['shell:open-external', {}],
     ['shell:open-external', { url: 'https://example.com/' }],
@@ -57,7 +67,12 @@ describe('every channel accepts input that fits', () => {
     ['settings:get', undefined],
     ['settings:set', {}],
     ['settings:set', { zoomLevel: 2.5, cameraOn: true }],
-    ['folder:choose', undefined],
+    ['folder:choose', { kind: 'recordings' }],
+    ['folder:choose', { kind: 'screenshots' }],
+    ['folder:open', { kind: 'screenshots' }],
+    ['settings:set', { shortcutRecord: 'CommandOrControl+Alt+R', countdownOn: false }],
+    ['image:list', undefined],
+    ['image:thumbnail', { path: 'C:\\Pictures\\Scrim\\a.png' }],
     ['shell:open-external', { url: 'https://github.com/oyedokunken/scrim/releases' }],
     ['shell:open-external', { url: 'https://www.oyedokun.dev/' }],
     ['shell:open-external', { url: 'https://oyedokun.dev/' }],
@@ -86,5 +101,30 @@ describe('outputs', () => {
     expect(contract['folder:choose'].output.safeParse(null).success).toBe(true);
     expect(contract['folder:choose'].output.safeParse('C:\\x').success).toBe(true);
     expect(contract['folder:choose'].output.safeParse(5).success).toBe(false);
+  });
+});
+
+describe('the screenshot and close events', () => {
+  it('screenshot:taken carries a path, or why it could not be saved', () => {
+    const schema = events['screenshot:taken'];
+    expect(schema.safeParse({ path: 'C:/p/a.png', width: 10, height: 5 }).success).toBe(true);
+    expect(
+      schema.safeParse({ saveError: { message: 'm', nextStep: 'n' }, width: 10, height: 5 })
+        .success,
+    ).toBe(true);
+    expect(schema.safeParse({ width: 10, height: 5, extra: 1 }).success).toBe(false);
+    expect(schema.safeParse({ saveError: { message: 'm' }, width: 10, height: 5 }).success).toBe(
+      false,
+    );
+  });
+
+  it('window:close-requested and its answer are strict', () => {
+    expect(events['window:close-requested'].safeParse({ trayAvailable: true }).success).toBe(true);
+    expect(events['window:close-requested'].safeParse({}).success).toBe(false);
+    const answer = contract['window:close-answer'].input;
+    for (const value of ['shown', 'keep', 'stop', 'cancel']) {
+      expect(answer.safeParse({ answer: value }).success).toBe(true);
+    }
+    expect(answer.safeParse({ answer: 'discard' }).success).toBe(false);
   });
 });

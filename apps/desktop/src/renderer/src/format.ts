@@ -28,3 +28,25 @@ export function formatBytes(bytes: number): string {
 export function formatSeconds(milliseconds: number): string {
   return `${(milliseconds / 1000).toFixed(1)} s`;
 }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** When something was made, for a list: "Today 14:32", "Yesterday 09:05" or "12 Oct 2026". */
+export function formatWhen(timeMs: number, nowMs: number): string {
+  const time = new Date(timeMs);
+  const now = new Date(nowMs);
+  const clock = `${pad(time.getHours())}:${pad(time.getMinutes())}`;
+  const dayStart = (date: Date): number =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const daysAgo = Math.round((dayStart(now) - dayStart(time)) / 86_400_000);
+  if (daysAgo === 0) return `Today ${clock}`;
+  if (daysAgo === 1) return `Yesterday ${clock}`;
+  const month = MONTHS[time.getMonth()] ?? '';
+  return `${String(time.getDate())} ${month} ${String(time.getFullYear())}`;
+}
+
+/** A file name without its folder, and without the extension when asked. */
+export function fileName(path: string, withoutExtension = false): string {
+  const name = path.split(/[\\/]/).pop() ?? path;
+  return withoutExtension ? name.replace(/\.[^.]+$/, '') : name;
+}

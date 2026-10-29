@@ -1,47 +1,8 @@
-import { smoothnessToEaseMs } from '@scrim/core/render';
-import type { RenderStyle } from '@scrim/core/render';
 import type { Settings } from '../../shared/settings';
 import type { CursorPaint, Rgba } from './compositor';
 
-const PADDING_SHARE: Record<Settings['backgroundPadding'], number> = {
-  none: 0,
-  small: 0.03,
-  medium: 0.06,
-  large: 0.1,
-};
-
-const RADIUS_SHARE: Record<Settings['backgroundCorners'], number> = {
-  square: 0,
-  soft: 0.025,
-  round: 0.05,
-};
-
-/** The look the person chose in Settings, as the render model wants it. */
-export function styleFromSettings(settings: Settings): RenderStyle {
-  return {
-    cursor: { style: settings.cursorStyle },
-    zoom: {
-      enabled: settings.zoomOn,
-      maxZoom: settings.zoomLevel,
-      holdMs: settings.holdAfterClickMs,
-      easeMs: smoothnessToEaseMs(settings.smoothness),
-    },
-    background:
-      settings.backgroundId === 'none'
-        ? { spec: { kind: 'none' } }
-        : {
-            spec: { kind: 'preset', id: settings.backgroundId },
-            paddingShare: PADDING_SHARE[settings.backgroundPadding],
-            radiusShare: RADIUS_SHARE[settings.backgroundCorners],
-          },
-    bubble: {
-      visible: settings.cameraOn,
-      corner: settings.bubbleCorner,
-      size: settings.bubbleSize,
-      shape: settings.bubbleShape,
-    },
-  };
-}
+/** The look chosen in Settings. The one definition lives with the shared code the editor uses too. */
+export { renderStyleFromSettings as styleFromSettings } from '../../shared/render-style';
 
 const MIC_GAIN: Record<Settings['micVolume'], number> = {
   quieter: 0.6,

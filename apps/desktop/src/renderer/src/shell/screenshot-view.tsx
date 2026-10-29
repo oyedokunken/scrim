@@ -1,8 +1,6 @@
 import { Camera } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../ui';
-import { ErrorNotice } from '../components/error-notice';
-import type { UserError } from '../hooks';
 import { ScreenshotEditor } from '../screenshot/screenshot-editor';
 import { ScreenshotResult } from '../screenshot/screenshot-result';
 import { SHORTCUTS } from './shortcuts';
@@ -16,12 +14,13 @@ export interface ShotInfo {
 
 export interface ScreenshotViewProps {
   busy: boolean;
-  error: UserError | null;
   onTake: () => void;
   /** The screenshot that was just taken, if any. */
   shot?: ShotInfo | null;
   /** Forget the shot, which returns to the stage. */
   onClearShot?: () => void;
+  /** The shown shot changed: the editor saved a new file. The list reads again. */
+  onShot?: (shot: ShotInfo) => void;
 }
 
 /**
@@ -30,15 +29,13 @@ export interface ScreenshotViewProps {
  */
 export function ScreenshotView({
   busy,
-  error,
   onTake,
   shot = null,
   onClearShot,
+  onShot,
 }: ScreenshotViewProps) {
   const [editing, setEditing] = useState(false);
-  // The editor writes a new file, so the result then shows the edited one.
-  const [edited, setEdited] = useState<ShotInfo | null>(null);
-  const shown = edited ?? shot;
+  const shown = shot;
 
   if (shown !== null && editing) {
     return (
@@ -48,8 +45,8 @@ export function ScreenshotView({
           setEditing(false);
         }}
         onSaved={(path, size) => {
-          setEdited({ path, ...size });
           setEditing(false);
+          onShot?.({ path, ...size });
         }}
       />
     );
@@ -65,7 +62,6 @@ export function ScreenshotView({
           setEditing(true);
         }}
         onDone={() => {
-          setEdited(null);
           onClearShot?.();
         }}
       />
@@ -85,7 +81,6 @@ export function ScreenshotView({
           </Button>
         }
       />
-      {error === null ? null : <ErrorNotice error={error} />}
     </div>
   );
 }

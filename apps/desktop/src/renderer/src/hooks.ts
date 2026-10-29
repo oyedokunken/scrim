@@ -5,7 +5,9 @@ import type { EventPayload, OutputOf } from '../../shared/ipc-contract';
 
 export type Snapshot = OutputOf<'recording:snapshot'>;
 export type Finished = EventPayload<'recording:finished'>;
-export type UserError = { message: string; nextStep: string };
+export type UserError = { message: string; nextStep: string; code?: string };
+
+export type FolderKind = 'recordings' | 'screenshots';
 
 const SAVE_DELAY_MS = 150;
 
@@ -16,7 +18,7 @@ const SAVE_DELAY_MS = 150;
 export function useSettings(): {
   settings: Settings | null;
   update: (patch: SettingsPatch) => void;
-  chooseFolder: () => Promise<void>;
+  chooseFolder: (kind: FolderKind) => Promise<void>;
 } {
   const [settings, setSettings] = useState<Settings | null>(null);
   const pending = useRef<SettingsPatch>({});
@@ -48,9 +50,9 @@ export function useSettings(): {
     }, SAVE_DELAY_MS);
   }, []);
 
-  const chooseFolder = useCallback(async () => {
+  const chooseFolder = useCallback(async (kind: FolderKind) => {
     // The main process records the folder itself. The event brings the new settings back.
-    await window.scrim.invoke('folder:choose');
+    await window.scrim.invoke('folder:choose', { kind });
   }, []);
 
   return { settings, update, chooseFolder };
@@ -104,7 +106,7 @@ export function useRecordingOutcome(): {
       setFailure(null);
     });
     const offError = window.scrim.on('recording:error', (error) => {
-      setFailure({ message: error.message, nextStep: error.nextStep });
+      setFailure({ message: error.message, nextStep: error.nextStep, code: error.code });
     });
     return () => {
       offFinished();
@@ -197,4 +199,105 @@ export function useScreenshotTaken(onTaken: (shot: ScreenshotTaken) => void): vo
       }),
     [],
   );
+}
+
+export type ShotListEntry = OutputOf<'image:list'>[number];
+
+/**
+ * The screenshots in the screenshots folder, newest first. It reads again whenever `refreshKey`
+ * changes or the Screenshot view opens, which the screen bumps after every capture, edit and delete, and when the window regains focus.
+ */
+export function useScreenshots(
+  refreshKey: number,
+  active: boolean,
+): readonly ShotListEntry[] | null {
+  const [shots, setShots] = useState<readonly ShotListEntry[] | null>(null);
+  const [focusKey, setFocusKey] = useState(0);
+
+  useEffect(() => {
+    const onFocus = (): void => {
+      setFocusKey((key) => key + 1);
+    };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    let alive = true;
+    window.scrim
+      .invoke('image:list')
+      .then((list) => {
+        if (alive) setShots(list);
+      })
+      .catch(() => {
+        if (alive) setShots((current) => current ?? []);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [refreshKey, focusKey, active]);
+
+  return shots;
+}
+
+/** The time, read again every minute so words like Today and Yesterday stay right. */
+export function useClock(): number {
+  const [time, setTime] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setTime(Date.now());
+    }, 60_000);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+  return time;
+}
+
+/** Whether this computer has a share sheet Scrim can open. The Share buttons only show when it does. */
+export function useCanShare(): boolean {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void window.scrim.invoke('share:available').then(
+      (value) => {
+        if (alive) setAvailable(value);
+      },
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return available;
+}
+
+export type ExportJobView = EventPayload<'export:status'>;
+
+/**
+ * The most recent export, kept in step with the main process: the one running after Stop, or the last
+ * one that finished. It is read once when the page opens and then follows every status change.
+ */
+export function useExportJob(): ExportJobView | null {
+  const [job, setJob] = useState<ExportJobView | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void window.scrim.invoke('export:latest').then(
+      (latest) => {
+        if (alive) setJob((current) => current ?? latest);
+      },
+      () => undefined,
+    );
+    const off = window.scrim.on('export:status', (next) => {
+      if (alive) setJob(next);
+    });
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
+  return job;
 }

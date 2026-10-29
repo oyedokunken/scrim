@@ -1,0 +1,44 @@
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+/* Green with a butter logo, 44 pixels, like the main button's color. */
+.circle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--scrim-green);
+  color: var(--scrim-butter);
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.circle:hover,
+.circle:focus-visible {
+  background: var(--scrim-green-hover);
+  color: var(--scrim-white);
+  transform: translateY(-2px);
+}
+
+.circle:focus-visible {
+  outline: 3px solid var(--scrim-black);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .circle {
+    transition: none;
+  }
+
+  .circle:hover,
+  .circle:focus-visible {
+    transform: none;
+  }
+}

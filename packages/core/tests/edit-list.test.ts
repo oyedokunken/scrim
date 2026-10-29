@@ -69,3 +69,25 @@ describe('checkEditList', () => {
     ]);
   });
 });
+
+describe('editListSchema zoom moments', () => {
+  it('keeps edited zoom moments and treats a missing list as planner decides', () => {
+    const withZoom = {
+      ...emptyEditList(),
+      zoom: { moments: [{ startMs: 100, endMs: 900, x: 300, y: 200 }] },
+    };
+    expect(editListSchema.parse(withZoom).zoom?.moments).toHaveLength(1);
+    expect(editListSchema.parse(emptyEditList()).zoom).toBeUndefined();
+    expect(
+      editListSchema.parse({ ...emptyEditList(), zoom: { moments: [] } }).zoom?.moments,
+    ).toEqual([]);
+  });
+
+  it('rejects a moment that ends before it starts', () => {
+    const bad = {
+      ...emptyEditList(),
+      zoom: { moments: [{ startMs: 900, endMs: 100, x: 0, y: 0 }] },
+    };
+    expect(editListSchema.safeParse(bad).success).toBe(false);
+  });
+});

@@ -57,8 +57,25 @@ function describeProblems(error: z.ZodError): string {
 
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])$/;
 
+/**
+ * A Vercel preview deployment has no public address of its own to configure, so it takes the one
+ * Vercel assigns and the public repository. Production and local runs get no defaults: they must
+ * set both values, or the build stops.
+ */
+function withPreviewDefaults(
+  source: Record<string, string | undefined>,
+): Record<string, string | undefined> {
+  if (source.VERCEL_ENV !== 'preview') return source;
+  const host = source.VERCEL_URL;
+  return {
+    ...source,
+    SITE_URL: source.SITE_URL || (host ? `https://${host}` : undefined),
+    GITHUB_REPO: source.GITHUB_REPO || 'oyedokunken/scrim',
+  };
+}
+
 export function parseSiteEnv(source: Record<string, string | undefined>): SiteEnv {
-  const result = siteSchema.safeParse(source);
+  const result = siteSchema.safeParse(withPreviewDefaults(source));
   if (!result.success) {
     throw new Error(describeProblems(result.error));
   }

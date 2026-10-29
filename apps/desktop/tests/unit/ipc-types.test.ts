@@ -31,7 +31,9 @@ describe('the typed bridge', () => {
       api.on('recorder:exploded', () => undefined);
 
       expectTypeOf(api.invoke('settings:get')).resolves.toEqualTypeOf<Settings>();
-      expectTypeOf(api.invoke('folder:choose')).resolves.toEqualTypeOf<string | null>();
+      expectTypeOf(api.invoke('folder:choose', { kind: 'recordings' })).resolves.toEqualTypeOf<
+        string | null
+      >();
       expectTypeOf(api.invoke('logs:open-folder')).resolves.toBeVoid();
     };
     expect(typeof compileTimeOnly).toBe('function');

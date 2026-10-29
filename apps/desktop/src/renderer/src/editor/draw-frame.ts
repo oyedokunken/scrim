@@ -183,3 +183,63 @@ export function drawFrame(
     }
   }
 }
+
+/** Which picture the stage shows. Compare shows both, split at a point. */
+export type CompareMode = 'before' | 'compare' | 'after';
+
+export const SPLIT_MIN = 0.05;
+export const SPLIT_MAX = 0.95;
+
+/** Where the divider goes for a pointer at `clientX` over a stage that starts at `left`. */
+export function splitFromPointer(clientX: number, left: number, width: number): number {
+  if (width <= 0) return 0.5;
+  return Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, (clientX - left) / width));
+}
+
+/**
+ * The recording as it was captured, fitted into the output frame with nothing added: no zoom,
+ * no halo, no background and no camera bubble. It is what Before shows.
+ */
+export function drawRaw(
+  ctx: CanvasRenderingContext2D,
+  output: { width: number; height: number },
+  screen: FrameMedia['screen'],
+): void {
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, output.width, output.height);
+  if (screen.videoWidth <= 0 || screen.videoHeight <= 0) return;
+  const fit = Math.min(output.width / screen.videoWidth, output.height / screen.videoHeight);
+  const w = screen.videoWidth * fit;
+  const h = screen.videoHeight * fit;
+  ctx.drawImage(screen, (output.width - w) / 2, (output.height - h) / 2, w, h);
+}
+
+/**
+ * Paints the stage for the chosen mode at one moment. Before is the raw capture, After is the
+ * finished frame with every effect, and Compare is the finished frame with the raw capture over
+ * its left side up to `split`. Both come from the same description and the same video clock, so
+ * they never drift apart.
+ */
+export function paintFrame(
+  ctx: CanvasRenderingContext2D,
+  mode: CompareMode,
+  split: number,
+  model: RenderModel,
+  frame: FrameDescription,
+  media: FrameMedia,
+  paint: CssCursorPaint,
+): void {
+  const { output } = model.layout;
+  if (mode === 'before') {
+    drawRaw(ctx, output, media.screen);
+    return;
+  }
+  drawFrame(ctx, model, frame, media, paint);
+  if (mode === 'after') return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, output.width * split, output.height);
+  ctx.clip();
+  drawRaw(ctx, output, media.screen);
+  ctx.restore();
+}

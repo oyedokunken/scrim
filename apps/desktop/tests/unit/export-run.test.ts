@@ -1,8 +1,10 @@
 import { execFileSync } from 'node:child_process';
-import { readdirSync, rmSync } from 'node:fs';
+import { readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { exportRecording } from '../../src/main/export/exporter';
-import { cursorPaintFor, styleFromSettings } from '../../src/main/export/look';
+import { cursorPaintFor } from '../../src/main/export/look';
+import { renderStyleFromSettings } from '../../src/shared/render-style';
 import { runProcess } from '../../src/main/recording/ffmpeg';
 import { DEFAULT_SETTINGS } from '../../src/shared/settings';
 import type { ExportRequest } from '../../src/main/export/types';
@@ -28,7 +30,7 @@ function requestFor(fixture: Fixture, overrides: Partial<ExportRequest> = {}): E
       micGain: 1,
       shadow: true,
     },
-    style: styleFromSettings({ ...DEFAULT_SETTINGS, cameraOn: true }),
+    style: renderStyleFromSettings({ ...DEFAULT_SETTINGS, cameraOn: true }),
     paint: cursorPaintFor('brand'),
     ...overrides,
   };
@@ -140,4 +142,109 @@ describe.skipIf(tools === undefined)('exportRecording', () => {
     expect(outcome.error.code).toBe('cancelled');
     expect(readdirSync(fixture.outputDir)).toEqual([]);
   }, 45_000);
+
+  it('uses the edited zoom moments instead of the planner, and no zoom for an empty list', async () => {
+    if (tools === undefined) return;
+    const fixture = makeFixture(tools, { seconds: 4 });
+    made.push(fixture);
+    const deps = { paths: tools, run: runProcess, log: () => undefined };
+    const noBackground = {
+      ...requestFor(fixture, { collision: 'replace' }),
+      style: {
+        zoom: { enabled: true, maxZoom: 2 },
+        background: { spec: { kind: 'none' as const } },
+      },
+    };
+    const frameHash = (path: string): string =>
+      execFileSync(
+        tools.ffmpeg,
+        ['-v', 'error', '-ss', '1.6', '-i', path, '-frames:v', '1', '-f', 'md5', '-'],
+        { encoding: 'utf8' },
+      );
+    const edit = (zoom: unknown): void => {
+      writeFileSync(
+        join(fixture.folder, 'edits.json'),
+        JSON.stringify({
+          version: 1,
+          trim: null,
+          cuts: [],
+          ...(zoom === undefined ? {} : { zoom }),
+        }),
+      );
+    };
+    const run = async (name: string): Promise<string> => {
+      const outcome = await exportRecording(deps, { ...noBackground, fileName: name });
+      if (!outcome.ok) throw new Error(outcome.error.message);
+      return frameHash(outcome.path);
+    };
+    edit(undefined);
+    const planned = await run('planned');
+    edit({ moments: [] });
+    const none = await run('none');
+    edit({ moments: [{ startMs: 1200, endMs: 3000, x: 200, y: 150 }] });
+    const added = await run('added');
+    expect(none).not.toBe(planned);
+    expect(added).not.toBe(none);
+    expect(added).not.toBe(planned);
+  }, 180_000);
+
+  it('draws the camera bubble at its recorded position, with sound in step with the picture', async () => {
+    if (tools === undefined) return;
+    const fixture = makeFixture(tools, { seconds: 4, camera: true, mic: true });
+    made.push(fixture);
+    const outcome = await exportRecording(
+      { paths: tools, run: runProcess, log: () => undefined },
+      {
+        ...requestFor(fixture),
+        style: {
+          cursor: { style: 'off' },
+          zoom: { enabled: false },
+          background: { spec: { kind: 'none' } },
+          bubble: { visible: true, shape: 'circle' },
+        },
+      },
+    );
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const pixelAt = (x: number, y: number): number[] => {
+      const out = execFileSync(tools.ffmpeg, [
+        '-v',
+        'error',
+        '-ss',
+        '1',
+        '-i',
+        outcome.path,
+        '-frames:v',
+        '1',
+        '-vf',
+        `format=rgb24,crop=1:1:${String(x)}:${String(y)}`,
+        '-f',
+        'rawvideo',
+        '-pix_fmt',
+        'rgb24',
+        '-',
+      ]);
+      return [...out];
+    };
+    // Recorded at 16, 300 with size 120 on a 1.5 scale display: 24, 450 and 180 wide.
+    const ring = pixelAt(114, 451);
+    expect(Math.min(...ring)).toBeGreaterThan(225);
+    const face = pixelAt(114, 540);
+    expect(face[1]).toBeGreaterThan(120);
+    expect(face[0]).toBeLessThan(110);
+    // Outside the circle, in the corner of the bubble's square, the screen shows.
+    const corner = pixelAt(26, 452);
+    expect(corner).not.toEqual(face);
+    const info = probe(outcome.path);
+    const durations = execFileSync(
+      tools.ffprobe,
+      ['-v', 'error', '-show_entries', 'stream=codec_type,duration', '-of', 'json', outcome.path],
+      { encoding: 'utf8' },
+    );
+    const parsed = JSON.parse(durations) as { streams: { codec_type: string; duration: string }[] };
+    const video = Number(parsed.streams.find((x) => x.codec_type === 'video')?.duration);
+    const audio = Number(parsed.streams.find((x) => x.codec_type === 'audio')?.duration);
+    expect(Math.abs(video - audio)).toBeLessThan(1 / 30 + 0.025);
+    expect(info.streams).toHaveLength(2);
+  }, 180_000);
 });

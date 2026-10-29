@@ -20,7 +20,8 @@ const COPY: Readonly<Record<RecordingErrorCode, { message: string; nextStep: str
   },
   'folder-not-writable': {
     message: 'Scrim cannot write to this folder.',
-    nextStep: 'Choose another folder.',
+    nextStep:
+      'Choose another folder. If Windows Security blocked Scrim, allow it under Controlled folder access.',
   },
   'folder-unavailable': {
     message: 'The folder is no longer available. Your recording was saved up to this point.',
@@ -52,7 +53,7 @@ const COPY: Readonly<Record<RecordingErrorCode, { message: string; nextStep: str
   },
   'ffmpeg-missing': {
     message: 'Scrim could not find the tool it needs to finish the recording.',
-    nextStep: 'Your footage is safe in the recording folder. Install FFmpeg, then recover it.',
+    nextStep: 'Your footage is safe in the recording folder. Reinstall Scrim, then recover it.',
   },
   'remux-failed': {
     message: 'Scrim could not make a playable copy of the recording.',

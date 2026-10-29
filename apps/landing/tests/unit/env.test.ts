@@ -111,6 +111,27 @@ describe('parseSiteEnv', () => {
   it('fails without them', () => {
     expect(() => parseSiteEnv({})).toThrow(/SITE_URL/);
   });
+
+  it('gives a preview deployment its Vercel address and the public repository', () => {
+    expect(parseSiteEnv({ VERCEL_ENV: 'preview', VERCEL_URL: 'scrim-abc.vercel.app' })).toEqual({
+      SITE_URL: 'https://scrim-abc.vercel.app',
+      GITHUB_REPO: 'oyedokunken/scrim',
+    });
+  });
+
+  it('keeps values that are set on a preview, and gives production no defaults', () => {
+    expect(
+      parseSiteEnv({
+        VERCEL_ENV: 'preview',
+        VERCEL_URL: 'x.vercel.app',
+        SITE_URL: 'https://beta.scrim.example',
+        GITHUB_REPO: 'a/b',
+      }).SITE_URL,
+    ).toBe('https://beta.scrim.example');
+    expect(() => parseSiteEnv({ VERCEL_ENV: 'production', VERCEL_URL: 'x.vercel.app' })).toThrow(
+      /SITE_URL/,
+    );
+  });
 });
 
 describe('SITE_URL in a production deployment', () => {

@@ -4,24 +4,45 @@ import {
   type BubbleDeps,
   type BubbleWindow,
 } from '../../src/main/recording/bubble-controller';
-import { BUBBLE, cornerPositions, type Point } from '../../src/recorder/bubble/geometry';
+import {
+  BUBBLE,
+  cornerPositions,
+  type BubbleShape,
+  type Corner,
+  type Point,
+} from '../../src/recorder/bubble/geometry';
 
 const workArea = { x: 0, y: 0, width: 1920, height: 1040 };
 const positions = cornerPositions(workArea, 52);
 
-function setup(options: { camera?: boolean } = {}) {
+interface BubbleLook {
+  corner: Corner;
+  size: number;
+  shape: BubbleShape;
+}
+
+function setup(
+  options: {
+    camera?: boolean;
+    look?: BubbleLook;
+    recording?: boolean;
+  } = {},
+) {
   const clock = { now: 10_000 };
   const timers: { id: number; callback: () => void; ms: number }[] = [];
   let nextId = 1;
   const placed: { circle: Point; side: string }[] = [];
   const records: unknown[] = [];
   const calls: string[] = [];
+  const areaAsked: (string | undefined)[] = [];
   let cursor: Point = { x: 960, y: 500 };
   let dragStart: () => void = () => undefined;
   let dragEnd: (circle: Point) => void = () => undefined;
   const window: BubbleWindow = {
     open: (input) => {
-      calls.push(`open ${String(input.circle.x)},${String(input.circle.y)} ${input.side}`);
+      calls.push(
+        `open ${String(input.circle.x)},${String(input.circle.y)} ${input.side} ${String(input.size)} ${input.shape}`,
+      );
     },
     close: () => calls.push('close'),
     place: (circle, side) => placed.push({ circle, side }),
@@ -34,11 +55,18 @@ function setup(options: { camera?: boolean } = {}) {
   };
   const deps: BubbleDeps = {
     window,
-    devices: () => ({
-      camera: { enabled: options.camera ?? true },
-      mic: { enabled: true },
-    }),
-    area: () => ({ workArea, bottomInset: 52 }),
+    devices: () =>
+      options.recording === false
+        ? undefined
+        : {
+            camera: { enabled: options.camera ?? true },
+            mic: { enabled: true },
+          },
+    look: () => options.look ?? { corner: 'bl', size: 180, shape: 'circle' },
+    area: (displayId) => {
+      areaAsked.push(displayId);
+      return { workArea, bottomInset: 52 };
+    },
     cursor: () => cursor,
     now: () => clock.now,
     timers: {
@@ -69,6 +97,7 @@ function setup(options: { camera?: boolean } = {}) {
     placed,
     records,
     calls,
+    areaAsked,
     advance,
     setCursor: (point: Point) => {
       cursor = point;
@@ -90,7 +119,9 @@ describe('the camera bubble controller', () => {
     const t = setup();
     t.controller.start();
     expect(t.controller.isOpen()).toBe(true);
-    expect(t.calls).toEqual([`open ${String(positions.bl.x)},${String(positions.bl.y)} right`]);
+    expect(t.calls).toEqual([
+      `open ${String(positions.bl.x)},${String(positions.bl.y)} right 180 circle`,
+    ]);
     expect(t.records).toEqual([
       { corner: 'bl', x: positions.bl.x, y: positions.bl.y, size: BUBBLE.size },
     ]);
@@ -174,5 +205,69 @@ describe('the camera bubble controller', () => {
     t.drag.end({ x: 5, y: 5 });
     t.advance(400);
     expect(t.records).toHaveLength(1);
+  });
+
+  describe('before the countdown', () => {
+    it('shows at the chosen corner on the display with the choice and notes nothing yet', () => {
+      const t = setup({ recording: false });
+      t.controller.preview({ displayId: '222', camera: {}, mic: { enabled: true } });
+      expect(t.controller.isOpen()).toBe(true);
+      expect(t.controller.isPreviewing()).toBe(true);
+      expect(t.areaAsked).toContain('222');
+      expect(t.records).toEqual([]);
+      expect(t.calls).toHaveLength(1);
+    });
+
+    it('stays still when the cursor comes close, because nothing is recording yet', () => {
+      const t = setup({ recording: false });
+      t.controller.preview({ displayId: '1', camera: {}, mic: { enabled: true } });
+      const before = t.controller.state().circle;
+      t.setCursor({ x: before.x + 10, y: before.y + 10 });
+      t.advance(4000);
+      expect(t.controller.state().circle).toEqual(before);
+      expect(t.records).toEqual([]);
+    });
+
+    it('goes live in place when the recording starts, with no second window and a first keyframe', () => {
+      const t = setup();
+      t.controller.preview({ displayId: '1', camera: {}, mic: { enabled: true } });
+      t.controller.start();
+      expect(t.calls.filter((call) => call.startsWith('open'))).toHaveLength(1);
+      expect(t.calls).not.toContain('close');
+      expect(t.controller.isPreviewing()).toBe(false);
+      expect(t.records).toEqual([
+        { corner: 'bl', x: positions.bl.x, y: positions.bl.y, size: BUBBLE.size },
+      ]);
+      expect(t.timers.length).toBeGreaterThan(0);
+    });
+
+    it('closes when the recording that started has no camera', () => {
+      const t = setup({ camera: false });
+      t.controller.preview({ displayId: '1', camera: {}, mic: { enabled: true } });
+      t.controller.start();
+      expect(t.controller.isOpen()).toBe(false);
+      expect(t.calls).toContain('close');
+    });
+
+    it('takes the preview away when the choice is lost, and not a live bubble', () => {
+      const t = setup({ recording: false });
+      t.controller.preview({ displayId: '1', camera: {}, mic: { enabled: true } });
+      t.controller.endPreview();
+      expect(t.controller.isOpen()).toBe(false);
+      const live = setup();
+      live.controller.start();
+      live.controller.endPreview();
+      expect(live.controller.isOpen()).toBe(true);
+    });
+  });
+
+  describe('the choices in settings', () => {
+    it('starts at the chosen corner with the chosen size and shape', () => {
+      const t = setup({ look: { corner: 'tr', size: 240, shape: 'rounded-square' } });
+      const top = cornerPositions(workArea, 52, 240).tr;
+      t.controller.start();
+      expect(t.calls).toEqual([`open ${String(top.x)},${String(top.y)} left 240 rounded-square`]);
+      expect(t.records).toEqual([{ corner: 'tr', x: top.x, y: top.y, size: 240 }]);
+    });
   });
 });

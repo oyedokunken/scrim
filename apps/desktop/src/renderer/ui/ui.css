@@ -747,3 +747,34 @@
 .ui-swatch-red {
   background: var(--scrim-record);
 }
+
+/* Menu. The same popover list as the select, opened from an icon button and lined up at its right edge. */
+.ui-menu-wrap {
+  display: inline-flex;
+}
+
+.ui-menu {
+  left: auto;
+  right: anchor(right);
+  min-width: 180px;
+}
+
+.ui-menu-item {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+
+.ui-menu-item.danger {
+  color: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
+}
+
+.ui-menu-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+}

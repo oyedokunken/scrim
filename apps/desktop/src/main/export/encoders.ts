@@ -1,13 +1,22 @@
 import type { ResolutionPreset } from '@scrim/core/render';
 import type { FfmpegPaths, RunProcess } from '../recording/ffmpeg';
 
-export type EncoderName = 'h264_nvenc' | 'h264_qsv' | 'h264_amf' | 'h264_mf' | 'libopenh264';
+export type EncoderName =
+  | 'h264_nvenc'
+  | 'h264_qsv'
+  | 'h264_amf'
+  | 'h264_videotoolbox'
+  | 'h264_vaapi'
+  | 'h264_mf'
+  | 'libopenh264';
 
 /** Hardware first, then the Windows Media Foundation encoder, then the software one. */
 export const ENCODER_ORDER: readonly EncoderName[] = [
   'h264_nvenc',
   'h264_qsv',
   'h264_amf',
+  'h264_videotoolbox',
+  'h264_vaapi',
   'h264_mf',
   'libopenh264',
 ];
@@ -41,6 +50,10 @@ export function encoderArgs(
       return ['-c:v', encoder, '-b:v', rate, '-maxrate', rate, '-g', gop];
     case 'h264_amf':
       return ['-c:v', encoder, '-quality', 'balanced', '-b:v', rate, '-g', gop];
+    case 'h264_videotoolbox':
+      return ['-c:v', encoder, '-b:v', rate, '-g', gop];
+    case 'h264_vaapi':
+      return ['-c:v', encoder, '-b:v', rate, '-g', gop];
     case 'h264_mf':
       return ['-c:v', encoder, '-b:v', rate, '-g', gop];
     case 'libopenh264':

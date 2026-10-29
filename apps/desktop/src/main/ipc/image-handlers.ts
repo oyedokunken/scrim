@@ -20,6 +20,8 @@ export interface ImageDeps {
   /** The system save dialog. Null when the person cancels. */
   chooseSavePath: (defaultName: string) => Promise<string | null>;
   startDrag: (path: string) => void;
+  /** Opens the system share sheet for a file. Null when there is none. */
+  share: ((path: string) => Promise<void>) | null;
   /** Moves the file to the recycle bin, so a delete can be undone from there. */
   trash: (path: string) => Promise<void>;
   /** The files directly inside a folder, with their size and time. Empty when it does not exist. */
@@ -79,6 +81,7 @@ type ImageHandlers = Pick<
   | 'image:delete'
   | 'image:list'
   | 'image:thumbnail'
+  | 'image:share'
 >;
 
 export function createImageHandlers(deps: ImageDeps): ImageHandlers {
@@ -140,6 +143,10 @@ export function createImageHandlers(deps: ImageDeps): ImageHandlers {
       return entries.filter((entry): entry is ShotEntry => entry !== null);
     },
     'image:thumbnail': ({ path }) => deps.thumbnail(screenshot(path), THUMBNAIL_WIDTH),
+    'image:share': async ({ path }) => {
+      if (deps.share === null) throw new ImageError('sharing is not available');
+      await deps.share(screenshot(path));
+    },
     'image:delete': async ({ path }) => {
       await deps.trash(screenshot(path));
     },

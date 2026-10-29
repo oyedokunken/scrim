@@ -44,6 +44,10 @@ body {
   cursor: grab;
 }
 
+.bubble.square {
+  border-radius: 22%;
+}
+
 video {
   width: 100%;
   height: 100%;

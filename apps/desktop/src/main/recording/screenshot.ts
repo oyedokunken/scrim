@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { cropInPixels, type Box } from './crop';
 import type { ServiceFs } from './fs-adapter';
 import { errorFromFs, makeError } from './messages';
-import type { Outcome } from './types';
+import type { Outcome, RecordingError } from './types';
 
 /** What to photograph. The same shapes the recording uses, so the home screen reuses its choice. */
 export type ScreenshotSource =
@@ -20,6 +20,8 @@ export interface ScreenshotResult {
   /** The saved file, when one was saved. */
   path?: string | undefined;
   copied: boolean;
+  /** Set when the picture could not be saved but may still have been copied, so it is not silent. */
+  saveError?: RecordingError | undefined;
   width: number;
   height: number;
 }
@@ -126,6 +128,8 @@ export async function takeScreenshot(
       await deps.fs.rename(temp, path);
     } catch (error) {
       path = undefined;
+      // The copy may still work, so this is the only trace of why no file was saved.
+      deps.log(`The screenshot could not be saved: ${String(error)}`);
       saveError = { ok: false, error: errorFromFs(error, 'start') };
     }
   }
@@ -144,5 +148,14 @@ export async function takeScreenshot(
   if (path === undefined && !copied) {
     return saveError ?? { ok: false, error: makeError('unknown', 'clipboard') };
   }
-  return { ok: true, value: { path, copied, width, height } };
+  return {
+    ok: true,
+    value: {
+      path,
+      copied,
+      width,
+      height,
+      ...(saveError === undefined || saveError.ok ? {} : { saveError: saveError.error }),
+    },
+  };
 }

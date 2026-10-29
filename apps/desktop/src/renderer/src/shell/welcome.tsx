@@ -1,8 +1,7 @@
-import { useEffect, type MouseEvent } from 'react';
+import { useEffect } from 'react';
 import { Button } from '../../ui';
 import { BrandMark } from '../brand-mark';
-
-const OWNER_URL = 'https://www.oyedokun.dev/';
+import { BuiltBy } from './built-by';
 
 export interface WelcomeProps {
   /** Get started on the first launch, Continue after. */
@@ -31,11 +30,6 @@ export function Welcome({ firstRun, version, onContinue, onOpenLink }: WelcomePr
     };
   }, [onContinue]);
 
-  const open = (event: MouseEvent): void => {
-    event.preventDefault();
-    onOpenLink(OWNER_URL);
-  };
-
   return (
     <main className="welcome">
       <div className="welcome-top">
@@ -49,10 +43,7 @@ export function Welcome({ firstRun, version, onContinue, onOpenLink }: WelcomePr
         <p className="welcome-tagline">Record anything on your screen effortlessly</p>
       </div>
       <p className="welcome-credit">
-        Built by{' '}
-        <a href={OWNER_URL} onClick={open}>
-          @oyedokunken
-        </a>
+        <BuiltBy onOpenLink={onOpenLink} />
       </p>
       <Button variant="primary" className="welcome-button" onClick={onContinue}>
         {firstRun ? 'Get started' : 'Continue'}

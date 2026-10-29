@@ -373,6 +373,33 @@ describe('render model', () => {
     expect(model.layout.output.width % 2).toBe(0);
   });
 
+  it('keeps the zoom view inside a region recording and ignores clicks outside the crop', () => {
+    const crop = { x: 300, y: 300, width: 480, height: 330 };
+    const s = session({
+      source: { kind: 'region', origin: { x: 0, y: 0 }, scaleFactor: 1.5, cropPx: crop },
+    });
+    const press = (t: number, x: number, y: number): InputEvent => ({
+      type: 'click',
+      t,
+      x,
+      y,
+      button: 'left',
+    });
+    const events = [press(2000, 400, 400), press(4000, 1700, 900), press(6000, 650, 500)];
+    const model = createRenderModel(
+      input({ session: s, log: { frame: FRAME, events }, settings: { preset: 'source', fps: 30 } }),
+    );
+    expect(model.zoomMoments.length).toBeGreaterThan(0);
+    for (let t = 0; t < model.totalMs; t += 100) {
+      const { view } = model.describeAt(t);
+      expect(view.x).toBeGreaterThanOrEqual(-1e-6);
+      expect(view.x + view.width).toBeLessThanOrEqual(crop.width + 1e-6);
+      expect(view.y + view.height).toBeLessThanOrEqual(crop.height + 1e-6);
+    }
+    const [first] = model.zoomMoments;
+    expect(first?.x).toBeCloseTo(100, 0);
+  });
+
   it('falls back to the log frame, a default and the default fps', () => {
     const s = session({ source: { kind: 'display', origin: { x: 0, y: 0 }, scaleFactor: 1 } });
     expect(createRenderModel(input({ session: s })).source).toEqual(FRAME);

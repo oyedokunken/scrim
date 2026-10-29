@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { Tooltip } from './tooltip';
 import {
   createContext,
   useCallback,
@@ -40,16 +41,18 @@ function ToastView({ item, onClose }: { item: ToastItem; onClose: (id: number) =
   return (
     <div className="ui-toast">
       <span>{item.message}</span>
-      <button
-        type="button"
-        className="icon-button"
-        aria-label="Dismiss"
-        onClick={() => {
-          onClose(item.id);
-        }}
-      >
-        <X size={16} strokeWidth={1.75} aria-hidden="true" />
-      </button>
+      <Tooltip label="Dismiss">
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Dismiss"
+          onClick={() => {
+            onClose(item.id);
+          }}
+        >
+          <X size={16} strokeWidth={1.75} aria-hidden="true" />
+        </button>
+      </Tooltip>
     </div>
   );
 }

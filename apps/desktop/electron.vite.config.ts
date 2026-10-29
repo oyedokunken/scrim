@@ -27,6 +27,29 @@ function cspMeta(): Plugin {
   };
 }
 
+/**
+ * The recorder, region, pill and bubble pages sit in the renderer folder but load their scripts
+ * from `src/recorder`, one folder up. A build resolves that from the html file. The dev server
+ * resolves a script URL from its root, so `/recorder/...` was not found and those pages stayed
+ * blank, which showed as the area chooser failing to open. This sends those URLs to the files.
+ */
+function recorderPagesInDev(): Plugin {
+  return {
+    name: 'scrim-recorder-pages-dev',
+    apply: 'serve',
+    configureServer(server) {
+      // A file URL's path is already forward slashed, such as /C:/work/scrim/src/recorder/.
+      const folder = new URL('./src/recorder/', import.meta.url).pathname;
+      server.middlewares.use((request, _response, next) => {
+        if (request.url?.startsWith('/recorder/') === true) {
+          request.url = `/@fs${folder}${request.url.slice('/recorder/'.length)}`;
+        }
+        next();
+      });
+    },
+  };
+}
+
 const here = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
@@ -46,7 +69,7 @@ export default defineConfig({
     },
   },
   renderer: {
-    plugins: [react(), cspMeta()],
+    plugins: [react(), cspMeta(), recorderPagesInDev()],
     build: {
       rollupOptions: {
         // The app window, and the hidden recorder page that captures the screen.

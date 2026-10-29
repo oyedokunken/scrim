@@ -17,20 +17,27 @@ import { ZoomPreview } from './panels/zoom-preview';
 import { Placeholder } from './shell/placeholder';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
+import { EditorView } from './editor/editor-view';
+import { SettingsView } from './settings/settings-view';
+import { LibraryView } from './library/library-view';
+import type { OpenedItem } from './library/use-library';
+import { editorApi } from './shell/editor-bridge';
+import { ScreenshotPanel } from './screenshot/screenshot-panel';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
 import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
 import { Camera } from 'lucide-react';
-import { Button } from '../ui';
+import { Button, useShowError, type ShownError } from '../ui';
 import {
   useAppVersion,
   useDevices,
   useRecordingOutcome,
   useRecordingSnapshot,
   useScreenshotTaken,
+  useExportJob,
+  useScreenshots,
   useSettings,
-  type UserError,
 } from './hooks';
 
 const LIVE = new Set(['starting', 'recording', 'paused', 'stopping']);
@@ -40,29 +47,33 @@ function deviceChoice(enabled: boolean, deviceId: string | null) {
 }
 
 /** Pause, resume and stop, shared by the control bar and the main window while recording. */
-function useRecordingControls() {
+function useRecordingControls(onError: (error: ShownError) => void) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<UserError | null>(null);
-
   const run = useCallback(
     async (channel: 'recording:pause' | 'recording:resume' | 'recording:stop') => {
       setBusy(true);
-      setError(null);
       try {
         const result = await window.scrim.invoke(channel);
         if (!result.ok) {
-          setError({ message: result.error.message, nextStep: result.error.nextStep });
+          onError({
+            title: 'Scrim could not do that to the recording',
+            message: result.error.message,
+            nextStep: result.error.nextStep,
+            code: result.error.code,
+            retry: () => {
+              void run(channel);
+            },
+          });
         }
       } finally {
         setBusy(false);
       }
     },
-    [],
+    [onError],
   );
 
   return {
     busy,
-    error,
     pause: () => void run('recording:pause'),
     resume: () => void run('recording:resume'),
     stop: () => void run('recording:stop'),
@@ -72,7 +83,7 @@ function useRecordingControls() {
 /** The small bar over the screen: the whole content of the control window. */
 export function ControlScreen() {
   const snapshot = useRecordingSnapshot();
-  const controls = useRecordingControls();
+  const controls = useRecordingControls(() => undefined);
   return (
     <ControlView
       snapshot={snapshot}
@@ -89,16 +100,24 @@ export function MainScreen() {
   const { settings, update, chooseFolder } = useSettings();
   const snapshot = useRecordingSnapshot();
   const { finished, failure, dismiss } = useRecordingOutcome();
+  const exportJob = useExportJob();
   const devices = useDevices();
-  const controls = useRecordingControls();
+  const showError = useShowError();
+  const controls = useRecordingControls(showError);
   const version = useAppVersion();
   const [starting, setStarting] = useState(false);
-  const [startError, setStartError] = useState<UserError | null>(null);
   const [view, setView] = useState<ViewId>('record');
   const [shooting, setShooting] = useState(false);
-  const [shotError, setShotError] = useState<UserError | null>(null);
   const [shot, setShot] = useState<ShotInfo | null>(null);
+  const [editorFolder, setEditorFolder] = useState<string | null>(null);
+  const [shotsVersion, setShotsVersion] = useState(0);
+  const shots = useScreenshots(shotsVersion, view === 'screenshot');
+  const refreshShots = useCallback(() => {
+    setShotsVersion((version) => version + 1);
+  }, []);
   const [entered, setEntered] = useState(false);
+  // Set by Show welcome again in the settings, which shows the welcome screen once even when it is switched off.
+  const [welcomeNow, setWelcomeNow] = useState(false);
   const [checking, setChecking] = useState(false);
   const phase = snapshot.phase;
 
@@ -107,59 +126,128 @@ export function MainScreen() {
     if (LIVE.has(phase)) dismiss();
   }, [phase, dismiss]);
 
-  const start = useCallback(async (chosen: Settings) => {
-    setStarting(true);
-    setStartError(null);
-    try {
-      // The overlay does the choosing, the countdown and the start. A cancel shows nothing.
-      const result = await window.scrim.invoke('area:run', {
-        mode: 'record',
-        camera: deviceChoice(chosen.cameraOn, chosen.cameraDeviceId),
-        mic: deviceChoice(chosen.micOn, chosen.micDeviceId),
-      });
-      if (!result.ok && result.reason === 'rejected') {
-        setStartError({ message: result.error.message, nextStep: result.error.nextStep });
-      } else if (!result.ok && result.reason === 'failed') {
-        setStartError({
-          message: 'Scrim could not open the area chooser.',
-          nextStep: 'Try again. If it keeps happening, restart Scrim.',
+  const start = useCallback(
+    async (chosen: Settings): Promise<void> => {
+      setStarting(true);
+      try {
+        // The overlay does the choosing, the countdown and the start. A cancel shows nothing.
+        const result = await window.scrim.invoke('area:run', {
+          mode: 'record',
+          camera: deviceChoice(chosen.cameraOn, chosen.cameraDeviceId),
+          mic: deviceChoice(chosen.micOn, chosen.micDeviceId),
+        });
+        if (!result.ok && result.reason === 'rejected') {
+          showError({
+            title: 'Scrim could not start the recording',
+            message: result.error.message,
+            nextStep: result.error.nextStep,
+            code: result.error.code,
+            retry: () => {
+              void start(chosen);
+            },
+          });
+        } else if (!result.ok && result.reason === 'failed') {
+          showError({
+            title: 'Scrim could not open the area chooser',
+            message: 'Try again. If it keeps happening, restart Scrim.',
+            code: 'area-failed',
+            retry: () => {
+              void start(chosen);
+            },
+          });
+        }
+      } finally {
+        setStarting(false);
+      }
+    },
+    [showError],
+  );
+
+  /** A saved capture opens its result. One that was copied but could not be saved says why. */
+  const acceptShot = useCallback(
+    (taken: {
+      path?: string | undefined;
+      saveError?: { message: string; nextStep: string } | undefined;
+      width: number;
+      height: number;
+    }): void => {
+      if (taken.path !== undefined) {
+        setShot({ path: taken.path, width: taken.width, height: taken.height });
+      } else if (taken.saveError !== undefined) {
+        setShot(null);
+        showError({
+          title: 'Scrim copied the screenshot but could not save it',
+          message: taken.saveError.message,
+          nextStep: taken.saveError.nextStep,
+          code: 'screenshot-not-saved',
         });
       }
-    } finally {
-      setStarting(false);
-    }
-  }, []);
+      refreshShots();
+    },
+    [refreshShots, showError],
+  );
 
   // A capture from the shortcut opens the result too, whichever view was showing.
-  useScreenshotTaken(({ path, width, height }) => {
-    setShot({ path, width, height });
+  useScreenshotTaken((taken) => {
+    acceptShot(taken);
     setView('screenshot');
   });
 
   const shoot = useCallback(async () => {
     setShooting(true);
-    setShotError(null);
     try {
       const result = await window.scrim.invoke('area:run', {
         mode: 'screenshot',
         camera: deviceChoice(false, null),
         mic: deviceChoice(false, null),
       });
-      if (result.ok && result.mode === 'screenshot' && result.result.path !== undefined) {
-        const { path, width, height } = result.result;
-        setShot({ path, width, height });
+      if (result.ok && result.mode === 'screenshot') {
+        acceptShot(result.result);
       } else if (!result.ok && result.reason === 'rejected') {
-        setShotError({ message: result.error.message, nextStep: result.error.nextStep });
+        showError({
+          title: 'Scrim could not take the screenshot',
+          message: result.error.message,
+          nextStep: result.error.nextStep,
+          code: result.error.code,
+          retry: () => {
+            void shoot();
+          },
+        });
       } else if (!result.ok && result.reason === 'failed') {
-        setShotError({
-          message: 'Scrim could not open the area chooser.',
-          nextStep: 'Try again. If it keeps happening, restart Scrim.',
+        showError({
+          title: 'Scrim could not open the area chooser',
+          message: 'Try again. If it keeps happening, restart Scrim.',
+          code: 'area-failed',
+          retry: () => {
+            void shoot();
+          },
         });
       }
     } finally {
       setShooting(false);
     }
-  }, []);
+  }, [acceptShot, showError]);
+
+  // A failure the engine reports on its own, such as a full disk, shows once.
+  useEffect(() => {
+    if (failure === null) return;
+    showError({
+      title: 'Your recording ran into a problem',
+      message: failure.message,
+      nextStep: failure.nextStep,
+      code: failure.code,
+    });
+  }, [failure, showError]);
+
+  const openItem = (opened: OpenedItem): void => {
+    if (opened.kind === 'editor') {
+      setEditorFolder(opened.folder);
+      setView('editor');
+    } else {
+      setShot({ path: opened.path, width: opened.width, height: opened.height });
+      setView('screenshot');
+    }
+  };
 
   if (settings === null) {
     return (
@@ -180,7 +268,7 @@ export function MainScreen() {
     );
   }
 
-  if (!entered && (settings.showWelcome || !settings.firstRunDone)) {
+  if (!entered && (welcomeNow || settings.showWelcome || !settings.firstRunDone)) {
     return (
       <Welcome
         firstRun={!settings.firstRunDone}
@@ -189,6 +277,7 @@ export function MainScreen() {
           void window.scrim.invoke('shell:open-external', { url });
         }}
         onContinue={() => {
+          setWelcomeNow(false);
           if (settings.firstRunDone) setEntered(true);
           else setChecking(true);
         }}
@@ -216,10 +305,20 @@ export function MainScreen() {
     shadow: settings.backgroundShadow,
   };
   const live = LIVE.has(snapshot.phase);
-  const folder = settings.destinationFolder ?? 'Videos\\Scrim';
+  const folder =
+    view === 'screenshot'
+      ? (settings.screenshotFolder ?? 'Pictures\\Scrim')
+      : (settings.destinationFolder ?? 'Videos\\Scrim');
+  const exporting = exportJob?.phase === 'queued' || exportJob?.phase === 'running';
   const state = live
     ? `${snapshot.phase === 'paused' ? 'Paused' : 'Recording'} ${formatTimer(snapshot.elapsedMs)}`
-    : 'Ready';
+    : exporting
+      ? `Making video ${
+          exportJob.progress === null
+            ? ''
+            : `${String(Math.round(exportJob.progress.fraction * 100))}%`
+        }`.trim()
+      : 'Ready';
 
   const startButton = (
     <Button
@@ -254,7 +353,6 @@ export function MainScreen() {
       <RecordingView
         snapshot={snapshot}
         busy={controls.busy}
-        error={controls.error}
         onPause={controls.pause}
         onResume={controls.resume}
         onStop={controls.stop}
@@ -264,15 +362,30 @@ export function MainScreen() {
     main = (
       <RecordView
         busy={starting}
-        error={startError ?? failure}
         onStart={() => void start(settings)}
         saved={
           finished === null || !showsSavedCard(view)
             ? undefined
             : {
                 finished,
+                job: exportJob,
+                onCancelExport: (jobId: string) => {
+                  void window.scrim.invoke('export:cancel', { jobId });
+                },
+                onRetrySafer: (jobId: string) => {
+                  void window.scrim.invoke('export:retry-safer', { jobId });
+                },
+                onReveal: (jobId: string, what: 'output' | 'source') => {
+                  void window.scrim.invoke('export:reveal', { jobId, what });
+                },
+                onExportAgain: () => {
+                  void window.scrim.invoke('export:start', { folder: finished.folder });
+                },
                 onShowInFolder: () => {
                   void window.scrim.invoke('shell:show-in-folder', { path: finished.folder });
+                },
+                onOpenEditor: () => {
+                  openItem({ kind: 'editor', folder: finished.folder });
                 },
                 onRecordAgain: dismiss,
               }
@@ -284,12 +397,47 @@ export function MainScreen() {
       <ScreenshotView
         key={shot?.path ?? 'none'}
         busy={shooting}
-        error={shotError}
         shot={shot}
         onClearShot={() => {
           setShot(null);
+          refreshShots();
+        }}
+        onShot={(next) => {
+          setShot(next);
+          refreshShots();
         }}
         onTake={() => void shoot()}
+      />
+    );
+  } else if (view === 'editor' && editorFolder !== null) {
+    main = (
+      <EditorView key={editorFolder} folder={editorFolder} api={editorApi} settings={settings} />
+    );
+  } else if (view === 'library') {
+    main = (
+      <LibraryView
+        active
+        onOpened={openItem}
+        onRecord={() => {
+          setView('record');
+        }}
+      />
+    );
+  } else if (view === 'settings') {
+    main = (
+      <SettingsView
+        settings={settings}
+        update={update}
+        chooseFolder={chooseFolder}
+        version={version}
+        onShowWelcome={() => {
+          setWelcomeNow(true);
+          setChecking(false);
+          setEntered(false);
+        }}
+        onOpenLink={(url) => {
+          void window.scrim.invoke('shell:open-external', { url });
+        }}
       />
     );
   } else if (view === 'cursor') {
@@ -383,7 +531,15 @@ export function MainScreen() {
         cameras={devices.cameras}
         mics={devices.mics}
         onChange={update}
-        onChooseFolder={() => void chooseFolder()}
+        onChooseFolder={() => void chooseFolder('recordings')}
+      />
+    ) : view === 'screenshot' ? (
+      <ScreenshotPanel
+        shots={shots}
+        openPath={shot?.path ?? null}
+        onOpen={(entry) => {
+          setShot({ path: entry.path, width: entry.width, height: entry.height });
+        }}
       />
     ) : (
       <Placeholder view={view} inPanel />

@@ -45,6 +45,14 @@ describe('buildAreaRequest', () => {
     expect(request.folder).toBeUndefined();
   });
 
+  it('counts down 3, 2, 1 unless the countdown is switched off', () => {
+    expect(buildAreaRequest(input, DEFAULT_SETTINGS, 'PICTURES').countdownSeconds).toBe(3);
+    expect(
+      buildAreaRequest(input, { ...DEFAULT_SETTINGS, countdownOn: false }, 'PICTURES')
+        .countdownSeconds,
+    ).toBe(0);
+  });
+
   it('takes screenshots into the pictures folder and copies them', () => {
     const request = buildAreaRequest(
       { ...input, mode: 'screenshot' },
@@ -66,6 +74,32 @@ describe('toBridgeAreaOutcome', () => {
   it('drops the session folder of a started recording', () => {
     const out = toBridgeAreaOutcome({ ok: true, mode: 'record', folder: 'SESSION' });
     expect(out).toEqual({ ok: true, mode: 'record' });
+    expect(areaOutcomeSchema.safeParse(out).success).toBe(true);
+  });
+
+  it('passes on why a screenshot could not be saved, without the technical detail', () => {
+    const out = toBridgeAreaOutcome({
+      ok: true,
+      mode: 'screenshot',
+      result: {
+        copied: true,
+        width: 10,
+        height: 5,
+        saveError: {
+          code: 'folder-not-writable',
+          message: 'Windows blocked it.',
+          nextStep: 'Allow Scrim.',
+          detail: 'EPERM C:/secret',
+        },
+      },
+    });
+    expect(out).toMatchObject({
+      result: {
+        copied: true,
+        saveError: { message: 'Windows blocked it.', nextStep: 'Allow Scrim.' },
+      },
+    });
+    expect(JSON.stringify(out)).not.toContain('secret');
     expect(areaOutcomeSchema.safeParse(out).success).toBe(true);
   });
 

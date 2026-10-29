@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
+import { editorContract } from './editor-contract';
+import { exportContract, exportJobSchema } from './export-contract';
 import { imageContract } from './image-contract';
+import { libraryContract } from './library-contract';
 import {
   areaOutcomeSchema,
   areaRequestSchema,
@@ -17,12 +20,16 @@ import {
   warningSchema,
 } from './recording-contract';
 import { settingsPatchSchema, settingsSchema } from './settings';
+import { SHORTCUT_IDS } from './shortcut-keys';
 
 /** A link the app may open: the Scrim repository on GitHub, nothing else. */
 const allowedUrlSchema = z
   .string()
   .max(2048)
   .refine(isAllowedExternalUrl, 'That link is not allowed.');
+
+/** Which of the two save folders a call is about. The page never names a path. */
+const folderKindInput = z.object({ kind: z.enum(['recordings', 'screenshots']) }).strict();
 
 /**
  * Every call the renderer can make, with the exact shape of what goes in and what comes out.
@@ -34,16 +41,40 @@ export const contract = {
   'app:version': { input: z.void(), output: z.string().min(1).max(64) },
   'settings:get': { input: z.void(), output: settingsSchema },
   'settings:set': { input: settingsPatchSchema, output: settingsSchema },
-  'folder:choose': { input: z.void(), output: z.string().nullable() },
+  'folder:choose': { input: folderKindInput, output: z.string().nullable() },
+  'folder:open': { input: folderKindInput, output: z.void() },
   'shell:open-external': {
     input: z.object({ url: allowedUrlSchema }).strict(),
     output: z.void(),
   },
   'shell:show-in-folder': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
   'logs:open-folder': { input: z.void(), output: z.void() },
+  /** The answer to the close question, which the page shows in its own dialog. `shown` says it is on screen. */
+  'window:close-answer': {
+    input: z.object({ answer: z.enum(['shown', 'keep', 'stop', 'cancel']) }).strict(),
+    output: z.void(),
+  },
+  /** The global shortcuts that another program already owns, so the settings page can say so. */
+  'shortcuts:status': {
+    input: z.void(),
+    output: z.object({ unavailable: z.array(z.enum(SHORTCUT_IDS)) }).strict(),
+  },
+  /** Lets go of the global shortcuts while a key is being chosen, so pressing the old one does not run it. */
+  'shortcuts:suspend': { input: z.object({ suspended: z.boolean() }).strict(), output: z.void() },
+  /** Old working folders that an earlier version left in the folder for finished videos. */
+  'legacy:count': { input: z.void(), output: z.number().int().nonnegative() },
+  'legacy:move': {
+    input: z.void(),
+    output: z
+      .object({ moved: z.number().int().nonnegative(), failed: z.number().int().nonnegative() })
+      .strict(),
+  },
   'area:run': { input: areaRequestSchema, output: areaOutcomeSchema },
   'area:cancel': { input: z.void(), output: z.void() },
   ...imageContract,
+  ...libraryContract,
+  ...editorContract,
+  ...exportContract,
   // The destination is not an input: the main process uses the folder the person chose.
   'recording:start': {
     input: z
@@ -76,10 +107,19 @@ export const events = {
   'recording:warning': warningSchema,
   'recording:error': recordingErrorSchema,
   'recording:finished': finishedSchema,
+  /** Every change of an export: queued, running with progress, done, failed or cancelled. */
+  'export:status': exportJobSchema,
+  /** The window was closed during a recording. The page asks what to do in its own dialog. */
+  'window:close-requested': z.object({ trayAvailable: z.boolean() }).strict(),
   /** After every capture, whether it came from the button or the shortcut. */
   'screenshot:taken': z
     .object({
-      path: pathSchema,
+      /** Missing when the picture was copied but could not be saved. */
+      path: pathSchema.optional(),
+      saveError: z
+        .object({ message: z.string().max(500), nextStep: z.string().max(500) })
+        .strict()
+        .optional(),
       width: z.number().int().positive(),
       height: z.number().int().positive(),
     })

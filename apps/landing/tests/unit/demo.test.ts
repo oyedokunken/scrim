@@ -201,6 +201,31 @@ describe('DemoPlayer', () => {
     expect(Math.max(...frames)).toBeLessThan(100);
   });
 
+  it('stops at the end when it does not loop, and says so once', () => {
+    const clock = new ManualClock();
+    const frames: number[] = [];
+    let ended = 0;
+    const player = new DemoPlayer({
+      durationMs: 100,
+      clock,
+      loop: false,
+      onFrame: (t) => frames.push(t),
+      onEnd: () => {
+        ended += 1;
+      },
+    });
+    player.play();
+    clock.advance(200);
+    expect(frames[frames.length - 1]).toBe(100);
+    expect(ended).toBe(1);
+    expect(player.isPlaying).toBe(false);
+    expect(clock.pending).toBe(0);
+    player.seek(500);
+    expect(player.time).toBe(100);
+    player.seek(-5);
+    expect(player.time).toBe(0);
+  });
+
   it('pauses, keeps its place and stops asking for frames', () => {
     const { clock, frames, player } = setup();
     player.play();

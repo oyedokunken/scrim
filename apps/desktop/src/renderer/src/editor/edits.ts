@@ -17,8 +17,8 @@ export interface Edits {
   zoom?: { moments: ZoomMoment[] } | undefined;
 }
 
-export const MIN_TRIM_MS = 500;
-export const MIN_CUT_MS = 100;
+const MIN_TRIM_MS = 500;
+const MIN_CUT_MS = 100;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));

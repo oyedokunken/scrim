@@ -64,6 +64,7 @@ function setup(
     pointer?: string | undefined;
   } = {},
 ) {
+  const previews: string[] = [];
   const overlays = new Map<string, FakeOverlay>();
   const logs: string[] = [];
   const waits: number[] = [];
@@ -107,8 +108,16 @@ function setup(
     readyTimeoutMs: options.readyTimeoutMs ?? 50,
     countdownSeconds: 3,
     captureDelayMs: 100,
+    showPreview: (input) => {
+      previews.push(`show ${input.displayId} ${String(input.camera.deviceId)}`);
+      order.push('preview');
+    },
+    hidePreview: () => {
+      previews.push('hide');
+      order.push('hide');
+    },
   });
-  return { flow, overlays, logs, waits, started, shots, order };
+  return { flow, overlays, logs, waits, started, shots, order, previews };
 }
 
 const flush = async (): Promise<void> => {
@@ -543,5 +552,94 @@ describe('cancelling and bad input', () => {
     expect(started).toEqual([]);
     flow.cancel();
     expect(await pending).toEqual({ ok: false, reason: 'cancelled' });
+  });
+});
+
+describe('the camera bubble before the countdown', () => {
+  const withCamera: AreaRequest = { ...record, camera: { enabled: true, deviceId: 'cam' } };
+
+  it('shows when something is chosen and Start is on offer, before any count', async () => {
+    const { flow, overlays, previews, order } = setup({ displays: [primary] });
+    const pending = flow.run(withCamera);
+    await flush();
+    const overlay = overlays.get('111');
+    overlay?.emit({ type: 'staged', ready: true });
+    expect(previews).toEqual(['show 111 cam']);
+    overlay?.emit({ type: 'confirm-display' });
+    await pending;
+    expect(order.indexOf('preview')).toBeLessThan(order.indexOf('wait 1000'));
+  });
+
+  it('stays through the countdown and the start, and is not hidden when the recording runs', async () => {
+    const { flow, overlays, previews } = setup({ displays: [primary] });
+    const pending = flow.run(withCamera);
+    await flush();
+    const overlay = overlays.get('111');
+    overlay?.emit({ type: 'staged', ready: true });
+    overlay?.emit({ type: 'confirm-display' });
+    expect(await pending).toMatchObject({ ok: true, mode: 'record' });
+    expect(previews).toEqual(['show 111 cam']);
+  });
+
+  it('is hidden when the choice is lost, the camera is turned off, or the person cancels', async () => {
+    const { flow, overlays, previews } = setup({ displays: [primary] });
+    const pending = flow.run(withCamera);
+    await flush();
+    const overlay = overlays.get('111');
+    overlay?.emit({ type: 'staged', ready: true });
+    overlay?.emit({ type: 'staged', ready: false });
+    overlay?.emit({ type: 'staged', ready: true });
+    overlay?.emit({ type: 'devices', camera: { enabled: false }, mic: off });
+    expect(previews).toEqual(['show 111 cam', 'hide', 'show 111 cam', 'hide']);
+    overlay?.emit({ type: 'cancel' });
+    await pending;
+    expect(previews.at(-1)).toBe('hide');
+  });
+
+  it('shows again with the new camera when another one is picked', async () => {
+    const { flow, overlays, previews } = setup({ displays: [primary] });
+    const pending = flow.run(withCamera);
+    await flush();
+    const overlay = overlays.get('111');
+    overlay?.emit({ type: 'staged', ready: true });
+    overlay?.emit({
+      type: 'devices',
+      camera: { enabled: true, deviceId: 'other' },
+      mic: off,
+    });
+    expect(previews).toEqual(['show 111 cam', 'hide', 'show 111 other']);
+    overlay?.emit({ type: 'cancel' });
+    await pending;
+  });
+
+  it('never shows for a screenshot or with the camera off', async () => {
+    const shotRun = setup({ displays: [primary] });
+    const first = shotRun.flow.run({ ...shot, camera: { enabled: true } });
+    await flush();
+    shotRun.overlays.get('111')?.emit({ type: 'staged', ready: true });
+    expect(shotRun.previews).toEqual([]);
+    shotRun.overlays.get('111')?.emit({ type: 'cancel' });
+    await first;
+    const cameraOff = setup({ displays: [primary] });
+    const second = cameraOff.flow.run(record);
+    await flush();
+    cameraOff.overlays.get('111')?.emit({ type: 'staged', ready: true });
+    expect(cameraOff.previews).toEqual([]);
+    cameraOff.overlays.get('111')?.emit({ type: 'cancel' });
+    await second;
+  });
+
+  it('is hidden when the recording could not start', async () => {
+    const error = { code: 'disk-too-full' as const, message: 'No space.', nextStep: 'Free space.' };
+    const { flow, overlays, previews } = setup({
+      displays: [primary],
+      started: { ok: false, error },
+    });
+    const pending = flow.run(withCamera);
+    await flush();
+    overlays.get('111')?.emit({ type: 'staged', ready: true });
+    overlays.get('111')?.emit({ type: 'confirm-display' });
+    await pending;
+    expect(previews).toEqual(['show 111 cam', 'hide']);
   });
 });

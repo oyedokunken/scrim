@@ -19,6 +19,7 @@
     "test": "turbo run test && vitest run --config vitest.config.ts",
     "test:e2e": "turbo run test:e2e",
     "test:lighthouse": "turbo run test:lighthouse",
+    "demo:export": "pnpm --filter @scrim/landing demo:export",
     "check": "pnpm lint && pnpm lint:text && pnpm format:check && pnpm typecheck && turbo run test build && vitest run --config vitest.config.ts",
     "knip": "knip",
     "format": "prettier --write .",

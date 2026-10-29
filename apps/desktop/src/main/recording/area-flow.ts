@@ -39,6 +39,13 @@ export interface AreaDeps {
     source: ScreenshotSource,
     options: ScreenshotOptions,
   ): Promise<Outcome<ScreenshotResult>>;
+  /**
+   * Shows the camera bubble on a display while the person centres themselves, before Start. Called
+   * again when the camera or microphone choice changes. `hidePreview` takes it away. A recording
+   * that starts takes the same bubble over.
+   */
+  showPreview?: (input: { displayId: string; camera: DeviceChoice; mic: DeviceChoice }) => void;
+  hidePreview?: () => void;
   /** Runs before any overlay shows, so the main window can step aside and is never captured. */
   beforeOpen?: () => Promise<void>;
   wait: (ms: number) => Promise<void>;
@@ -74,6 +81,11 @@ export type AreaOutcome =
   /** The area was chosen but starting the recording or taking the picture did not work. */
   | { ok: false; reason: 'rejected'; error: RecordingError };
 
+/** The kind of an error, never its text, which can carry a path. */
+function errorName(error: unknown): string {
+  return error instanceof Error ? error.name : typeof error;
+}
+
 const DEFAULT_READY_TIMEOUT_MS = 10_000;
 const DEFAULT_COUNTDOWN = 3;
 const DEFAULT_CAPTURE_DELAY_MS = 180;
@@ -97,9 +109,25 @@ export function createAreaFlow(deps: AreaDeps): {
     async run(request) {
       if (running !== undefined) return { ok: false, reason: 'busy' };
       const displays = deps.displays();
-      if (displays.length === 0) return { ok: false, reason: 'failed' };
+      if (displays.length === 0) {
+        deps.log('area.failed step=no-displays');
+        return { ok: false, reason: 'failed' };
+      }
 
       let cancelled = false;
+      let handedOver = false;
+      const preview = { shown: false };
+      const tracked: AreaDeps = {
+        ...deps,
+        showPreview: (input) => {
+          preview.shown = true;
+          deps.showPreview?.(input);
+        },
+        hidePreview: () => {
+          preview.shown = false;
+          deps.hidePreview?.();
+        },
+      };
       let finish: (outcome: AreaOutcome) => void = () => undefined;
       const done = new Promise<AreaOutcome>((resolve) => {
         finish = resolve;
@@ -113,9 +141,13 @@ export function createAreaFlow(deps: AreaDeps): {
 
       try {
         await deps.beforeOpen?.();
-        return await choose(deps, request, displays, done, finish, () => cancelled);
+        const outcome = await choose(tracked, request, displays, done, finish, () => cancelled);
+        handedOver = outcome.ok && outcome.mode === 'record';
+        return outcome;
       } finally {
         running = undefined;
+        // A recording that started keeps the bubble. Anything else takes it away.
+        if (!handedOver && preview.shown) deps.hidePreview?.();
       }
     },
     cancel() {
@@ -152,6 +184,24 @@ async function choose(
     confirmedSignal = resolve;
   });
 
+  // The overlay that has something chosen and Start on offer, and the bubble it caused to show.
+  let staged: Entry | undefined;
+  let previewKey: string | undefined;
+  const syncPreview = (): void => {
+    const wanted =
+      request.mode === 'record' && phase !== 'closing' && staged !== undefined && camera.enabled;
+    if (!wanted || staged === undefined) {
+      if (previewKey !== undefined) deps.hidePreview?.();
+      previewKey = undefined;
+      return;
+    }
+    const key = JSON.stringify([staged.display.id, camera.deviceId, mic.enabled, mic.deviceId]);
+    if (key === previewKey) return;
+    if (previewKey !== undefined) deps.hidePreview?.();
+    previewKey = key;
+    deps.showPreview?.({ displayId: staged.display.id, camera, mic });
+  };
+
   const others = (entry: Entry): Entry[] => entries.filter((other) => other !== entry);
   // Overlays this flow closes itself, whose closing is not the person cancelling.
   const closedByUs = new Set<Entry>();
@@ -169,7 +219,7 @@ async function choose(
 
   const timer = setTimeout(() => {
     if (!anyReady) {
-      deps.log('No area overlay appeared in time.');
+      deps.log('area.failed step=overlay-not-ready');
       finish({ ok: false, reason: 'failed' });
     }
   }, deps.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS);
@@ -196,7 +246,7 @@ async function choose(
     try {
       handle = deps.openOverlay(display);
     } catch (error) {
-      deps.log(`An overlay could not be opened: ${String(error)}`);
+      deps.log(`area.failed step=overlay-open error=${errorName(error)}`);
       clearTimeout(timer);
       closeAll();
       return { ok: false, reason: 'failed' };
@@ -229,6 +279,12 @@ async function choose(
           if (windows.length > 0) handle.send({ type: 'windows', tiles: windows });
           if (area === 'window') loadWindows();
           return;
+        case 'staged':
+          if (phase !== 'choosing') return;
+          if (event.ready) staged = entry;
+          else if (staged === entry) staged = undefined;
+          syncPreview();
+          return;
         case 'begin':
           if (phase !== 'choosing') return;
           for (const other of others(entry)) other.handle.send({ type: 'clear' });
@@ -236,6 +292,8 @@ async function choose(
         case 'area':
           if (phase !== 'choosing') return;
           area = event.area;
+          staged = undefined;
+          syncPreview();
           if (area === 'window') loadWindows();
           for (const other of others(entry)) {
             other.handle.send({ type: 'clear' });
@@ -248,6 +306,7 @@ async function choose(
           for (const other of others(entry)) {
             other.handle.send({ type: 'set-devices', camera, mic });
           }
+          syncPreview();
           return;
         case 'cancel':
           finish({ ok: false, reason: 'cancelled' });
@@ -301,6 +360,7 @@ async function choose(
   if (chosen !== 'chosen' || confirmed === undefined) {
     phase = 'closing';
     closeAll();
+    if (chosen === 'chosen') deps.log('area.failed step=nothing-confirmed');
     return chosen === 'chosen' ? { ok: false, reason: 'failed' } : chosen;
   }
 

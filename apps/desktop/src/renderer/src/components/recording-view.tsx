@@ -1,26 +1,17 @@
 import { BrandMark } from '../brand-mark';
 import { formatTimer } from '../format';
-import type { Snapshot, UserError } from '../hooks';
-import { ErrorNotice } from './error-notice';
+import type { Snapshot } from '../hooks';
 
 export interface RecordingViewProps {
   snapshot: Snapshot;
   busy: boolean;
-  error: UserError | null;
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
 }
 
 /** What the main window shows if it is brought forward while a recording is running. */
-export function RecordingView({
-  snapshot,
-  busy,
-  error,
-  onPause,
-  onResume,
-  onStop,
-}: RecordingViewProps) {
+export function RecordingView({ snapshot, busy, onPause, onResume, onStop }: RecordingViewProps) {
   const paused = snapshot.phase === 'paused';
   const saving = snapshot.phase === 'stopping';
   const working = busy || saving;
@@ -31,7 +22,6 @@ export function RecordingView({
         <BrandMark />
         Scrim
       </h1>
-      {error === null ? null : <ErrorNotice error={error} />}
       <div className="panel recording-status" role="status">
         <p className="recording-phase">
           <span className={paused ? 'rec-dot paused' : 'rec-dot'} aria-hidden="true" />

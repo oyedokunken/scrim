@@ -246,8 +246,20 @@ function readyToConfirm(): boolean {
   return true;
 }
 
+const CENTRE_HINT = 'Centre yourself, then press Start';
+
+/** Whether something is chosen here and Start is on offer. A box being adjusted still counts. */
+let staged = false;
+function isStaged(): boolean {
+  if (mode !== 'record' || counting) return false;
+  if (area === 'region') return picker.pixels !== undefined && (!picker.isDragging || staged);
+  return readyToConfirm();
+}
+
 function hintText(): string {
   if (counting) return '';
+  // The camera bubble is showing, so people know to centre themselves before the countdown.
+  if (staged && camera.enabled) return CENTRE_HINT;
   if (area === 'region') {
     return picker.box === undefined ? 'Drag to choose an area. Esc cancels.' : '';
   }
@@ -256,6 +268,11 @@ function hintText(): string {
 }
 
 function render(): void {
+  const nowStaged = isStaged();
+  if (nowStaged !== staged) {
+    staged = nowStaged;
+    send({ type: 'staged', ready: staged });
+  }
   const box = picker.box;
   const showBox = area === 'region' && box !== undefined && !counting;
   document.body.classList.toggle('has-box', showBox);
@@ -276,7 +293,7 @@ function render(): void {
   }
 
   const hint = hintText();
-  dom.hint.hidden = hint === '' || !primary;
+  dom.hint.hidden = hint === '' || !(primary || staged);
   dom.hint.textContent = hint;
 
   dom.camera.setAttribute('aria-pressed', String(camera.enabled));

@@ -23,7 +23,9 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       run: vi.fn(() => Promise.resolve({ ok: false as const, reason: 'cancelled' as const })),
       cancel: vi.fn(),
     },
-    screenshotFolder: () => 'PICTURES',
+    defaultScreenshotFolder: () => 'PICTURES',
+    defaultRecordingsFolder: () => 'VIDEOS',
+    ensureFolder: vi.fn(() => Promise.resolve()),
     images: {
       readFile: vi.fn(() => Promise.resolve(Buffer.from([]))),
       writeNewFile: vi.fn(() => Promise.resolve()),
@@ -33,6 +35,41 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       chooseSavePath: vi.fn(() => Promise.resolve(null)),
       startDrag: vi.fn(),
       trash: vi.fn(() => Promise.resolve()),
+      listFolder: vi.fn(() => Promise.resolve([])),
+      readHead: vi.fn(() => Promise.resolve(Buffer.from([]))),
+      thumbnail: vi.fn(() => 'data:image/png;base64,AA=='),
+    },
+    library: {
+      list: vi.fn(() => Promise.resolve([])),
+      thumbnail: vi.fn(() => Promise.resolve(null)),
+      open: vi.fn(() => Promise.resolve({ kind: 'missing' as const })),
+      rename: vi.fn(() => Promise.resolve({ ok: true })),
+      lookup: vi.fn(() => Promise.resolve(null)),
+      preview: vi.fn(() => Promise.resolve(null)),
+      play: vi.fn(() => Promise.resolve(true)),
+      reveal: vi.fn(),
+      remove: vi.fn(() => Promise.resolve()),
+      share: vi.fn(() => Promise.resolve()),
+    },
+    share: null,
+    shortcutStatus: () => [],
+    exporter: {
+      start: vi.fn(),
+      cancel: vi.fn(),
+      retrySafer: vi.fn(),
+      latest: vi.fn(),
+      reveal: vi.fn(() => Promise.resolve(true)),
+    },
+    closeAnswer: vi.fn(),
+    shortcutsSuspend: vi.fn(),
+    legacy: {
+      count: vi.fn(() => Promise.resolve(2)),
+      move: vi.fn(() => Promise.resolve({ moved: 2, failed: 0 })),
+    },
+    editor: {
+      loadSource: vi.fn(() => Promise.resolve({ ok: false as const, reason: 'missing' as const })),
+      writeEdits: vi.fn(() => Promise.resolve()),
+      isKnownFolder: () => false,
     },
     platform: process.platform,
     version: '1.0.0',
@@ -99,8 +136,71 @@ describe('the handlers', () => {
 
   it('hands back the folder the person chose, or null', async () => {
     const { handlers } = setup({ chooseFolder: () => Promise.resolve('C:\\Chosen') });
-    expect(await handlers['folder:choose'](undefined)).toBe('C:\\Chosen');
-    expect(await setup().handlers['folder:choose'](undefined)).toBeNull();
+    expect(await handlers['folder:choose']({ kind: 'recordings' })).toBe('C:\\Chosen');
+    expect(await setup().handlers['folder:choose']({ kind: 'recordings' })).toBeNull();
+  });
+
+  it('saves each chosen folder in its own setting, and starts the picker where it is now', async () => {
+    const chooseFolder = vi.fn(() => Promise.resolve('C:\\Chosen'));
+    const { handlers } = setup({ chooseFolder }, null);
+    await handlers['folder:choose']({ kind: 'recordings' });
+    expect(chooseFolder).toHaveBeenLastCalledWith('VIDEOS');
+    expect((await handlers['settings:get'](undefined)).destinationFolder).toBe('C:\\Chosen');
+    expect((await handlers['settings:get'](undefined)).screenshotFolder).toBeNull();
+    await handlers['folder:choose']({ kind: 'screenshots' });
+    expect(chooseFolder).toHaveBeenLastCalledWith('PICTURES');
+    expect((await handlers['settings:get'](undefined)).screenshotFolder).toBe('C:\\Chosen');
+  });
+
+  it('keeps the settings when the picker is cancelled', async () => {
+    const { handlers } = setup({}, null);
+    await handlers['folder:choose']({ kind: 'screenshots' });
+    expect((await handlers['settings:get'](undefined)).screenshotFolder).toBeNull();
+  });
+
+  it('opens the chosen or default folder, creating it first', async () => {
+    const { handlers, deps } = setup({}, null);
+    await handlers['folder:open']({ kind: 'recordings' });
+    expect(deps.ensureFolder).toHaveBeenLastCalledWith('VIDEOS');
+    expect(deps.openPath).toHaveBeenLastCalledWith('VIDEOS');
+    await handlers['folder:open']({ kind: 'screenshots' });
+    expect(deps.openPath).toHaveBeenLastCalledWith('PICTURES');
+    const failing = setup({ openPath: () => Promise.resolve('no') });
+    await expect(failing.handlers['folder:open']({ kind: 'recordings' })).rejects.toThrow();
+  });
+
+  it('refuses two shortcuts on the same keys, in any case, and keeps the old settings', async () => {
+    const { handlers } = setup();
+    expect(() => handlers['settings:set']({ shortcutStop: 'commandorcontrol+shift+r' })).toThrow();
+    expect((await handlers['settings:get'](undefined)).shortcutStop).toBe(
+      DEFAULT_SETTINGS.shortcutStop,
+    );
+    const ok = await handlers['settings:set']({ shortcutStop: 'CommandOrControl+Alt+S' });
+    expect(ok.shortcutStop).toBe('CommandOrControl+Alt+S');
+  });
+
+  it('says which shortcuts another program owns', () => {
+    const { handlers } = setup({ shortcutStatus: () => ['stop'] });
+    expect(handlers['shortcuts:status'](undefined)).toEqual({ unavailable: ['stop'] });
+  });
+
+  it('passes the answer to the close question on', () => {
+    const { handlers, deps } = setup();
+    void handlers['window:close-answer']({ answer: 'stop' });
+    expect(deps.closeAnswer).toHaveBeenCalledWith('stop');
+  });
+
+  it('suspends the global shortcuts while a key is chosen', () => {
+    const { handlers, deps } = setup();
+    void handlers['shortcuts:suspend']({ suspended: true });
+    expect(deps.shortcutsSuspend).toHaveBeenCalledWith(true);
+  });
+
+  it('counts and moves old working folders, and nothing else', async () => {
+    const { handlers, deps } = setup();
+    expect(await handlers['legacy:count'](undefined)).toBe(2);
+    expect(await handlers['legacy:move'](undefined)).toEqual({ moved: 2, failed: 0 });
+    expect(deps.legacy.move).toHaveBeenCalledTimes(1);
   });
 
   it('reports the app version it was given', () => {

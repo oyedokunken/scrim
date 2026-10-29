@@ -91,21 +91,25 @@ test('closing the window while idle quits the app on Windows and Linux', async (
   await closed;
 });
 
-test('closing during a recording asks first, and Cancel keeps everything running', async ({
+test('closing during a recording asks in the app, and Cancel keeps everything running', async ({
   app,
+  page,
 }) => {
+  // The system message box must not be used: it would show here as a recorded call.
   await stubDialog(app, 2);
   await startRecordingAndClose(app);
-  await expect.poll(async () => (await dialogs(app)).length).toBe(1);
 
-  const [dialog] = await dialogs(app);
-  expect(dialog?.buttons).toEqual([
-    expect.stringMatching(/^Keep recording/),
-    'Stop and save',
-    'Cancel',
-  ]);
-  expect(dialog?.defaultId).toBe(2);
+  const dialog = page.getByRole('dialog', { name: 'Scrim is still recording' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /^Keep recording/ })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Stop and save' })).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Close' })).toBeVisible();
+  // Cancel is the safe default, so a stray Enter never stops a recording.
+  await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeFocused();
 
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+  expect(await dialogs(app)).toHaveLength(0);
   expect(
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible()),
   ).toBe(true);
@@ -116,13 +120,32 @@ test('closing during a recording asks first, and Cancel keeps everything running
   });
 });
 
-test('Keep recording hides the window and the recording continues', async ({ app }) => {
+test('Escape and the close button on the question also keep everything running', async ({
+  app,
+  page,
+}) => {
+  await startRecordingAndClose(app);
+  const dialog = page.getByRole('dialog', { name: 'Scrim is still recording' });
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  expect(await app.evaluate(() => (globalThis as Probe).__scrimRecorder?.isRecording())).toBe(true);
+  expect(await app.evaluate(() => (globalThis as Probe).__scrimRecorder?.calls.stop)).toBe(0);
+  await app.evaluate(() => {
+    (globalThis as Probe).__scrimRecorder?.setRecording(false);
+  });
+});
+
+test('Keep recording hides the window and the recording continues', async ({ app, page }) => {
   test.skip(
     process.platform === 'linux',
     'The tray depends on the desktop, so Linux is covered by unit tests',
   );
-  await stubDialog(app, 0);
   await startRecordingAndClose(app);
+  await page
+    .getByRole('dialog', { name: 'Scrim is still recording' })
+    .getByRole('button', { name: /^Keep recording/ })
+    .click();
   await expect
     .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible()))
     .toBe(false);
@@ -133,8 +156,7 @@ test('Keep recording hides the window and the recording continues', async ({ app
   });
 });
 
-test('Stop and save finishes the recording first, then quits', async ({ app }) => {
-  await stubDialog(app, 1);
+test('Stop and save finishes the recording first, then quits', async ({ app, page }) => {
   await app.evaluate(() => {
     const recorder = (globalThis as Probe).__scrimRecorder;
     if (!recorder) throw new Error('The test hook is missing');
@@ -146,6 +168,10 @@ test('Stop and save finishes the recording first, then quits', async ({ app }) =
   });
   const closed = app.waitForEvent('close');
   await startRecordingAndClose(app);
+  await page
+    .getByRole('dialog', { name: 'Scrim is still recording' })
+    .getByRole('button', { name: 'Stop and save' })
+    .click();
   await closed;
 });
 

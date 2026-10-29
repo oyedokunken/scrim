@@ -79,6 +79,13 @@ describe('planZoomMoments', () => {
     ]);
   });
 
+  it('ignores the click that stops the recording', () => {
+    const l = log(click(2000, 100, 100), click(9500, 50, 900));
+    expect(planZoomMoments(l, {}, 10_000).map((m) => m.x)).toEqual([100]);
+    expect(planZoomMoments(l, {}, 12_000).map((m) => m.x)).toEqual([100, 50]);
+    expect(planZoomMoments(l).map((m) => m.x)).toEqual([100, 50]);
+  });
+
   it('ignores the order events were logged in', () => {
     const a = planZoomMoments(log(click(9000, 100, 100), click(1000, 960, 540)));
     const b = planZoomMoments(log(click(1000, 960, 540), click(9000, 100, 100)));

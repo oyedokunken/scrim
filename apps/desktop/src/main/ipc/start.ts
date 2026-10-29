@@ -1,13 +1,26 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
-import { access, readFile, writeFile } from 'node:fs/promises';
+import { createRealShare } from '../share/share';
+import { access, mkdir, open, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { EventPayload } from '../../shared/ipc-contract';
+import { findLegacyFolders, moveLegacyFolders } from '../export/legacy';
+import { createSessionIndex } from '../recording/session-store';
+import type { ShortcutId } from '../../shared/shortcut-keys';
+import type { Settings } from '../../shared/settings';
+import { loadExportSource } from '../export/source';
+import { isInsideKnownFolder } from './handlers';
+import { realServiceFs } from '../recording/fs-adapter';
+import { projectsRoot } from '../recording/projects-folder';
+import type { ExportApi } from '../export/register';
+import { toBridgeJob } from '../export/export-handlers';
+import { createRealLibrary } from '../library/real-library';
 import { createLogger, type Logger } from '../log/logger';
 import { realLoggerFs } from '../log/real-logger-fs';
 import { openExternalChecked } from '../external-opener';
 import { realSettingsFs } from '../settings/real-settings-fs';
 import { createSettingsStore, type SettingsStore } from '../settings/settings-store';
 import type { AreaApi } from './area-handlers';
-import { createHandlers } from './handlers';
+import { createHandlers, screenshotFolderOf } from './handlers';
 import type { RecordingEvent } from '../recording/types';
 import { toBridgeEvent, type RecordingApi } from './recording-handlers';
 import { registerIpc, sendEvent } from './register';
@@ -35,13 +48,22 @@ export async function startIpc(options: {
   logger: Logger;
   recording: AppRecording;
   area: AreaApi;
+  /** Called after a setting was saved, so the shortcuts can follow the new keys. */
+  onSettingsChanged?: (settings: Settings) => void;
+  shortcutStatus: () => readonly ShortcutId[];
+  shortcutsSuspend: (suspended: boolean) => void;
+  /** The export engine. Its status changes go to every window. */
+  exporter: ExportApi;
+  closeAnswer: (answer: 'shown' | 'keep' | 'stop' | 'cancel') => void;
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
 
+  const share = createRealShare();
   const settings = createSettingsStore({
     path: join(app.getPath('userData'), 'settings.json'),
     fs: realSettingsFs,
     onChange: (next) => {
+      options.onSettingsChanged?.(next);
       for (const window of BrowserWindow.getAllWindows()) {
         sendEvent(window.webContents, appOrigin, 'settings:changed', next);
       }
@@ -54,6 +76,13 @@ export async function startIpc(options: {
 
   // Folders the engine has written to this run, so a finished recording can be shown in its folder.
   const sessionFolders = new Set<string>();
+
+  // Every change of an export goes to every window, without the folder or the path.
+  options.exporter.service.on((event) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      sendEvent(window.webContents, appOrigin, 'export:status', toBridgeJob(event.job));
+    }
+  });
 
   // Every engine event goes to every window of ours, after it has been checked against the contract.
   recording.on((event) => {
@@ -82,9 +111,81 @@ export async function startIpc(options: {
     allowedOrigin: appOrigin,
     handlers: createHandlers({
       settings,
+      share,
+      shortcutStatus: options.shortcutStatus,
+      exporter: {
+        start: (input) => options.exporter.start(input),
+        cancel: (jobId) => {
+          options.exporter.cancel(jobId);
+        },
+        retrySafer: (jobId) => options.exporter.retrySafer(jobId),
+        latest: () => options.exporter.service.latest(),
+        reveal: (jobId, what) => options.exporter.reveal(jobId, what),
+      },
+      shortcutsSuspend: options.shortcutsSuspend,
+      closeAnswer: options.closeAnswer,
+      legacy: {
+        count: async () =>
+          (
+            await findLegacyFolders(
+              settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+            )
+          ).length,
+        move: async () => {
+          const found = await findLegacyFolders(
+            settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+          );
+          const sessions = createSessionIndex(
+            join(app.getPath('userData'), 'sessions.json'),
+            realServiceFs,
+          );
+          return moveLegacyFolders(found, {
+            projectsRoot: projectsRoot({
+              platform: process.platform,
+              env: process.env,
+              userData: app.getPath('userData'),
+            }),
+            moved: async (from, to) => {
+              await sessions.remove(from);
+              await sessions.add(to);
+            },
+          });
+        },
+      },
+      editor: {
+        loadSource: loadExportSource,
+        writeEdits: (folder, edits) =>
+          realServiceFs.writeJsonAtomic(join(folder, 'edits.json'), edits),
+        isKnownFolder: (folder) =>
+          folder.endsWith('.scrim') &&
+          isInsideKnownFolder(
+            folder,
+            [
+              projectsRoot({
+                platform: process.platform,
+                env: process.env,
+                userData: app.getPath('userData'),
+              }),
+              settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+              ...sessionFolders,
+            ],
+            process.platform,
+          ),
+      },
+      library: createRealLibrary({
+        videosFolder: () =>
+          settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+        screenshotsFolder: () =>
+          screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+        share,
+      }),
       recording,
       area,
-      screenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
+      defaultScreenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
+      defaultRecordingsFolder: () => join(app.getPath('videos'), 'Scrim'),
+      ensureFolder: async (path) => {
+        await mkdir(path, { recursive: true });
+      },
       images: {
         readFile: (path) => readFile(path),
         // The exclusive flag makes the write fail when the name is taken, so nothing is replaced.
@@ -122,16 +223,47 @@ export async function startIpc(options: {
           });
         },
         trash: (path) => shell.trashItem(path),
+        listFolder: async (folder) => {
+          let names: string[];
+          try {
+            names = await readdir(folder);
+          } catch {
+            return [];
+          }
+          const stats = await Promise.all(
+            names.map(async (name) => {
+              try {
+                const info = await stat(join(folder, name));
+                return info.isFile() ? { name, modifiedMs: info.mtimeMs, bytes: info.size } : null;
+              } catch {
+                return null;
+              }
+            }),
+          );
+          return stats.filter((entry) => entry !== null);
+        },
+        readHead: async (path, bytes) => {
+          const handle = await open(path, 'r');
+          try {
+            const buffer = Buffer.alloc(bytes);
+            const { bytesRead } = await handle.read(buffer, 0, bytes, 0);
+            return buffer.subarray(0, bytesRead);
+          } finally {
+            await handle.close();
+          }
+        },
+        thumbnail: (path, width) =>
+          nativeImage.createFromPath(path).resize({ width, quality: 'good' }).toDataURL(),
       },
       extraKnownFolders: () => [...sessionFolders],
       platform: process.platform,
-      chooseFolder: async () => {
+      chooseFolder: async (startIn) => {
         const parent = BrowserWindow.getFocusedWindow();
         const dialogOptions = {
           properties: ['openDirectory', 'createDirectory'] as (
             'openDirectory' | 'createDirectory'
           )[],
-          defaultPath: settings.get().destinationFolder ?? app.getPath('videos'),
+          defaultPath: startIn,
         };
         const result = parent
           ? await dialog.showOpenDialog(parent, dialogOptions)
@@ -152,4 +284,25 @@ export async function startIpc(options: {
     },
   });
   return settings;
+}
+
+/** Tells every window of ours that a screenshot was saved, whether the button or the shortcut took it. */
+export function broadcastScreenshotTaken(
+  appOrigin: string,
+  shot: EventPayload<'screenshot:taken'>,
+): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    sendEvent(window.webContents, appOrigin, 'screenshot:taken', shot);
+  }
+}
+
+/** Asks every window of ours to show the close question. False when none could take it. */
+export function sendCloseRequest(appOrigin: string, trayAvailable: boolean): boolean {
+  let sent = false;
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (sendEvent(window.webContents, appOrigin, 'window:close-requested', { trayAvailable })) {
+      sent = true;
+    }
+  }
+  return sent;
 }

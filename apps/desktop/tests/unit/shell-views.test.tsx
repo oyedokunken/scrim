@@ -186,21 +186,40 @@ describe('the welcome screen', () => {
     expect(welcome(true, null)).toContain('<span class="version-pill"></span>');
   });
 
-  it('credits the owner with a link to the site, and has no privacy line', () => {
+  it('credits the owner with a handle that opens a closed card, and has no privacy line', () => {
     const html = welcome(true);
     expect(html).toContain('Built by');
-    expect(html).toMatch(/<a href="https:\/\/www\.oyedokun\.dev\/"[^>]*>@oyedokunken<\/a>/);
+    expect(html).toMatch(
+      /<button[^>]*class="built-by-handle"[^>]*aria-expanded="false"[^>]*>@oyedokunken<\/button>/,
+    );
+    // The card is in the page but hidden until the handle is hovered, clicked or focused.
+    expect(html).toMatch(/class="built-by-panel"[^>]*hidden/);
     expect(html).not.toContain('Nothing leaves your computer');
   });
 
-  it('has one button besides the link', () => {
-    expect(welcome(true).match(/<button/g)).toHaveLength(1);
+  it('offers the website, GitHub and LinkedIn in the card, each with a tooltip name', () => {
+    const html = welcome(true);
+    for (const [name, href] of [
+      ['Website', 'https://www.oyedokun.dev/'],
+      ['GitHub', 'https://github.com/oyedokunken'],
+      ['LinkedIn', 'https://www.linkedin.com/in/oyedokunken'],
+    ] as const) {
+      expect(html).toContain(`href="${href}"`);
+      expect(html).toContain(`aria-label="${name} (opens in your browser)"`);
+      expect(html).toContain(
+        `class="built-by-tip" data-visible="false" aria-hidden="true">${name}`,
+      );
+    }
+    expect(html.match(/class="built-by-link"/g)).toHaveLength(3);
+  });
+
+  it('has the main button and the handle as its only buttons', () => {
+    expect(welcome(true).match(/<button/g)).toHaveLength(2);
   });
 });
 
 describe('the Record view', () => {
-  const view = (busy = false, error: { message: string; nextStep: string } | null = null) =>
-    renderToStaticMarkup(<RecordView busy={busy} error={error} onStart={noop} />);
+  const view = (busy = false) => renderToStaticMarkup(<RecordView busy={busy} onStart={noop} />);
 
   it('has the stage holding the big button with the red dot and the shortcut in its corner', () => {
     const html = view();
@@ -223,12 +242,6 @@ describe('the Record view', () => {
     const html = view(true);
     expect(html).toMatch(/disabled=""[^>]*><span class="record-dot"/);
     expect(html).toContain('Starting...');
-  });
-
-  it('shows what went wrong, as an alert', () => {
-    const html = view(false, { message: 'The disk is full.', nextStep: 'Free some space.' });
-    expect(html).toContain('role="alert"');
-    expect(html).toContain('Free some space.');
   });
 });
 
@@ -295,7 +308,7 @@ describe('the placeholder', () => {
 });
 
 describe('the Screenshot view', () => {
-  const html = renderToStaticMarkup(<ScreenshotView busy={false} error={null} onTake={noop} />);
+  const html = renderToStaticMarkup(<ScreenshotView busy={false} onTake={noop} />);
 
   it('uses the same stage with the button inside and Ctrl Shift X in the corner', () => {
     expect(html).toContain('class="stage"');

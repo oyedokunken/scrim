@@ -136,7 +136,12 @@ export const test = base.extend<Fixtures>({
     try {
       await (PACKAGED ? launchPackaged : launchBuilt)(userDataDir, use);
     } finally {
-      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+      try {
+        rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+      } catch {
+        // Chromium's detached crash handler can hold the folder for a while on Windows. A leftover
+        // temp folder is harmless and must not fail a test that already passed.
+      }
     }
   },
   page: async ({ launched }, use) => {

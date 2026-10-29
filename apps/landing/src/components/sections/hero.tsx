@@ -1,8 +1,7 @@
-import { ExternalLink } from 'lucide-react';
 import { siteConfig } from '@/site.config';
 import { DownloadButton } from '../download-button';
-import { SiteLink } from '../site-link';
-import { HeroShow } from '../hero-demo/hero-show';
+import { OtherSystems } from '../other-systems';
+import { HeroDemo } from '../hero-demo/hero-demo';
 import styles from './hero.module.css';
 
 export function Hero() {
@@ -19,14 +18,11 @@ export function Hero() {
           </p>
           <div className={styles.actions}>
             <DownloadButton />
-            <SiteLink className={styles.source} href={siteConfig.repoUrl}>
-              View source
-              <ExternalLink aria-hidden="true" size={16} />
-            </SiteLink>
+            <OtherSystems />
           </div>
         </div>
       </div>
-      <HeroShow />
+      <HeroDemo />
     </section>
   );
 }

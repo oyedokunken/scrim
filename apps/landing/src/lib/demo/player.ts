@@ -27,10 +27,14 @@ export interface DemoPlayerOptions {
   clock: Clock;
   /** Called with the position in the loop each frame, and after a seek or refresh. */
   onFrame: (timeMs: number) => void;
+  /** True by default. When false the player stops at the end instead of wrapping. */
+  loop?: boolean;
+  /** Called once when a non looping player reaches its end. */
+  onEnd?: () => void;
 }
 
 /**
- * Plays a looping timeline. It keeps its position when paused and resumes from the same place.
+ * Plays a timeline, looping by default. It keeps its position when paused and resumes from the same place.
  * It reads time only from the injected clock, so a test can step it deterministically.
  */
 export class DemoPlayer {
@@ -72,7 +76,10 @@ export class DemoPlayer {
   /** Jumps to a position, wrapping around the loop, and draws it. */
   seek(timeMs: number): void {
     const { durationMs } = this.options;
-    this.position = ((timeMs % durationMs) + durationMs) % durationMs;
+    this.position =
+      this.options.loop === false
+        ? Math.min(durationMs, Math.max(0, timeMs))
+        : ((timeMs % durationMs) + durationMs) % durationMs;
     this.options.onFrame(this.position);
   }
 
@@ -95,7 +102,15 @@ export class DemoPlayer {
     const now = this.options.clock.now();
     const step = Math.min(Math.max(0, now - (this.lastNow ?? now)), MAX_STEP_MS);
     this.lastNow = now;
-    this.position = (this.position + step) % this.options.durationMs;
+    const next = this.position + step;
+    if (this.options.loop === false && next >= this.options.durationMs) {
+      this.position = this.options.durationMs;
+      this.options.onFrame(this.position);
+      this.pause();
+      this.options.onEnd?.();
+      return;
+    }
+    this.position = next % this.options.durationMs;
     this.options.onFrame(this.position);
     this.schedule();
   }

@@ -14,10 +14,13 @@ import { devDockIconPath } from './app-icon';
 import { handleAppRequest } from './app-protocol';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
-import { createAppLogger, startIpc } from './ipc/start';
+import { screenshotFolderOf } from './ipc/handlers';
+import { broadcastScreenshotTaken, createAppLogger, sendCloseRequest, startIpc } from './ipc/start';
+import { createCloseAsker } from './shell/close-asker';
 import { registerRecording } from './recording';
 import { createPillController } from './recording/pill-controller';
 import { createBubbleController } from './recording/bubble-controller';
+import { BUBBLE_DIAMETERS, cornerFromSetting } from '../recorder/bubble/geometry';
 import { createBubbleWindow } from './recording/bubble-window';
 import { PILL_SIZE } from './recording/pill-position';
 import { createPillWindow } from './recording/pill-window';
@@ -28,7 +31,10 @@ import { createStubRecorder } from './shell/recorder-control';
 import { createRecordingWindows } from './shell/recording-windows';
 import { createAreaPicker } from './recording/area-picker';
 import { buildAreaRequest, devicesFromSettings, type AreaApi } from './ipc/area-handlers';
-import { registerGlobalShortcuts } from './shell/global-shortcuts';
+import { acceleratorsOf } from '../shared/shortcut-keys';
+import { autoRender, registerExport } from './export/register';
+import { DEFAULT_SETTINGS } from '../shared/settings';
+import { createShortcutManager } from './shell/shortcut-manager';
 import { createRecordingControl, isLivePhase } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
 import { createWindowStateTracker } from './shell/window-state-tracker';
@@ -92,7 +98,12 @@ if (!app.requestSingleInstanceLock()) {
   const fake = createStubRecorder();
   if (useFakeRecorder) (globalThis as { __scrimRecorder?: unknown }).__scrimRecorder = fake;
   const recorder = useFakeRecorder ? fake : control;
+  // The close question shows in the app's own dialog, and falls back to the system box if the page cannot.
+  const closeAsker = createCloseAsker({
+    send: (trayAvailable) => sendCloseRequest(target.origin, trayAvailable),
+  });
   const shell = createShell({
+    askInApp: (trayAvailable) => closeAsker.ask(trayAvailable),
     recorder,
     platform: process.platform,
     appPath: app.getAppPath(),
@@ -143,6 +154,14 @@ if (!app.requestSingleInstanceLock()) {
     const logger = createAppLogger();
     logger.info('app.start', { version: app.getVersion(), platform: process.platform });
     const recording = registerRecording({ appOrigin: target.origin });
+    // Every finished recording, a recovered one too, becomes one MP4 in the recordings folder.
+    const exporter = registerExport({
+      settings: () => settings?.get() ?? DEFAULT_SETTINGS,
+      log: (message) => {
+        logger.info('export', { message });
+      },
+    });
+    autoRender(recording, exporter.service);
     control.attach(recording);
     // The main window steps aside while recording and the small control takes over, then they swap back.
     const pillFile = join(app.getPath('userData'), 'pill-position.json');
@@ -189,8 +208,16 @@ if (!app.requestSingleInstanceLock()) {
         },
       }),
       devices: () => recording.recordingDevices(),
-      area: () => {
-        const id = recording.recordedArea()?.displayId;
+      look: () => {
+        const saved = settings?.get();
+        return {
+          corner: cornerFromSetting(saved?.bubbleCorner ?? 'bottom-right'),
+          size: BUBBLE_DIAMETERS[saved?.bubbleSize ?? 'M'],
+          shape: saved?.bubbleShape ?? 'circle',
+        };
+      },
+      area: (displayId) => {
+        const id = displayId ?? recording.recordedArea()?.displayId;
         const display =
           screen.getAllDisplays().find((candidate) => String(candidate.id) === id) ??
           screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
@@ -223,6 +250,21 @@ if (!app.requestSingleInstanceLock()) {
     const picker = createAreaPicker({
       appOrigin: target.origin,
       service: recording,
+      log: (message) => {
+        logger.info('area', { message });
+      },
+      preview: {
+        show: (input) => {
+          bubble.preview({
+            displayId: input.displayId,
+            camera: { deviceId: input.camera.deviceId },
+            mic: input.mic,
+          });
+        },
+        hide: () => {
+          bubble.endPreview();
+        },
+      },
       beforeOpen: () => {
         shell.minimize();
         return Promise.resolve();
@@ -232,13 +274,48 @@ if (!app.requestSingleInstanceLock()) {
       run: async (request) => {
         const outcome = await picker.run(request);
         if (!(outcome.ok && outcome.mode === 'record')) shell.show();
+        if (outcome.ok && outcome.mode === 'screenshot') {
+          // The result view opens in the main window for the button and for the shortcut alike.
+          broadcastScreenshotTaken(target.origin, {
+            ...(outcome.result.path === undefined ? {} : { path: outcome.result.path }),
+            ...(outcome.result.saveError === undefined
+              ? {}
+              : {
+                  saveError: {
+                    message: outcome.result.saveError.message,
+                    nextStep: outcome.result.saveError.nextStep,
+                  },
+                }),
+            width: outcome.result.width,
+            height: outcome.result.height,
+          });
+        }
         return outcome;
       },
       cancel: () => {
         picker.cancel();
       },
     };
-    settings = await startIpc({ appOrigin: target.origin, logger, recording, area });
+    const shortcutsRef: { current: ReturnType<typeof createShortcutManager> | undefined } = {
+      current: undefined,
+    };
+    settings = await startIpc({
+      appOrigin: target.origin,
+      logger,
+      recording,
+      area,
+      exporter,
+      onSettingsChanged: (next) => {
+        shortcutsRef.current?.apply(acceleratorsOf(next));
+      },
+      shortcutStatus: () => shortcutsRef.current?.unavailable() ?? [],
+      closeAnswer: (answer) => {
+        closeAsker.answer(answer);
+      },
+      shortcutsSuspend: (suspended) => {
+        shortcutsRef.current?.suspend(suspended);
+      },
+    });
     const runArea = async (mode: 'record' | 'screenshot'): Promise<void> => {
       const saved = settings?.get();
       if (saved === undefined) return;
@@ -246,12 +323,13 @@ if (!app.requestSingleInstanceLock()) {
         buildAreaRequest(
           { mode, ...devicesFromSettings(saved) },
           saved,
-          join(app.getPath('pictures'), 'Scrim'),
+          screenshotFolderOf(saved, join(app.getPath('pictures'), 'Scrim')),
         ),
       );
     };
     // Start and stop from any app. A key another program owns is logged, and the buttons still work.
-    const shortcuts = registerGlobalShortcuts({
+    // Changing a key in the settings registers the new one at once.
+    const shortcuts = createShortcutManager({
       api: globalShortcut,
       actions: {
         isRecording: () => control.isRecording(),
@@ -265,9 +343,12 @@ if (!app.requestSingleInstanceLock()) {
           error: error instanceof Error ? error.message : 'unknown',
         });
       },
+      log: (event, ids) => {
+        logger.warn(event, { ids: ids.join(',') });
+      },
     });
-    if (shortcuts.unavailable.length > 0)
-      logger.warn('shortcut.unavailable', { ids: shortcuts.unavailable });
+    shortcutsRef.current = shortcuts;
+    shortcuts.apply(acceleratorsOf(settings.get()));
     app.on('will-quit', () => {
       shortcuts.dispose();
     });

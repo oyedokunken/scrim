@@ -20,9 +20,15 @@ function setup(overrides: Partial<Handlers> = {}) {
     'settings:get': () => DEFAULT_SETTINGS,
     'settings:set': () => DEFAULT_SETTINGS,
     'folder:choose': () => null,
+    'folder:open': () => undefined,
     'shell:open-external': () => undefined,
     'shell:show-in-folder': () => undefined,
     'logs:open-folder': () => undefined,
+    'window:close-answer': () => undefined,
+    'shortcuts:status': () => ({ unavailable: [] }),
+    'shortcuts:suspend': () => undefined,
+    'legacy:count': () => 0,
+    'legacy:move': () => ({ moved: 0, failed: 0 }),
     'area:run': () => ({ ok: false, reason: 'cancelled' }),
     'area:cancel': () => undefined,
     ...createRecordingHandlers({ recording: fakeRecording(), destination: () => null }),
@@ -32,6 +38,30 @@ function setup(overrides: Partial<Handlers> = {}) {
     'image:save-as': () => ({ path: null }),
     'image:drag': () => undefined,
     'image:delete': () => undefined,
+    'image:list': () => [],
+    'image:share': () => undefined,
+    'library:list': () => [],
+    'library:thumbnail': () => null,
+    'library:open': () => ({ kind: 'missing' }),
+    'library:rename': () => ({ ok: true }),
+    'library:lookup': () => null,
+    'library:preview': () => null,
+    'library:play': () => true,
+    'library:reveal': () => undefined,
+    'library:delete': () => undefined,
+    'library:share': () => undefined,
+    'share:available': () => false,
+    'export:start': () => null,
+    'export:cancel': () => undefined,
+    'export:retry-safer': () => null,
+    'export:latest': () => null,
+    'export:reveal': () => false,
+    'editor:open': () => ({
+      ok: false,
+      error: { code: 'unknown', message: 'm', nextStep: 'n' },
+    }),
+    'editor:save-edits': () => ({ ok: true, value: undefined }),
+    'image:thumbnail': () => 'data:image/png;base64,AA==',
     ...overrides,
   };
   const dispatch = createDispatcher({
@@ -141,7 +171,9 @@ describe('the dispatcher', () => {
         throw new Error('EACCES: permission denied, open C:\\Users\\zainab\\secret.txt');
       },
     });
-    const error = await dispatch('folder:choose', good, []).catch((e: unknown) => e);
+    const error = await dispatch('folder:choose', good, [{ kind: 'recordings' }]).catch(
+      (e: unknown) => e,
+    );
     expect(error).toBeInstanceOf(IpcError);
     expect((error as IpcError).failure).toBe('handler-failed');
     expect((error as IpcError).message).toBe('Scrim could not complete that request.');

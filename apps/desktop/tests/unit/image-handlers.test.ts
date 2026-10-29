@@ -4,6 +4,7 @@ import {
   createImageHandlers,
   decodePngDataUrl,
   editedPath,
+  pngSize,
   type ImageDeps,
 } from '../../src/main/ipc/image-handlers';
 import { contract, events } from '../../src/shared/ipc-contract';
@@ -17,7 +18,21 @@ const PNG = Buffer.concat([
 ]);
 const PNG_URL = `data:image/png;base64,${PNG.toString('base64')}`;
 
-function setup(taken: string[] = []) {
+/** The first 24 bytes of a PNG of this size. */
+function header(width: number, height: number): Buffer {
+  const head = Buffer.alloc(24);
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(head);
+  head.write('IHDR', 12, 'latin1');
+  head.writeUInt32BE(width, 16);
+  head.writeUInt32BE(height, 20);
+  return head;
+}
+
+function setup(
+  taken: string[] = [],
+  files: { name: string; modifiedMs: number; bytes: number }[] = [],
+  shareFn: ImageDeps['share'] = vi.fn(() => Promise.resolve()),
+) {
   const deps: ImageDeps = {
     platform: process.platform,
     screenshotFolder: () => FOLDER,
@@ -29,6 +44,10 @@ function setup(taken: string[] = []) {
     chooseSavePath: vi.fn(() => Promise.resolve<string | null>(inFolder('chosen.png'))),
     startDrag: vi.fn(),
     trash: vi.fn(() => Promise.resolve()),
+    share: shareFn,
+    listFolder: vi.fn(() => Promise.resolve(files)),
+    readHead: vi.fn(() => Promise.resolve(header(800, 600))),
+    thumbnail: vi.fn(() => 'data:image/png;base64,AA=='),
   };
   return { handlers: createImageHandlers(deps), deps };
 }
@@ -179,5 +198,90 @@ describe('the screenshot taken event', () => {
     expect(events['screenshot:taken'].safeParse(shot).success).toBe(true);
     expect(events['screenshot:taken'].safeParse({ ...shot, extra: 1 }).success).toBe(false);
     expect(events['screenshot:taken'].safeParse({ ...shot, width: 0 }).success).toBe(false);
+  });
+});
+
+describe('pngSize', () => {
+  it('reads the size from a PNG header', () => {
+    expect(pngSize(header(1920, 1080))).toEqual({ width: 1920, height: 1080 });
+  });
+
+  it('refuses bytes that are not a PNG header', () => {
+    expect(pngSize(Buffer.from('not a png at all, just text'))).toBeNull();
+    expect(pngSize(header(0, 10))).toBeNull();
+    expect(pngSize(PNG)).toBeNull();
+  });
+});
+
+describe('image:list', () => {
+  const files = [
+    { name: 'old.png', modifiedMs: 1000, bytes: 10 },
+    { name: 'notes.txt', modifiedMs: 5000, bytes: 10 },
+    { name: 'new.PNG', modifiedMs: 3000, bytes: 20 },
+  ];
+
+  it('lists only PNG files, newest first, with their size', async () => {
+    const { handlers } = setup([], files);
+    const list = await handlers['image:list'](undefined);
+    expect(list.map((entry) => entry.name)).toEqual(['new.PNG', 'old.png']);
+    expect(list[0]).toMatchObject({
+      path: inFolder('new.PNG'),
+      width: 800,
+      height: 600,
+      bytes: 20,
+    });
+  });
+
+  it('is empty when the folder is missing or empty', async () => {
+    expect(await setup().handlers['image:list'](undefined)).toEqual([]);
+  });
+
+  it('skips a file whose header cannot be read', async () => {
+    const { handlers, deps } = setup([], files);
+    vi.mocked(deps.readHead).mockRejectedValueOnce(new Error('locked'));
+    expect(await handlers['image:list'](undefined)).toHaveLength(1);
+  });
+
+  it('returns at most 500 entries', async () => {
+    const many = Array.from({ length: 600 }, (_, index) => ({
+      name: `s${String(index)}.png`,
+      modifiedMs: index,
+      bytes: 1,
+    }));
+    expect(await setup([], many).handlers['image:list'](undefined)).toHaveLength(500);
+  });
+});
+
+describe('image:thumbnail', () => {
+  it('makes a small picture of a screenshot', async () => {
+    const { handlers, deps } = setup();
+    const url = await handlers['image:thumbnail']({ path: inFolder('a.png') });
+    expect(url.startsWith('data:image/png;base64,')).toBe(true);
+    expect(deps.thumbnail).toHaveBeenCalledWith(inFolder('a.png'), 320);
+  });
+
+  it('refuses a path outside the screenshots folder', () => {
+    const { handlers } = setup();
+    expect(() => handlers['image:thumbnail']({ path: join(FOLDER, '..', 'a.png') })).toThrow();
+  });
+});
+
+describe('image:share', () => {
+  it('opens the share sheet for a screenshot in the folder', async () => {
+    const share = vi.fn(() => Promise.resolve());
+    const { handlers } = setup([], [], share);
+    await handlers['image:share']({ path: inFolder('a.png') });
+    expect(share).toHaveBeenCalledWith(inFolder('a.png'));
+  });
+
+  it('refuses a file outside the folder, and fails plainly when there is no share sheet', async () => {
+    const { handlers } = setup(
+      [],
+      [],
+      vi.fn(() => Promise.resolve()),
+    );
+    await expect(handlers['image:share']({ path: join(FOLDER, '..', 'a.png') })).rejects.toThrow();
+    const none = setup([], [], null);
+    await expect(none.handlers['image:share']({ path: inFolder('a.png') })).rejects.toThrow();
   });
 });
