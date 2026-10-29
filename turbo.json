@@ -10,7 +10,7 @@
       "dependsOn": ["^build", "db:generate"],
       "inputs": ["$TURBO_DEFAULT$", ".env", "!tests/**", "!**/*.test.*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "out/**"],
-      "env": ["NODE_ENV", "SITE_URL", "GITHUB_REPO"]
+      "env": ["NODE_ENV", "SITE_URL", "GITHUB_REPO", "VERCEL_ENV", "VERCEL_URL"]
     },
     "typecheck": {
       "dependsOn": ["^typecheck", "db:generate"]
