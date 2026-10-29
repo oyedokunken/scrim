@@ -40,7 +40,10 @@ describe.skipIf(folders.length === 0)('the editor model on a real recording', ()
       const duration = recordingDuration(session);
       expect(model.totalMs).toBeLessThanOrEqual(duration + 1);
       expect(model.effectsOffReason).toBeNull();
-      const clicks = log.events.filter((e) => e.type === 'click' && e.button === 'left');
+      // The planner ignores the click that stops the recording, so only earlier clicks count.
+      const clicks = log.events.filter(
+        (e) => e.type === 'click' && e.button === 'left' && e.t < model.totalMs - 1200,
+      );
       if (clicks.length > 0) expect(model.zoomMoments.length).toBeGreaterThan(0);
       for (let t = 0; t < model.totalMs; t += 250) {
         const frame = model.describeAt(t);

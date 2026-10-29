@@ -122,6 +122,30 @@ function sourceFrame(input: RenderInput): Frame {
   return input.log?.frame ?? { width: 1920, height: 1080 };
 }
 
+interface LogLike {
+  frame: Frame;
+  events: readonly InputEvent[];
+}
+
+/**
+ * The mouse log is in display pixels, but a region recording only holds the cropped part of the
+ * display. This moves every point into the crop so zoom and cursor effects land on the picture.
+ * Presses outside the crop are dropped, so a click elsewhere on the display never starts a zoom.
+ */
+function intoCrop<T extends LogLike>(
+  log: T,
+  crop: { x: number; y: number; width: number; height: number },
+): T {
+  const inside = (x: number, y: number): boolean =>
+    x >= crop.x && y >= crop.y && x < crop.x + crop.width && y < crop.y + crop.height;
+  const events: InputEvent[] = [];
+  for (const event of log.events) {
+    if (event.type === 'click' && !inside(event.x, event.y)) continue;
+    events.push({ ...event, x: event.x - crop.x, y: event.y - crop.y });
+  }
+  return { ...log, frame: { width: crop.width, height: crop.height }, events };
+}
+
 function clampZoom(value: number): number {
   return Math.min(ZOOM_LIMITS.max, Math.max(ZOOM_LIMITS.min, value));
 }
@@ -143,7 +167,9 @@ export function createRenderModel(input: RenderInput): RenderModel {
     style.background ?? { spec: { kind: 'preset', id: DEFAULT_BACKGROUND_ID } },
   );
 
-  const log = session.input.status === 'recorded' ? input.log : null;
+  const recorded = session.input.status === 'recorded' ? input.log : null;
+  const crop = session.source.cropPx;
+  const log = recorded !== null && crop !== undefined ? intoCrop(recorded, crop) : recorded;
   const effectsOffReason =
     log !== null
       ? null
