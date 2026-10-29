@@ -1,7 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { ControlView } from '../../src/renderer/src/components/control-view';
-import { ErrorNotice } from '../../src/renderer/src/components/error-notice';
 import { RecordingView } from '../../src/renderer/src/components/recording-view';
 import { SavedCard } from '../../src/renderer/src/shell/saved-card';
 import type { Finished, Snapshot } from '../../src/renderer/src/hooks';
@@ -60,12 +59,11 @@ describe('the recording control', () => {
 });
 
 describe('the recording view in the main window', () => {
-  const view = (snapshot: Snapshot, error: { message: string; nextStep: string } | null = null) =>
+  const view = (snapshot: Snapshot) =>
     renderToStaticMarkup(
       <RecordingView
         snapshot={snapshot}
         busy={false}
-        error={error}
         onPause={noop}
         onResume={noop}
         onStop={noop}
@@ -93,12 +91,6 @@ describe('the recording view in the main window', () => {
       ],
     });
     expect(html).toContain('The camera stopped. Screen recording continues.');
-  });
-
-  it('shows an error from a pause or stop that failed', () => {
-    const html = view(recording, { message: 'That did not work.', nextStep: 'Try again.' });
-    expect(html).toContain('role="alert"');
-    expect(html).toContain('That did not work.');
   });
 });
 
@@ -147,19 +139,6 @@ describe('what opens after a recording', () => {
 
   it('does not print the folder path on screen', () => {
     expect(view(finished)).not.toContain('C:\\Recordings');
-  });
-});
-
-describe('ErrorNotice', () => {
-  it('shows the message and the next step, as an alert', () => {
-    const html = renderToStaticMarkup(
-      <ErrorNotice
-        error={{ message: 'Scrim cannot write to this folder.', nextStep: 'Choose another one.' }}
-      />,
-    );
-    expect(html).toContain('role="alert"');
-    expect(html).toContain('Scrim cannot write to this folder.');
-    expect(html).toContain('Choose another one.');
   });
 });
 

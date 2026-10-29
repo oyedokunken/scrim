@@ -12,8 +12,8 @@ export interface EditorProject {
   media: { screen: string; camera?: string | undefined; mic?: string | undefined };
 }
 
-export type OpenResult = { ok: true; project: EditorProject } | { ok: false; message: string };
-export type SaveResult = { ok: true } | { ok: false; message: string };
+type OpenResult = { ok: true; project: EditorProject } | { ok: false; message: string };
+type SaveResult = { ok: true } | { ok: false; message: string };
 
 /** One export as the page sees it. It carries no path. */
 export interface ExportView {
@@ -30,7 +30,7 @@ export interface ExportView {
   fileName?: string | undefined;
 }
 
-export type StartExportResult = { ok: true; jobId: string } | { ok: false; message: string };
+type StartExportResult = { ok: true; jobId: string } | { ok: false; message: string };
 
 /** The export calls the editor makes. The shell maps EXPORT's channels to these. */
 export interface ExportControls {
