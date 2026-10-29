@@ -11,13 +11,14 @@ export class FrameReader {
   constructor(
     stream: Readable,
     readonly frameBytes: number,
+    private readonly allocate: (bytes: number) => Buffer = (bytes) => Buffer.allocUnsafe(bytes),
   ) {
     this.iterator = stream[Symbol.asyncIterator]();
   }
 
   /** The next whole picture, or null when the stream ended. A partial last picture is dropped. */
   async next(): Promise<Buffer | null> {
-    const frame = Buffer.allocUnsafe(this.frameBytes);
+    const frame = this.allocate(this.frameBytes);
     let have = 0;
     while (have < this.frameBytes) {
       if (this.leftover.length === 0) {

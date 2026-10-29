@@ -10,6 +10,8 @@ import { probeFile } from '../recording/ffmpeg';
 import { buildAudioGraph } from './audio-graph';
 import { createBubbleTrack } from './bubble';
 import { Compositor } from './compositor';
+import { createInlineBackend, createWorkerBackend, workerCount } from './render-pool';
+import type { WorkerLike } from './render-pool';
 import type { BubblePlacement } from './compositor';
 import { bitrateFor, encoderArgs, pickEncoder } from './encoders';
 import type { EncoderName } from './encoders';
@@ -27,6 +29,10 @@ export interface ExporterDeps {
   /** Messages for the log. They never carry a path or a recording name. */
   log: (message: string) => void;
   now?: () => number;
+  /** Starts one drawing thread. Without it the pictures are drawn on the calling thread. */
+  spawnWorker?: (() => WorkerLike) | undefined;
+  /** CPU cores, to size the pool. */
+  cores?: number | undefined;
 }
 
 const STDERR_TAIL = 6 * 1024;
@@ -348,12 +354,23 @@ export async function exportRecording(
     layout.background.kind === 'image'
       ? await loadBackgroundImage(deps, layout.background.path, layout.output)
       : undefined;
-  const compositor = new Compositor(
-    layout,
-    model.source,
-    buildBase(layout, background),
-    request.paint,
-  );
+  const base = buildBase(layout, background);
+  const paint = request.paint;
+  let backend = createInlineBackend(new Compositor(layout, model.source, base, paint));
+  if (deps.spawnWorker !== undefined && request.softwareOnly !== true) {
+    try {
+      backend = createWorkerBackend({
+        count: workerCount(deps.cores ?? 4),
+        spawn: deps.spawnWorker,
+        layout,
+        source: model.source,
+        base,
+        paint,
+      });
+    } catch {
+      deps.log('export: drawing threads could not start, drawing on one thread');
+    }
+  }
 
   const bubbles =
     source.files.camera === undefined
@@ -457,19 +474,41 @@ export async function exportRecording(
   signal?.addEventListener('abort', onAbort);
 
   const screenCursor = new FrameCursor(
-    new FrameReader(stdoutOf(screen), model.source.width * model.source.height * 4),
+    new FrameReader(stdoutOf(screen), model.source.width * model.source.height * 4, backend.alloc),
   );
   const cameraCursor =
     camera === null
       ? null
-      : new FrameCursor(new FrameReader(stdoutOf(camera), cameraSize * cameraSize * 4));
+      : new FrameCursor(
+          new FrameReader(stdoutOf(camera), cameraSize * cameraSize * 4, backend.alloc),
+        );
 
   let written = 0;
   let broken: string | undefined;
   const speedStart = now();
+  const pending: Promise<Buffer>[] = [];
   try {
     const stdin = encoder.process.stdin;
     if (stdin === null) throw new Error('The encoder has no input.');
+    const flushOne = async (): Promise<void> => {
+      const first = pending.shift();
+      if (first === undefined) return;
+      await writeAll(stdin, await first);
+      written += 1;
+      if (written === 1 || written % 60 === 0)
+        deps.log(`export: ${String(written)} of ${String(model.frameCount)} frames`);
+      if (options.onProgress !== undefined && (written % 8 === 0 || written === model.frameCount)) {
+        const elapsed = Math.max(1, now() - speedStart);
+        const speed = (written * 1000) / fps / elapsed;
+        options.onProgress({
+          frame: written,
+          totalFrames: model.frameCount,
+          fraction: written / model.frameCount,
+          etaMs: speed > 0 ? ((model.frameCount - written) * 1000) / fps / speed : null,
+          speed,
+        });
+      }
+    };
     for (let i = 0; i < model.frameCount; i += 1) {
       if (cancelled()) break;
       const description = model.describeFrame(i);
@@ -486,38 +525,31 @@ export async function exportRecording(
         cameraFrame = await cameraCursor.at(Math.round((description.cameraTimeMs * fps) / 1000));
         placement = bubbles.at(description.recordingTimeMs);
       }
-      const out = Buffer.allocUnsafe(width * height * 4);
-      compositor.render(
-        {
-          screen: screenFrame,
-          camera: cameraFrame,
-          cameraSize,
-          view: description.view,
-          cursor: description.cursor,
-          bubble: cameraFrame === null ? null : placement,
-        },
-        out,
-      );
-      await writeAll(stdin, out);
-      written += 1;
-      if (written === 1 || written % 60 === 0)
-        deps.log(`export: ${String(written)} of ${String(model.frameCount)} frames`);
-      if (options.onProgress !== undefined && (written % 8 === 0 || written === model.frameCount)) {
-        const elapsed = Math.max(1, now() - speedStart);
-        const speed = (written * 1000) / fps / elapsed;
-        options.onProgress({
-          frame: written,
-          totalFrames: model.frameCount,
-          fraction: written / model.frameCount,
-          etaMs: speed > 0 ? ((model.frameCount - written) * 1000) / fps / speed : null,
-          speed,
-        });
-      }
+      const out = backend.alloc(width * height * 4);
+      const drawn = backend
+        .render(
+          {
+            screen: screenFrame,
+            camera: cameraFrame,
+            cameraSize,
+            view: description.view,
+            cursor: description.cursor,
+            bubble: cameraFrame === null ? null : placement,
+          },
+          out,
+        )
+        .then(() => out);
+      drawn.catch(() => undefined);
+      pending.push(drawn);
+      if (pending.length > backend.parallel + 1) await flushOne();
     }
+    while (pending.length > 0) await flushOne();
   } catch (error) {
     broken = `The encoder stopped taking pictures (${errnoOf(error) ?? 'write failed'}).`;
   }
 
+  await Promise.allSettled(pending);
+  await backend.close();
   try {
     encoder.process.stdin?.end();
   } catch {

@@ -1,5 +1,6 @@
 import { app, shell } from 'electron';
 import { randomUUID } from 'node:crypto';
+import { availableParallelism } from 'node:os';
 import { join } from 'node:path';
 import type { Settings } from '../../shared/settings';
 import { resolveFfmpegPaths, runProcess } from '../recording/ffmpeg';
@@ -7,6 +8,7 @@ import { realServiceFs } from '../recording/fs-adapter';
 import { projectsRoot } from '../recording/projects-folder';
 import { createSessionIndex } from '../recording/session-store';
 import { exportRecording } from './exporter';
+import DrawingWorker from './render-worker?nodeWorker';
 import { findLegacyFolders, moveLegacyFolders } from './legacy';
 import type { MoveResult } from './legacy';
 import { ExportService } from './service';
@@ -54,7 +56,17 @@ export function registerExport(options: RegisterOptions): ExportApi {
   });
   const service = new ExportService({
     run: (request, run) =>
-      exportRecording({ paths, run: runProcess, log: options.log }, request, run),
+      exportRecording(
+        {
+          paths,
+          run: runProcess,
+          log: options.log,
+          spawnWorker: () => DrawingWorker({}),
+          cores: availableParallelism(),
+        },
+        request,
+        run,
+      ),
     settings: options.settings,
     destination: () => destination(options.settings()),
     newId: randomUUID,
