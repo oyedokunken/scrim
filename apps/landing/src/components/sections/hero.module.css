@@ -35,24 +35,6 @@
   gap: var(--scrim-space-3) var(--scrim-space-5);
 }
 
-.source {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  min-height: 2.75rem;
-  color: var(--scrim-black);
-  font-weight: 700;
-  text-decoration: underline;
-  text-decoration-color: var(--scrim-border);
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.25em;
-}
-
-.source:hover {
-  color: var(--scrim-green);
-  text-decoration-color: var(--scrim-green);
-}
-
 @media (max-width: 48rem) {
   .hero {
     gap: var(--scrim-space-5);

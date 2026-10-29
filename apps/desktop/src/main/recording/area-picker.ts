@@ -29,15 +29,19 @@ export function createAreaPicker(options: {
   appOrigin: string;
   service: Pick<RecordingService, 'start'>;
   beforeOpen?: () => Promise<void>;
+  /** Where messages go. The standard error stream when left out. */
+  log?: (message: string) => void;
   /** The camera bubble shown while the area is chosen, before the countdown. */
   preview?: {
     show: NonNullable<Parameters<typeof createAreaFlow>[0]['showPreview']>;
     hide: () => void;
   };
 }): AreaPicker {
-  const log = (message: string): void => {
-    console.error(message);
-  };
+  const log =
+    options.log ??
+    ((message: string): void => {
+      console.error(message);
+    });
   const takeScreenshot = createScreenshotTaker();
   const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
   return createAreaFlow({

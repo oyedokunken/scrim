@@ -81,6 +81,11 @@ export type AreaOutcome =
   /** The area was chosen but starting the recording or taking the picture did not work. */
   | { ok: false; reason: 'rejected'; error: RecordingError };
 
+/** The kind of an error, never its text, which can carry a path. */
+function errorName(error: unknown): string {
+  return error instanceof Error ? error.name : typeof error;
+}
+
 const DEFAULT_READY_TIMEOUT_MS = 10_000;
 const DEFAULT_COUNTDOWN = 3;
 const DEFAULT_CAPTURE_DELAY_MS = 180;
@@ -104,7 +109,10 @@ export function createAreaFlow(deps: AreaDeps): {
     async run(request) {
       if (running !== undefined) return { ok: false, reason: 'busy' };
       const displays = deps.displays();
-      if (displays.length === 0) return { ok: false, reason: 'failed' };
+      if (displays.length === 0) {
+        deps.log('area.failed step=no-displays');
+        return { ok: false, reason: 'failed' };
+      }
 
       let cancelled = false;
       let handedOver = false;
@@ -211,7 +219,7 @@ async function choose(
 
   const timer = setTimeout(() => {
     if (!anyReady) {
-      deps.log('No area overlay appeared in time.');
+      deps.log('area.failed step=overlay-not-ready');
       finish({ ok: false, reason: 'failed' });
     }
   }, deps.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS);
@@ -238,7 +246,7 @@ async function choose(
     try {
       handle = deps.openOverlay(display);
     } catch (error) {
-      deps.log(`An overlay could not be opened: ${String(error)}`);
+      deps.log(`area.failed step=overlay-open error=${errorName(error)}`);
       clearTimeout(timer);
       closeAll();
       return { ok: false, reason: 'failed' };
@@ -352,6 +360,7 @@ async function choose(
   if (chosen !== 'chosen' || confirmed === undefined) {
     phase = 'closing';
     closeAll();
+    if (chosen === 'chosen') deps.log('area.failed step=nothing-confirmed');
     return chosen === 'chosen' ? { ok: false, reason: 'failed' } : chosen;
   }
 

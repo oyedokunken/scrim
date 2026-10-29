@@ -250,6 +250,9 @@ if (!app.requestSingleInstanceLock()) {
     const picker = createAreaPicker({
       appOrigin: target.origin,
       service: recording,
+      log: (message) => {
+        logger.info('area', { message });
+      },
       preview: {
         show: (input) => {
           bubble.preview({
