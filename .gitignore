@@ -66,6 +66,7 @@ recordings/
 *.mkv
 *.mov
 !apps/landing/public/**
+!docs/media/**
 
 # bundled FFmpeg, fetched by apps/desktop/scripts/fetch-ffmpeg.mts
 apps/desktop/resources/ffmpeg/

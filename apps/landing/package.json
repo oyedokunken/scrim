@@ -12,6 +12,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
     "test:lighthouse": "lhci autorun",
+    "demo:export": "node scripts/export-hero.mjs",
     "db:up": "docker compose up -d --wait",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",

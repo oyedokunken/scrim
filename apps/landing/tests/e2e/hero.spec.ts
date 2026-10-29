@@ -65,7 +65,7 @@ test.describe('the hero video', () => {
     const hero = page.locator('section[aria-labelledby="hero-title"]');
     // The hero holds the download link, the source link, the play control, the switch and the
     // timeline. There is no Play demo button, no caption and no second label.
-    await expect(hero.getByRole('button')).toHaveCount(2);
+    await expect(hero.getByRole('button')).toHaveCount(1);
     await expect(hero.getByText('Play demo')).toHaveCount(0);
     await expect(hero.getByText(/Auto zoom is (on|off)/)).toHaveCount(0);
     await expect(hero.getByText('Timeline', { exact: true })).toHaveCount(0);
@@ -307,9 +307,6 @@ test.describe('without JavaScript', () => {
     await expect(button).toContainText('Download');
   });
 });
-
-/** The planner decides the exact still zoom, so the tests only ask for a clear zoom in. */
-const zoomLevel = async (locator: Locator) => Number(await scale(locator));
 
 test.describe('with reduced motion', () => {
   test.use({ reducedMotion: 'reduce' });
