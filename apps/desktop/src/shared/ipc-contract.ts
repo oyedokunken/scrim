@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
 import { editorContract } from './editor-contract';
+import { exportContract, exportJobSchema } from './export-contract';
 import { imageContract } from './image-contract';
 import { libraryContract } from './library-contract';
 import {
@@ -73,6 +74,7 @@ export const contract = {
   ...imageContract,
   ...libraryContract,
   ...editorContract,
+  ...exportContract,
   // The destination is not an input: the main process uses the folder the person chose.
   'recording:start': {
     input: z
@@ -105,6 +107,8 @@ export const events = {
   'recording:warning': warningSchema,
   'recording:error': recordingErrorSchema,
   'recording:finished': finishedSchema,
+  /** Every change of an export: queued, running with progress, done, failed or cancelled. */
+  'export:status': exportJobSchema,
   /** The window was closed during a recording. The page asks what to do in its own dialog. */
   'window:close-requested': z.object({ trayAvailable: z.boolean() }).strict(),
   /** After every capture, whether it came from the button or the shortcut. */

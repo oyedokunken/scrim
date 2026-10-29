@@ -16,7 +16,7 @@ function Glyph({ d }: { d: string }) {
 }
 
 /** Where to find the builder. The same three places as the website's card, in the same order. */
-export const BUILT_BY_LINKS: readonly {
+const BUILT_BY_LINKS: readonly {
   id: string;
   name: string;
   href: string;

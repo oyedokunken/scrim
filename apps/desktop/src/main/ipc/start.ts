@@ -10,6 +10,8 @@ import { loadExportSource } from '../export/source';
 import { isInsideKnownFolder } from './handlers';
 import { realServiceFs } from '../recording/fs-adapter';
 import { projectsRoot } from '../recording/projects-folder';
+import type { ExportApi } from '../export/register';
+import { toBridgeJob } from '../export/export-handlers';
 import { createRealLibrary } from '../library/real-library';
 import { createLogger, type Logger } from '../log/logger';
 import { realLoggerFs } from '../log/real-logger-fs';
@@ -49,6 +51,8 @@ export async function startIpc(options: {
   onSettingsChanged?: (settings: Settings) => void;
   shortcutStatus: () => readonly ShortcutId[];
   shortcutsSuspend: (suspended: boolean) => void;
+  /** The export engine. Its status changes go to every window. */
+  exporter: ExportApi;
   closeAnswer: (answer: 'shown' | 'keep' | 'stop' | 'cancel') => void;
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
@@ -70,6 +74,13 @@ export async function startIpc(options: {
 
   // Folders the engine has written to this run, so a finished recording can be shown in its folder.
   const sessionFolders = new Set<string>();
+
+  // Every change of an export goes to every window, without the folder or the path.
+  options.exporter.service.on((event) => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      sendEvent(window.webContents, appOrigin, 'export:status', toBridgeJob(event.job));
+    }
+  });
 
   // Every engine event goes to every window of ours, after it has been checked against the contract.
   recording.on((event) => {
@@ -100,6 +111,15 @@ export async function startIpc(options: {
       settings,
       share: null,
       shortcutStatus: options.shortcutStatus,
+      exporter: {
+        start: (input) => options.exporter.start(input),
+        cancel: (jobId) => {
+          options.exporter.cancel(jobId);
+        },
+        retrySafer: (jobId) => options.exporter.retrySafer(jobId),
+        latest: () => options.exporter.service.latest(),
+        reveal: (jobId, what) => options.exporter.reveal(jobId, what),
+      },
       shortcutsSuspend: options.shortcutsSuspend,
       closeAnswer: options.closeAnswer,
       legacy: {

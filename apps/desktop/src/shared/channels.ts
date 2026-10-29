@@ -36,6 +36,11 @@ export const CHANNELS = [
   'library:delete',
   'library:share',
   'share:available',
+  'export:start',
+  'export:cancel',
+  'export:retry-safer',
+  'export:latest',
+  'export:reveal',
   'editor:open',
   'editor:save-edits',
   'recording:start',
@@ -58,5 +63,6 @@ export const EVENT_CHANNELS = [
   'recording:finished',
   'screenshot:taken',
   'window:close-requested',
+  'export:status',
 ] as const;
 export type EventChannel = (typeof EVENT_CHANNELS)[number];

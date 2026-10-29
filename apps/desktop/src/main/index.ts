@@ -32,6 +32,8 @@ import { createRecordingWindows } from './shell/recording-windows';
 import { createAreaPicker } from './recording/area-picker';
 import { buildAreaRequest, devicesFromSettings, type AreaApi } from './ipc/area-handlers';
 import { acceleratorsOf } from '../shared/shortcut-keys';
+import { autoRender, registerExport } from './export/register';
+import { DEFAULT_SETTINGS } from '../shared/settings';
 import { createShortcutManager } from './shell/shortcut-manager';
 import { createRecordingControl, isLivePhase } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
@@ -152,6 +154,14 @@ if (!app.requestSingleInstanceLock()) {
     const logger = createAppLogger();
     logger.info('app.start', { version: app.getVersion(), platform: process.platform });
     const recording = registerRecording({ appOrigin: target.origin });
+    // Every finished recording, a recovered one too, becomes one MP4 in the recordings folder.
+    const exporter = registerExport({
+      settings: () => settings?.get() ?? DEFAULT_SETTINGS,
+      log: (message) => {
+        logger.info('export', { message });
+      },
+    });
+    autoRender(recording, exporter.service);
     control.attach(recording);
     // The main window steps aside while recording and the small control takes over, then they swap back.
     const pillFile = join(app.getPath('userData'), 'pill-position.json');
@@ -291,6 +301,7 @@ if (!app.requestSingleInstanceLock()) {
       logger,
       recording,
       area,
+      exporter,
       onSettingsChanged: (next) => {
         shortcutsRef.current?.apply(acceleratorsOf(next));
       },

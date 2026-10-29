@@ -6,6 +6,7 @@ import type { SettingsStore } from '../settings/settings-store';
 import type { Handlers } from './dispatcher';
 import { createAreaHandlers, type AreaApi } from './area-handlers';
 import { createImageHandlers, type ImageDeps } from './image-handlers';
+import { createExportHandlers, type ExportLike } from '../export/export-handlers';
 import { createEditorHandlers, type EditorDeps } from '../editor/editor-handlers';
 import { createLibraryHandlers } from '../library/library-handlers';
 import type { Library } from '../library/library';
@@ -18,6 +19,8 @@ export interface HandlerDeps {
   area: AreaApi;
   /** The file and clipboard work behind the screenshot result and editor. */
   images: Omit<ImageDeps, 'platform' | 'screenshotFolder' | 'share'>;
+  /** The export engine: one MP4 per recording, with progress. */
+  exporter: ExportLike;
   /** Reading a recording for the editor and saving its edits. */
   editor: EditorDeps;
   /** The recordings and screenshots listing and its actions. */
@@ -154,6 +157,10 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       screenshotFolder,
     }),
     ...createEditorHandlers(deps.editor).handlers,
+    ...createExportHandlers({
+      exporter: deps.exporter,
+      isKnownFolder: deps.editor.isKnownFolder,
+    }),
     ...createLibraryHandlers({ library: deps.library, canShare: () => deps.share !== null }),
     'logs:open-folder': async () => {
       if ((await deps.openPath(deps.logsFolder)) !== '') throw new Error('could not open logs');
