@@ -48,6 +48,11 @@ function setup(overrides: Partial<Handlers> = {}) {
     'library:delete': () => undefined,
     'library:share': () => undefined,
     'share:available': () => false,
+    'export:start': () => null,
+    'export:cancel': () => undefined,
+    'export:retry-safer': () => null,
+    'export:latest': () => null,
+    'export:reveal': () => false,
     'editor:open': () => ({
       ok: false,
       error: { code: 'unknown', message: 'm', nextStep: 'n' },

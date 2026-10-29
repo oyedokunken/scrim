@@ -50,6 +50,13 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
     },
     share: null,
     shortcutStatus: () => [],
+    exporter: {
+      start: vi.fn(),
+      cancel: vi.fn(),
+      retrySafer: vi.fn(),
+      latest: vi.fn(),
+      reveal: vi.fn(() => Promise.resolve(true)),
+    },
     closeAnswer: vi.fn(),
     shortcutsSuspend: vi.fn(),
     legacy: {
