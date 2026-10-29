@@ -16,7 +16,7 @@ import { Button, Segmented, Tooltip } from '../../ui';
 import { cursorPaintCss, renderStyleFromSettings } from '../../../shared/render-style';
 import type { Settings } from '../../../shared/settings';
 import { formatTimer } from '../format';
-import { drawFrame } from './draw-frame';
+import { SPLIT_MAX, SPLIT_MIN, paintFrame, splitFromPointer, type CompareMode } from './draw-frame';
 import type { EditorApi, EditorProject } from './editor-api';
 import {
   addCut,
@@ -37,8 +37,6 @@ import { ExportPanel } from './export-panel';
 import { mediaSources } from './media-source';
 import { ZoomMoments } from './zoom-moments';
 import './editor.css';
-
-type CompareMode = 'before' | 'compare' | 'after';
 
 const MODE_OPTIONS = [
   { value: 'before', label: 'Before' },
@@ -88,12 +86,7 @@ export function EditorView(props: EditorViewProps) {
   return <Editor {...props} project={state.project} />;
 }
 
-function Editor({
-  folder,
-  api,
-  settings,
-  project,
-}: EditorViewProps & { project: EditorProject }) {
+function Editor({ folder, api, settings, project }: EditorViewProps & { project: EditorProject }) {
   const screenEl = useRef<HTMLVideoElement>(null);
   const cameraEl = useRef<HTMLVideoElement>(null);
   const micEl = useRef<HTMLAudioElement>(null);
@@ -151,23 +144,7 @@ function Editor({
       ctx.setTransform(k, 0, 0, k, 0, 0);
       const media = { screen, camera: hasCamera ? cameraEl.current : null };
       const frame = model.describeAt(outputMs);
-      drawFrame(ctx, model, frame, media, paint);
-      const current = modeRef.current;
-      if (current === 'after' || screen.videoWidth === 0) return;
-      // Before: the recording as it was captured, fitted into the same frame.
-      const fit = Math.min(output.width / screen.videoWidth, output.height / screen.videoHeight);
-      const w = screen.videoWidth * fit;
-      const h = screen.videoHeight * fit;
-      ctx.save();
-      if (current === 'compare') {
-        ctx.beginPath();
-        ctx.rect(0, 0, output.width * splitRef.current, output.height);
-        ctx.clip();
-      }
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, output.width, output.height);
-      ctx.drawImage(screen, (output.width - w) / 2, (output.height - h) / 2, w, h);
-      ctx.restore();
+      paintFrame(ctx, modeRef.current, splitRef.current, model, frame, media, paint);
     },
     [model, paint, hasCamera],
   );
@@ -303,7 +280,7 @@ function Editor({
     if (box === undefined) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     const move = (e: globalThis.PointerEvent): void => {
-      setSplit(Math.min(0.95, Math.max(0.05, (e.clientX - box.left) / box.width)));
+      setSplit(splitFromPointer(e.clientX, box.left, box.width));
     };
     const up = (): void => {
       window.removeEventListener('pointermove', move);
@@ -337,8 +314,24 @@ function Editor({
               className="compare-divider"
               style={{ left: `${String(split * 100)}%` }}
               role="separator"
+              tabIndex={0}
+              aria-orientation="vertical"
+              aria-valuemin={5}
+              aria-valuemax={95}
+              aria-valuenow={Math.round(split * 100)}
               aria-label="Move to compare the original and the result"
               onPointerDown={onDividerDown}
+              onKeyDown={(event) => {
+                if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+                event.preventDefault();
+                event.stopPropagation();
+                setSplit((value) =>
+                  Math.min(
+                    SPLIT_MAX,
+                    Math.max(SPLIT_MIN, value + (event.key === 'ArrowLeft' ? -0.05 : 0.05)),
+                  ),
+                );
+              }}
             />
           ) : null}
           <video ref={screenEl} src={media.screen} muted preload="auto" playsInline hidden />

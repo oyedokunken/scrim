@@ -35,6 +35,7 @@ import {
   useRecordingOutcome,
   useRecordingSnapshot,
   useScreenshotTaken,
+  useExportJob,
   useScreenshots,
   useSettings,
   type UserError,
@@ -96,6 +97,7 @@ export function MainScreen() {
   const { settings, update, chooseFolder } = useSettings();
   const snapshot = useRecordingSnapshot();
   const { finished, failure, dismiss } = useRecordingOutcome();
+  const exportJob = useExportJob();
   const devices = useDevices();
   const controls = useRecordingControls();
   const version = useAppVersion();
@@ -268,9 +270,16 @@ export function MainScreen() {
     view === 'screenshot'
       ? (settings.screenshotFolder ?? 'Pictures\\Scrim')
       : (settings.destinationFolder ?? 'Videos\\Scrim');
+  const exporting = exportJob?.phase === 'queued' || exportJob?.phase === 'running';
   const state = live
     ? `${snapshot.phase === 'paused' ? 'Paused' : 'Recording'} ${formatTimer(snapshot.elapsedMs)}`
-    : 'Ready';
+    : exporting
+      ? `Making video ${
+          exportJob.progress === null
+            ? ''
+            : `${String(Math.round(exportJob.progress.fraction * 100))}%`
+        }`.trim()
+      : 'Ready';
 
   const startButton = (
     <Button
@@ -322,6 +331,19 @@ export function MainScreen() {
             ? undefined
             : {
                 finished,
+                job: exportJob,
+                onCancelExport: (jobId: string) => {
+                  void window.scrim.invoke('export:cancel', { jobId });
+                },
+                onRetrySafer: (jobId: string) => {
+                  void window.scrim.invoke('export:retry-safer', { jobId });
+                },
+                onReveal: (jobId: string, what: 'output' | 'source') => {
+                  void window.scrim.invoke('export:reveal', { jobId, what });
+                },
+                onExportAgain: () => {
+                  void window.scrim.invoke('export:start', { folder: finished.folder });
+                },
                 onShowInFolder: () => {
                   void window.scrim.invoke('shell:show-in-folder', { path: finished.folder });
                 },

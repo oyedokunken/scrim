@@ -274,3 +274,30 @@ export function useCanShare(): boolean {
   }, []);
   return available;
 }
+
+export type ExportJobView = EventPayload<'export:status'>;
+
+/**
+ * The most recent export, kept in step with the main process: the one running after Stop, or the last
+ * one that finished. It is read once when the page opens and then follows every status change.
+ */
+export function useExportJob(): ExportJobView | null {
+  const [job, setJob] = useState<ExportJobView | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void window.scrim.invoke('export:latest').then(
+      (latest) => {
+        if (alive) setJob((current) => current ?? latest);
+      },
+      () => undefined,
+    );
+    const off = window.scrim.on('export:status', (next) => {
+      if (alive) setJob(next);
+    });
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
+  return job;
+}
