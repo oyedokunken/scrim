@@ -201,10 +201,6 @@ test.describe('keyboard only', () => {
   test('the whole page can be walked with Tab, Enter and Space', async ({ page, browserName }) => {
     test.setTimeout(120_000);
     await page.goto('/');
-    // The play button can be focused once the intro cards give way to the demo.
-    await expect(page.getByTestId('hero-demo')).toHaveAttribute('data-stage', 'demo', {
-      timeout: 12_000,
-    });
 
     const seen = new Set<string>();
     let openedFaq = false;

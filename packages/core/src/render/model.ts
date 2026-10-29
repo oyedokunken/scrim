@@ -160,7 +160,9 @@ export function createRenderModel(input: RenderInput): RenderModel {
   };
   const zoomLog = log === null ? null : { frame: log.frame, events: log.events };
   const zoomMoments: readonly ZoomMoment[] =
-    zoomLog === null ? [] : (edits.zoom?.moments ?? planZoomMoments(zoomLog, zoomOptions));
+    zoomLog === null
+      ? []
+      : (edits.zoom?.moments ?? planZoomMoments(zoomLog, zoomOptions, duration));
   const keyframes = zoomLog !== null && zoomOn ? planCamera(zoomMoments, zoomLog, zoomOptions) : [];
 
   const cursorStyle = style.cursor?.style ?? CURSOR_DEFAULTS.style;

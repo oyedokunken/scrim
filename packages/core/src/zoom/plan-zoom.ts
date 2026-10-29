@@ -15,6 +15,8 @@ const KEYFRAME_EVERY = 2;
 /** After the last moment the spring is given this many eases to come to rest. */
 const SETTLE_EASES = 2.5;
 /** The scale counts as arrived when it is this close to its goal. */
+/** Clicks this close to the end of the recording are the click that stopped it. */
+const STOP_CLICK_GUARD_MS = 1200;
 const SNAP_SCALE = 0.002;
 
 function isLeftClick(event: InputEvent): event is ClickEvent {
@@ -26,9 +28,18 @@ function isLeftClick(event: InputEvent): event is ClickEvent {
  * finish zooming out before the next click needs it back in. A run of nearby clicks therefore
  * stays in one zoom. The first click of a moment is where the camera first aims.
  */
-export function planZoomMoments(log: InputLog, options: Partial<ZoomOptions> = {}): ZoomMoment[] {
+export function planZoomMoments(
+  log: InputLog,
+  options: Partial<ZoomOptions> = {},
+  durationMs?: number,
+): ZoomMoment[] {
   const resolved = resolveZoomOptions(options);
-  const clicks = log.events.filter(isLeftClick).sort((a, b) => a.t - b.t);
+  // The last click of a recording is almost always the click on Stop, so it is not a place to zoom.
+  const lastUseful = durationMs === undefined ? Infinity : durationMs - STOP_CLICK_GUARD_MS;
+  const clicks = log.events
+    .filter(isLeftClick)
+    .filter((c) => c.t <= lastUseful)
+    .sort((a, b) => a.t - b.t);
   if (clicks.length === 0 || resolved.maxZoom === 1) {
     return [];
   }
