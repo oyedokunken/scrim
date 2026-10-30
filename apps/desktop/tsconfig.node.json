@@ -29,6 +29,7 @@
     "src/recorder/pill/protocol.ts",
     "src/recorder/pill/preload/**/*",
     "tests/unit/**/*",
+    "tests/support/**/*",
     "build/**/*",
     "scripts/**/*",
     "../../packages/tokens/scripts/mark-source.mts"

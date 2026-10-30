@@ -7,6 +7,11 @@ export const CHANNELS = [
   'app:version',
   'app:about',
   'system:info',
+  'updates:state',
+  'updates:check',
+  'updates:download',
+  'updates:install',
+  'app:activity',
   'settings:get',
   'settings:set',
   'folder:choose',
@@ -69,5 +74,6 @@ export const EVENT_CHANNELS = [
   'screenshot:taken',
   'window:close-requested',
   'export:status',
+  'updates:changed',
 ] as const;
 export type EventChannel = (typeof EVENT_CHANNELS)[number];

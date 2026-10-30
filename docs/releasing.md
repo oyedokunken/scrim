@@ -22,7 +22,7 @@ installer configuration, the FFmpeg pins). They do not prove the app works on a 
 
 On a `v*` tag, `.github/workflows/release.yml` builds and publishes:
 
-- Windows: `Scrim Setup <version>.exe` (NSIS, unsigned until SignPath is approved).
+- Windows: `Scrim-Setup-<version>.exe` (NSIS, unsigned until SignPath is approved).
 - macOS: `Scrim-<version>-mac-arm64.dmg` and `Scrim-<version>-mac-x64.dmg`, one per architecture
   because the bundled FFmpeg is per architecture.
 - Linux x64: `Scrim-<version>-linux-x86_64.AppImage` and `Scrim-<version>-linux-amd64.deb`.
@@ -136,3 +136,37 @@ built fine in a Linux container from the `linux-unpacked` folder.
 4. Ubuntu 24.04 blocks unprivileged user namespaces for the sandbox. The deb installs an AppArmor
    profile for this. If the AppImage fails to start, run it with `--no-sandbox` and report it.
 5. Check the global shortcuts, the tray icon and Recover after killing the process.
+
+## Publishing an update
+
+The app checks GitHub Releases for a newer version (Settings, Updates). The check runs only when the
+person presses Check for updates, or at start when they turned that on. An update is simply the
+latest published release, so publishing one is the same as a release, with these steps in order.
+
+1. Bump `version` in `apps/desktop/package.json` to a higher version than the last release. The
+   updater compares versions, so an equal or lower one is never offered. Update `CHANGELOG.md`. The
+   GitHub release body becomes the release notes in the update window, so write it for users.
+2. Land it on `main`, then tag it: `git tag v1.1.0 && git push origin v1.1.0`. The workflow stops if
+   the tag differs from the desktop version.
+3. The workflow builds on all three systems, signs where secrets exist, and publishes. For the
+   updater, the release must hold these files, and the workflow fails if one is missing:
+   - `latest.yml` and `Scrim-Setup-<version>.exe` plus its `.blockmap` (Windows).
+   - `latest-mac.yml`, with the `.zip` and `.dmg` of both architectures (macOS). The Mac updater
+     installs from the zip. The two Mac builds each write a `latest-mac.yml`, so the publish job
+     joins them with `apps/desktop/scripts/merge-mac-update-info.mts`.
+   - `latest-linux.yml` and the `.AppImage` (Linux). A deb install is not updated in place.
+4. Publish the release as a normal release, not a draft or a pre-release. `electron-updater` ignores
+   drafts, and ignores pre-releases unless told otherwise.
+5. Do not edit or replace a file on a published release. The update file stores the SHA-512 of each
+   file, and a changed file is refused as a checksum error. Publish a new version instead.
+6. Check from an older installed version: Settings, Check for updates. The New update available pill
+   shows on the Settings item, Update now downloads, and Restart and install installs.
+
+What is signed matters: on Windows, an unsigned build installs updates without a publisher check.
+Once SignPath signs the installer, the updater verifies the publisher name before it installs.
+
+What has not been tested: a real update on a real machine. The flow is tested against a local HTTP
+server with a fake updater, and the real `electron-updater` is only exercised in a development run
+pointed at a local feed. A signed, packaged update from a real GitHub release, and the Mac and Linux
+update paths, have not been run. Do that with a throwaway release (deleted afterwards) on a real machine before
+announcing a release that relies on it.

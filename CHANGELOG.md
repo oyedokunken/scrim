@@ -18,6 +18,8 @@ All notable changes to Scrim are documented here.
 - Camera, audio and background pages with live previews, plus cursor and zoom pages
 - Global shortcuts for start, stop and screenshot, and a first run check for camera and microphone
 - App icon generated from the brand mark for every window, the installer and the tray
+- Settings in two equal columns with green buttons, and an About card with the version, release date, last updated time and the computer name and system (shown only on that screen, never sent or logged)
+- In-app update check from GitHub Releases: a Check for updates button, an optional check at start (off by default), a New update available pill, and an update window with the notes, size and a download progress bar. Nothing is downloaded or installed until you press Update now and then the restart. No check runs while recording, editing or exporting
 - Shared session format in `@scrim/core` with a bubble keyframe list, window bounds, display ids and the edit list
 
 ### Added

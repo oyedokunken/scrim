@@ -23,7 +23,7 @@ Please avoid including personal data or secrets in the report. Reports are revie
 Scrim is designed with these boundaries:
 
 - Recordings stay on the user's computer
-- The desktop app makes no network requests during recording, editing or export
+- The desktop app makes no network requests during recording, editing or export. Its only network use is the update check against GitHub Releases, which runs only when the user asks or has turned it on, never while recording, editing or exporting, and downloads nothing until the user presses Update now. Downloads are checked against the SHA-512 in the release metadata, and a signed build also has its publisher checked
 - Website input is validated on the client and server with the same zod schema
 - Download and unsubscribe requests are same origin only, JSON only and size limited, with a honeypot and a rate limit per hashed IP
 - Unsubscribing is a POST, never a GET, so link scanners cannot unsubscribe anyone
