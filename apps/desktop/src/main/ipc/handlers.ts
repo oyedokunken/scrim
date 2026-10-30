@@ -10,6 +10,7 @@ import { createExportHandlers, type ExportLike } from '../export/export-handlers
 import { createEditorHandlers, type EditorDeps } from '../editor/editor-handlers';
 import { createLibraryHandlers } from '../library/library-handlers';
 import type { Library } from '../library/library';
+import type { ShareService } from '../share/share-service';
 import { createRecordingHandlers, type RecordingApi } from './recording-handlers';
 
 /** Everything the handlers need from the outside world, so a test can supply fakes. */
@@ -27,6 +28,8 @@ export interface HandlerDeps {
   review: Pick<Handlers, 'review:open' | 'review:discard'>;
   /** The recordings and screenshots listing and its actions. */
   library: Library;
+  /** The one service that shares recordings and screenshots, whatever screen asks. */
+  shareService: ShareService;
   /** The Windows share sheet. Null when this computer has none Scrim can open. */
   share: ((path: string) => Promise<void>) | null;
   platform: NodeJS.Platform;
@@ -172,6 +175,9 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       isKnownFolder: deps.editor.isKnownFolder,
     }),
     ...createLibraryHandlers({ library: deps.library, canShare: () => deps.share !== null }),
+    'share:info': ({ source }) => deps.shareService.info(source),
+    'share:run': ({ source, action }) => deps.shareService.run(source, action),
+    'share:drag': ({ source }) => deps.shareService.drag(source),
     'security:open': () => deps.openSecuritySettings(),
     'logs:open-folder': async () => {
       if ((await deps.openPath(deps.logsFolder)) !== '') throw new Error('could not open logs');

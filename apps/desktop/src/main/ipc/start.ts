@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
 import { screenshotFallbackFolder } from '../recording/screenshot-taker';
 import { createRealShare } from '../share/share';
+import { createRealShareService } from '../share/real-share-service';
 import { access, mkdir, open, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EventPayload } from '../../shared/ipc-contract';
@@ -159,6 +160,15 @@ export async function startIpc(options: {
     }
   });
 
+  const library = createRealLibrary({
+    videosFolder: () => settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+    screenshotsFolder: () =>
+      screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+    extraScreenshotsFolder: screenshotFallbackFolder,
+    extraVideosFolder: exportFallbackFolder,
+    share,
+  });
+
   registerIpc({
     allowedOrigin: appOrigin,
     handlers: createHandlers({
@@ -212,14 +222,26 @@ export async function startIpc(options: {
         issueMedia: (file, label) => options.media.issue(file, label),
       },
       review: review.handlers,
-      library: createRealLibrary({
-        videosFolder: () =>
-          settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
-        screenshotsFolder: () =>
-          screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
-        extraScreenshotsFolder: screenshotFallbackFolder,
-        extraVideosFolder: exportFallbackFolder,
+      library,
+      shareService: createRealShareService({
+        library,
         share,
+        previewDir: previewFolder,
+        isKnownFolder,
+        ffmpeg: ffmpegPaths,
+        // Only these folders: the projects, the cache, the chosen output folders and the fallbacks.
+        allowedRoots: () => [
+          projectsRoot({
+            platform: process.platform,
+            env: process.env,
+            userData: app.getPath('userData'),
+          }),
+          join(app.getPath('userData'), 'cache'),
+          settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+          screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+          screenshotFallbackFolder(),
+          exportFallbackFolder(),
+        ],
       }),
       recording,
       area,

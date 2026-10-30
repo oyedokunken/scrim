@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { LibraryItem } from '../../../shared/library-contract';
 import type { OutputOf } from '../../../shared/ipc-contract';
-import { useCanShare } from '../hooks';
 
 export type OpenedItem = Exclude<
   OutputOf<'library:open'>,
@@ -17,7 +16,6 @@ export interface LibraryActions {
   openFile: (id: string) => Promise<boolean>;
   /** Puts a screenshot on the clipboard as an image. */
   copyImage: (id: string) => Promise<boolean>;
-  share: (id: string) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
   recover: (
     folder: string,
@@ -29,7 +27,8 @@ interface LibraryData extends LibraryActions {
   /** Null until the first listing arrives. */
   items: readonly LibraryItem[] | null;
   recoverable: readonly Recoverable[];
-  canShare: boolean;
+  /** Reads the listing again, for example after a file turned out to be gone. */
+  reload: () => void;
 }
 
 /**
@@ -39,7 +38,6 @@ interface LibraryData extends LibraryActions {
 export function useLibrary(active: boolean): LibraryData {
   const [items, setItems] = useState<readonly LibraryItem[] | null>(null);
   const [recoverable, setRecoverable] = useState<readonly Recoverable[]>([]);
-  const canShare = useCanShare();
   const [version, setVersion] = useState(0);
   const refresh = useCallback(() => {
     setVersion((current) => current + 1);
@@ -84,7 +82,7 @@ export function useLibrary(active: boolean): LibraryData {
   return {
     items,
     recoverable,
-    canShare,
+    reload: refresh,
     open: (id) => window.scrim.invoke('library:open', { id }),
     rename: async (id, name) => {
       try {
@@ -109,7 +107,6 @@ export function useLibrary(active: boolean): LibraryData {
         return false;
       }
     },
-    share: (id) => attempt(() => window.scrim.invoke('library:share', { id })),
     remove: (id) => attempt(() => window.scrim.invoke('library:delete', { id })),
     recover: async (folder) => {
       try {

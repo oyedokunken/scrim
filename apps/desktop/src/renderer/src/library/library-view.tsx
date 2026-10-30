@@ -33,6 +33,8 @@ import {
   type LibraryFilter,
   type LibraryOrder,
 } from './library-model';
+import { ShareDialog } from '../share/share-dialog';
+import type { ShareSource } from '../../../shared/share-contract';
 import { LibraryDetail } from './library-detail';
 import { useLibrary, type OpenedItem, type Recoverable } from './use-library';
 
@@ -141,7 +143,19 @@ function Card({
 
   return (
     <li className="lib-card">
-      <button type="button" className="lib-open" onClick={onOpen} aria-label={`Open ${item.name}`}>
+      <button
+        type="button"
+        className="lib-open"
+        onClick={onOpen}
+        aria-label={`Open ${item.name}`}
+        draggable={item.isFile}
+        onDragStart={(event) => {
+          event.preventDefault();
+          if (item.isFile) {
+            void window.scrim.invoke('share:drag', { source: { kind: 'library', id: item.id } });
+          }
+        }}
+      >
         {isNew(item, now) ? <span className="lib-new">NEW</span> : null}
         <span className="thumb lib-thumb">
           {url === null ? icon(24) : <img src={url} alt="" draggable={false} />}
@@ -207,6 +221,7 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
   const [deleting, setDeleting] = useState<LibraryItem | null>(null);
   const [dismissing, setDismissing] = useState<Recoverable | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<ShareSource | null>(null);
   const scrollTop = useRef(0);
 
   const openDetail = (id: string): void => {
@@ -305,7 +320,13 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
 
   if (detailItem !== undefined) {
     return (
-      <LibraryDetail item={detailItem} actions={library} onBack={closeDetail} onOpened={onOpened} />
+      <LibraryDetail
+        item={detailItem}
+        actions={library}
+        onBack={closeDetail}
+        onOpened={onOpened}
+        onReload={library.reload}
+      />
     );
   }
 
@@ -430,15 +451,7 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
                 void library.reveal(item.id);
               }}
               onShare={() => {
-                void library.share(item.id).then((ok) => {
-                  if (!ok) {
-                    showError({
-                      title: 'Scrim could not open the share sheet',
-                      message: 'Try again.',
-                      code: 'share-failed',
-                    });
-                  }
-                });
+                setSharing({ kind: 'library', id: item.id });
               }}
               onDelete={() => {
                 setDeleting(item);
@@ -447,6 +460,17 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
           ))}
         </ul>
       )}
+
+      <ShareDialog
+        source={sharing}
+        onClose={() => {
+          setSharing(null);
+        }}
+        onMissing={() => {
+          setSharing(null);
+          library.reload();
+        }}
+      />
 
       <Dialog
         open={renaming !== null}

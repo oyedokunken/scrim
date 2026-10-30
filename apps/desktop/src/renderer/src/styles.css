@@ -1476,3 +1476,52 @@ input[type='checkbox'] {
   min-width: 44px;
   min-height: 44px;
 }
+
+/* The share menu: the file, a size warning for big videos, then one button per action. */
+.share-sheet {
+  width: 360px;
+}
+
+.share-body {
+  display: grid;
+  gap: 16px;
+}
+
+.share-file {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.share-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.share-warning {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 12px;
+  background: var(--scrim-green-tint);
+  border-radius: var(--ui-radius-sm);
+}
+
+.share-warning p {
+  margin: 0;
+}
+
+.share-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.share-action {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 44px;
+}
+
+.share-secondary {
+  justify-self: start;
+}

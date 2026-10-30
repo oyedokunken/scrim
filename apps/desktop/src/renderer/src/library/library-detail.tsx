@@ -5,6 +5,7 @@ import {
   FolderOpen,
   Image,
   Pencil,
+  Share2,
   Trash2,
   Video,
 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { Button, ConfirmDialog, useShowError, useToast } from '../../ui';
 import type { LibraryItem } from '../../../shared/library-contract';
 import { formatBytes, formatTimer } from '../format';
 import { fullFileName } from './library-model';
+import { ShareDialog } from '../share/share-dialog';
 import type { OpenedItem } from './use-library';
 import type { LibraryActions } from './use-library';
 
@@ -23,14 +25,17 @@ export interface LibraryDetailProps {
   onBack: () => void;
   /** Opens the editor for a recording that still has its working files. */
   onOpened: (opened: OpenedItem) => void;
+  /** Reads the Library again, when a shared file turned out to be gone. */
+  onReload: () => void;
 }
 
 /** Everything about one library item: a preview, its details, and what to do with it. */
-export function LibraryDetail({ item, actions, onBack, onOpened }: LibraryDetailProps) {
+export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: LibraryDetailProps) {
   const toast = useToast();
   const showError = useShowError();
   const [preview, setPreview] = useState<{ id: string; url: string | null } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -77,6 +82,32 @@ export function LibraryDetail({ item, actions, onBack, onOpened }: LibraryDetail
     });
   };
 
+  const copyFile = (): void => {
+    void window.scrim
+      .invoke('share:run', { source: { kind: 'library', id: item.id }, action: 'copy-file' })
+      .then(
+        (result) => {
+          if (result.ok) toast(result.message);
+          else {
+            showError({
+              title: 'Scrim could not copy the file',
+              message: result.message,
+              code: `share-${result.reason}`,
+              retry: copyFile,
+            });
+          }
+        },
+        () => {
+          showError({
+            title: 'Scrim could not copy the file',
+            message: 'Try again.',
+            code: 'copy-failed',
+            retry: copyFile,
+          });
+        },
+      );
+  };
+
   const facts: (readonly [string, string])[] = [
     ['File name', fullFileName(item)],
     ['Type', item.kind === 'screenshot' ? 'Screenshot (PNG)' : 'Recording (MP4)'],
@@ -116,7 +147,15 @@ export function LibraryDetail({ item, actions, onBack, onOpened }: LibraryDetail
                   ? `Screenshot ${item.name}`
                   : `First frame of ${item.name}`
               }
-              draggable={false}
+              draggable={item.isFile}
+              onDragStart={(event) => {
+                event.preventDefault();
+                if (item.isFile) {
+                  void window.scrim.invoke('share:drag', {
+                    source: { kind: 'library', id: item.id },
+                  });
+                }
+              }}
             />
           )}
         </div>
@@ -165,6 +204,20 @@ export function LibraryDetail({ item, actions, onBack, onOpened }: LibraryDetail
               <Button icon={<Copy size={16} strokeWidth={1.75} />} onClick={copyImage}>
                 Copy
               </Button>
+            ) : item.isFile ? (
+              <Button icon={<Copy size={16} strokeWidth={1.75} />} onClick={copyFile}>
+                Copy file
+              </Button>
+            ) : null}
+            {item.isFile ? (
+              <Button
+                icon={<Share2 size={16} strokeWidth={1.75} />}
+                onClick={() => {
+                  setSharing(true);
+                }}
+              >
+                Share
+              </Button>
             ) : null}
             <Button
               variant="danger"
@@ -178,6 +231,18 @@ export function LibraryDetail({ item, actions, onBack, onOpened }: LibraryDetail
           </div>
         </div>
       </div>
+
+      <ShareDialog
+        source={sharing ? { kind: 'library', id: item.id } : null}
+        onClose={() => {
+          setSharing(false);
+        }}
+        onMissing={() => {
+          setSharing(false);
+          onReload();
+          onBack();
+        }}
+      />
 
       <ConfirmDialog
         open={confirmDelete}

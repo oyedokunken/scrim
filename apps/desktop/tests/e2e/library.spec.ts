@@ -1,4 +1,5 @@
 import type { ElectronApplication, Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -177,6 +178,64 @@ test.describe('the library', () => {
       for (const name of ['Open', 'Show in folder', 'Share', 'Delete']) {
         await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
       }
+    } finally {
+      disk.cleanup();
+    }
+  });
+
+  test('the share menu lists the actions, is keyboard operable, and Copy file puts a file on the clipboard', async ({
+    app,
+    page,
+  }) => {
+    const disk = await arrange(app, true);
+    try {
+      await openLibrary(page);
+      await page.getByRole('button', { name: 'More for Login screen' }).click();
+      await page.getByRole('menuitem', { name: 'Share', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Share' });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByText('Login screen.png')).toBeVisible();
+      const options = dialog.getByRole('group', { name: 'Share options' });
+      for (const name of ['Copy file', 'Copy image', 'Email', 'Show in folder']) {
+        await expect(options.getByRole('button', { name })).toBeVisible();
+      }
+      await expect(dialog.getByRole('button', { name: 'Copy file path' })).toBeVisible();
+      await expect(
+        options.getByRole('button', { name: 'Drag the file into another app' }),
+      ).toBeVisible();
+      // The first action takes keyboard focus, and Escape closes the menu.
+      await expect(options.getByRole('button').first()).toBeFocused();
+
+      if (process.platform === 'win32') {
+        await options.getByRole('button', { name: 'Copy file' }).click();
+        await expect(page.getByText(/File copied/)).toBeVisible();
+        const check =
+          "Add-Type -AssemblyName System.Windows.Forms; 'drop=' + [System.Windows.Forms.Clipboard]::ContainsFileDropList() + ' text=' + [System.Windows.Forms.Clipboard]::ContainsText() + ' ' + ([System.Windows.Forms.Clipboard]::GetFileDropList() -join ',')";
+        const out = execFileSync('powershell.exe', ['-NoProfile', '-STA', '-Command', check], {
+          encoding: 'utf8',
+        });
+        expect(out).toContain('drop=True');
+        expect(out).toContain('text=False');
+        expect(out).toContain('Login screen.png');
+      }
+    } finally {
+      disk.cleanup();
+    }
+  });
+
+  test('warns about a video over 25 MB and offers a smaller copy', async ({ app, page }) => {
+    const disk = await arrange(app, true);
+    try {
+      writeFileSync(
+        join(disk.root, 'videos', 'Scrim', 'Big clip.mp4'),
+        Buffer.alloc(26 * 1024 * 1024),
+      );
+      await openLibrary(page);
+      await page.getByRole('button', { name: 'More for Big clip' }).click();
+      await page.getByRole('menuitem', { name: 'Share', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Share' });
+      await expect(dialog.getByRole('note')).toContainText('limit attachments');
+      await expect(dialog.getByRole('button', { name: 'Make a smaller copy' })).toBeVisible();
     } finally {
       disk.cleanup();
     }

@@ -8,6 +8,7 @@ import {
   MoveUpRight,
   Redo2,
   Save,
+  Share2,
   Square,
   Trash2,
   Type,
@@ -16,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { Button, ConfirmDialog, Segmented, Switch, Tooltip, useToast } from '../../ui';
+import type { ShareSource } from '../../../shared/share-contract';
+import { ShareDialog } from '../share/share-dialog';
 import {
   EMPTY_DOC,
   addItem,
@@ -139,6 +142,7 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
   const [copy, setCopy] = useState(true);
   const [saving, setSaving] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [shareSource, setShareSource] = useState<ShareSource | null>(null);
   const [textEdit, setTextEdit] = useState<{ at: Point; value: string } | null>(null);
   const [available, setAvailable] = useState<Size>({ width: 800, height: 400 });
 
@@ -476,6 +480,20 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
       .catch(failed);
   };
 
+  // What is shared is the final picture with every mark on it, not the file on disk.
+  const onShare = (): void => {
+    const dataUrl = render();
+    if (dataUrl === null) {
+      failed();
+      return;
+    }
+    setShareSource({
+      kind: 'edited',
+      dataUrl,
+      name: `${fileName(path).replace(/\.png$/i, '')}-edited`,
+    });
+  };
+
   const onSaveAs = (): void => {
     const dataUrl = render();
     if (dataUrl === null) {
@@ -665,6 +683,9 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
         <Button icon={<Save size={16} strokeWidth={1.75} />} onClick={onSaveAs}>
           Save as
         </Button>
+        <Button icon={<Share2 size={16} strokeWidth={1.75} />} onClick={onShare}>
+          Share
+        </Button>
         <Button
           onClick={() => {
             if (dirty) setConfirmCancel(true);
@@ -677,6 +698,13 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
           Done
         </Button>
       </div>
+
+      <ShareDialog
+        source={shareSource}
+        onClose={() => {
+          setShareSource(null);
+        }}
+      />
 
       <ConfirmDialog
         open={confirmCancel}

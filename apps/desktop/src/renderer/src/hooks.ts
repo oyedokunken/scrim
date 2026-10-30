@@ -215,24 +215,6 @@ export function useClock(): number {
   return time;
 }
 
-/** Whether this computer has a share sheet Scrim can open. The Share buttons only show when it does. */
-export function useCanShare(): boolean {
-  const [available, setAvailable] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    void window.scrim.invoke('share:available').then(
-      (value) => {
-        if (alive) setAvailable(value);
-      },
-      () => undefined,
-    );
-    return () => {
-      alive = false;
-    };
-  }, []);
-  return available;
-}
-
 export type ExportJobView = EventPayload<'export:status'>;
 
 /**
