@@ -83,8 +83,7 @@ export type AreaOutcome =
   /** The area was chosen but starting the recording or taking the picture did not work. */
   | { ok: false; reason: 'rejected'; error: RecordingError };
 
-export type AreaFailStep =
-  'no-displays' | 'overlay-not-ready' | 'overlay-open' | 'nothing-confirmed';
+type AreaFailStep = 'no-displays' | 'overlay-not-ready' | 'overlay-open' | 'nothing-confirmed';
 
 /** The kind of an error, never its text, which can carry a path. */
 function errorName(error: unknown): string {
