@@ -302,8 +302,12 @@
 }
 
 .privacy {
+  max-width: 28rem;
+  margin-inline: auto;
   color: var(--scrim-text-secondary);
   font-size: 0.8125rem;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .done {

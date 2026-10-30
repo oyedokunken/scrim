@@ -63,9 +63,14 @@ export function CopyButton({ text, target }: CopyButtonProps) {
         ) : (
           <Copy aria-hidden="true" size={18} />
         )}
-        <span>Copy commands</span>
+        <span>{result === 'copied' ? 'Copied' : 'Copy commands'}</span>
       </button>
-      <span className={styles.copyMessage} role="status" aria-live="polite">
+      <span
+        className={styles.copyMessage}
+        role="status"
+        aria-live="polite"
+        aria-hidden={result === 'copied' ? 'true' : undefined}
+      >
         {copyMessage(result)}
       </span>
     </div>

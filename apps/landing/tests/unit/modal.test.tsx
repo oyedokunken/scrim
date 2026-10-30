@@ -63,7 +63,7 @@ describe('DownloadModal markup', () => {
 
   it('has a Start download button and the privacy line with a link that opens in a new tab', () => {
     expect(html).toContain('Start download');
-    expect(html).toContain('Read the privacy policy');
+    expect(html).toContain('Read our privacy policy');
     expect(html).toMatch(/href="\/privacy"[^>]*target="_blank"/);
   });
 
