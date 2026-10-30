@@ -10,7 +10,7 @@ import { events } from '../../src/shared/ipc-contract';
 
 import { join } from 'node:path';
 
-const FOLDER = 'C:\\Projects\\Take 1.scrim';
+const FOLDER = join('C:', 'Projects', 'Take 1.scrim');
 
 const job = (over: Partial<ExportJob> = {}): ExportJob => ({
   id: 'job-1',

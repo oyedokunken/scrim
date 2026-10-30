@@ -82,8 +82,25 @@ async function closeQuietly(app: ElectronApplication): Promise<void> {
 
 async function launchBuilt(userDataDir: string, use: (value: Launched) => Promise<void>) {
   const app = await startBuilt(userDataDir);
+  // What the app printed, so a launch that dies at once explains itself in the test report.
+  const output: string[] = [];
+  const child = app.process();
+  child.stdout?.on('data', (data: Buffer) => output.push(data.toString()));
+  child.stderr?.on('data', (data: Buffer) => output.push(data.toString()));
   try {
-    const page = await app.firstWindow();
+    let page: Page;
+    try {
+      page = await app.firstWindow();
+    } catch (error) {
+      const why = error instanceof Error ? error.message : 'unknown';
+      throw new Error(
+        `${why}
+Exit code: ${String(child.exitCode)}
+What the app printed:
+${output.join('').slice(-3000)}`,
+        { cause: error },
+      );
+    }
     await page.waitForLoadState('domcontentloaded');
     await use({ page, app, userDataDir });
   } finally {
