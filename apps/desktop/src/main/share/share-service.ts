@@ -58,9 +58,9 @@ export interface ShareServiceDeps {
   nativeShare: ((path: string) => Promise<void>) | null;
   /** Puts the file itself on the clipboard, or null where that cannot be done. */
   copyFile: ((path: string) => Promise<void>) | null;
-  copyImage: (png: Buffer) => void;
+  copyImage: (png: Buffer) => void | Promise<void>;
   readFile: (path: string) => Promise<Buffer>;
-  copyText: (text: string) => void;
+  copyText: (text: string) => void | Promise<void>;
   openMail: (subject: string) => Promise<void>;
   reveal: (path: string) => void;
   startDrag: (path: string) => void;
@@ -75,7 +75,11 @@ const MISSING_TEXT = 'Scrim could not find that file. It may have been moved or 
 
 function safeName(name: string): string {
   const clean = name
-    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, ' ')
+    .replace(/[<>:"/\\|?*]/g, ' ')
+    // Control characters (code 0 to 31) are dropped as well.
+    .split('')
+    .filter((character) => character.charCodeAt(0) > 31)
+    .join('')
     .replace(/\.{2,}/g, '.')
     .trim();
   return clean === '' ? 'Scrim screenshot' : clean.slice(0, 120);
@@ -193,7 +197,7 @@ export function createShareService(deps: ShareServiceDeps) {
       if (action === 'copy-image' && source.kind === 'edited') {
         // The picture is already in hand, so no file is needed.
         try {
-          deps.copyImage(pngFromDataUrl(source.dataUrl));
+          await deps.copyImage(pngFromDataUrl(source.dataUrl));
           return { ok: true, message: 'Image copied. Paste it where you want it.' };
         } catch {
           return fail('Scrim could not copy the image. Try again.');
@@ -237,7 +241,7 @@ export function createShareService(deps: ShareServiceDeps) {
                 message: 'Only a screenshot can be copied as an image.',
               };
             }
-            deps.copyImage(await deps.readFile(target.path));
+            await deps.copyImage(await deps.readFile(target.path));
             return { ok: true, message: 'Image copied. Paste it where you want it.' };
           }
           case 'email': {
@@ -265,7 +269,7 @@ export function createShareService(deps: ShareServiceDeps) {
             return { ok: true, message: 'Showing the file in its folder.' };
           }
           case 'copy-path': {
-            deps.copyText(target.path);
+            await deps.copyText(target.path);
             return { ok: true, message: 'File path copied.' };
           }
           case 'smaller': {
