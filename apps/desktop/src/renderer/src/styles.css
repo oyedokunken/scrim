@@ -526,6 +526,12 @@ svg {
   min-width: 0;
 }
 
+/* One column that can shrink below its content, so a long device name is cut with an ellipsis. */
+.panel-body,
+.field:not(.field-check) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .panel-body {
   box-sizing: border-box;
   display: grid;
@@ -1130,7 +1136,7 @@ input[type='checkbox'] {
   align-items: start;
 }
 
-@media (max-width: 900px) {
+@media (width <= 900px) {
   .lib-detail-body {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1149,7 +1155,7 @@ input[type='checkbox'] {
 
 .lib-detail-preview img {
   display: block;
-  max-width: 100%;
+  width: 100%;
   max-height: 60vh;
   object-fit: contain;
 }
@@ -1392,7 +1398,8 @@ input[type='checkbox'] {
 
 /* A tooltip host around a name that is cut short keeps the cut: the host takes the row width. */
 .lib-text .ui-tooltip-host,
-.set-row-text .ui-tooltip-host {
+.set-row-text .ui-tooltip-host,
+.ui-select-wrap .ui-tooltip-host {
   display: block;
   min-width: 0;
 }
@@ -1428,4 +1435,28 @@ input[type='checkbox'] {
   background: var(--scrim-green);
   border-radius: 999px;
   transition: width 200ms ease-out;
+}
+
+/* A page whose controls sit under the main view: the preview, then its sections side by side. */
+.under-view {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+  min-width: 0;
+}
+
+.under-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  align-items: start;
+  min-width: 0;
+  padding: 20px;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.under-controls > * {
+  min-width: 0;
 }

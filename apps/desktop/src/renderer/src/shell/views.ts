@@ -30,9 +30,12 @@ export const VIEW_LABELS: Record<ViewId, string> = {
   settings: 'Settings',
 };
 
-/** Library, Settings and Screenshot use the whole width, so they have no right panel. */
+/** Views whose controls sit under the main view instead of in a right panel. */
+const FULL_WIDTH: readonly ViewId[] = ['library', 'settings', 'editor', 'screenshot', 'camera'];
+
+/** Library, Settings, Screenshot and Camera use the whole width, so they have no right panel. */
 export function hasPanel(view: ViewId): boolean {
-  return view !== 'library' && view !== 'settings' && view !== 'editor' && view !== 'screenshot';
+  return !FULL_WIDTH.includes(view);
 }
 
 /** The settings views whose panels the editor and the record view share. */

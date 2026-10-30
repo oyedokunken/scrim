@@ -486,14 +486,30 @@ export function MainScreen() {
   } else if (view === 'zoom') {
     main = <ZoomPreview value={zoomValue} />;
   } else if (view === 'camera') {
+    // The controls sit under the preview, so the page needs no side panel.
     main = (
-      <CameraPreview
-        value={cameraValue}
-        deviceId={settings.cameraDeviceId}
-        onCorner={(bubbleCorner) => {
-          update({ bubbleCorner });
-        }}
-      />
+      <div className="under-view">
+        <CameraPreview
+          value={cameraValue}
+          deviceId={settings.cameraDeviceId}
+          onCorner={(bubbleCorner) => {
+            update({ bubbleCorner });
+          }}
+        />
+        <div className="under-controls">
+          <CameraPanel
+            value={cameraValue}
+            onChange={(value) => {
+              update({
+                cameraOn: value.on,
+                bubbleSize: value.size,
+                bubbleShape: value.shape,
+                bubbleCorner: value.corner,
+              });
+            }}
+          />
+        </div>
+      </div>
     );
   } else if (view === 'audio') {
     main = (
@@ -525,20 +541,6 @@ export function MainScreen() {
               zoomLevel: value.level,
               holdAfterClickMs: value.holdMs,
               smoothness: value.smoothness,
-            });
-          }}
-        />
-      </div>
-    ) : view === 'camera' ? (
-      <div className="panel-body">
-        <CameraPanel
-          value={cameraValue}
-          onChange={(value) => {
-            update({
-              cameraOn: value.on,
-              bubbleSize: value.size,
-              bubbleShape: value.shape,
-              bubbleCorner: value.corner,
             });
           }}
         />

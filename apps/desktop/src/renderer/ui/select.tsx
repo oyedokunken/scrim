@@ -146,7 +146,6 @@ export function Select({ label, value, options, onChange, disabled = false, id }
           role="combobox"
           className="ui-select"
           aria-label={label}
-          title={selected?.label}
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-controls={listId}
