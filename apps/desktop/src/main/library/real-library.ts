@@ -46,6 +46,8 @@ async function exists(path: string): Promise<boolean> {
 export function createRealLibrary(options: {
   videosFolder: () => string;
   screenshotsFolder: () => string;
+  extraScreenshotsFolder?: () => string;
+  extraVideosFolder?: () => string;
   share: ((path: string) => Promise<void>) | null;
 }): Library {
   const paths = resolveFfmpegPaths({
@@ -65,6 +67,12 @@ export function createRealLibrary(options: {
       }),
     videosFolder: options.videosFolder,
     screenshotsFolder: options.screenshotsFolder,
+    ...(options.extraVideosFolder === undefined
+      ? {}
+      : { extraVideosFolder: options.extraVideosFolder }),
+    ...(options.extraScreenshotsFolder === undefined
+      ? {}
+      : { extraScreenshotsFolder: options.extraScreenshotsFolder }),
     readDir,
     readText: async (path) => {
       try {

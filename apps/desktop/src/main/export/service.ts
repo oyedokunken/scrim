@@ -55,6 +55,8 @@ export interface ExportServiceDeps {
   destination: () => string;
   /** The app's own cache folder for working copies. Nothing there is the person's file. */
   previewDir: () => string;
+  /** The app's own folder for a video the chosen folder refused. */
+  fallbackDir?: () => string;
   /** How long a render may go without any progress before it counts as stuck. */
   stallMs?: number;
   newId: () => string;
@@ -173,6 +175,9 @@ export class ExportService {
     const request: ExportRequest = {
       folder: input.folder,
       outputDir: preview ? this.deps.previewDir() : this.deps.destination(),
+      ...(this.deps.fallbackDir === undefined || preview
+        ? {}
+        : { fallbackDir: this.deps.fallbackDir() }),
       fileName: input.fileName,
       collision: preview ? 'replace' : (input.collision ?? 'number'),
       settings: { ...defaultExportSettings(saved), ...input.settings },

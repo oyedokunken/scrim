@@ -38,6 +38,7 @@ export function toBridgeJob(job: ExportJob): ExportJobView {
             bytes: job.result.bytes,
             encoder: job.result.encoder,
             note: job.result.note,
+            fellBack: job.result.fellBack,
           },
     error:
       job.error === null

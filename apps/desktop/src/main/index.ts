@@ -296,7 +296,13 @@ if (!app.requestSingleInstanceLock()) {
     });
     const area: AreaApi = {
       run: async (request) => {
-        const outcome = await picker.run(request);
+        let outcome = await picker.run(request);
+        // One quiet second try: a display that was mid change or a page that was slow to start often works the next time.
+        if (!outcome.ok && outcome.reason === 'failed') {
+          logger.info('area', { message: `retrying after ${outcome.step ?? 'a failure'}` });
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          outcome = await picker.run(request);
+        }
         if (!(outcome.ok && outcome.mode === 'record')) shell.show();
         if (outcome.ok && outcome.mode === 'screenshot') {
           // The result view opens in the main window for the button and for the shortcut alike.
@@ -306,6 +312,7 @@ if (!app.requestSingleInstanceLock()) {
               ? {}
               : {
                   saveError: {
+                    code: outcome.result.saveError.code,
                     message: outcome.result.saveError.message,
                     nextStep: outcome.result.saveError.nextStep,
                   },

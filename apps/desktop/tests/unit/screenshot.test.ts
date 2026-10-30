@@ -249,6 +249,46 @@ describe('takeScreenshot', () => {
     expect(await readdir(dir)).toEqual([]);
   });
 
+  it.each(['EPERM', 'EACCES'])(
+    'keeps the picture in the app folder when Windows blocks the chosen one (%s)',
+    async (code) => {
+      const blocked = join(dir, 'protected');
+      const own = join(dir, 'own');
+      const failing: ServiceFs = {
+        ...realServiceFs,
+        writeBytes: (path, bytes) =>
+          path.startsWith(blocked)
+            ? Promise.reject(Object.assign(new Error(code), { code }))
+            : realServiceFs.writeBytes(path, bytes),
+      };
+      const { deps } = setup({ fs: failing, fallbackFolder: () => own });
+      const result = await takeScreenshot(
+        deps,
+        { kind: 'display' },
+        { folder: blocked, copyToClipboard: true },
+      );
+      expect(result.ok && result.value.path).toBe(join(own, `${STAMP}.png`));
+      expect(await readdir(own)).toEqual([`${STAMP}.png`]);
+      // Said plainly, with the code that explains it and what to do.
+      expect(result.ok && result.value.saveError?.code).toBe('saved-elsewhere');
+      expect(result.ok && result.value.saveError?.nextStep).toContain('Controlled folder access');
+    },
+  );
+
+  it('does not use the app folder for a full disk, only for a refusal', async () => {
+    const failing: ServiceFs = {
+      ...realServiceFs,
+      writeBytes: () => Promise.reject(Object.assign(new Error('full'), { code: 'ENOSPC' })),
+    };
+    const { deps } = setup({ fs: failing, fallbackFolder: () => join(dir, 'own') });
+    const result = await takeScreenshot(
+      deps,
+      { kind: 'display' },
+      { folder: join(dir, 'x'), copyToClipboard: false },
+    );
+    expect(errorCode(result)).toBe('disk-too-full');
+  });
+
   it('keeps the file when only the copy fails', async () => {
     const { deps } = setup({
       copyImage: () => Promise.reject(new Error('clipboard busy')),

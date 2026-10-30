@@ -297,40 +297,63 @@ export async function exportRecording(
 
   // Where the finished file goes, decided before any work so a clash is reported at once.
   const name = request.fileName ?? source.session.name;
-  const wanted = join(request.outputDir, `${name}.mp4`);
-  let finalPath = wanted;
-  if (request.collision === 'number') {
-    finalPath = await uniqueOutputPath(request.outputDir, name, pathExists);
-  } else if (request.collision === 'fail' && (await pathExists(wanted))) {
-    return fail(
-      'exists',
-      'A file with that name is already there.',
-      'Pick another name, or replace it.',
-    );
-  }
-  const partial = `${finalPath}.partial`;
-
   const bitrate = bitrateFor({ width, height, fps, quality: settings.quality });
-  try {
-    await mkdir(request.outputDir, { recursive: true });
-    const free = await statfs(request.outputDir);
-    const needed = (bitrate / 8) * (model.totalMs / 1000) * 1.25 + 64 * 1024 * 1024;
-    if (free.bavail * free.bsize < needed) {
+  let finalPath = '';
+  let partial = '';
+  let fellBack = false;
+
+  const prepare = async (dir: string): Promise<ExportOutcome | 'blocked' | undefined> => {
+    const wanted = join(dir, `${name}.mp4`);
+    finalPath = wanted;
+    if (request.collision === 'number') {
+      finalPath = await uniqueOutputPath(dir, name, pathExists);
+    } else if (request.collision === 'fail' && (await pathExists(wanted))) {
       return fail(
-        'disk-full',
-        'There is not enough free space for the finished video.',
-        'Free some space or choose another folder. Your recording was not changed.',
+        'exists',
+        'A file with that name is already there.',
+        'Pick another name, or replace it.',
       );
     }
-    await writeFile(partial, '');
-  } catch (error) {
-    const code = errnoOf(error);
+    partial = `${finalPath}.partial`;
+    try {
+      await mkdir(dir, { recursive: true });
+      const free = await statfs(dir);
+      const needed = (bitrate / 8) * (model.totalMs / 1000) * 1.25 + 64 * 1024 * 1024;
+      if (free.bavail * free.bsize < needed) {
+        return fail(
+          'disk-full',
+          'There is not enough free space for the finished video.',
+          'Free some space or choose another folder. Your recording was not changed.',
+        );
+      }
+      await writeFile(partial, '');
+    } catch (error) {
+      const code = errnoOf(error);
+      // Windows Controlled folder access answers EPERM or EACCES for an app it does not know.
+      if (code === 'EPERM' || code === 'EACCES' || code === 'EROFS') return 'blocked';
+      return fail(
+        code === 'ENOSPC' ? 'disk-full' : 'folder-unwritable',
+        code === 'ENOSPC' ? 'The disk is full.' : 'Scrim cannot write to that folder.',
+        'Choose another folder in the export options. Your recording was not changed.',
+      );
+    }
+    return undefined;
+  };
+
+  let prepared = await prepare(request.outputDir);
+  if (prepared === 'blocked' && request.fallbackDir !== undefined) {
+    deps.log('export: the chosen folder refused the file, using the app folder');
+    fellBack = true;
+    prepared = await prepare(request.fallbackDir);
+  }
+  if (prepared === 'blocked') {
     return fail(
-      code === 'ENOSPC' ? 'disk-full' : 'folder-unwritable',
-      code === 'ENOSPC' ? 'The disk is full.' : 'Scrim cannot write to that folder.',
-      'Choose another folder in the export options. Your recording was not changed.',
+      'folder-unwritable',
+      'Windows would not let Scrim save to that folder.',
+      'Allow Scrim under Windows Security, Ransomware protection, Controlled folder access, or choose another folder. Your recording was not changed.',
     );
   }
+  if (prepared !== undefined) return prepared;
 
   const choice = await pickEncoder({
     run: deps.run,
@@ -638,6 +661,9 @@ export async function exportRecording(
     bytes,
     encoder: choice.encoder,
     elapsedMs: now() - began,
-    note: model.effectsOffReason,
+    fellBack,
+    note: fellBack
+      ? "Windows would not let Scrim save to your folder, so the video was saved in Scrim's own folder instead. Allow Scrim under Controlled folder access, or choose another folder."
+      : model.effectsOffReason,
   };
 }

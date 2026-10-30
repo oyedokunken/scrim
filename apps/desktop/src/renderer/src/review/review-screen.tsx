@@ -26,7 +26,7 @@ export interface ReviewScreenProps {
   /** Called after the recording was moved to the Recycle Bin. */
   onDiscarded: () => void;
   /** Called once the real export is finished and the file is in the chosen folder. */
-  onExported: () => void;
+  onExported: (result: { fellBack: boolean }) => void;
   onProblem: (message: string, nextStep: string) => void;
 }
 
@@ -112,9 +112,10 @@ export function ReviewScreen({
   }, [load, previewPhase]);
 
   const exportDone = exporting?.phase === 'done';
+  const fellBack = exporting?.result?.fellBack === true;
   useEffect(() => {
-    if (exportDone) onExported();
-  }, [exportDone, onExported]);
+    if (exportDone) onExported({ fellBack });
+  }, [exportDone, fellBack, onExported]);
 
   const afterReady = review?.after != null;
 

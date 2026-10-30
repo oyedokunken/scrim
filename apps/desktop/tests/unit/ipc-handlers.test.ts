@@ -86,6 +86,7 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
     openPath: vi.fn(() => Promise.resolve('')),
     openExternal: vi.fn(() => Promise.resolve(true)),
     logsFolder: 'LOGS',
+    openSecuritySettings: vi.fn(() => Promise.resolve(false)),
     ...overrides,
   };
   return { handlers: createHandlers(deps), deps };

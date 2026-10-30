@@ -13,6 +13,8 @@ export interface ShownError {
   code?: string | undefined;
   /** Runs the action again. Adds a Try again button. */
   retry?: (() => void) | undefined;
+  /** Other buttons for what the person can do about it, such as opening a settings page. */
+  actions?: readonly { label: string; run: () => void }[] | undefined;
 }
 
 type Show = (error: ShownError) => void;
@@ -64,6 +66,17 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
               Details
             </Button>
           )}
+          {(error?.actions ?? []).map((action) => (
+            <Button
+              key={action.label}
+              onClick={() => {
+                close();
+                action.run();
+              }}
+            >
+              {action.label}
+            </Button>
+          ))}
           <Button data-autofocus={error?.retry === undefined ? true : undefined} onClick={close}>
             Close
           </Button>

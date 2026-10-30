@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { cropInPixels, type Box } from './crop';
 import type { ServiceFs } from './fs-adapter';
-import { errorFromFs, makeError } from './messages';
+import { errnoOf, errorFromFs, makeError } from './messages';
 import type { Outcome, RecordingError } from './types';
 
 /** What to photograph. The same shapes the recording uses, so the home screen reuses its choice. */
@@ -49,6 +49,8 @@ export interface ScreenshotDeps {
   /** Where a display is and how it is scaled, to place a region. */
   displayGeometry(displayId: string | undefined): DisplayGeometry | undefined;
   copyImage(image: ImageLike): Promise<void>;
+  /** The app's own folder, used when the chosen one refuses the file. Never loses a capture. */
+  fallbackFolder?: () => string;
   now(): Date;
   log(message: string): void;
 }
@@ -119,18 +121,36 @@ export async function takeScreenshot(
   let path: string | undefined;
   let saveError: Outcome<never> | undefined;
 
+  const save = async (target: string): Promise<string> => {
+    await deps.fs.mkdir(target);
+    const saved = await freeName(deps.fs, target, stampName(deps.now()));
+    const temp = `${saved}.tmp`;
+    await deps.fs.writeBytes(temp, png);
+    await deps.fs.rename(temp, saved);
+    return saved;
+  };
+
   if (folder !== undefined) {
     try {
-      await deps.fs.mkdir(folder);
-      path = await freeName(deps.fs, folder, stampName(deps.now()));
-      const temp = `${path}.tmp`;
-      await deps.fs.writeBytes(temp, png);
-      await deps.fs.rename(temp, path);
+      path = await save(folder);
     } catch (error) {
       path = undefined;
+      const code = errnoOf(error);
       // The copy may still work, so this is the only trace of why no file was saved.
-      deps.log(`The screenshot could not be saved: ${String(error)}`);
+      deps.log(`The screenshot could not be saved (${code ?? 'unknown'}).`);
       saveError = { ok: false, error: errorFromFs(error, 'start') };
+      // Windows Controlled folder access blocks an app it does not know. Keep the capture in the
+      // app's own folder and say so, instead of leaving only the clipboard copy.
+      const blocked = code === 'EPERM' || code === 'EACCES' || code === 'EROFS';
+      const fallback = blocked ? deps.fallbackFolder?.() : undefined;
+      if (fallback !== undefined && fallback !== folder) {
+        try {
+          path = await save(fallback);
+          saveError = { ok: false, error: makeError('saved-elsewhere', code) };
+        } catch {
+          // The original error stays.
+        }
+      }
     }
   }
 

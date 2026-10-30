@@ -228,7 +228,11 @@ describe('opening', () => {
   });
 
   it('fails at once with no displays, or when an overlay cannot be opened, or none shows in time', async () => {
-    expect(await setup({ displays: [] }).flow.run(record)).toEqual({ ok: false, reason: 'failed' });
+    expect(await setup({ displays: [] }).flow.run(record)).toEqual({
+      ok: false,
+      reason: 'failed',
+      step: 'no-displays',
+    });
     const broken = createAreaFlow({
       displays: () => [primary],
       pointerDisplayId: () => undefined,
@@ -241,9 +245,17 @@ describe('opening', () => {
       wait: () => Promise.resolve(),
       log: () => undefined,
     });
-    expect(await broken.run(record)).toEqual({ ok: false, reason: 'failed' });
+    expect(await broken.run(record)).toEqual({
+      ok: false,
+      reason: 'failed',
+      step: 'overlay-open',
+    });
     const slow = setup({ displays: [primary], readyTimeoutMs: 10 });
-    expect(await slow.flow.run(record)).toEqual({ ok: false, reason: 'failed' });
+    expect(await slow.flow.run(record)).toEqual({
+      ok: false,
+      reason: 'failed',
+      step: 'overlay-not-ready',
+    });
     expect(slow.overlays.get('111')?.closed).toBe(true);
   });
 });

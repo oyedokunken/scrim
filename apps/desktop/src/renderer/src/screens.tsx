@@ -150,7 +150,7 @@ export function MainScreen() {
           showError({
             title: 'Scrim could not open the area chooser',
             message: 'Try again. If it keeps happening, restart Scrim.',
-            code: 'area-failed',
+            code: result.step === undefined ? 'area-failed' : `area-failed:${result.step}`,
             retry: () => {
               void start(chosen);
             },
@@ -163,28 +163,54 @@ export function MainScreen() {
     [showError],
   );
 
+  /** What the person can do when Windows blocks a folder: open the setting, or pick another folder. */
+  const blockedFolderActions = useCallback(
+    (kind: 'recordings' | 'screenshots') => [
+      {
+        label: 'Open Windows Security',
+        run: () => {
+          void window.scrim.invoke('security:open');
+        },
+      },
+      {
+        label: 'Choose another folder',
+        run: () => {
+          void chooseFolder(kind);
+        },
+      },
+    ],
+    [chooseFolder],
+  );
+
   /** A saved capture opens its result. One that was copied but could not be saved says why. */
   const acceptShot = useCallback(
     (taken: {
       path?: string | undefined;
-      saveError?: { message: string; nextStep: string } | undefined;
+      saveError?: { code?: string | undefined; message: string; nextStep: string } | undefined;
       width: number;
       height: number;
     }): void => {
       if (taken.path !== undefined) {
         setShot({ path: taken.path, width: taken.width, height: taken.height });
-      } else if (taken.saveError !== undefined) {
+      } else {
         setShot(null);
+      }
+      if (taken.saveError !== undefined) {
+        // Either the picture went to Scrim's own folder, or it was only copied. Both are said plainly.
+        const kept = taken.path !== undefined;
         showError({
-          title: 'Scrim copied the screenshot but could not save it',
+          title: kept
+            ? "The screenshot was saved in Scrim's own folder"
+            : 'Scrim copied the screenshot but could not save it',
           message: taken.saveError.message,
           nextStep: taken.saveError.nextStep,
-          code: 'screenshot-not-saved',
+          code: taken.saveError.code ?? 'screenshot-not-saved',
+          actions: blockedFolderActions('screenshots'),
         });
       }
       refreshShots();
     },
-    [refreshShots, showError],
+    [refreshShots, showError, blockedFolderActions],
   );
 
   // A capture from the shortcut opens the result too, whichever view was showing.
@@ -217,7 +243,7 @@ export function MainScreen() {
         showError({
           title: 'Scrim could not open the area chooser',
           message: 'Try again. If it keeps happening, restart Scrim.',
-          code: 'area-failed',
+          code: result.step === undefined ? 'area-failed' : `area-failed:${result.step}`,
           retry: () => {
             void shoot();
           },
@@ -390,9 +416,20 @@ export function MainScreen() {
                 onRecordAgain: dismiss,
                 onDiscarded: dismiss,
                 // The file is in Library now, so the main view clears and Library opens on it.
-                onExported: () => {
+                onExported: (result) => {
                   dismiss();
                   setView('library');
+                  if (result.fellBack) {
+                    showError({
+                      title: "The video was saved in Scrim's own folder",
+                      message:
+                        "Windows would not let Scrim save to your folder, so the video is in the Library from Scrim's own folder instead.",
+                      nextStep:
+                        'To save to your folder again, allow Scrim under Windows Security, Ransomware protection, Controlled folder access. Or choose another folder.',
+                      code: 'saved-elsewhere',
+                      actions: blockedFolderActions('recordings'),
+                    });
+                  }
                 },
                 onProblem: (message: string, nextStep: string) => {
                   showError({ title: 'Scrim could not discard this recording', message, nextStep });

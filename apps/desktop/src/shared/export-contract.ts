@@ -33,6 +33,7 @@ export const exportJobSchema = z
         bytes: z.number().nonnegative(),
         encoder: z.string().max(64),
         note: z.string().max(500).nullable(),
+        fellBack: z.boolean(),
       })
       .strict()
       .nullable(),

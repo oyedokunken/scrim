@@ -32,6 +32,8 @@ export interface HandlerDeps {
   platform: NodeJS.Platform;
   /** The app version from the package, never typed in by hand. */
   version: string;
+  /** Other folders that hold screenshots Scrim made. */
+  extraScreenshotFolders?: () => string[];
   /** Where screenshots are saved when the person has not chosen a folder, Pictures\Scrim. */
   defaultScreenshotFolder: () => string;
   /** Where recordings are exported when the person has not chosen a folder, Videos\Scrim. */
@@ -55,6 +57,8 @@ export interface HandlerDeps {
   legacy: { count: () => Promise<number>; move: () => Promise<{ moved: number; failed: number }> };
   /** The logs folder, fixed by the app. The renderer never supplies it. */
   logsFolder: string;
+  /** Opens the page of the system's security settings that lists the apps allowed to write to protected folders. */
+  openSecuritySettings: () => Promise<boolean>;
   /** Recording folders besides the destination, such as the sessions that exist right now. */
   extraKnownFolders?: () => readonly string[];
 }
@@ -157,6 +161,9 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       share: deps.share,
       platform: deps.platform,
       screenshotFolder,
+      ...(deps.extraScreenshotFolders === undefined
+        ? {}
+        : { extraScreenshotFolders: deps.extraScreenshotFolders }),
     }),
     ...createEditorHandlers(deps.editor).handlers,
     ...deps.review,
@@ -165,6 +172,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       isKnownFolder: deps.editor.isKnownFolder,
     }),
     ...createLibraryHandlers({ library: deps.library, canShare: () => deps.share !== null }),
+    'security:open': () => deps.openSecuritySettings(),
     'logs:open-folder': async () => {
       if ((await deps.openPath(deps.logsFolder)) !== '') throw new Error('could not open logs');
     },

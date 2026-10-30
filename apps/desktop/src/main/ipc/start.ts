@@ -1,4 +1,5 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
+import { screenshotFallbackFolder } from '../recording/screenshot-taker';
 import { createRealShare } from '../share/share';
 import { access, mkdir, open, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -11,7 +12,7 @@ import { loadExportSource } from '../export/source';
 import { isInsideKnownFolder } from './handlers';
 import { realServiceFs } from '../recording/fs-adapter';
 import { projectsRoot } from '../recording/projects-folder';
-import { previewFolder, type ExportApi } from '../export/register';
+import { exportFallbackFolder, previewFolder, type ExportApi } from '../export/register';
 import type { MediaRegistry } from '../media/media-registry';
 import { probeFile, resolveFfmpegPaths, runProcess } from '../recording/ffmpeg';
 import { createReviewHandlers } from '../review/review-handlers';
@@ -216,10 +217,13 @@ export async function startIpc(options: {
           settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
         screenshotsFolder: () =>
           screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+        extraScreenshotsFolder: screenshotFallbackFolder,
+        extraVideosFolder: exportFallbackFolder,
         share,
       }),
       recording,
       area,
+      extraScreenshotFolders: () => [screenshotFallbackFolder()],
       defaultScreenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
       defaultRecordingsFolder: () => join(app.getPath('videos'), 'Scrim'),
       ensureFolder: async (path) => {
@@ -316,6 +320,16 @@ export async function startIpc(options: {
       openExternal: (url) => openExternalChecked(url),
       version: app.getVersion(),
       logsFolder: logger.directory,
+      // A fixed address, never one from the page. Only Windows has this page.
+      openSecuritySettings: async () => {
+        if (process.platform !== 'win32') return false;
+        try {
+          await shell.openExternal('windowsdefender://ransomwareprotection');
+          return true;
+        } catch {
+          return false;
+        }
+      },
     }),
     // Only the failure kind and the channel name, never the input or the error text.
     onFailure: (failure, channel) => {

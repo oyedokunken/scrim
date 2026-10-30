@@ -43,6 +43,11 @@ function destination(settings: Settings): string {
   return settings.destinationFolder ?? join(app.getPath('videos'), 'Scrim');
 }
 
+/** Where a video goes when the chosen folder refuses it, inside the app's own data. */
+export function exportFallbackFolder(): string {
+  return join(app.getPath('userData'), 'Exports');
+}
+
 /** Working copies for the review screen. Not the person's files: cleaned up on export or discard. */
 export function previewFolder(): string {
   return join(app.getPath('userData'), 'cache', 'previews');
@@ -75,6 +80,7 @@ export function registerExport(options: RegisterOptions): ExportApi {
     settings: options.settings,
     destination: () => destination(options.settings()),
     previewDir: previewFolder,
+    fallbackDir: exportFallbackFolder,
     newId: randomUUID,
     log: options.log,
   });

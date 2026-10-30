@@ -47,6 +47,7 @@ describe('toBridgeJob', () => {
           encoder: 'h264_mf',
           elapsedMs: 1000,
           note: null,
+          fellBack: false,
         },
       }),
     );

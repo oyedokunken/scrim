@@ -18,6 +18,7 @@ function success(path = 'a.mp4'): ExportOutcome {
     encoder: 'h264_mf',
     elapsedMs: 5,
     note: null,
+    fellBack: false,
   };
 }
 

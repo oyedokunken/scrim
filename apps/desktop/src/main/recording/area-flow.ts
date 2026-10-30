@@ -77,9 +77,14 @@ export interface AreaRequest {
 export type AreaOutcome =
   | { ok: true; mode: 'record'; folder: string }
   | { ok: true; mode: 'screenshot'; result: ScreenshotResult }
-  | { ok: false; reason: 'cancelled' | 'failed' | 'busy' }
+  | { ok: false; reason: 'cancelled' | 'busy' }
+  /** The chooser could not open. `step` says where, as a short code with no path in it. */
+  | { ok: false; reason: 'failed'; step?: AreaFailStep }
   /** The area was chosen but starting the recording or taking the picture did not work. */
   | { ok: false; reason: 'rejected'; error: RecordingError };
+
+export type AreaFailStep =
+  'no-displays' | 'overlay-not-ready' | 'overlay-open' | 'nothing-confirmed';
 
 /** The kind of an error, never its text, which can carry a path. */
 function errorName(error: unknown): string {
@@ -111,7 +116,7 @@ export function createAreaFlow(deps: AreaDeps): {
       const displays = deps.displays();
       if (displays.length === 0) {
         deps.log('area.failed step=no-displays');
-        return { ok: false, reason: 'failed' };
+        return { ok: false, reason: 'failed', step: 'no-displays' };
       }
 
       let cancelled = false;
@@ -220,7 +225,7 @@ async function choose(
   const timer = setTimeout(() => {
     if (!anyReady) {
       deps.log('area.failed step=overlay-not-ready');
-      finish({ ok: false, reason: 'failed' });
+      finish({ ok: false, reason: 'failed', step: 'overlay-not-ready' });
     }
   }, deps.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS);
 
@@ -249,7 +254,7 @@ async function choose(
       deps.log(`area.failed step=overlay-open error=${errorName(error)}`);
       clearTimeout(timer);
       closeAll();
-      return { ok: false, reason: 'failed' };
+      return { ok: false, reason: 'failed', step: 'overlay-open' };
     }
     const entry: Entry = { display, handle };
     entries.push(entry);
@@ -361,7 +366,9 @@ async function choose(
     phase = 'closing';
     closeAll();
     if (chosen === 'chosen') deps.log('area.failed step=nothing-confirmed');
-    return chosen === 'chosen' ? { ok: false, reason: 'failed' } : chosen;
+    return chosen === 'chosen'
+      ? { ok: false, reason: 'failed', step: 'nothing-confirmed' }
+      : chosen;
   }
 
   const { source, entry } = confirmed;

@@ -54,6 +54,7 @@ export function toBridgeAreaOutcome(outcome: AreaOutcome): BridgeAreaOutcome {
               ? {}
               : {
                   saveError: {
+                    code: outcome.result.saveError.code,
                     message: outcome.result.saveError.message,
                     nextStep: outcome.result.saveError.nextStep,
                   },
@@ -66,7 +67,13 @@ export function toBridgeAreaOutcome(outcome: AreaOutcome): BridgeAreaOutcome {
   }
   return outcome.reason === 'rejected'
     ? { ok: false, reason: 'rejected', error: toBridgeError(outcome.error) }
-    : { ok: false, reason: outcome.reason };
+    : outcome.reason === 'failed'
+      ? {
+          ok: false,
+          reason: 'failed',
+          ...(outcome.step === undefined ? {} : { step: outcome.step }),
+        }
+      : { ok: false, reason: outcome.reason };
 }
 
 export interface AreaHandlerDeps {
