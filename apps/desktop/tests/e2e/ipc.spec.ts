@@ -14,8 +14,10 @@ type WithBridge = typeof globalThis & { scrim: Bridge; __events?: unknown[] };
 
 const DEFAULTS = {
   destinationFolder: null,
+  screenshotFolder: null,
   lastSourceKind: 'display',
   cursorStyle: 'halo-ripples',
+  haloColor: 'brand',
   zoomOn: true,
   zoomLevel: 1.8,
   holdAfterClickMs: 1200,
@@ -23,8 +25,24 @@ const DEFAULTS = {
   cameraDeviceId: null,
   micDeviceId: null,
   cameraOn: false,
+  bubbleCorner: 'bottom-right',
+  bubbleSize: 'M',
+  bubbleShape: 'circle',
+  keepSound: true,
+  micVolume: 'normal',
+  backgroundId: 'deep-green',
+  backgroundPadding: 'medium',
+  backgroundCorners: 'soft',
+  backgroundShadow: true,
   micOn: false,
   frameRate: 30,
+  firstRunDone: false,
+  showWelcome: true,
+  countdownOn: true,
+  autoCheckUpdates: false,
+  shortcutRecord: 'CommandOrControl+Shift+R',
+  shortcutStop: 'CommandOrControl+Shift+S',
+  shortcutScreenshot: 'CommandOrControl+Shift+X',
 };
 
 const call = (page: Page, channel: string, ...input: unknown[]) =>

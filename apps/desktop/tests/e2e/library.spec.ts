@@ -260,7 +260,12 @@ test.describe('the library', () => {
       const box = page.getByRole('textbox', { name: 'New name' });
       await box.fill('Pricing page');
       await page.getByRole('button', { name: 'Rename', exact: true }).click();
+      // The refusal is shown in the app's error dialog, which has to be closed before typing again.
       await expect(page.getByText('A file with that name already exists')).toBeVisible();
+      await page
+        .getByRole('dialog', { name: 'That name is taken' })
+        .locator('button.ui-button', { hasText: 'Close' })
+        .click();
       await box.fill('Sign in');
       await page.getByRole('button', { name: 'Rename', exact: true }).click();
       await expect(cards(page).filter({ hasText: 'Sign in' })).toHaveCount(1);

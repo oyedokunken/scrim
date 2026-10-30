@@ -26,7 +26,7 @@ describe('recording error messages', () => {
     expect(error.message.length).toBeGreaterThan(10);
     expect(error.nextStep.length).toBeGreaterThan(10);
     for (const text of [error.message, error.nextStep]) {
-      expect(text).not.toMatch(/—|–|[\u{1F300}-\u{1FAFF}]/u);
+      expect(text).not.toMatch(/\u2014|\u2013|[\u{1F300}-\u{1FAFF}]/u);
       expect(text).not.toMatch(/[A-Z]:\|\/Users\//);
     }
   });

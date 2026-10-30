@@ -106,7 +106,7 @@ test.describe('the Background page', () => {
     await expect(frame).toHaveAttribute('data-corners', 'round');
     await page.getByRole('switch', { name: 'Soft shadow' }).click();
     await expect(frame).toHaveAttribute('data-shadow', 'off');
-    await page.getByRole('radio', { name: 'None' }).click();
+    await page.locator('button.bg-swatch[aria-label="None"]').click();
     await expect(frame).toHaveClass(/bg-none-frame/);
     await expect(page.getByRole('radio', { name: 'Large' })).toBeDisabled();
     await expect(page.getByRole('radio', { name: /Your image/ })).toBeDisabled();

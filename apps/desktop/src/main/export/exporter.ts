@@ -314,7 +314,8 @@ export async function exportRecording(
         'Pick another name, or replace it.',
       );
     }
-    partial = `${finalPath}.partial`;
+    // A retry after a stall writes its own partial file, so the stuck attempt cannot touch it.
+    partial = `${finalPath}${request.inlineOnly === true ? '.retry' : ''}.partial`;
     try {
       await mkdir(dir, { recursive: true });
       const free = await statfs(dir);

@@ -371,7 +371,8 @@ test('the camera bubble opens with the camera on, stays out of the video and wri
     };
     expect(session.bubble?.length ?? 0).toBeGreaterThanOrEqual(1);
     const first = session.bubble?.[0];
-    expect(first?.corner).toBe('bl');
+    // The bubble follows the saved corner, which is bottom right by default.
+    expect(first?.corner).toBe('br');
     expect(first?.size).toBe(180);
     expect(first?.t ?? -1).toBeGreaterThanOrEqual(0);
 

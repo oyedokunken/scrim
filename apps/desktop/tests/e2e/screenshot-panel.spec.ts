@@ -35,27 +35,27 @@ const PAGES = [
   'Settings',
 ] as const;
 
-test.describe('the recording saved card', () => {
-  test('shows on the Record view only, with no logo, on no other page', async ({ app, page }) => {
+test.describe('the review screen', () => {
+  test('replaces the start screen on the Record view only, with no logo, on no other page', async ({
+    app,
+    page,
+  }) => {
     await enterApp(page);
     await send(app, 'recording:finished', FINISHED);
-    const card = page.getByRole('region', { name: 'Recording saved' });
-    await expect(card).toBeVisible();
-    await expect(card.locator('svg.brand-mark, .brand-mark')).toHaveCount(0);
-    await expect(card.getByRole('button', { name: 'Show in folder' })).toBeVisible();
-    await expect(card.getByRole('button', { name: 'Record again' })).toBeVisible();
+    const review = page.getByRole('region', { name: 'Review your recording' });
+    await expect(review).toBeVisible();
+    await expect(page.locator('.stage')).toHaveCount(0);
+    await expect(review.locator('svg.brand-mark, .brand-mark')).toHaveCount(0);
 
     for (const name of PAGES) {
       await page.getByRole('button', { name, exact: true }).click();
       await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible();
-      await expect(page.getByText('Recording saved')).toHaveCount(0);
+      await expect(page.getByText('Review your recording')).toHaveCount(0);
       await expect(page.locator('.brand-mark:not(.app-header-brand .brand-mark)')).toHaveCount(0);
     }
 
     await page.getByRole('button', { name: 'Record', exact: true }).click();
-    await expect(card).toBeVisible();
-    await card.getByRole('button', { name: 'Record again' }).click();
-    await expect(card).toHaveCount(0);
+    await expect(review).toBeVisible();
   });
 });
 

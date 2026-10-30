@@ -97,6 +97,10 @@ jobs:
         run: |
           Remove-Item "release/Scrim-Setup-*.exe"
           Copy-Item "signed/*.exe" release/
+          # The signed file is not the file latest.yml was written for, so write its real hash and size.
+          # The blockmap is for the unsigned file too, so it is dropped: updates download in full.
+          node scripts/refresh-update-info.mts (Get-ChildItem "release/Scrim-Setup-*.exe").FullName release/latest.yml
+          Remove-Item "release/*.blockmap" -ErrorAction SilentlyContinue
       # If signing was on, a bad signature fails the release. The installer, and for the built in
       # providers also the app and FFmpeg, must carry a valid, timestamped signature.
       - name: Verify the signatures

@@ -353,10 +353,13 @@ svg {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * {
-    scroll-behavior: auto;
-    transition: none;
-    animation: none;
+  /* Important, because a rule with a class beats this one, and a transition would still run. */
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
   }
 }
 
