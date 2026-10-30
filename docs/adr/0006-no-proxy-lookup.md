@@ -26,7 +26,7 @@ The main entry, `src/main/index.ts`, sets the switch, before the app is ready.
 
 ## Consequences
 
-- The update check, when it is added, cannot use the default session. A person behind a corporate
+- The update check (added with electron-updater) cannot use the default session. A person behind a corporate
   proxy would find updates failing. The check should run in its own session
   (`session.fromPartition`) and call `setProxy({ mode: 'system' })` on that session only, so the
   system proxy is used for that one request and for nothing else. The update session is also the

@@ -18,6 +18,7 @@
     "test:acceptance": "playwright test --config playwright.acceptance.config.ts"
   },
   "dependencies": {
+    "electron-updater": "catalog:",
     "uiohook-napi": "catalog:"
   },
   "devDependencies": {

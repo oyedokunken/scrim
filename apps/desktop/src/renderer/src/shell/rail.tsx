@@ -32,10 +32,13 @@ const BOTTOM = new Set<RailViewId>(['library', 'settings']);
 export interface RailProps {
   view: ViewId;
   onView: (view: ViewId) => void;
+  /** Shows a small pill on the Settings item when an update is waiting. */
+  updatePill?: boolean;
+  onUpdatePill?: (() => void) | undefined;
 }
 
 /** A vertical toolbar. Arrow keys move between items and select as they go, as tabs do. */
-export function Rail({ view, onView }: RailProps) {
+export function Rail({ view, onView, updatePill = false, onUpdatePill }: RailProps) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const onKeyDown = (event: KeyboardEvent, index: number): void => {
@@ -77,6 +80,17 @@ export function Rail({ view, onView }: RailProps) {
           <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
           <span className="rail-label">{VIEW_LABELS[id]}</span>
         </button>
+        {id === 'settings' && updatePill ? (
+          <button
+            type="button"
+            className="update-pill update-pill-rail"
+            aria-label="New update available"
+            title="New update available"
+            onClick={onUpdatePill}
+          >
+            Update
+          </button>
+        ) : null}
       </div>
     );
   };

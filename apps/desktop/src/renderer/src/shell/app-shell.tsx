@@ -20,6 +20,9 @@ export interface AppShellProps {
   children: ReactNode;
   /** The right panel for the selected rail item. Ignored on views without a panel. */
   panel?: ReactNode;
+  /** Shows the New update available pill on the Settings item of the rail. */
+  updatePill?: boolean;
+  onUpdatePill?: (() => void) | undefined;
 }
 
 /** Header, icon rail, main area, right panel and status bar. Only the main area and the panel scroll. */
@@ -33,6 +36,8 @@ export function AppShell({
   status,
   children,
   panel,
+  updatePill = false,
+  onUpdatePill,
 }: AppShellProps) {
   const [helpOpen, setHelpOpen] = useState(false);
   const showPanel = hasPanel(view);
@@ -47,7 +52,7 @@ export function AppShell({
           setHelpOpen(true);
         }}
       />
-      <Rail view={view} onView={onView} />
+      <Rail view={view} onView={onView} updatePill={updatePill} onUpdatePill={onUpdatePill} />
       <main className="shell-main">
         <h1 className="page-title">{title}</h1>
         {children}

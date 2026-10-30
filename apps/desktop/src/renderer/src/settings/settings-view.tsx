@@ -4,6 +4,8 @@ import type { Settings, SettingsPatch } from '../../../shared/settings';
 import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../../shared/shortcut-keys';
 import { Button, ConfirmDialog, Switch, Tooltip, useShowError, useToast } from '../../ui';
 import type { FolderKind } from '../hooks';
+import type { UpdatesApi } from '../updates/use-updates';
+import { UpdatesCard } from '../updates/updates-card';
 import { AboutCard } from './about-card';
 import { ShortcutRow } from './shortcut-row';
 
@@ -61,6 +63,9 @@ export interface SettingsViewProps {
   /** Shows the welcome screen now. */
   onShowWelcome: () => void;
   onOpenLink: (url: string) => void;
+  updates: UpdatesApi;
+  /** Opens the update window. */
+  onShowUpdate: () => void;
 }
 
 /** Every setting, saved and applied the moment it changes. */
@@ -70,6 +75,8 @@ export function SettingsView({
   chooseFolder,
   onShowWelcome,
   onOpenLink,
+  updates,
+  onShowUpdate,
 }: SettingsViewProps) {
   const toast = useToast();
   const showError = useShowError();
@@ -256,6 +263,16 @@ export function SettingsView({
           Logs stay on this computer. They never hold a file path or a window title.
         </p>
       </Section>
+
+      <UpdatesCard
+        snapshot={updates.snapshot}
+        autoCheck={settings.autoCheckUpdates}
+        onAutoCheck={(autoCheckUpdates) => {
+          update({ autoCheckUpdates });
+        }}
+        onCheck={updates.check}
+        onShowUpdate={onShowUpdate}
+      />
 
       <AboutCard onOpenLink={onOpenLink} />
 

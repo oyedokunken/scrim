@@ -68,7 +68,8 @@ jobs:
           SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
           SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
           SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
-        run: pnpm package
+        # --publish never: the publish job below uploads everything, so the build must not try to.
+        run: pnpm package --publish never
       - run: pnpm verify:fuses release/win-unpacked/Scrim.exe
       # SignPath signs the finished installer, so it needs the installer as a workflow artifact.
       - name: Upload the unsigned installer for SignPath
@@ -77,7 +78,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: unsigned-windows
-          path: apps/desktop/release/Scrim Setup *.exe
+          path: apps/desktop/release/Scrim-Setup-*.exe
           if-no-files-found: error
       - name: Sign the installer with SignPath
         if: steps.sign.outputs.mode == 'signpath'
@@ -94,7 +95,7 @@ jobs:
       - name: Replace the installer with the signed one
         if: steps.sign.outputs.mode == 'signpath'
         run: |
-          Remove-Item "release/Scrim Setup *.exe"
+          Remove-Item "release/Scrim-Setup-*.exe"
           Copy-Item "signed/*.exe" release/
       # If signing was on, a bad signature fails the release. The installer, and for the built in
       # providers also the app and FFmpeg, must carry a valid, timestamped signature.
@@ -104,7 +105,7 @@ jobs:
           WIN_PUBLISHER_NAME: ${{ secrets.WIN_PUBLISHER_NAME }}
           SIGN_MODE: ${{ steps.sign.outputs.mode }}
         run: |
-          $files = @((Get-ChildItem "release/Scrim Setup *.exe").FullName)
+          $files = @((Get-ChildItem "release/Scrim-Setup-*.exe").FullName)
           if ($env:SIGN_MODE -ne 'signpath') {
             $files += (Resolve-Path "release/win-unpacked/Scrim.exe").Path
             $files += (Resolve-Path "release/win-unpacked/resources/ffmpeg/ffmpeg.exe").Path
@@ -115,10 +116,14 @@ jobs:
             node build/verify-signature.mts @files
           }
           if ($LASTEXITCODE -ne 0) { exit 1 }
+      # latest.yml and the blockmap are what the in-app updater reads. Without them there is no update.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: installer-windows
-          path: apps/desktop/release/Scrim Setup *.exe
+          path: |
+            apps/desktop/release/Scrim-Setup-*.exe
+            apps/desktop/release/latest*.yml
+            apps/desktop/release/*.blockmap
           if-no-files-found: error
 
   macos:
@@ -158,10 +163,17 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: pnpm exec electron-builder --mac --${{ matrix.arch }} --publish never --config electron-builder.config.ts
+      # Both Mac builds write latest-mac.yml, so each is renamed here and the publish job joins them.
+      - name: Keep this architecture's update file apart
+        run: mv release/latest-mac.yml release/latest-mac-${{ matrix.arch }}.part
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: installer-macos-${{ matrix.arch }}
-          path: apps/desktop/release/*.dmg
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/latest-mac-*.part
           if-no-files-found: error
 
   linux:
@@ -189,6 +201,8 @@ jobs:
           path: |
             apps/desktop/release/*.AppImage
             apps/desktop/release/*.deb
+            apps/desktop/release/latest-linux.yml
+            apps/desktop/release/*.blockmap
           if-no-files-found: error
 
   publish:
@@ -203,6 +217,19 @@ jobs:
           pattern: installer-*
           path: dist
           merge-multiple: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Join the two Mac update files into latest-mac.yml
+        run: node source/apps/desktop/scripts/merge-mac-update-info.mts dist/latest-mac.yml dist/latest-mac-arm64.part dist/latest-mac-x64.part
+      - name: Check that the update files are present
+        run: |
+          for file in latest.yml latest-mac.yml latest-linux.yml; do
+            test -f "dist/${file}" || { echo "${file} is missing, so the in-app updater would find nothing." >&2; exit 1; }
+          done
       - name: Write the checksums
         working-directory: dist
         run: |

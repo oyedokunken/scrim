@@ -90,6 +90,13 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       'review:discard': () => Promise.resolve({ ok: true as const, value: undefined }),
     },
     platform: process.platform,
+    updates: {
+      snapshot: vi.fn(() => ({ state: { phase: 'idle' as const }, blocked: null })),
+      check: vi.fn(() => Promise.resolve({ state: { phase: 'none' as const }, blocked: null })),
+      download: vi.fn(() => Promise.resolve({ state: { phase: 'idle' as const }, blocked: null })),
+      install: vi.fn(),
+      setEditing: vi.fn(),
+    },
     about: {
       about: vi.fn(() =>
         Promise.resolve({

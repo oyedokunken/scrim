@@ -19,6 +19,8 @@ import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
 import { EditorView } from './editor/editor-view';
 import { SettingsView } from './settings/settings-view';
+import { UpdateModal } from './updates/update-modal';
+import { hasUpdateToShow, useUpdates } from './updates/use-updates';
 import { LibraryView } from './library/library-view';
 import type { OpenedItem } from './library/use-library';
 import { editorApi } from './shell/editor-bridge';
@@ -119,6 +121,14 @@ export function MainScreen() {
   const [welcomeNow, setWelcomeNow] = useState(false);
   const [checking, setChecking] = useState(false);
   const phase = snapshot.phase;
+  const updates = useUpdates();
+  const [updateOpen, setUpdateOpen] = useState(false);
+
+  // An update must not start while the editor is open, so the main process is told when it is.
+  const editing = view === 'editor';
+  useEffect(() => {
+    void window.scrim.invoke('app:activity', { editing }).catch(() => undefined);
+  }, [editing]);
 
   // A new recording replaces the card of the last one.
   useEffect(() => {
@@ -471,6 +481,10 @@ export function MainScreen() {
         settings={settings}
         update={update}
         chooseFolder={chooseFolder}
+        updates={updates}
+        onShowUpdate={() => {
+          setUpdateOpen(true);
+        }}
         onShowWelcome={() => {
           setWelcomeNow(true);
           setChecking(false);
@@ -584,15 +598,30 @@ export function MainScreen() {
     );
 
   return (
-    <AppShell
-      view={view}
-      onView={changeView}
-      title={VIEW_LABELS[view]}
-      primary={view === 'record' ? startButton : view === 'screenshot' ? shotButton : undefined}
-      status={{ state, folder }}
-      panel={panel}
-    >
-      {main}
-    </AppShell>
+    <>
+      <AppShell
+        view={view}
+        onView={changeView}
+        updatePill={hasUpdateToShow(updates.snapshot)}
+        onUpdatePill={() => {
+          setUpdateOpen(true);
+        }}
+        title={VIEW_LABELS[view]}
+        primary={view === 'record' ? startButton : view === 'screenshot' ? shotButton : undefined}
+        status={{ state, folder }}
+        panel={panel}
+      >
+        {main}
+      </AppShell>
+      <UpdateModal
+        open={updateOpen}
+        snapshot={updates.snapshot}
+        onClose={() => {
+          setUpdateOpen(false);
+        }}
+        onDownload={updates.download}
+        onInstall={updates.install}
+      />
+    </>
   );
 }

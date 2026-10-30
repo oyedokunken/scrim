@@ -5,6 +5,8 @@ import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../shared/shor
 import type { SettingsStore } from '../settings/settings-store';
 import type { Handlers } from './dispatcher';
 import { createAboutHandlers, type AboutApi } from '../about/about-handlers';
+import { createUpdateHandlers } from '../updates/update-handlers';
+import type { UpdateController } from '../updates/update-controller';
 import { createAreaHandlers, type AreaApi } from './area-handlers';
 import { createImageHandlers, type ImageDeps } from './image-handlers';
 import { createExportHandlers, type ExportLike } from '../export/export-handlers';
@@ -34,6 +36,8 @@ export interface HandlerDeps {
   /** The Windows share sheet. Null when this computer has none Scrim can open. */
   share: ((path: string) => Promise<void>) | null;
   platform: NodeJS.Platform;
+  /** The update flow: check, download and install, each only when asked. */
+  updates: UpdateController;
   /** The version and computer details for the About card. */
   about: AboutApi;
   /** The app version from the package, never typed in by hand. */
@@ -154,6 +158,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       deps.showItemInFolder(resolve(path));
     },
     ...createAboutHandlers(deps.about),
+    ...createUpdateHandlers(deps.updates),
     ...createRecordingHandlers({
       recording: deps.recording,
       destination: () => deps.settings.get().destinationFolder,

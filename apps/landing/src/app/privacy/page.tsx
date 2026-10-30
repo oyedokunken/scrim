@@ -26,6 +26,7 @@ const NOT_COLLECTED = [
   'No cookies, so there is nothing to track you across pages.',
   'No third party scripts. The page loads nothing from anyone else.',
   'Nothing from your recordings. The desktop app does not send them anywhere.',
+  'Nothing from your computer. The desktop app does not send its name, its system or any other detail to us.',
 ] as const;
 
 export default function PrivacyPage() {
@@ -74,6 +75,22 @@ export default function PrivacyPage() {
             <li key={item}>{item}</li>
           ))}
         </ul>
+      </section>
+
+      <section aria-labelledby="app-title">
+        <h2 id="app-title">The desktop app and the network</h2>
+        <p>
+          The desktop app makes no network requests while you record, edit or export. It has one
+          optional use of the network: looking for a newer version. That happens only when you press
+          Check for updates, or when the app starts if you turned that setting on. It is off by
+          default.
+        </p>
+        <p>
+          The request goes to GitHub, which hosts the releases, and asks for the details of the
+          latest release. It carries nothing about you or your recordings. Nothing is downloaded
+          until you press Update now. GitHub sees your IP address, as any website does, under its
+          own privacy statement.
+        </p>
       </section>
 
       <section aria-labelledby="where-title">
