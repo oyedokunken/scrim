@@ -94,8 +94,9 @@ built fine in a Linux container from the `linux-unpacked` folder.
 
 ## Signing and notarization
 
-- Windows: unsigned for v1, so SmartScreen warns. Apply to SignPath's open source program (owner),
-  then add the signing step to the `windows` job.
+- Windows: unsigned until signing secrets exist, so SmartScreen warns. The pipeline is in place and
+  turns on when the secrets are set. See `docs/code-signing.md` for the options, the secret names
+  and the steps.
 - macOS: needs an Apple Developer account (99 US dollars a year, owner). Put these in the repository
   secrets: `MAC_CSC_LINK` (base64 of the Developer ID Application certificate, a .p12),
   `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`. The build
@@ -103,6 +104,22 @@ built fine in a Linux container from the `linux-unpacked` folder.
   use right click, Open, or System Settings, Privacy and Security, Open Anyway. The hardened runtime
   and entitlements (JIT, microphone, camera) are already set in `build/entitlements.mac.plist`.
 - Linux: nothing to sign.
+
+## First signed release
+
+1. Finish the owner steps in `docs/code-signing.md` and set the secrets in GitHub, then bump the
+   desktop version and push the `v*` tag from the main repository.
+2. Open the `windows` job. The "Decide how to sign" step must show the mode you expect (`pfx`,
+   `azure` or `signpath`) and no UNSIGNED warning. With SignPath, approve the request when it
+   arrives, or the job waits.
+3. "Verify the signatures" must pass. If it fails, the release is not published: fix the cause and
+   tag again.
+4. Download the installer from the release. In PowerShell run `Get-AuthenticodeSignature` on it:
+   Status Valid and the expected publisher. Compare `Get-FileHash` with `SHA256SUMS.txt`.
+5. Install it on a clean Windows machine and check that SmartScreen shows the publisher. A new
+   certificate can still warn until it builds reputation.
+6. If an earlier release was signed with another certificate or publisher name, read "Publisher name
+   and automatic updates" in `docs/code-signing.md` first.
 
 ## What needs the owner
 

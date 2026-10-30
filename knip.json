@@ -9,6 +9,7 @@
     "apps/desktop": {
       "entry": [
         "electron-builder.config.ts",
+        "build/signing-cli.mts",
         "tests/e2e/**/*.spec.ts",
         "src/renderer/src/main.tsx",
         "src/recorder/page/main.ts",
