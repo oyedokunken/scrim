@@ -155,8 +155,10 @@ describe('isInsideKnownFolder', () => {
 
   it('ignores case on Windows and macOS only', () => {
     const shouting = join(DEST.toUpperCase(), 'a.webm');
-    expect(isInsideKnownFolder(shouting, folders, 'win32')).toBe(process.platform === 'win32');
-    expect(isInsideKnownFolder(shouting, ['/recordings'], 'linux')).toBe(false);
+    // The platform is passed in, so the answer is the same on every host.
+    expect(isInsideKnownFolder(shouting, folders, 'win32')).toBe(true);
+    expect(isInsideKnownFolder(shouting, folders, 'darwin')).toBe(true);
+    expect(isInsideKnownFolder(shouting, folders, 'linux')).toBe(false);
   });
 
   it('accepts nothing when there are no known folders', () => {
