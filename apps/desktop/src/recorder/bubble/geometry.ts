@@ -35,12 +35,11 @@ export const BUBBLE = {
 
 /** The three sizes the Camera page offers, as the picture's diameter. */
 export const BUBBLE_DIAMETERS = { S: 120, M: 180, L: 240 } as const;
-export type BubbleSizeName = keyof typeof BUBBLE_DIAMETERS;
 
 export type BubbleShape = 'circle' | 'rounded-square';
 
 /** The corner radius of the rounded square, as a share of its side. */
-export const SQUARE_RADIUS = 0.22;
+const SQUARE_RADIUS = 0.22;
 
 /** The window holds the picture, its shadow and the dot beside it. */
 export function windowSizeFor(size: number = BUBBLE.size): { width: number; height: number } {

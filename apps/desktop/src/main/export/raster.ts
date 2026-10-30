@@ -8,9 +8,9 @@ export interface Raster {
   data: Uint8Array;
 }
 
-export type Rgb = readonly [number, number, number];
+type Rgb = readonly [number, number, number];
 
-export function parseHex(color: string): Rgb {
+function parseHex(color: string): Rgb {
   const value = /^#([0-9a-f]{6})$/i.exec(color)?.[1];
   if (value === undefined) return [0, 0, 0];
   const n = Number.parseInt(value, 16);

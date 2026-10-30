@@ -786,48 +786,153 @@ input[type='checkbox'] {
   width: min(560px, 100%);
 }
 
-/* The card after a recording, on the Record view only. */
-.saved-card {
-  display: flex;
-  align-items: center;
+/* The review screen after a recording: Before, After and Compare, then the facts, then the actions. */
+.review {
+  display: grid;
   gap: 16px;
-  flex-wrap: wrap;
   justify-self: stretch;
+  min-width: 0;
+}
+
+.review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.review-player {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.review-panes {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.review-panes.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.review-pane {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+}
+
+.review-video {
+  width: 100%;
+  max-height: 46vh;
+  background: var(--scrim-black);
+  border-radius: var(--ui-radius-md);
+  object-fit: contain;
+}
+
+.review-caption {
+  font-size: 12px;
+  color: var(--scrim-text-secondary);
+}
+
+.review-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.review-seek {
+  position: relative;
+  flex: 1 1 160px;
+  min-width: 0;
+  height: 8px;
+  cursor: pointer;
+  background: var(--ui-track);
+  border-radius: 4px;
+  touch-action: none;
+}
+
+.review-seek-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--fraction, 0) * 100%);
+  background: var(--scrim-green);
+  border-radius: 4px;
+}
+
+.review-seek:focus-visible {
+  outline: 2px solid var(--scrim-green);
+  outline-offset: 3px;
+}
+
+.review-time {
+  min-width: 96px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--scrim-text-secondary);
+}
+
+.review-speed {
+  display: flex;
+  gap: 4px;
+}
+
+.review-wait {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 24px;
+  background: var(--ui-track);
+  border-radius: var(--ui-radius-md);
+}
+
+.review-info {
+  display: grid;
+  gap: 8px;
   padding: 16px;
   background: var(--scrim-white);
   border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-md);
 }
 
-.saved-card-icon {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  color: var(--scrim-green);
-  background: var(--ui-track);
-  border-radius: 50%;
-}
-
-.saved-card-text {
-  flex: 1 1 200px;
-  min-width: 0;
-}
-
-.saved-card-title {
+.review-name {
   font-size: 15px;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
-.saved-card-meta {
-  overflow: hidden;
-  font-size: 13px;
+.review-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.review-facts dt {
+  font-size: 12px;
   color: var(--scrim-text-secondary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.saved-card-actions {
+.review-facts dd {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.review-fact-wide {
+  grid-column: 1 / -1;
+}
+
+.review-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

@@ -12,6 +12,10 @@ import { join } from 'node:path';
 import { APP_ID, APP_NAME } from '../shared/app-id';
 import { devDockIconPath } from './app-icon';
 import { handleAppRequest } from './app-protocol';
+import { previewFolder } from './export/register';
+import { handleMediaRequest } from './media/media-protocol';
+import { MEDIA_SCHEME, MediaRegistry } from './media/media-registry';
+import { projectsRoot } from './recording/projects-folder';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
 import { screenshotFolderOf } from './ipc/handlers';
@@ -57,6 +61,12 @@ app.enableSandbox();
 protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_SCHEME,
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  },
+  // Recordings and their working copies are played from here. The scheme serves only files the
+  // main process handed out an address for, inside the projects and cache folders.
+  {
+    scheme: MEDIA_SCHEME,
     privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
   },
 ]);
@@ -146,6 +156,20 @@ if (!app.requestSingleInstanceLock()) {
     applyApplicationMenu(process.platform, APP_NAME);
     session.defaultSession.protocol.handle(APP_SCHEME, (request) =>
       handleAppRequest(request, rendererRoot, appCsp),
+    );
+    const media = new MediaRegistry(
+      () => [
+        projectsRoot({
+          platform: process.platform,
+          env: process.env,
+          userData: app.getPath('userData'),
+        }),
+        previewFolder(),
+      ],
+      process.platform === 'win32',
+    );
+    session.defaultSession.protocol.handle(MEDIA_SCHEME, (request) =>
+      handleMediaRequest(request, media),
     );
     hardenSession({
       appOrigin: target.origin,
@@ -305,6 +329,7 @@ if (!app.requestSingleInstanceLock()) {
       recording,
       area,
       exporter,
+      media,
       onSettingsChanged: (next) => {
         shortcutsRef.current?.apply(acceleratorsOf(next));
       },

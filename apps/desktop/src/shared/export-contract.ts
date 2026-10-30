@@ -38,6 +38,10 @@ export const exportJobSchema = z
       .nullable(),
     error: exportErrorSchema.nullable(),
     safer: z.boolean(),
+    /** True for the working copy that the review screen plays. It is not the person's file. */
+    preview: z.boolean(),
+    /** The name of the recording's folder, so the page can tell which recording a job belongs to. */
+    recording: z.string().max(260),
   })
   .strict();
 
@@ -54,6 +58,8 @@ export const exportContract = {
         folder: pathSchema,
         fileName: z.string().min(1).max(200).optional(),
         collision: z.enum(['number', 'replace', 'fail']).optional(),
+        /** Make the working copy for the review screen, in the app's cache and not the person's folder. */
+        preview: z.boolean().optional(),
         settings: z
           .object({
             preset: z.enum(['source', '720p', '1080p', '1440p', '2160p']).optional(),

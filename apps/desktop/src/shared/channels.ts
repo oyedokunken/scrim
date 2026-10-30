@@ -39,6 +39,8 @@ export const CHANNELS = [
   'library:delete',
   'library:share',
   'share:available',
+  'review:open',
+  'review:discard',
   'export:start',
   'export:cancel',
   'export:retry-safer',

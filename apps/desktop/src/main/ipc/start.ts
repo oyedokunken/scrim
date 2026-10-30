@@ -1,6 +1,6 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
 import { createRealShare } from '../share/share';
-import { access, mkdir, open, readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, open, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EventPayload } from '../../shared/ipc-contract';
 import { findLegacyFolders, moveLegacyFolders } from '../export/legacy';
@@ -11,7 +11,10 @@ import { loadExportSource } from '../export/source';
 import { isInsideKnownFolder } from './handlers';
 import { realServiceFs } from '../recording/fs-adapter';
 import { projectsRoot } from '../recording/projects-folder';
-import type { ExportApi } from '../export/register';
+import { previewFolder, type ExportApi } from '../export/register';
+import type { MediaRegistry } from '../media/media-registry';
+import { probeFile, resolveFfmpegPaths, runProcess } from '../recording/ffmpeg';
+import { createReviewHandlers } from '../review/review-handlers';
 import { toBridgeJob } from '../export/export-handlers';
 import { createRealLibrary } from '../library/real-library';
 import { createLogger, type Logger } from '../log/logger';
@@ -54,6 +57,8 @@ export async function startIpc(options: {
   shortcutsSuspend: (suspended: boolean) => void;
   /** The export engine. Its status changes go to every window. */
   exporter: ExportApi;
+  /** The files the page may play, shared with the media protocol. */
+  media: MediaRegistry;
   closeAnswer: (answer: 'shown' | 'keep' | 'stop' | 'cancel') => void;
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
@@ -76,6 +81,52 @@ export async function startIpc(options: {
 
   // Folders the engine has written to this run, so a finished recording can be shown in its folder.
   const sessionFolders = new Set<string>();
+
+  const isKnownFolder = (folder: string): boolean =>
+    folder.endsWith('.scrim') &&
+    isInsideKnownFolder(
+      folder,
+      [
+        projectsRoot({
+          platform: process.platform,
+          env: process.env,
+          userData: app.getPath('userData'),
+        }),
+        settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+        ...sessionFolders,
+      ],
+      process.platform,
+    );
+  const ffmpegPaths = resolveFfmpegPaths({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    platform: process.platform,
+    env: process.env,
+  });
+  const review = createReviewHandlers({
+    loadSource: loadExportSource,
+    isKnownFolder,
+    previewDir: previewFolder,
+    outputFolder: () => settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+    fileSize: async (file) => {
+      try {
+        return (await stat(file)).size;
+      } catch {
+        return undefined;
+      }
+    },
+    probe: (file) => probeFile(runProcess, ffmpegPaths, file),
+    issueMedia: (file, label) => options.media.issue(file, label),
+    forgetMedia: (file) => {
+      options.media.forget(file);
+    },
+    trash: (path) => shell.trashItem(path),
+    remove: (file) => rm(file, { force: true }),
+  });
+  // The working copy is not the person's file: once the real export is done it has no use.
+  options.exporter.service.on((event) => {
+    if (event.job.phase === 'done' && !event.job.preview) void review.cleanup(event.job.folder);
+  });
 
   // Every change of an export goes to every window, without the folder or the path.
   options.exporter.service.on((event) => {
@@ -156,22 +207,10 @@ export async function startIpc(options: {
         loadSource: loadExportSource,
         writeEdits: (folder, edits) =>
           realServiceFs.writeJsonAtomic(join(folder, 'edits.json'), edits),
-        isKnownFolder: (folder) =>
-          folder.endsWith('.scrim') &&
-          isInsideKnownFolder(
-            folder,
-            [
-              projectsRoot({
-                platform: process.platform,
-                env: process.env,
-                userData: app.getPath('userData'),
-              }),
-              settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
-              ...sessionFolders,
-            ],
-            process.platform,
-          ),
+        isKnownFolder,
+        issueMedia: (file, label) => options.media.issue(file, label),
       },
+      review: review.handlers,
       library: createRealLibrary({
         videosFolder: () =>
           settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),

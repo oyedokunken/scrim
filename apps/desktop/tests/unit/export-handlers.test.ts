@@ -18,6 +18,7 @@ const job = (over: Partial<ExportJob> = {}): ExportJob => ({
   result: null,
   error: null,
   safer: false,
+  preview: false,
   ...over,
 });
 

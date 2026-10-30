@@ -48,7 +48,7 @@ export function demoTimeAt(timeMs: number): number {
 }
 
 /** 0 before `start`, 1 after `start + duration`, a smooth ease in between. */
-export function ease(timeMs: number, start: number, duration: number): number {
+function ease(timeMs: number, start: number, duration: number): number {
   const x = Math.min(1, Math.max(0, (timeMs - start) / duration));
   return x * x * (3 - 2 * x);
 }

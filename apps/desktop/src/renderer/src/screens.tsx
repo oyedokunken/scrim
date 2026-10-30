@@ -363,23 +363,23 @@ export function MainScreen() {
       <RecordView
         busy={starting}
         onStart={() => void start(settings)}
-        saved={
+        review={
           finished === null || !showsSavedCard(view)
             ? undefined
             : {
                 finished,
                 job: exportJob,
-                onCancelExport: (jobId: string) => {
+                onExport: () => {
+                  void window.scrim.invoke('export:start', { folder: finished.folder });
+                },
+                onCancelJob: (jobId: string) => {
                   void window.scrim.invoke('export:cancel', { jobId });
+                },
+                onRetryJob: (jobId: string) => {
+                  void window.scrim.invoke('export:retry-safer', { jobId });
                 },
                 onRetrySafer: (jobId: string) => {
                   void window.scrim.invoke('export:retry-safer', { jobId });
-                },
-                onReveal: (jobId: string, what: 'output' | 'source') => {
-                  void window.scrim.invoke('export:reveal', { jobId, what });
-                },
-                onExportAgain: () => {
-                  void window.scrim.invoke('export:start', { folder: finished.folder });
                 },
                 onShowInFolder: () => {
                   void window.scrim.invoke('shell:show-in-folder', { path: finished.folder });
@@ -388,6 +388,15 @@ export function MainScreen() {
                   openItem({ kind: 'editor', folder: finished.folder });
                 },
                 onRecordAgain: dismiss,
+                onDiscarded: dismiss,
+                // The file is in Library now, so the main view clears and Library opens on it.
+                onExported: () => {
+                  dismiss();
+                  setView('library');
+                },
+                onProblem: (message: string, nextStep: string) => {
+                  showError({ title: 'Scrim could not discard this recording', message, nextStep });
+                },
               }
         }
       />

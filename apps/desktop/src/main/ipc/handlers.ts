@@ -23,6 +23,8 @@ export interface HandlerDeps {
   exporter: ExportLike;
   /** Reading a recording for the editor and saving its edits. */
   editor: EditorDeps;
+  /** The review screen calls, already built so the main process can share their cleanup. */
+  review: Pick<Handlers, 'review:open' | 'review:discard'>;
   /** The recordings and screenshots listing and its actions. */
   library: Library;
   /** The Windows share sheet. Null when this computer has none Scrim can open. */
@@ -157,6 +159,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       screenshotFolder,
     }),
     ...createEditorHandlers(deps.editor).handlers,
+    ...deps.review,
     ...createExportHandlers({
       exporter: deps.exporter,
       isKnownFolder: deps.editor.isKnownFolder,

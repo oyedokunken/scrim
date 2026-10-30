@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { ControlView } from '../../src/renderer/src/components/control-view';
 import { RecordingView } from '../../src/renderer/src/components/recording-view';
-import { SavedCard } from '../../src/renderer/src/shell/saved-card';
+import { RecordView } from '../../src/renderer/src/shell/record-view';
 import type { Finished, Snapshot } from '../../src/renderer/src/hooks';
 
 const recording: Snapshot = {
@@ -107,56 +107,47 @@ const finished: Finished = {
   warnings: [],
 };
 
-describe('what opens after a recording', () => {
-  const view = (result: Finished) =>
-    renderToStaticMarkup(
-      <SavedCard finished={result} onShowInFolder={noop} onRecordAgain={noop} />,
-    );
+const review = {
+  finished,
+  job: null,
+  onExport: noop,
+  onCancelJob: noop,
+  onRetryJob: noop,
+  onRetrySafer: noop,
+  onShowInFolder: noop,
+  onRecordAgain: noop,
+  onDiscarded: noop,
+  onExported: noop,
+  onProblem: noop,
+};
 
-  it('says it was saved, with its name, length and size', () => {
-    const html = view(finished);
-    expect(html).toContain('Recording saved');
-    expect(html).toContain('take 1');
-    expect(html).toContain('00:12');
-    expect(html).toContain('4.0 KB');
+describe('the Record view', () => {
+  const render = (props: Partial<Parameters<typeof RecordView>[0]> = {}) =>
+    renderToStaticMarkup(<RecordView busy={false} onStart={noop} {...props} />);
+
+  it('starts with the one big button and no list of recent recordings', () => {
+    const html = render();
+    expect(html).toContain('Start recording');
+    expect(html).not.toContain('Recent recordings');
+  });
+
+  it('shows the review screen in place of the start screen after a recording', () => {
+    const html = render({ review });
+    expect(html).toContain('Review your recording');
+    expect(html).toContain('Before');
+    expect(html).toContain('After');
+    expect(html).toContain('Compare');
+    expect(html).not.toContain('Start recording');
+    expect(html).not.toContain('Recording saved');
   });
 
   it('says so when the recording was recovered after a crash', () => {
-    expect(view({ ...finished, recovered: true })).toContain('Recording recovered');
-  });
-
-  it('never leaves a dead end: show it in the folder, or record again', () => {
-    const html = view(finished);
-    expect(html).toContain('>Show in folder<');
-    expect(html).toContain('>Record again<');
-  });
-
-  it('passes on what the engine warned about', () => {
-    expect(view({ ...finished, warnings: ['The camera stopped at 00:05.'] })).toContain(
-      'The camera stopped at 00:05.',
+    expect(render({ review: { ...review, finished: { ...finished, recovered: true } } })).toContain(
+      'Recording recovered',
     );
   });
 
   it('does not print the folder path on screen', () => {
-    expect(view(finished)).not.toContain('C:\\Recordings');
-  });
-});
-
-describe('the saved card', () => {
-  it('has no logo and offers Open in editor only when there is an editor', () => {
-    const without = renderToStaticMarkup(
-      <SavedCard finished={finished} onShowInFolder={noop} onRecordAgain={noop} />,
-    );
-    expect(without).not.toContain('brand-mark');
-    expect(without).not.toContain('Open in editor');
-    const withEditor = renderToStaticMarkup(
-      <SavedCard
-        finished={finished}
-        onOpenEditor={noop}
-        onShowInFolder={noop}
-        onRecordAgain={noop}
-      />,
-    );
-    expect(withEditor).toContain('>Open in editor<');
+    expect(render({ review })).not.toContain('Recordings');
   });
 });

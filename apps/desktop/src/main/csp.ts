@@ -4,7 +4,7 @@ const PACKAGED_DIRECTIVES = [
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self' data: blob:",
-  "media-src 'self' blob: mediastream:",
+  "media-src 'self' blob: mediastream: scrim-media:",
   "font-src 'self'",
   "connect-src 'self'",
   "worker-src 'self' blob:",

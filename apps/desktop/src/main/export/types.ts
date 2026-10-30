@@ -30,6 +30,8 @@ export interface ExportRequest {
   paint: CursorPaint;
   /** Use only the software encoder, for the retry with safer settings. */
   softwareOnly?: boolean | undefined;
+  /** Draw every picture on the calling thread. Used when the drawing threads stalled. */
+  inlineOnly?: boolean | undefined;
 }
 
 export interface ExportProgress {
@@ -43,7 +45,7 @@ export interface ExportProgress {
   speed: number;
 }
 
-export type ExportErrorCode =
+type ExportErrorCode =
   | 'source-missing'
   | 'source-invalid'
   | 'nothing-to-export'
@@ -55,6 +57,7 @@ export type ExportErrorCode =
   | 'folder-unwritable'
   | 'exists'
   | 'cancelled'
+  | 'stalled'
   | 'unknown';
 
 export interface ExportError {

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
 import { editorContract } from './editor-contract';
+import { reviewContract } from './review-contract';
 import { exportContract, exportJobSchema } from './export-contract';
 import { imageContract } from './image-contract';
 import { libraryContract } from './library-contract';
@@ -75,6 +76,7 @@ export const contract = {
   ...libraryContract,
   ...editorContract,
   ...exportContract,
+  ...reviewContract,
   // The destination is not an input: the main process uses the folder the person chose.
   'recording:start': {
     input: z

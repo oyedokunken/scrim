@@ -357,7 +357,11 @@ export async function exportRecording(
   const base = buildBase(layout, background);
   const paint = request.paint;
   let backend = createInlineBackend(new Compositor(layout, model.source, base, paint));
-  if (deps.spawnWorker !== undefined && request.softwareOnly !== true) {
+  if (
+    deps.spawnWorker !== undefined &&
+    request.softwareOnly !== true &&
+    request.inlineOnly !== true
+  ) {
     try {
       backend = createWorkerBackend({
         count: workerCount(deps.cores ?? 4),

@@ -234,8 +234,8 @@ describe('the Record view', () => {
     expect(html).toContain('aria-label="Ctrl Shift R"');
   });
 
-  it('says there are no recordings yet instead of showing an empty box', () => {
-    expect(view()).toContain('No recordings yet');
+  it('has no list of recent recordings: Library holds the history', () => {
+    expect(view()).not.toContain('Recent recordings');
   });
 
   it('cannot be started twice', () => {

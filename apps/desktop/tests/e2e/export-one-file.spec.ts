@@ -195,7 +195,7 @@ interface Job {
   error: { message: string } | null;
 }
 
-test('Stop renders one MP4 with the camera bubble and the microphone, and nothing else', async () => {
+test('Stop opens the review, Before, After and Compare play, and Export writes one MP4', async () => {
   test.setTimeout(240_000);
   const running = await launch();
   try {
@@ -207,17 +207,87 @@ test('Stop renders one MP4 with the camera bubble and the microphone, and nothin
     });
     expect((stopped as { ok: boolean }).ok, JSON.stringify(stopped)).toBe(true);
 
-    let job: Job | null = null;
+    // The review screen replaces the start screen, and nothing is written to the chosen folder yet.
+    const page = running.main;
+    await expect(page.getByRole('heading', { name: 'Review your recording' })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.locator('.stage')).toHaveCount(0);
+
+    // BEFORE plays straight away.
+    const before = page.locator('video[aria-label="Before"]');
+    await expect(before).toHaveCount(1);
+    await page.waitForFunction(() => {
+      const video = document.querySelector<HTMLVideoElement>('video[aria-label="Before"]');
+      return video !== null && video.readyState >= 2 && video.videoWidth > 0;
+    });
+    await page.getByRole('button', { name: 'Play' }).click();
+    await page.waitForFunction(() => {
+      const video = document.querySelector<HTMLVideoElement>('video[aria-label="Before"]');
+      return video !== null && video.currentTime > 0.3;
+    });
+    await page.getByRole('button', { name: 'Pause' }).click();
+
+    // The working copy is made in the cache, not in the chosen folder.
+    let preview: Job | null = null;
     const deadline = Date.now() + 200_000;
     while (Date.now() < deadline) {
-      job = await running.main.evaluate(async () => {
+      preview = await running.main.evaluate(async () => {
         const bridge = (window as unknown as { scrim: Bridge }).scrim;
         return (await bridge.invoke('export:latest')) as Job | null;
       });
-      if (job !== null && ['done', 'failed', 'cancelled'].includes(job.phase)) break;
+      if (preview !== null && ['done', 'failed', 'cancelled'].includes(preview.phase)) break;
+      await sleep(500);
+    }
+    expect(preview?.phase, JSON.stringify(preview) + recent()).toBe('done');
+    expect(readdirSync(running.exports), 'nothing in the chosen folder before Export').toEqual([]);
+    const cache = join(running.userData, 'cache', 'previews');
+    expect(readdirSync(cache).filter((name) => name.endsWith('.mp4'))).toHaveLength(1);
+
+    // AFTER plays the finished look.
+    await page.getByRole('radio', { name: 'After' }).click();
+    await page.waitForFunction(() => {
+      const video = document.querySelector<HTMLVideoElement>('video[aria-label="After"]');
+      return video !== null && video.readyState >= 2 && video.videoWidth > 0;
+    });
+    await page.getByRole('button', { name: 'Play' }).click();
+    await page.waitForFunction(() => {
+      const video = document.querySelector<HTMLVideoElement>('video[aria-label="After"]');
+      return video !== null && video.currentTime > 0.3;
+    });
+    await page.getByRole('button', { name: 'Pause' }).click();
+
+    // COMPARE plays both, in step.
+    await page.getByRole('radio', { name: 'Compare' }).click();
+    await page.getByRole('button', { name: 'Play' }).click();
+    await page.waitForFunction(() => {
+      const videos = [...document.querySelectorAll<HTMLVideoElement>('.review-video')];
+      return videos.length === 2 && videos.every((video) => video.currentTime > 0.3);
+    });
+    const gap = await page.evaluate(() => {
+      const [first, second] = [...document.querySelectorAll<HTMLVideoElement>('.review-video')];
+      return Math.abs((first?.currentTime ?? 0) - (second?.currentTime ?? 99));
+    });
+    expect(gap).toBeLessThan(0.5);
+    await page.getByRole('button', { name: 'Pause' }).click();
+
+    // Export writes the file into the chosen folder, clears the working copy and opens Library.
+    await page.getByRole('button', { name: 'Export', exact: true }).click();
+    let job: Job | null = null;
+    const exportDeadline = Date.now() + 200_000;
+    while (Date.now() < exportDeadline) {
+      if (readdirSync(running.exports).some((name) => name.endsWith('.mp4'))) {
+        job = await running.main.evaluate(async () => {
+          const bridge = (window as unknown as { scrim: Bridge }).scrim;
+          return (await bridge.invoke('export:latest')) as Job | null;
+        });
+        if (job?.phase === 'done') break;
+      }
       await sleep(500);
     }
     expect(job?.phase, JSON.stringify(job) + recent()).toBe('done');
+    await expect(page.getByRole('heading', { name: 'Review your recording' })).toHaveCount(0);
+    expect(readdirSync(cache).filter((name) => name.endsWith('.mp4'))).toHaveLength(0);
 
     // One new file in the recordings folder, no folders, no partial file.
     const files = readdirSync(running.exports);

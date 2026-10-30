@@ -34,6 +34,8 @@ function makeService(
     },
     settings: () => settings,
     destination: () => 'D:/Videos/Scrim',
+    previewDir: () => 'D:/cache/previews',
+    stallMs: 200,
     newId: () => `job${String((n += 1))}`,
     log: () => undefined,
   });
@@ -238,5 +240,38 @@ describe('old working folders', () => {
     expect(moves).toHaveLength(2);
     // The finished video and unrelated folders stay where they were.
     expect(readdirSync(destination).sort()).toEqual(['Finished.mp4', 'not a session.scrim']);
+  });
+});
+
+describe('a render that stops moving', () => {
+  it('is stopped and tried again on one thread, then finishes', async () => {
+    const seen: (boolean | undefined)[] = [];
+    const { service } = makeService((request) => {
+      seen.push(request.inlineOnly);
+      return seen.length === 1
+        ? new Promise<ExportOutcome>(() => undefined)
+        : Promise.resolve(success());
+    });
+    const job = service.start({ folder: 'C:/p/One.scrim' });
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(seen).toEqual([undefined, true]);
+    expect(service.get(job.id)?.phase).toBe('done');
+  });
+
+  it('fails with a plain message when it stalls twice', async () => {
+    const { service } = makeService(() => new Promise<ExportOutcome>(() => undefined));
+    const job = service.start({ folder: 'C:/p/One.scrim' });
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const done = service.get(job.id);
+    expect(done?.phase).toBe('failed');
+    expect(done?.error?.code).toBe('stalled');
+  });
+
+  it('renders the working copy into the cache folder, replacing the old one', async () => {
+    const { service, requests } = makeService(() => Promise.resolve(success()));
+    service.start({ folder: 'C:/p/One.scrim', preview: true });
+    await settle();
+    expect(requests[0]?.outputDir).toBe('D:/cache/previews');
+    expect(requests[0]?.collision).toBe('replace');
   });
 });

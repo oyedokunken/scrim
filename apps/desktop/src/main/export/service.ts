@@ -13,7 +13,9 @@ import type {
   ExportSuccess,
 } from './types';
 
-export type JobPhase = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
+const STALL_MS = 90_000;
+
+type JobPhase = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
 
 /** What the page needs to draw the progress, the result or the error. It carries no path but the result. */
 export interface ExportJob {
@@ -26,6 +28,8 @@ export interface ExportJob {
   error: ExportError | null;
   /** True when the job was made by a retry with safer settings. */
   safer: boolean;
+  /** True for the working copy made after a recording, which lives in the app's cache. */
+  preview: boolean;
 }
 
 export type ExportEvent = { type: 'status'; job: ExportJob };
@@ -36,6 +40,9 @@ export interface StartInput {
   collision?: Collision | undefined;
   settings?: Partial<ExportSettings> | undefined;
   safer?: boolean | undefined;
+  /** Render the working copy into the cache folder instead of the person's folder. */
+  preview?: boolean | undefined;
+  inlineOnly?: boolean | undefined;
 }
 
 export interface ExportServiceDeps {
@@ -46,6 +53,10 @@ export interface ExportServiceDeps {
   settings: () => Settings;
   /** The folder that receives finished files. */
   destination: () => string;
+  /** The app's own cache folder for working copies. Nothing there is the person's file. */
+  previewDir: () => string;
+  /** How long a render may go without any progress before it counts as stuck. */
+  stallMs?: number;
   newId: () => string;
   log: (message: string) => void;
 }
@@ -94,6 +105,7 @@ export class ExportService {
       result: null,
       error: null,
       safer: input.safer === true,
+      preview: input.preview === true,
     };
     this.jobs.set(job.id, job);
     this.inputs.set(job.id, input);
@@ -157,11 +169,12 @@ export class ExportService {
     this.emit(job);
 
     const saved = this.deps.settings();
+    const preview = input.preview === true;
     const request: ExportRequest = {
       folder: input.folder,
-      outputDir: this.deps.destination(),
+      outputDir: preview ? this.deps.previewDir() : this.deps.destination(),
       fileName: input.fileName,
-      collision: input.collision ?? 'number',
+      collision: preview ? 'replace' : (input.collision ?? 'number'),
       settings: { ...defaultExportSettings(saved), ...input.settings },
       style: renderStyleFromSettings(saved),
       paint: cursorPaintFor(saved.haloColor),
@@ -169,18 +182,68 @@ export class ExportService {
     };
     let lastEmit = 0;
     let outcome: ExportOutcome;
-    try {
-      outcome = await this.deps.run(request, {
-        signal: controller.signal,
-        onProgress: (progress) => {
-          job.progress = progress;
-          const now = Date.now();
-          if (now - lastEmit >= 250 || progress.fraction >= 1) {
-            lastEmit = now;
-            this.emit(job);
-          }
-        },
+    const stallMs = this.deps.stallMs ?? STALL_MS;
+    // A render that makes no progress for a long time is stuck, not slow. Stop it, and draw on one
+    // thread the second time, because a drawing thread that never answers is the usual cause.
+    const attempt = async (inline: boolean, signal: AbortSignal, onStall: () => void) => {
+      let beat = Date.now();
+      let timer: ReturnType<typeof setInterval> | undefined;
+      const stuck = new Promise<'stuck'>((resolve) => {
+        timer = setInterval(
+          () => {
+            if (Date.now() - beat > stallMs) resolve('stuck');
+          },
+          Math.max(10, Math.min(5000, Math.floor(stallMs / 4))),
+        );
       });
+      try {
+        const run = this.deps.run(inline ? { ...request, inlineOnly: true } : request, {
+          signal,
+          onProgress: (progress) => {
+            beat = Date.now();
+            job.progress = progress;
+            const now = Date.now();
+            if (now - lastEmit >= 250 || progress.fraction >= 1) {
+              lastEmit = now;
+              this.emit(job);
+            }
+          },
+        });
+        const first = await Promise.race([run, stuck]);
+        if (first === 'stuck') {
+          onStall();
+          return 'stuck' as const;
+        }
+        return first;
+      } finally {
+        clearInterval(timer);
+      }
+    };
+    try {
+      let result = await attempt(input.inlineOnly === true, controller.signal, () => {
+        controller.abort();
+      });
+      if (result === 'stuck') {
+        this.deps.log('export: no progress, trying again on one thread');
+        job.progress = null;
+        const second = new AbortController();
+        this.controllers.set(jobId, second);
+        result = await attempt(true, second.signal, () => {
+          second.abort();
+        });
+      }
+      outcome =
+        result === 'stuck'
+          ? {
+              ok: false,
+              error: {
+                code: 'stalled',
+                message: 'Making the video stopped moving, so Scrim stopped it.',
+                nextStep:
+                  'Try again. If it keeps happening, try with safer settings. Your recording was not changed.',
+              },
+            }
+          : result;
     } catch (error) {
       this.deps.log(
         `export: unexpected failure (${error instanceof Error ? error.name : 'unknown'})`,
@@ -215,7 +278,6 @@ export function autoRender(
   service: Pick<ExportService, 'start'>,
 ): () => void {
   return recording.on((event) => {
-    if (event.type === 'finished')
-      service.start({ folder: event.result.folder, collision: 'number' });
+    if (event.type === 'finished') service.start({ folder: event.result.folder, preview: true });
   });
 }

@@ -6,7 +6,7 @@ function words(error: { message: string; nextStep: string }): string {
 }
 
 /** A job as the export panel draws it. */
-export function toExportView(job: ExportJobView): ExportView {
+function toExportView(job: ExportJobView): ExportView {
   return {
     id: job.id,
     phase: job.phase,

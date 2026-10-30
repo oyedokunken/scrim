@@ -43,6 +43,11 @@ function destination(settings: Settings): string {
   return settings.destinationFolder ?? join(app.getPath('videos'), 'Scrim');
 }
 
+/** Working copies for the review screen. Not the person's files: cleaned up on export or discard. */
+export function previewFolder(): string {
+  return join(app.getPath('userData'), 'cache', 'previews');
+}
+
 /**
  * Creates the export engine. Call once after the app is ready, then pass the recording service to
  * `autoRender` so every finished recording becomes one MP4 in the destination folder.
@@ -69,6 +74,7 @@ export function registerExport(options: RegisterOptions): ExportApi {
       ),
     settings: options.settings,
     destination: () => destination(options.settings()),
+    previewDir: previewFolder,
     newId: randomUUID,
     log: options.log,
   });

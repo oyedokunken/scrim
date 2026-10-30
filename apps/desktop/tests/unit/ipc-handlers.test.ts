@@ -71,6 +71,14 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       writeEdits: vi.fn(() => Promise.resolve()),
       isKnownFolder: () => false,
     },
+    review: {
+      'review:open': () =>
+        Promise.resolve({
+          ok: false as const,
+          error: { code: 'unknown' as const, message: 'm', nextStep: 'n' },
+        }),
+      'review:discard': () => Promise.resolve({ ok: true as const, value: undefined }),
+    },
     platform: process.platform,
     version: '1.0.0',
     chooseFolder: vi.fn(() => Promise.resolve(null)),
