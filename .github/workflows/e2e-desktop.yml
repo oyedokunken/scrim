@@ -58,6 +58,26 @@ jobs:
       - name: Fetch the bundled FFmpeg
         run: pnpm fetch:ffmpeg
 
+      # Temporary: says whether Electron itself starts on this runner, and what Scrim prints if it does not.
+      - name: Diagnose the launch
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          pnpm build
+          Set-Content -Path "$env:RUNNER_TEMP/bare-main.js" -Value "console.log('bare electron ok', process.versions.electron); require('electron').app.quit();"
+          $electron = (Resolve-Path "../../node_modules/.pnpm/electron@*/node_modules/electron/dist/electron.exe").Path | Select-Object -First 1
+          Write-Host "electron: $electron"
+          $env:ELECTRON_ENABLE_LOGGING = "1"
+          $bare = Start-Process -FilePath $electron -ArgumentList "$env:RUNNER_TEMP/bare-main.js","--no-sandbox","--disable-gpu" -PassThru -Wait -RedirectStandardOutput "$env:RUNNER_TEMP/bare.out" -RedirectStandardError "$env:RUNNER_TEMP/bare.err"
+          Write-Host "bare exit: $($bare.ExitCode)"
+          Get-Content "$env:RUNNER_TEMP/bare.out", "$env:RUNNER_TEMP/bare.err" -ErrorAction SilentlyContinue | Select-Object -First 30
+          $env:SCRIM_E2E = "1"
+          $app = Start-Process -FilePath $electron -ArgumentList ".","--no-sandbox","--disable-gpu","--user-data-dir=$env:RUNNER_TEMP/diag-user" -PassThru -RedirectStandardOutput "$env:RUNNER_TEMP/app.out" -RedirectStandardError "$env:RUNNER_TEMP/app.err"
+          Start-Sleep -Seconds 12
+          Write-Host "scrim exited: $($app.HasExited) code: $(if ($app.HasExited) { $app.ExitCode } else { 'running' })"
+          if (-not $app.HasExited) { Stop-Process -Id $app.Id -Force }
+          Get-Content "$env:RUNNER_TEMP/app.out", "$env:RUNNER_TEMP/app.err" -ErrorAction SilentlyContinue | Select-Object -First 60
+
       - name: Build and run the end to end tests against the build
         run: |
           pnpm build
