@@ -19,11 +19,13 @@ import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
 import { EditorView } from './editor/editor-view';
 import { SettingsView } from './settings/settings-view';
+import { UpdateModal } from './updates/update-modal';
+import { hasUpdateToShow, useUpdates } from './updates/use-updates';
 import { LibraryView } from './library/library-view';
 import type { OpenedItem } from './library/use-library';
 import { editorApi } from './shell/editor-bridge';
-import { ScreenshotPanel } from './screenshot/screenshot-panel';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
+import { ScreenshotSettingsPanel } from './screenshot/screenshot-settings-panel';
 import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
@@ -36,7 +38,6 @@ import {
   useRecordingSnapshot,
   useScreenshotTaken,
   useExportJob,
-  useScreenshots,
   useSettings,
 } from './hooks';
 
@@ -110,16 +111,24 @@ export function MainScreen() {
   const [shooting, setShooting] = useState(false);
   const [shot, setShot] = useState<ShotInfo | null>(null);
   const [editorFolder, setEditorFolder] = useState<string | null>(null);
-  const [shotsVersion, setShotsVersion] = useState(0);
-  const shots = useScreenshots(shotsVersion, view === 'screenshot');
-  const refreshShots = useCallback(() => {
-    setShotsVersion((version) => version + 1);
+  /** Moves to another page. A screenshot lives in the main view only while the Screenshot page is open. */
+  const changeView = useCallback((next: ViewId) => {
+    if (next !== 'screenshot') setShot(null);
+    setView(next);
   }, []);
   const [entered, setEntered] = useState(false);
   // Set by Show welcome again in the settings, which shows the welcome screen once even when it is switched off.
   const [welcomeNow, setWelcomeNow] = useState(false);
   const [checking, setChecking] = useState(false);
   const phase = snapshot.phase;
+  const updates = useUpdates();
+  const [updateOpen, setUpdateOpen] = useState(false);
+
+  // An update must not start while the editor is open, so the main process is told when it is.
+  const editing = view === 'editor';
+  useEffect(() => {
+    void window.scrim.invoke('app:activity', { editing }).catch(() => undefined);
+  }, [editing]);
 
   // A new recording replaces the card of the last one.
   useEffect(() => {
@@ -208,9 +217,8 @@ export function MainScreen() {
           actions: blockedFolderActions('screenshots'),
         });
       }
-      refreshShots();
     },
-    [refreshShots, showError, blockedFolderActions],
+    [showError, blockedFolderActions],
   );
 
   // A capture from the shortcut opens the result too, whichever view was showing.
@@ -446,11 +454,9 @@ export function MainScreen() {
         shot={shot}
         onClearShot={() => {
           setShot(null);
-          refreshShots();
         }}
         onShot={(next) => {
           setShot(next);
-          refreshShots();
         }}
         onTake={() => void shoot()}
       />
@@ -475,7 +481,10 @@ export function MainScreen() {
         settings={settings}
         update={update}
         chooseFolder={chooseFolder}
-        version={version}
+        updates={updates}
+        onShowUpdate={() => {
+          setUpdateOpen(true);
+        }}
         onShowWelcome={() => {
           setWelcomeNow(true);
           setChecking(false);
@@ -580,27 +589,39 @@ export function MainScreen() {
         onChooseFolder={() => void chooseFolder('recordings')}
       />
     ) : view === 'screenshot' ? (
-      <ScreenshotPanel
-        shots={shots}
-        openPath={shot?.path ?? null}
-        onOpen={(entry) => {
-          setShot({ path: entry.path, width: entry.width, height: entry.height });
-        }}
+      <ScreenshotSettingsPanel
+        folder={settings.screenshotFolder}
+        onChooseFolder={() => void chooseFolder('screenshots')}
       />
     ) : (
       <Placeholder view={view} inPanel />
     );
 
   return (
-    <AppShell
-      view={view}
-      onView={setView}
-      title={VIEW_LABELS[view]}
-      primary={view === 'record' ? startButton : view === 'screenshot' ? shotButton : undefined}
-      status={{ state, folder }}
-      panel={panel}
-    >
-      {main}
-    </AppShell>
+    <>
+      <AppShell
+        view={view}
+        onView={changeView}
+        updatePill={hasUpdateToShow(updates.snapshot)}
+        onUpdatePill={() => {
+          setUpdateOpen(true);
+        }}
+        title={VIEW_LABELS[view]}
+        primary={view === 'record' ? startButton : view === 'screenshot' ? shotButton : undefined}
+        status={{ state, folder }}
+        panel={panel}
+      >
+        {main}
+      </AppShell>
+      <UpdateModal
+        open={updateOpen}
+        snapshot={updates.snapshot}
+        onClose={() => {
+          setUpdateOpen(false);
+        }}
+        onDownload={updates.download}
+        onInstall={updates.install}
+      />
+    </>
   );
 }

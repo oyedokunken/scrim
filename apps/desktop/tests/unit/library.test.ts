@@ -360,4 +360,38 @@ describe('lookup, preview and play', () => {
       await withVideo.library.play(items.find((item) => item.kind === 'screenshot')?.id ?? ''),
     ).toBe(false);
   });
+
+  it('opens an exported video or a screenshot in the system app, and says false when it is gone', async () => {
+    const { library, deps } = setup(disk, projectText('Take 1'));
+    vi.mocked(deps.exists).mockResolvedValue(true);
+    const items = await library.list();
+    const shot = items.find((item) => item.kind === 'screenshot')?.id ?? '';
+    const video = items.find((item) => item.kind === 'recording')?.id ?? '';
+    expect(await library.openFile(shot)).toBe(true);
+    expect(await library.openFile(video)).toBe(true);
+    expect(deps.openPath).toHaveBeenCalledTimes(2);
+    const gone = setup({ ...disk, videos: [] }, projectText('Take 1'));
+    const listed = await gone.library.list();
+    expect(
+      await gone.library.openFile(listed.find((item) => item.kind === 'recording')?.id ?? ''),
+    ).toBe(false);
+  });
+
+  it('hands the share service the file of an id from the listing and nothing for any other id', async () => {
+    const { library } = setup(disk, projectText('Take 1'));
+    const items = await library.list();
+    const shot = items.find((item) => item.kind === 'screenshot');
+    const video = items.find((item) => item.kind === 'recording');
+    expect(library.fileOf(shot?.id ?? '')).toEqual({
+      path: join(SHOTS, 'Shot.png'),
+      media: 'image',
+      name: 'Shot',
+    });
+    expect(library.fileOf(video?.id ?? '')).toMatchObject({
+      path: join(VIDEOS, 'Take 1.mp4'),
+      media: 'video',
+    });
+    expect(library.fileOf('C:\\Windows\\win.ini')).toBeUndefined();
+    expect(library.fileOf('../../etc/passwd')).toBeUndefined();
+  });
 });

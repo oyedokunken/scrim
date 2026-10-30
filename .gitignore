@@ -73,3 +73,6 @@ apps/desktop/resources/ffmpeg/
 
 # throwaway experiments (the export spike numbers live in docs/adr)
 spikes/
+
+# written by the update end to end test in a development run
+dev-app-update.yml

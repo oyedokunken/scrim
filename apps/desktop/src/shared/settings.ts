@@ -43,6 +43,8 @@ const fields = {
   showWelcome: z.boolean(),
   /** The 3, 2, 1 before a recording starts. Off starts it at once. */
   countdownOn: z.boolean(),
+  /** Look for a newer version when the app starts. Off until the person turns it on. */
+  autoCheckUpdates: z.boolean(),
   shortcutRecord: acceleratorSchema,
   shortcutStop: acceleratorSchema,
   shortcutScreenshot: acceleratorSchema,
@@ -102,6 +104,7 @@ export const settingsFileSchema = z
     firstRunDone: true,
     showWelcome: true,
     countdownOn: true,
+    autoCheckUpdates: true,
     shortcutRecord: true,
     shortcutStop: true,
     shortcutScreenshot: true,
@@ -134,6 +137,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   firstRunDone: false,
   showWelcome: true,
   countdownOn: true,
+  autoCheckUpdates: false,
   shortcutRecord: DEFAULT_ACCELERATORS.record,
   shortcutStop: DEFAULT_ACCELERATORS.stop,
   shortcutScreenshot: DEFAULT_ACCELERATORS.screenshot,

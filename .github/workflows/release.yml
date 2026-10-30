@@ -48,13 +48,86 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         working-directory: .
-      # Windows signing through SignPath is added here once the open source application is approved.
-      - run: pnpm package
+      # Signing turns on only when its secrets exist and only for a tag build in the main
+      # repository. Otherwise the installer is built unsigned and the summary says so.
+      - name: Decide how to sign
+        id: sign
+        run: node build/signing-cli.mts
+      - name: Package
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          WIN_PUBLISHER_NAME: ${{ secrets.WIN_PUBLISHER_NAME }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+        # --publish never: the publish job below uploads everything, so the build must not try to.
+        run: pnpm package --publish never
       - run: pnpm verify:fuses release/win-unpacked/Scrim.exe
+      # SignPath signs the finished installer, so it needs the installer as a workflow artifact.
+      - name: Upload the unsigned installer for SignPath
+        if: steps.sign.outputs.mode == 'signpath'
+        id: unsigned
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unsigned-windows
+          path: apps/desktop/release/Scrim-Setup-*.exe
+          if-no-files-found: error
+      - name: Sign the installer with SignPath
+        if: steps.sign.outputs.mode == 'signpath'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          connector-url: https://app.signpath.io/API/v1/${{ secrets.SIGNPATH_ORGANIZATION_ID }}/Integrations/GitHub
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: apps/desktop/signed
+      - name: Replace the installer with the signed one
+        if: steps.sign.outputs.mode == 'signpath'
+        run: |
+          Remove-Item "release/Scrim-Setup-*.exe"
+          Copy-Item "signed/*.exe" release/
+          # The signed file is not the file latest.yml was written for, so write its real hash and size.
+          # The blockmap is for the unsigned file too, so it is dropped: updates download in full.
+          node scripts/refresh-update-info.mts (Get-ChildItem "release/Scrim-Setup-*.exe").FullName release/latest.yml
+          Remove-Item "release/*.blockmap" -ErrorAction SilentlyContinue
+      # If signing was on, a bad signature fails the release. The installer, and for the built in
+      # providers also the app and FFmpeg, must carry a valid, timestamped signature.
+      - name: Verify the signatures
+        if: steps.sign.outputs.enabled == 'true'
+        env:
+          WIN_PUBLISHER_NAME: ${{ secrets.WIN_PUBLISHER_NAME }}
+          SIGN_MODE: ${{ steps.sign.outputs.mode }}
+        run: |
+          $files = @((Get-ChildItem "release/Scrim-Setup-*.exe").FullName)
+          if ($env:SIGN_MODE -ne 'signpath') {
+            $files += (Resolve-Path "release/win-unpacked/Scrim.exe").Path
+            $files += (Resolve-Path "release/win-unpacked/resources/ffmpeg/ffmpeg.exe").Path
+          }
+          if ($env:WIN_PUBLISHER_NAME) {
+            node build/verify-signature.mts --publisher "$env:WIN_PUBLISHER_NAME" @files
+          } else {
+            node build/verify-signature.mts @files
+          }
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      # latest.yml and the blockmap are what the in-app updater reads. Without them there is no update.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: installer-windows
-          path: apps/desktop/release/Scrim Setup *.exe
+          path: |
+            apps/desktop/release/Scrim-Setup-*.exe
+            apps/desktop/release/latest*.yml
+            apps/desktop/release/*.blockmap
           if-no-files-found: error
 
   macos:
@@ -94,10 +167,17 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: pnpm exec electron-builder --mac --${{ matrix.arch }} --publish never --config electron-builder.config.ts
+      # Both Mac builds write latest-mac.yml, so each is renamed here and the publish job joins them.
+      - name: Keep this architecture's update file apart
+        run: mv release/latest-mac.yml release/latest-mac-${{ matrix.arch }}.part
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: installer-macos-${{ matrix.arch }}
-          path: apps/desktop/release/*.dmg
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/latest-mac-*.part
           if-no-files-found: error
 
   linux:
@@ -125,6 +205,8 @@ jobs:
           path: |
             apps/desktop/release/*.AppImage
             apps/desktop/release/*.deb
+            apps/desktop/release/latest-linux.yml
+            apps/desktop/release/*.blockmap
           if-no-files-found: error
 
   publish:
@@ -139,9 +221,25 @@ jobs:
           pattern: installer-*
           path: dist
           merge-multiple: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Join the two Mac update files into latest-mac.yml
+        run: node source/apps/desktop/scripts/merge-mac-update-info.mts dist/latest-mac.yml dist/latest-mac-arm64.part dist/latest-mac-x64.part
+      - name: Check that the update files are present
+        run: |
+          for file in latest.yml latest-mac.yml latest-linux.yml; do
+            test -f "dist/${file}" || { echo "${file} is missing, so the in-app updater would find nothing." >&2; exit 1; }
+          done
       - name: Write the checksums
         working-directory: dist
-        run: sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt
+        run: |
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          sha256sum --check SHA256SUMS.txt
       - name: Publish the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -44,7 +44,7 @@ export function createShare(deps: ShareDeps): ShareFile | null {
   return null;
 }
 
-function runPowerShell(script: string, env: Record<string, string>): Promise<void> {
+export function runPowerShell(script: string, env: Record<string, string>): Promise<void> {
   const encoded = Buffer.from(script, 'utf16le').toString('base64');
   return new Promise((resolve, reject) => {
     execFile(

@@ -1,7 +1,7 @@
 import { Copy, FolderOpen, Pencil, Save, Share2, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, ConfirmDialog, useShowError, useToast } from '../../ui';
-import { useCanShare } from '../hooks';
+import { ShareDialog } from '../share/share-dialog';
 
 export interface ScreenshotResultProps {
   path: string;
@@ -23,7 +23,7 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
   const showError = useShowError();
   const [loaded, setLoaded] = useState<{ path: string; dataUrl: string | null } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const canShare = useCanShare();
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -156,23 +156,27 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
         >
           Delete
         </Button>
-        {canShare ? (
-          <Button
-            icon={<Share2 size={16} strokeWidth={1.75} />}
-            onClick={() => {
-              void window.scrim.invoke('image:share', { path }).catch(() => {
-                showError({
-                  title: 'Scrim could not open the share sheet',
-                  message: 'Try again.',
-                  code: 'share-failed',
-                });
-              });
-            }}
-          >
-            Share
-          </Button>
-        ) : null}
+        <Button
+          icon={<Share2 size={16} strokeWidth={1.75} />}
+          disabled={source === null}
+          onClick={() => {
+            setSharing(true);
+          }}
+        >
+          Share
+        </Button>
       </div>
+
+      <ShareDialog
+        source={
+          sharing && source !== null
+            ? { kind: 'edited', dataUrl: source, name: fileName(path).replace(/\.png$/i, '') }
+            : null
+        }
+        onClose={() => {
+          setSharing(false);
+        }}
+      />
 
       <ConfirmDialog
         open={confirmDelete}

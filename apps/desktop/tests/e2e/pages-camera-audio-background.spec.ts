@@ -1,14 +1,16 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { enterApp, expect, test } from './fixtures';
 
 async function open(page: Page, view: string): Promise<void> {
-  await page.getByRole('button', { name: /get started|continue/i }).click();
+  await enterApp(page);
   await page.getByRole('button', { name: view, exact: true }).click();
   await expect(page.getByRole('heading', { name: view, level: 1 })).toBeVisible();
 }
 
 async function noSidewaysScroll(page: Page): Promise<void> {
   for (const selector of ['.shell-panel', '.shell-main']) {
+    // Camera and Screenshot have no right panel.
+    if ((await page.locator(selector).count()) === 0) continue;
     expect(
       await page
         .locator(selector)
@@ -55,6 +57,13 @@ test.describe('the Camera page', () => {
     await noSidewaysScroll(page);
   });
 
+  test('keeps its controls in the right panel', async ({ page }) => {
+    await open(page, 'Camera');
+    const panel = page.getByRole('complementary');
+    await expect(panel.getByRole('switch', { name: 'Show camera' })).toBeVisible();
+    await noSidewaysScroll(page);
+  });
+
   test('the choices are saved', async ({ page }) => {
     await open(page, 'Camera');
     await page.getByRole('switch', { name: 'Show camera' }).click();
@@ -97,7 +106,7 @@ test.describe('the Background page', () => {
     await expect(frame).toHaveAttribute('data-corners', 'round');
     await page.getByRole('switch', { name: 'Soft shadow' }).click();
     await expect(frame).toHaveAttribute('data-shadow', 'off');
-    await page.getByRole('radio', { name: 'None' }).click();
+    await page.locator('button.bg-swatch[aria-label="None"]').click();
     await expect(frame).toHaveClass(/bg-none-frame/);
     await expect(page.getByRole('radio', { name: 'Large' })).toBeDisabled();
     await expect(page.getByRole('radio', { name: /Your image/ })).toBeDisabled();

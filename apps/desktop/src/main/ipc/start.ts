@@ -1,8 +1,21 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
 import { screenshotFallbackFolder } from '../recording/screenshot-taker';
 import { createRealShare } from '../share/share';
+import { createRealShareService } from '../share/real-share-service';
 import { access, mkdir, open, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import { join } from 'node:path';
+import { APP_NAME } from '../../shared/app-id';
+import { readAbout, readSystemInfo } from '../about/about-info';
+import { isLivePhase } from '../shell/recording-control';
+import {
+  createUpdateController,
+  scheduleStartupCheck,
+  type UpdateController,
+  type UpdaterLike,
+} from '../updates/update-controller';
+import { createRealUpdater } from '../updates/real-updater';
+import type { UpdateSnapshot } from '../../shared/updates-contract';
 import type { EventPayload } from '../../shared/ipc-contract';
 import { findLegacyFolders, moveLegacyFolders } from '../export/legacy';
 import { createSessionIndex } from '../recording/session-store';
@@ -43,6 +56,59 @@ export function createAppLogger(): Logger {
   });
 }
 
+const AUTO_CHECK_DELAY_MS = 30_000;
+
+/**
+ * The update flow with the real updater. A development run has no installed app to update, and a
+ * deb package updates through the package manager, so those get a plain message instead. The end
+ * to end tests may point a development run at a local feed with two variables that a packaged
+ * app never reads.
+ */
+function createAppUpdates(options: {
+  logger: Logger;
+  recording: AppRecording;
+  exporter: ExportApi;
+  onChange: (snapshot: UpdateSnapshot) => void;
+}): UpdateController {
+  const testFeedUrl =
+    !app.isPackaged && process.env['SCRIM_E2E'] === '1'
+      ? process.env['SCRIM_E2E_UPDATE_URL']
+      : undefined;
+  let unsupported = '';
+  if (!app.isPackaged && testFeedUrl === undefined) {
+    unsupported = 'Updates work in the installed app, not in a development run.';
+  } else if (
+    process.platform === 'linux' &&
+    process.env['APPIMAGE'] === undefined &&
+    testFeedUrl === undefined
+  ) {
+    unsupported =
+      'This copy was installed from a deb package. To update it, install the new deb from the website.';
+  }
+  let updater: UpdaterLike | null = null;
+  if (unsupported === '') {
+    try {
+      updater = createRealUpdater(testFeedUrl === undefined ? {} : { testFeedUrl });
+    } catch {
+      unsupported = 'Updates are not available in this copy of the app.';
+    }
+  }
+  return createUpdateController({
+    updater,
+    unsupported,
+    busy: () =>
+      isLivePhase(options.recording.snapshot().phase)
+        ? 'recording'
+        : options.exporter.service.busy()
+          ? 'exporting'
+          : null,
+    log: (event, fields) => {
+      options.logger.info(event, fields);
+    },
+    onChange: options.onChange,
+  });
+}
+
 /**
  * Loads the settings and registers every IPC channel. Call it before the first window loads, so
  * the page can ask for its settings as soon as it starts.
@@ -79,6 +145,26 @@ export async function startIpc(options: {
     },
   });
   await settings.load();
+
+  const updates = createAppUpdates({
+    logger,
+    recording,
+    exporter: options.exporter,
+    onChange: (snapshot) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        sendEvent(window.webContents, appOrigin, 'updates:changed', snapshot);
+      }
+    },
+  });
+  // Off until the person turns it on in Settings. The check itself does nothing if the app is busy.
+  scheduleStartupCheck({
+    enabled: () => settings.get().autoCheckUpdates,
+    check: () => updates.check({ automatic: true }),
+    delayMs: AUTO_CHECK_DELAY_MS,
+    setTimer: (run, ms) => {
+      setTimeout(run, ms).unref();
+    },
+  });
 
   // Folders the engine has written to this run, so a finished recording can be shown in its folder.
   const sessionFolders = new Set<string>();
@@ -159,6 +245,15 @@ export async function startIpc(options: {
     }
   });
 
+  const library = createRealLibrary({
+    videosFolder: () => settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+    screenshotsFolder: () =>
+      screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+    extraScreenshotsFolder: screenshotFallbackFolder,
+    extraVideosFolder: exportFallbackFolder,
+    share,
+  });
+
   registerIpc({
     allowedOrigin: appOrigin,
     handlers: createHandlers({
@@ -212,14 +307,26 @@ export async function startIpc(options: {
         issueMedia: (file, label) => options.media.issue(file, label),
       },
       review: review.handlers,
-      library: createRealLibrary({
-        videosFolder: () =>
-          settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
-        screenshotsFolder: () =>
-          screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
-        extraScreenshotsFolder: screenshotFallbackFolder,
-        extraVideosFolder: exportFallbackFolder,
+      library,
+      shareService: createRealShareService({
+        library,
         share,
+        previewDir: previewFolder,
+        isKnownFolder,
+        ffmpeg: ffmpegPaths,
+        // Only these folders: the projects, the cache, the chosen output folders and the fallbacks.
+        allowedRoots: () => [
+          projectsRoot({
+            platform: process.platform,
+            env: process.env,
+            userData: app.getPath('userData'),
+          }),
+          join(app.getPath('userData'), 'cache'),
+          settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+          screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+          screenshotFallbackFolder(),
+          exportFallbackFolder(),
+        ],
       }),
       recording,
       area,
@@ -318,6 +425,24 @@ export async function startIpc(options: {
       },
       openPath: (path) => shell.openPath(path),
       openExternal: (url) => openExternalChecked(url),
+      updates,
+      about: {
+        about: () =>
+          readAbout({
+            name: APP_NAME,
+            version: app.getVersion(),
+            license: 'MIT',
+            buildStamp: typeof __SCRIM_BUILD_DATE__ === 'string' ? __SCRIM_BUILD_DATE__ : undefined,
+            modifiedMs: () => stat(process.execPath).then((info) => info.mtimeMs),
+          }),
+        system: () =>
+          readSystemInfo({
+            platform: process.platform,
+            version: os.version(),
+            release: os.release(),
+            hostname: os.hostname(),
+          }),
+      },
       version: app.getVersion(),
       logsFolder: logger.directory,
       // A fixed address, never one from the page. Only Windows has this page.

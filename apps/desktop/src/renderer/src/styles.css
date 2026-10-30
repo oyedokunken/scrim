@@ -353,10 +353,13 @@ svg {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * {
-    scroll-behavior: auto;
-    transition: none;
-    animation: none;
+  /* Important, because a rule with a class beats this one, and a transition would still run. */
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
   }
 }
 
@@ -524,6 +527,12 @@ svg {
 .panel-body > *,
 .field {
   min-width: 0;
+}
+
+/* One column that can shrink below its content, so a long device name is cut with an ellipsis. */
+.panel-body,
+.field:not(.field-check) {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .panel-body {
@@ -1095,6 +1104,105 @@ input[type='checkbox'] {
   border-radius: var(--ui-radius-md);
 }
 
+.lib-card {
+  position: relative;
+}
+
+.lib-new {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--scrim-white);
+  pointer-events: none;
+  background: var(--scrim-green);
+  border-radius: 999px;
+}
+
+.lib-detail {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.lib-detail-bar {
+  display: flex;
+}
+
+.lib-detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (width <= 900px) {
+  .lib-detail-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lib-detail-preview {
+  display: grid;
+  min-height: 200px;
+  place-items: center;
+  overflow: hidden;
+  color: var(--scrim-text-secondary);
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.lib-detail-preview img {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+}
+
+.lib-detail-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.lib-detail-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.lib-detail-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.lib-detail-facts div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.lib-detail-facts dt {
+  color: var(--scrim-text-secondary);
+}
+
+.lib-detail-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.lib-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .lib-open {
   display: block;
   padding: 0;
@@ -1114,7 +1222,7 @@ input[type='checkbox'] {
 
 .lib-meta {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   min-width: 0;
 }
@@ -1130,6 +1238,36 @@ input[type='checkbox'] {
   font-size: 13px;
   font-weight: 600;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-card-name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.lib-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--scrim-text-secondary);
+}
+
+.lib-type {
+  display: inline-flex;
+  align-items: center;
+}
+
+.lib-fact {
   white-space: nowrap;
 }
 
@@ -1212,15 +1350,25 @@ input[type='checkbox'] {
   outline: none;
 }
 
-/* Settings: one calm column of sections. Rows put the name on the left and the controls on the right. */
+/* Settings: cards in two columns. A row of cards is as tall as its tallest card, and one column
+   fills the width on a narrow window. */
 .settings {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-content: start;
+  align-items: stretch;
+}
+
+@media (width <= 900px) {
+  .settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .set-section {
   display: grid;
+  align-content: start;
   gap: 12px;
   padding: 20px;
   background: var(--scrim-white);
@@ -1285,6 +1433,62 @@ input[type='checkbox'] {
   font-size: 14px;
 }
 
+.set-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.set-facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.set-fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 16px;
+  font-size: 14px;
+}
+
+.set-fact dt {
+  color: var(--scrim-text-secondary);
+}
+
+.set-fact dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.set-built-by {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Every button on a settings card is green with white text, and black on hover. White on green is
+   9.5 to 1 and white on black is 21 to 1. A disabled one is a quiet grey, so it never looks pressable. */
+.set-section .ui-button {
+  color: var(--scrim-white);
+  background: var(--scrim-green);
+  border-color: transparent;
+}
+
+.set-section .ui-button:hover:not(:disabled) {
+  color: var(--scrim-white);
+  background: var(--scrim-black);
+}
+
+.set-section .ui-button:disabled {
+  color: var(--scrim-text-secondary);
+  background: var(--scrim-fill-quiet-on-white);
+  border-color: var(--ui-border);
+  opacity: 1;
+}
+
 .set-links {
   display: flex;
   flex-wrap: wrap;
@@ -1293,7 +1497,8 @@ input[type='checkbox'] {
 
 /* A tooltip host around a name that is cut short keeps the cut: the host takes the row width. */
 .lib-text .ui-tooltip-host,
-.set-row-text .ui-tooltip-host {
+.set-row-text .ui-tooltip-host,
+.ui-select-wrap .ui-tooltip-host {
   display: block;
   min-width: 0;
 }
@@ -1329,4 +1534,63 @@ input[type='checkbox'] {
   background: var(--scrim-green);
   border-radius: 999px;
   transition: width 200ms ease-out;
+}
+
+/* The menu button is at least 44 pixels square and never shrinks, so a long name cannot cover it. */
+.lib-meta .ui-menu-wrap {
+  flex: none;
+}
+
+.lib-meta .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* The share menu: the file, a size warning for big videos, then one button per action. */
+.share-sheet {
+  width: 360px;
+}
+
+.share-body {
+  display: grid;
+  gap: 16px;
+}
+
+.share-file {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.share-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.share-warning {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 12px;
+  background: var(--scrim-green-tint);
+  border-radius: var(--ui-radius-sm);
+}
+
+.share-warning p {
+  margin: 0;
+}
+
+.share-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.share-action {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 44px;
+}
+
+.share-secondary {
+  justify-self: start;
 }

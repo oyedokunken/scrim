@@ -1,3 +1,4 @@
+import { basename } from 'node:path';
 import type { RecordingEvent } from '../recording/types';
 import type { Settings } from '../../shared/settings';
 import { renderStyleFromSettings } from '../../shared/render-style';
@@ -178,7 +179,10 @@ export class ExportService {
       ...(this.deps.fallbackDir === undefined || preview
         ? {}
         : { fallbackDir: this.deps.fallbackDir() }),
-      fileName: input.fileName,
+      // The working copy is named for its folder, which is unique, and not for the session name, which
+      // two recordings can share.
+      fileName:
+        input.fileName ?? (preview ? basename(input.folder).replace(/\.scrim$/i, '') : undefined),
       collision: preview ? 'replace' : (input.collision ?? 'number'),
       settings: { ...defaultExportSettings(saved), ...input.settings },
       style: renderStyleFromSettings(saved),

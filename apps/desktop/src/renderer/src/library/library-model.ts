@@ -1,4 +1,5 @@
 import type { LibraryItem } from '../../../shared/library-contract';
+import { formatBytes, formatWhen } from '../format';
 
 export type LibraryFilter = 'all' | 'recording' | 'screenshot';
 export type LibraryOrder = 'newest' | 'oldest';
@@ -47,4 +48,29 @@ export function emptyReason(
 /** A key that stays the same when a listing is read again, so a thumbnail is not cut twice. */
 export function thumbKey(item: LibraryItem): string {
   return `${item.kind}|${item.name}|${String(item.createdMs)}|${String(item.bytes)}`;
+}
+
+export const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Anything made in the last 24 hours gets the NEW pill. A clock set back never hides it. */
+export function isNew(item: LibraryItem, nowMs: number): boolean {
+  return nowMs - item.createdMs < NEW_WINDOW_MS;
+}
+
+/** The file name as it is on disk: the name plus .png or .mp4. A recording without a file has only its name. */
+export function fullFileName(item: LibraryItem): string {
+  if (!item.isFile) return item.name;
+  return `${item.name}${item.kind === 'screenshot' ? '.png' : '.mp4'}`;
+}
+
+/** The small facts under a card's name: size, length or pixels, and when it was made. */
+export function cardFacts(item: LibraryItem, nowMs: number): string[] {
+  const facts: string[] = [];
+  if (item.bytes > 0) facts.push(formatBytes(item.bytes));
+  if (item.kind === 'recording' && item.durationMs !== null) facts.push(itemKindLabel(item));
+  if (item.kind === 'screenshot' && item.width !== null && item.height !== null) {
+    facts.push(`${String(item.width)} by ${String(item.height)}`);
+  }
+  facts.push(formatWhen(item.createdMs, nowMs));
+  return facts;
 }

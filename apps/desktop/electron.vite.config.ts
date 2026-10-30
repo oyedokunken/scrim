@@ -52,8 +52,18 @@ function recorderPagesInDev(): Plugin {
 
 const here = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 
+/**
+ * The day of this build, for the Release date line in Settings. SOURCE_DATE_EPOCH, when set,
+ * makes a rebuild give the same day.
+ */
+function buildDay(): string {
+  const epoch = Number(process.env['SOURCE_DATE_EPOCH']);
+  const when = Number.isFinite(epoch) && epoch > 0 ? new Date(epoch * 1000) : new Date();
+  return when.toISOString().slice(0, 10);
+}
+
 export default defineConfig({
-  main: {},
+  main: { define: { __SCRIM_BUILD_DATE__: JSON.stringify(buildDay()) } },
   preload: {
     build: {
       rollupOptions: {

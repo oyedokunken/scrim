@@ -306,6 +306,17 @@ export function createLibrary(deps: LibraryDeps) {
       return null;
     },
 
+    /** The file behind an id from the last listing, for the share service. Undefined for any other id. */
+    fileOf(id: string): { path: string; media: 'video' | 'image'; name: string } | undefined {
+      const entry = known.get(id);
+      if (entry === undefined || entry.file === null) return undefined;
+      return {
+        path: entry.file,
+        media: entry.kind === 'screenshot' ? 'image' : 'video',
+        name: entry.name,
+      };
+    },
+
     /** The whole picture of a screenshot. Null for a recording, which shows its first frame instead. */
     async preview(id: string): Promise<string | null> {
       const entry = need(id);
@@ -317,6 +328,13 @@ export function createLibrary(deps: LibraryDeps) {
     async play(id: string): Promise<boolean> {
       const entry = need(id);
       if (entry.kind !== 'recording' || entry.file === null) return false;
+      return (await deps.openPath(entry.file)) === '';
+    },
+
+    /** Opens the exported video or the screenshot in the system app for its type. */
+    async openFile(id: string): Promise<boolean> {
+      const entry = need(id);
+      if (entry.file === null || !(await deps.exists(entry.file))) return false;
       return (await deps.openPath(entry.file)) === '';
     },
 

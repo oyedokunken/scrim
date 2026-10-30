@@ -73,7 +73,7 @@ Scrim keeps recordings on your computer. Nothing is uploaded, there is no accoun
 
 `apps/desktop` is an Electron app. The main process owns capture, files, FFmpeg and the typed IPC; the renderer is untrusted web content in a sandbox with a strict content security policy. A recording is saved in the app's own projects folder (`%LOCALAPPDATA%\Scrim\Projects` on Windows) and rendered into one finished MP4 in the folder you choose (Videos\Scrim by default). The original recording is never modified, so cursor effects, zoom, the camera bubble and the background can be changed and re rendered without recording again.
 
-The app makes no network requests while recording, editing or exporting.
+The app makes no network requests while recording, editing or exporting. Its only use of the network is the optional update check in Settings: it runs when you press Check for updates, or at start if you turn that on (it is off by default), it asks GitHub for the latest release details and sends nothing about you, and it downloads a new version only when you press Update now.
 
 ## The website
 
@@ -154,7 +154,7 @@ Copy `apps/landing/.env.example` to a local environment file and use a developme
 
 ## Privacy
 
-The desktop application does not send recordings or recording data to a server. The landing page stores the name, email, selected system, app version, a hashed IP, a truncated user agent and timestamps for download counting and optional update notices. See the [security policy](SECURITY.md) and the privacy page in the landing app for more information.
+The desktop application does not send recordings or recording data to a server. The only request it can make is the update check described above, which goes to GitHub and carries nothing about you. The landing page stores the name, email, selected system, app version, a hashed IP, a truncated user agent and timestamps for download counting and optional update notices. See the [security policy](SECURITY.md) and the privacy page in the landing app for more information.
 
 ## Developer
 

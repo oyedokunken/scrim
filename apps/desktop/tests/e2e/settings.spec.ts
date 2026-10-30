@@ -130,15 +130,48 @@ test.describe('the settings', () => {
 
   test('has an About with the version, the licenses and the source link', async ({ page }) => {
     await openSettings(page);
-    await expect(page.getByText(/version 1\./)).toBeVisible();
-    await expect(page.getByText(/MIT license/)).toBeVisible();
-    await expect(page.getByText(/FFmpeg/).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Source code' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Built by @oyedokunken' })).toBeVisible();
+    const about = page.getByRole('region', { name: 'About' });
+    await expect(
+      about.getByText('A free, open source screen recorder and screenshot tool'),
+    ).toBeVisible();
+    await expect(about.getByText(/^1./)).toBeVisible();
+    await expect(about.getByText('MIT', { exact: true })).toBeVisible();
+    await expect(about.getByText('Computer name')).toBeVisible();
+    await expect(about.getByText(/never sent anywhere/)).toBeVisible();
+    await expect(about.getByText(/LGPL version 3/)).toBeVisible();
+    await expect(about.getByRole('button', { name: 'Source code' })).toBeVisible();
+    await expect(about.getByRole('button', { name: 'About the FFmpeg license' })).toBeVisible();
+    await expect(about.locator('.built-by-handle')).toHaveText('@oyedokunken');
     await expect(page.getByRole('button', { name: 'Open logs folder' })).toBeVisible();
     const sideways = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
     expect(sideways).toBe(false);
+  });
+
+  test('lays the cards out in two equal columns, with green buttons that turn black', async ({
+    page,
+  }) => {
+    await openSettings(page);
+    const cards = page.locator('.set-section');
+    const first = await cards.nth(0).boundingBox();
+    const second = await cards.nth(1).boundingBox();
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+    if (first === null || second === null) return;
+    expect(Math.abs(first.y - second.y)).toBeLessThan(1);
+    expect(second.x).toBeGreaterThan(first.x + first.width - 1);
+    expect(Math.abs(first.height - second.height)).toBeLessThan(1);
+
+    const button = page.getByRole('button', { name: 'Show welcome again' });
+    const colors = () =>
+      button.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return { background: style.backgroundColor, color: style.color };
+      });
+    expect(await colors()).toEqual({ background: 'rgb(0, 78, 82)', color: 'rgb(255, 255, 255)' });
+    await button.hover();
+    // The background eases in, so wait for it to settle.
+    await expect.poll(colors).toEqual({ background: 'rgb(0, 0, 0)', color: 'rgb(255, 255, 255)' });
   });
 });

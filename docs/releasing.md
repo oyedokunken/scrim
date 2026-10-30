@@ -22,7 +22,7 @@ installer configuration, the FFmpeg pins). They do not prove the app works on a 
 
 On a `v*` tag, `.github/workflows/release.yml` builds and publishes:
 
-- Windows: `Scrim Setup <version>.exe` (NSIS, unsigned until SignPath is approved).
+- Windows: `Scrim-Setup-<version>.exe` (NSIS, unsigned until SignPath is approved).
 - macOS: `Scrim-<version>-mac-arm64.dmg` and `Scrim-<version>-mac-x64.dmg`, one per architecture
   because the bundled FFmpeg is per architecture.
 - Linux x64: `Scrim-<version>-linux-x86_64.AppImage` and `Scrim-<version>-linux-amd64.deb`.
@@ -94,8 +94,9 @@ built fine in a Linux container from the `linux-unpacked` folder.
 
 ## Signing and notarization
 
-- Windows: unsigned for v1, so SmartScreen warns. Apply to SignPath's open source program (owner),
-  then add the signing step to the `windows` job.
+- Windows: unsigned until signing secrets exist, so SmartScreen warns. The pipeline is in place and
+  turns on when the secrets are set. See `docs/code-signing.md` for the options, the secret names
+  and the steps.
 - macOS: needs an Apple Developer account (99 US dollars a year, owner). Put these in the repository
   secrets: `MAC_CSC_LINK` (base64 of the Developer ID Application certificate, a .p12),
   `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`. The build
@@ -103,6 +104,22 @@ built fine in a Linux container from the `linux-unpacked` folder.
   use right click, Open, or System Settings, Privacy and Security, Open Anyway. The hardened runtime
   and entitlements (JIT, microphone, camera) are already set in `build/entitlements.mac.plist`.
 - Linux: nothing to sign.
+
+## First signed release
+
+1. Finish the owner steps in `docs/code-signing.md` and set the secrets in GitHub, then bump the
+   desktop version and push the `v*` tag from the main repository.
+2. Open the `windows` job. The "Decide how to sign" step must show the mode you expect (`pfx`,
+   `azure` or `signpath`) and no UNSIGNED warning. With SignPath, approve the request when it
+   arrives, or the job waits.
+3. "Verify the signatures" must pass. If it fails, the release is not published: fix the cause and
+   tag again.
+4. Download the installer from the release. In PowerShell run `Get-AuthenticodeSignature` on it:
+   Status Valid and the expected publisher. Compare `Get-FileHash` with `SHA256SUMS.txt`.
+5. Install it on a clean Windows machine and check that SmartScreen shows the publisher. A new
+   certificate can still warn until it builds reputation.
+6. If an earlier release was signed with another certificate or publisher name, read "Publisher name
+   and automatic updates" in `docs/code-signing.md` first.
 
 ## What needs the owner
 
@@ -150,3 +167,37 @@ another folder. The Library lists both places.
 What makes it better for good: code signing. A signed installer and executable build reputation with
 SmartScreen and make Windows Security more willing to trust the app. Signing needs a certificate or a
 signing service (see `docs/code-signing.md` once it exists), so it is not part of this change.
+
+## Publishing an update
+
+The app checks GitHub Releases for a newer version (Settings, Updates). The check runs only when the
+person presses Check for updates, or at start when they turned that on. An update is simply the
+latest published release, so publishing one is the same as a release, with these steps in order.
+
+1. Bump `version` in `apps/desktop/package.json` to a higher version than the last release. The
+   updater compares versions, so an equal or lower one is never offered. Update `CHANGELOG.md`. The
+   GitHub release body becomes the release notes in the update window, so write it for users.
+2. Land it on `main`, then tag it: `git tag v1.1.0 && git push origin v1.1.0`. The workflow stops if
+   the tag differs from the desktop version.
+3. The workflow builds on all three systems, signs where secrets exist, and publishes. For the
+   updater, the release must hold these files, and the workflow fails if one is missing:
+   - `latest.yml` and `Scrim-Setup-<version>.exe` plus its `.blockmap` (Windows).
+   - `latest-mac.yml`, with the `.zip` and `.dmg` of both architectures (macOS). The Mac updater
+     installs from the zip. The two Mac builds each write a `latest-mac.yml`, so the publish job
+     joins them with `apps/desktop/scripts/merge-mac-update-info.mts`.
+   - `latest-linux.yml` and the `.AppImage` (Linux). A deb install is not updated in place.
+4. Publish the release as a normal release, not a draft or a pre-release. `electron-updater` ignores
+   drafts, and ignores pre-releases unless told otherwise.
+5. Do not edit or replace a file on a published release. The update file stores the SHA-512 of each
+   file, and a changed file is refused as a checksum error. Publish a new version instead.
+6. Check from an older installed version: Settings, Check for updates. The New update available pill
+   shows on the Settings item, Update now downloads, and Restart and install installs.
+
+What is signed matters: on Windows, an unsigned build installs updates without a publisher check.
+Once SignPath signs the installer, the updater verifies the publisher name before it installs.
+
+What has not been tested: a real update on a real machine. The flow is tested against a local HTTP
+server with a fake updater, and the real `electron-updater` is only exercised in a development run
+pointed at a local feed. A signed, packaged update from a real GitHub release, and the Mac and Linux
+update paths, have not been run. Do that with a throwaway release (deleted afterwards) on a real machine before
+announcing a release that relies on it.

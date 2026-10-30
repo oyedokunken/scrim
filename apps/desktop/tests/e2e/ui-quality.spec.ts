@@ -20,6 +20,8 @@ const SIZES = [
 
 interface Report {
   sideways: string[];
+  /** Elements that stick out past the right edge of the panel or the main area. */
+  pokingOut: string[];
   notPointer: string[];
   unnamed: string[];
   native: string[];
@@ -43,6 +45,16 @@ async function inspect(page: Page): Promise<Report> {
     for (const selector of ['.shell-main', '.shell-panel', '.shell']) {
       const element = document.querySelector(selector);
       if (element && element.scrollWidth > element.clientWidth + 1) sideways.push(selector);
+    }
+    const pokingOut: string[] = [];
+    for (const selector of ['.shell-main', '.shell-panel']) {
+      const container = document.querySelector(selector);
+      if (!container) continue;
+      const edge = container.getBoundingClientRect().right;
+      for (const element of container.querySelectorAll('*')) {
+        if (!visible(element) || element.closest('[popover]')) continue;
+        if (element.getBoundingClientRect().right > edge + 1) pokingOut.push(label(element));
+      }
     }
     const notPointer: string[] = [];
     const unnamed: string[] = [];
@@ -70,7 +82,7 @@ async function inspect(page: Page): Promise<Report> {
       rail !== null && last !== null && status !== null
         ? last.getBoundingClientRect().bottom > status.getBoundingClientRect().top + 1
         : true;
-    return { sideways, notPointer, unnamed, native, railOutside };
+    return { sideways, pokingOut, notPointer, unnamed, native, railOutside };
   });
 }
 
@@ -85,13 +97,69 @@ test.describe('the interface rules, on every page', () => {
       for (const view of VIEWS) {
         await page.getByRole('button', { name: view, exact: true }).click();
         await expect(page.getByRole('heading', { name: view, level: 1 })).toBeVisible();
+        // Every page keeps its right sidebar for its controls, except Library and Settings.
+        await expect(page.locator('.shell-panel')).toHaveCount(
+          view === 'Library' || view === 'Settings' ? 0 : 1,
+        );
         const report = await inspect(page);
         expect(report.sideways, `${view}: sideways overflow`).toEqual([]);
+        expect(report.pokingOut, `${view}: sticks out past its area`).toEqual([]);
         expect(report.notPointer, `${view}: not a pointer`).toEqual([]);
         expect(report.unnamed, `${view}: buttons with no name`).toEqual([]);
         expect(report.native, `${view}: native controls or title tooltips`).toEqual([]);
         expect(report.railOutside, `${view}: the rail runs past the status bar`).toBe(false);
       }
+    });
+  }
+});
+
+test.describe('long device names', () => {
+  for (const size of SIZES) {
+    test(`stay inside the Record panel at ${String(size.width)} by ${String(size.height)}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(size);
+      await enterApp(page);
+      await page.evaluate(() => {
+        const devices = navigator.mediaDevices;
+        const make = (kind: string, id: string, label: string, group: string) => ({
+          kind,
+          deviceId: id,
+          label,
+          groupId: group,
+        });
+        devices.enumerateDevices = () =>
+          Promise.resolve([
+            make(
+              'audioinput',
+              'default',
+              'Default - Microphone Array (Intel Smart Sound Technology for Digital Microphones)',
+              'g1',
+            ),
+            make(
+              'audioinput',
+              'mic1',
+              'Microphone Array (Intel Smart Sound Technology for Digital Microphones)',
+              'g1',
+            ),
+            make(
+              'videoinput',
+              'cam1',
+              'Integrated Camera With A Very Long Marketing Name (13d3:56b2)',
+              'g2',
+            ),
+          ] as MediaDeviceInfo[]);
+        devices.dispatchEvent(new Event('devicechange'));
+      });
+      await expect(page.getByText('Default', { exact: true }).first()).toBeVisible();
+      const report = await inspect(page);
+      expect(report.sideways).toEqual([]);
+      expect(report.pokingOut).toEqual([]);
+      const scrollbar = await page.evaluate(() => {
+        const panel = document.querySelector('.shell-panel');
+        return panel !== null && panel.scrollWidth > panel.clientWidth;
+      });
+      expect(scrollbar).toBe(false);
     });
   }
 });

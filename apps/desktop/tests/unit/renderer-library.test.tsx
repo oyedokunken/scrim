@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  cardFacts,
   emptyReason,
+  fullFileName,
+  isNew,
+  NEW_WINDOW_MS,
   itemKindLabel,
   thumbKey,
   visibleItems,
@@ -137,5 +141,47 @@ describe('the library contract', () => {
     expect(input.safeParse({ id: 'a', name: 'ok' }).success).toBe(true);
     expect(input.safeParse({ id: 'a', name: '' }).success).toBe(false);
     expect(input.safeParse({ id: 'a', name: 'x'.repeat(121) }).success).toBe(false);
+  });
+});
+
+describe('isNew', () => {
+  it('marks anything made in the last 24 hours', () => {
+    const now = 10 * NEW_WINDOW_MS;
+    expect(isNew(item({ createdMs: now - 1000 }), now)).toBe(true);
+    expect(isNew(item({ createdMs: now - NEW_WINDOW_MS + 1 }), now)).toBe(true);
+    expect(isNew(item({ createdMs: now - NEW_WINDOW_MS }), now)).toBe(false);
+    expect(isNew(item({ createdMs: now + 5000 }), now)).toBe(true);
+  });
+});
+
+describe('fullFileName', () => {
+  it('adds the extension of the file on disk', () => {
+    expect(fullFileName(item({ name: 'Take 1' }))).toBe('Take 1.mp4');
+    expect(fullFileName(item({ kind: 'screenshot', name: 'Shot' }))).toBe('Shot.png');
+    expect(fullFileName(item({ name: 'Take 2', isFile: false }))).toBe('Take 2');
+  });
+});
+
+describe('cardFacts', () => {
+  const now = Date.parse('2026-10-30T12:00:00');
+
+  it('gives size, length and the date for a recording', () => {
+    const facts = cardFacts(
+      item({ bytes: 2048, durationMs: 65_000, createdMs: Date.parse('2026-10-30T09:05:00') }),
+      now,
+    );
+    expect(facts).toEqual(['2.0 KB', '1:05', 'Today 09:05']);
+  });
+
+  it('gives pixels and the date for a screenshot, and leaves out an unknown size', () => {
+    const shot = item({
+      kind: 'screenshot',
+      durationMs: null,
+      bytes: 0,
+      width: 800,
+      height: 600,
+      createdMs: Date.parse('2026-10-29T10:00:00'),
+    });
+    expect(cardFacts(shot, now)).toEqual(['800 by 600', 'Yesterday 10:00']);
   });
 });

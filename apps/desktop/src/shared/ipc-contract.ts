@@ -1,11 +1,14 @@
 import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
+import { aboutContract } from './about-contract';
 import { editorContract } from './editor-contract';
 import { reviewContract } from './review-contract';
 import { exportContract, exportJobSchema } from './export-contract';
 import { imageContract } from './image-contract';
+import { updateSnapshotSchema, updatesContract } from './updates-contract';
 import { libraryContract } from './library-contract';
+import { shareContract } from './share-contract';
 import {
   areaOutcomeSchema,
   areaRequestSchema,
@@ -74,8 +77,11 @@ export const contract = {
   },
   'area:run': { input: areaRequestSchema, output: areaOutcomeSchema },
   'area:cancel': { input: z.void(), output: z.void() },
+  ...aboutContract,
+  ...updatesContract,
   ...imageContract,
   ...libraryContract,
+  ...shareContract,
   ...editorContract,
   ...exportContract,
   ...reviewContract,
@@ -113,6 +119,8 @@ export const events = {
   'recording:finished': finishedSchema,
   /** Every change of an export: queued, running with progress, done, failed or cancelled. */
   'export:status': exportJobSchema,
+  /** The update flow moved: checking, found, downloading, ready or failed. */
+  'updates:changed': updateSnapshotSchema,
   /** The window was closed during a recording. The page asks what to do in its own dialog. */
   'window:close-requested': z.object({ trayAvailable: z.boolean() }).strict(),
   /** After every capture, whether it came from the button or the shortcut. */

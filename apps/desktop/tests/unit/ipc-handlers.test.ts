@@ -47,11 +47,21 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       lookup: vi.fn(() => Promise.resolve(null)),
       preview: vi.fn(() => Promise.resolve(null)),
       play: vi.fn(() => Promise.resolve(true)),
+      openFile: vi.fn(() => Promise.resolve(true)),
+      fileOf: vi.fn(() => undefined),
       reveal: vi.fn(),
       remove: vi.fn(() => Promise.resolve()),
       share: vi.fn(() => Promise.resolve()),
     },
     share: null,
+    shareService: {
+      isAllowed: vi.fn(() => true),
+      info: vi.fn(() =>
+        Promise.resolve({ ok: false as const, reason: 'missing' as const, message: 'x' }),
+      ),
+      run: vi.fn(() => Promise.resolve({ ok: true as const, message: 'x' })),
+      drag: vi.fn(() => Promise.resolve()),
+    },
     shortcutStatus: () => [],
     exporter: {
       start: vi.fn(),
@@ -80,6 +90,25 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       'review:discard': () => Promise.resolve({ ok: true as const, value: undefined }),
     },
     platform: process.platform,
+    updates: {
+      snapshot: vi.fn(() => ({ state: { phase: 'idle' as const }, blocked: null })),
+      check: vi.fn(() => Promise.resolve({ state: { phase: 'none' as const }, blocked: null })),
+      download: vi.fn(() => Promise.resolve({ state: { phase: 'idle' as const }, blocked: null })),
+      install: vi.fn(),
+      setEditing: vi.fn(),
+    },
+    about: {
+      about: vi.fn(() =>
+        Promise.resolve({
+          name: 'Scrim',
+          version: '1.0.0',
+          license: 'MIT',
+          releaseDate: null,
+          lastUpdated: null,
+        }),
+      ),
+      system: vi.fn(() => ({ computerName: 'PC', operatingSystem: 'Windows' })),
+    },
     version: '1.0.0',
     chooseFolder: vi.fn(() => Promise.resolve(null)),
     showItemInFolder: vi.fn(),

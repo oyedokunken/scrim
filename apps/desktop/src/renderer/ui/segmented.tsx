@@ -1,5 +1,6 @@
 import { useRef, type KeyboardEvent } from 'react';
 import { arrowDirection, nextEnabledIndex } from './keyboard';
+import { Tooltip } from './tooltip';
 
 interface SegmentOption<T extends string> {
   value: T;
@@ -9,6 +10,8 @@ interface SegmentOption<T extends string> {
   swatch?: string;
   /** Shows only the dot. The label still names the option for assistive technology. */
   hideLabel?: boolean;
+  /** A fuller name, shown as a tooltip on hover and keyboard focus and used as the accessible name. */
+  hint?: string;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -16,6 +19,8 @@ export interface SegmentedProps<T extends string> {
   options: readonly SegmentOption<T>[];
   value: T;
   onChange: (value: T) => void;
+  /** An extra class for the track, for a page that sizes its choices differently. */
+  className?: string;
 }
 
 /** A radio group drawn as one track. Arrow keys move the choice, as a native radio group does. */
@@ -24,6 +29,7 @@ export function Segmented<T extends string>({
   options,
   value,
   onChange,
+  className,
 }: SegmentedProps<T>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -44,10 +50,16 @@ export function Segmented<T extends string>({
   };
 
   return (
-    <div className="ui-segmented" role="radiogroup" aria-label={label}>
+    <div
+      className={className === undefined ? 'ui-segmented' : `ui-segmented ${className}`}
+      role="radiogroup"
+      aria-label={label}
+    >
       {options.map((option, index) => {
         const selected = option.value === value;
-        return (
+        const name = option.hideLabel === true ? option.label : option.hint;
+        const tip = option.hint ?? (option.hideLabel === true ? option.label : undefined);
+        const control = (
           <button
             key={option.value}
             ref={(node) => {
@@ -58,7 +70,7 @@ export function Segmented<T extends string>({
             aria-checked={selected}
             tabIndex={selected ? 0 : -1}
             disabled={option.disabled === true}
-            aria-label={option.hideLabel === true ? option.label : undefined}
+            aria-label={name}
             className={selected ? 'ui-segment selected' : 'ui-segment'}
             onClick={() => {
               onChange(option.value);
@@ -72,6 +84,13 @@ export function Segmented<T extends string>({
             )}
             {option.hideLabel === true ? null : option.label}
           </button>
+        );
+        return tip === undefined ? (
+          control
+        ) : (
+          <Tooltip key={option.value} label={tip}>
+            {control}
+          </Tooltip>
         );
       })}
     </div>
