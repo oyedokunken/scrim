@@ -1,9 +1,9 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test, enterApp } from './fixtures';
+import { expect, test, enterApp, removeAfterAppCloses } from './fixtures';
 import { picturesFixture } from './png-fixture';
 
 function sessionJson(name: string): string {
@@ -69,9 +69,9 @@ async function arrange(app: ElectronApplication, withItems: boolean): Promise<Di
   return {
     root,
     pictures,
+    // Removed after the app closes, because the app can still have these folders open until then.
     cleanup: () => {
-      pictures.cleanup();
-      rmSync(root, { recursive: true, force: true });
+      removeAfterAppCloses(pictures.root, root);
     },
   };
 }

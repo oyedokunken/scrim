@@ -127,6 +127,17 @@ interface Fixtures {
   relaunch: () => Promise<ElectronApplication>;
 }
 
+const removeLater: string[] = [];
+
+/**
+ * Removes folders once the app has closed. A test that deletes its temp folders while the app is
+ * still running races the app, which can still hold them open, and Windows then refuses with EPERM.
+ * Tests run one at a time in a worker, so one list is enough.
+ */
+export function removeAfterAppCloses(...paths: string[]): void {
+  removeLater.push(...paths);
+}
+
 export const test = base.extend<Fixtures>({
   // A fresh user data folder per test, removed afterwards. Playwright reads the fixture
   // dependencies from the destructuring, so the empty pattern has to stay.
@@ -136,6 +147,8 @@ export const test = base.extend<Fixtures>({
     try {
       await (PACKAGED ? launchPackaged : launchBuilt)(userDataDir, use);
     } finally {
+      // The app has quit by now, so nothing holds these folders any more.
+      for (const path of removeLater.splice(0)) rmSync(path, { recursive: true, force: true });
       try {
         rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
       } catch {

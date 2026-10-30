@@ -32,6 +32,22 @@ async function saved(userDataDir: string, key: string, expected: unknown): Promi
 const registered = (app: ElectronApplication, accelerator: string) =>
   app.evaluate(({ globalShortcut }, key) => globalShortcut.isRegistered(key), accelerator);
 
+/**
+ * Whether Windows let this app have a default shortcut. Another program, such as a second copy of
+ * Scrim that is already running, can own it, and then the app reports it as unavailable instead of
+ * registering it. So the app must register exactly the shortcuts it says it could take.
+ */
+async function couldTake(page: Page, id: 'record' | 'stop' | 'screenshot'): Promise<boolean> {
+  const status = await page.evaluate(() =>
+    (
+      globalThis as unknown as {
+        scrim: { invoke(channel: string): Promise<{ unavailable: string[] }> };
+      }
+    ).scrim.invoke('shortcuts:status'),
+  );
+  return !status.unavailable.includes(id);
+}
+
 test.describe('the settings', () => {
   test('rebinds a shortcut by pressing keys, and the new keys work at once', async ({
     app,
@@ -39,7 +55,9 @@ test.describe('the settings', () => {
     userDataDir,
   }) => {
     await openSettings(page);
-    expect(await registered(app, 'CommandOrControl+Shift+X')).toBe(true);
+    expect(await registered(app, 'CommandOrControl+Shift+X')).toBe(
+      await couldTake(page, 'screenshot'),
+    );
     await page.getByRole('button', { name: 'Change take screenshot shortcut' }).click();
     await expect(page.getByText('Press the new keys')).toBeVisible();
     // While a key is being chosen the global shortcuts let go, so the old keys cannot run.
@@ -51,11 +69,13 @@ test.describe('the settings', () => {
     await saved(userDataDir, 'shortcutScreenshot', 'CommandOrControl+Alt+K');
     await expect.poll(() => registered(app, 'CommandOrControl+Alt+K')).toBe(true);
     expect(await registered(app, 'CommandOrControl+Shift+X')).toBe(false);
-    expect(await registered(app, 'CommandOrControl+Shift+R')).toBe(true);
+    expect(await registered(app, 'CommandOrControl+Shift+R')).toBe(await couldTake(page, 'record'));
 
     await page.getByRole('button', { name: 'Reset take screenshot shortcut' }).click();
     await saved(userDataDir, 'shortcutScreenshot', 'CommandOrControl+Shift+X');
-    await expect.poll(() => registered(app, 'CommandOrControl+Shift+X')).toBe(true);
+    await expect
+      .poll(async () => registered(app, 'CommandOrControl+Shift+X'))
+      .toBe(await couldTake(page, 'screenshot'));
     expect(await registered(app, 'CommandOrControl+Alt+K')).toBe(false);
   });
 
