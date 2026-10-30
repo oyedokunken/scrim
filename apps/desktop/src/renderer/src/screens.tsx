@@ -23,6 +23,7 @@ import { LibraryView } from './library/library-view';
 import type { OpenedItem } from './library/use-library';
 import { editorApi } from './shell/editor-bridge';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
+import { ScreenshotSettingsPanel } from './screenshot/screenshot-settings-panel';
 import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
@@ -486,30 +487,14 @@ export function MainScreen() {
   } else if (view === 'zoom') {
     main = <ZoomPreview value={zoomValue} />;
   } else if (view === 'camera') {
-    // The controls sit under the preview, so the page needs no side panel.
     main = (
-      <div className="under-view">
-        <CameraPreview
-          value={cameraValue}
-          deviceId={settings.cameraDeviceId}
-          onCorner={(bubbleCorner) => {
-            update({ bubbleCorner });
-          }}
-        />
-        <div className="under-controls">
-          <CameraPanel
-            value={cameraValue}
-            onChange={(value) => {
-              update({
-                cameraOn: value.on,
-                bubbleSize: value.size,
-                bubbleShape: value.shape,
-                bubbleCorner: value.corner,
-              });
-            }}
-          />
-        </div>
-      </div>
+      <CameraPreview
+        value={cameraValue}
+        deviceId={settings.cameraDeviceId}
+        onCorner={(bubbleCorner) => {
+          update({ bubbleCorner });
+        }}
+      />
     );
   } else if (view === 'audio') {
     main = (
@@ -545,6 +530,20 @@ export function MainScreen() {
           }}
         />
       </div>
+    ) : view === 'camera' ? (
+      <div className="panel-body">
+        <CameraPanel
+          value={cameraValue}
+          onChange={(value) => {
+            update({
+              cameraOn: value.on,
+              bubbleSize: value.size,
+              bubbleShape: value.shape,
+              bubbleCorner: value.corner,
+            });
+          }}
+        />
+      </div>
     ) : view === 'audio' ? (
       <div className="panel-body">
         <AudioPanel
@@ -575,6 +574,11 @@ export function MainScreen() {
         mics={devices.mics}
         onChange={update}
         onChooseFolder={() => void chooseFolder('recordings')}
+      />
+    ) : view === 'screenshot' ? (
+      <ScreenshotSettingsPanel
+        folder={settings.screenshotFolder}
+        onChooseFolder={() => void chooseFolder('screenshots')}
       />
     ) : (
       <Placeholder view={view} inPanel />

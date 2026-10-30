@@ -1436,27 +1436,3 @@ input[type='checkbox'] {
   border-radius: 999px;
   transition: width 200ms ease-out;
 }
-
-/* A page whose controls sit under the main view: the preview, then its sections side by side. */
-.under-view {
-  display: grid;
-  gap: 24px;
-  align-content: start;
-  min-width: 0;
-}
-
-.under-controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
-  align-items: start;
-  min-width: 0;
-  padding: 20px;
-  background: var(--scrim-white);
-  border: 1px solid var(--ui-border);
-  border-radius: var(--ui-radius-md);
-}
-
-.under-controls > * {
-  min-width: 0;
-}

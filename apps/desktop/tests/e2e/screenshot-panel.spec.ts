@@ -60,7 +60,7 @@ test.describe('the recording saved card', () => {
 });
 
 test.describe('the screenshot page', () => {
-  test('has no sidebar, shows a capture in the main view and clears it when you leave', async ({
+  test('has a settings sidebar but no list of screenshots, shows a capture in the main view and clears it when you leave', async ({
     app,
     page,
   }) => {
@@ -72,7 +72,7 @@ test.describe('the screenshot page', () => {
       }, pictures.root);
       await enterApp(page);
       await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
-      await expect(page.getByRole('complementary')).toHaveCount(0);
+      await expect(page.getByRole('complementary').getByText('Save to')).toBeVisible();
       await expect(page.getByRole('heading', { name: /Screenshots\s*\d/ })).toHaveCount(0);
 
       await send(app, 'screenshot:taken', { path: shot, width: 160, height: 90 });

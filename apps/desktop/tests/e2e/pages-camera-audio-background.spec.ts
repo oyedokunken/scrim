@@ -57,13 +57,10 @@ test.describe('the Camera page', () => {
     await noSidewaysScroll(page);
   });
 
-  test('has no right panel: the controls sit under the preview', async ({ page }) => {
+  test('keeps its controls in the right panel', async ({ page }) => {
     await open(page, 'Camera');
-    await expect(page.getByRole('complementary')).toHaveCount(0);
-    const preview = await page.locator('.mock-frame').boundingBox();
-    const control = await page.getByRole('switch', { name: 'Show camera' }).boundingBox();
-    if (!preview || !control) throw new Error('no boxes');
-    expect(control.y).toBeGreaterThan(preview.y + preview.height - 1);
+    const panel = page.getByRole('complementary');
+    await expect(panel.getByRole('switch', { name: 'Show camera' })).toBeVisible();
     await noSidewaysScroll(page);
   });
 
