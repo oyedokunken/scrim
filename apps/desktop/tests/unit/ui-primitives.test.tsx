@@ -63,6 +63,26 @@ describe('Segmented', () => {
     expect(html).toMatch(/aria-checked="true"[^>]*class="ui-segment selected"[^>]*>Medium</);
   });
 
+  it('names a choice by its hint, and puts a choice with a hint in a tooltip host', () => {
+    const hinted = renderToStaticMarkup(
+      <Segmented
+        label="Thickness"
+        className="shot-thickness"
+        value="thin"
+        onChange={vi.fn()}
+        options={[
+          { value: 'thin', label: 'Small', hint: 'Small stroke' },
+          { value: 'thick', label: 'Thick', hint: 'Thick stroke' },
+        ]}
+      />,
+    );
+    expect(hinted).toContain('class="ui-segmented shot-thickness"');
+    expect(hinted).toContain('aria-label="Small stroke"');
+    expect(hinted.match(/class="ui-tooltip-host"/g)).toHaveLength(2);
+    // The plain group above has no tooltip hosts.
+    expect(html).not.toContain('ui-tooltip-host');
+  });
+
   it('only the checked segment is in the tab order', () => {
     expect(html.match(/tabindex="0"/g)).toHaveLength(1);
     expect(html.match(/tabindex="-1"/g)).toHaveLength(2);

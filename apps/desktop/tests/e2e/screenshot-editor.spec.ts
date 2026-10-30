@@ -245,6 +245,60 @@ test.describe('the screenshot editor', () => {
     }
   });
 
+  test('every tool has a tooltip on keyboard focus, and the stroke buttons are equal and clear', async ({
+    app,
+    page,
+  }) => {
+    const fixture = await arrange(app);
+    try {
+      await openResult(page);
+      await page.getByRole('button', { name: 'Edit' }).click();
+      const toolbar = page.getByRole('toolbar', { name: 'Editing tools' });
+      await expect(toolbar).toBeVisible();
+
+      for (const name of ['Select', 'Crop', 'Arrow', 'Box', 'Highlight', 'Text', 'Blur']) {
+        const tool = toolbar.getByRole('button', { name, exact: true });
+        await tool.focus();
+        await page.keyboard.press('Shift+Tab');
+        await page.keyboard.press('Tab');
+        await expect(page.getByRole('tooltip').filter({ hasText: name })).toBeVisible();
+      }
+
+      const stroke = toolbar.getByRole('radiogroup', { name: 'Thickness' });
+      // The group has one tab stop on the chosen button. Arrow keys reach the others.
+      const medium0 = stroke.getByRole('radio', { name: 'Medium stroke' });
+      await medium0.focus();
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Tab');
+      await expect(page.getByRole('tooltip').filter({ hasText: 'Medium stroke' })).toBeVisible();
+      await page.keyboard.press('ArrowLeft');
+      await expect(page.getByRole('tooltip').filter({ hasText: 'Small stroke' })).toBeVisible();
+      await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('ArrowRight');
+      await expect(page.getByRole('tooltip').filter({ hasText: 'Thick stroke' })).toBeVisible();
+      const boxes = [];
+      for (const name of ['Small stroke', 'Medium stroke', 'Thick stroke']) {
+        boxes.push(await stroke.getByRole('radio', { name }).boundingBox());
+      }
+      const [small, medium, thick] = boxes;
+      if (!small || !medium || !thick) throw new Error('no boxes');
+      expect(Math.abs(small.width - medium.width)).toBeLessThan(1);
+      expect(Math.abs(medium.width - thick.width)).toBeLessThan(1);
+      const gapA = medium.x - (small.x + small.width);
+      const gapB = thick.x - (medium.x + medium.width);
+      expect(Math.abs(gapA - gapB)).toBeLessThan(1);
+
+      await stroke.getByRole('radio', { name: 'Thick stroke' }).click();
+      await expect(stroke.getByRole('radio', { name: 'Thick stroke' })).toBeChecked();
+      const color = await stroke
+        .getByRole('radio', { name: 'Thick stroke' })
+        .evaluate((element) => getComputedStyle(element).backgroundColor);
+      expect(color).toBe('rgb(0, 78, 82)');
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   test('cancel with unsaved edits asks first, and the safe choice has focus', async ({
     app,
     page,

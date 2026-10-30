@@ -89,9 +89,9 @@ const COLOR_OPTIONS = [
 ] as const;
 
 const THICKNESS_OPTIONS = [
-  { value: 'thin', label: 'Thin' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'thick', label: 'Thick' },
+  { value: 'thin', label: 'Small', hint: 'Small stroke' },
+  { value: 'medium', label: 'Medium', hint: 'Medium stroke' },
+  { value: 'thick', label: 'Thick', hint: 'Thick stroke' },
 ] as const;
 
 type Gesture =
@@ -568,6 +568,7 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
         />
         <Segmented
           label="Thickness"
+          className="shot-thickness"
           options={THICKNESS_OPTIONS}
           value={thickness}
           onChange={(value) => {
