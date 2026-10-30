@@ -5,6 +5,8 @@
  */
 export const CHANNELS = [
   'app:version',
+  'app:about',
+  'system:info',
   'settings:get',
   'settings:set',
   'folder:choose',

@@ -4,6 +4,7 @@ import type { Settings } from '../../shared/settings';
 import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcut-keys';
 import type { SettingsStore } from '../settings/settings-store';
 import type { Handlers } from './dispatcher';
+import { createAboutHandlers, type AboutApi } from '../about/about-handlers';
 import { createAreaHandlers, type AreaApi } from './area-handlers';
 import { createImageHandlers, type ImageDeps } from './image-handlers';
 import { createExportHandlers, type ExportLike } from '../export/export-handlers';
@@ -28,6 +29,8 @@ export interface HandlerDeps {
   /** The Windows share sheet. Null when this computer has none Scrim can open. */
   share: ((path: string) => Promise<void>) | null;
   platform: NodeJS.Platform;
+  /** The version and computer details for the About card. */
+  about: AboutApi;
   /** The app version from the package, never typed in by hand. */
   version: string;
   /** Where screenshots are saved when the person has not chosen a folder, Pictures\Scrim. */
@@ -141,6 +144,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       if (!isInsideKnownFolder(path, known, deps.platform)) throw new Error('path not allowed');
       deps.showItemInFolder(resolve(path));
     },
+    ...createAboutHandlers(deps.about),
     ...createRecordingHandlers({
       recording: deps.recording,
       destination: () => deps.settings.get().destinationFolder,
