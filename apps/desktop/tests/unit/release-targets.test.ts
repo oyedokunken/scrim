@@ -64,7 +64,7 @@ describe('the mac and linux installer configuration', () => {
   });
 
   it('leaves the Windows target untouched', () => {
-    expect(config.win).toEqual({ target: ['nsis'], icon: 'resources/icons/icon.ico' });
+    expect(config.win).toMatchObject({ target: ['nsis'], icon: 'resources/icons/icon.ico' });
     expect(config.extraResources).toEqual([{ from: 'resources/ffmpeg', to: 'ffmpeg' }]);
   });
 });

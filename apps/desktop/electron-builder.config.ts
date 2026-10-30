@@ -1,6 +1,7 @@
 import type { Configuration } from 'electron-builder';
 import { APP_ID, APP_NAME } from './src/shared/app-id.ts';
 import { afterPack } from './build/after-pack.ts';
+import { windowsSigningConfig } from './build/signing.mts';
 
 // A cross build can point this at another folder of FFmpeg binaries. Unset, it is the folder the
 // Windows build has always used.
@@ -27,7 +28,12 @@ const config: Configuration = {
   // The install folder comes from the package name, and the workspace name is scoped.
   extraMetadata: { name: 'scrim' },
   afterPack,
-  win: { target: ['nsis'], icon: 'resources/icons/icon.ico' },
+  // Signing turns on only when its secrets exist. See docs/code-signing.md.
+  win: {
+    target: ['nsis'],
+    icon: 'resources/icons/icon.ico',
+    ...windowsSigningConfig(process.env),
+  },
   nsis: {
     installerIcon: 'resources/icons/icon.ico',
     uninstallerIcon: 'resources/icons/icon.ico',
