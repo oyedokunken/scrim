@@ -61,6 +61,12 @@ function setup(overrides: Partial<Handlers> = {}) {
       error: { code: 'unknown', message: 'm', nextStep: 'n' },
     }),
     'editor:save-edits': () => ({ ok: true, value: undefined }),
+    'review:open': () => ({
+      ok: false,
+      error: { code: 'unknown', message: 'm', nextStep: 'n' },
+    }),
+    'review:discard': () => ({ ok: true, value: undefined }),
+    'security:open': () => false,
     'image:thumbnail': () => 'data:image/png;base64,AA==',
     ...overrides,
   };

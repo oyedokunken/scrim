@@ -4,7 +4,7 @@ import { isAllowedExternalUrl } from '../../src/shared/external-urls';
 import { isOwnUrl, isPermissionAllowed } from '../../src/main/permissions';
 
 const PACKAGED_POLICY =
-  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob: mediastream: scrim-media:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 describe('buildCsp', () => {
   it('matches the agreed packaged policy exactly', () => {

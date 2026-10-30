@@ -12,6 +12,10 @@ import { join } from 'node:path';
 import { APP_ID, APP_NAME } from '../shared/app-id';
 import { devDockIconPath } from './app-icon';
 import { handleAppRequest } from './app-protocol';
+import { previewFolder } from './export/register';
+import { handleMediaRequest } from './media/media-protocol';
+import { MEDIA_SCHEME, MediaRegistry } from './media/media-registry';
+import { projectsRoot } from './recording/projects-folder';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
 import { screenshotFolderOf } from './ipc/handlers';
@@ -57,6 +61,12 @@ app.enableSandbox();
 protocol.registerSchemesAsPrivileged([
   {
     scheme: APP_SCHEME,
+    privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
+  },
+  // Recordings and their working copies are played from here. The scheme serves only files the
+  // main process handed out an address for, inside the projects and cache folders.
+  {
+    scheme: MEDIA_SCHEME,
     privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true },
   },
 ]);
@@ -146,6 +156,20 @@ if (!app.requestSingleInstanceLock()) {
     applyApplicationMenu(process.platform, APP_NAME);
     session.defaultSession.protocol.handle(APP_SCHEME, (request) =>
       handleAppRequest(request, rendererRoot, appCsp),
+    );
+    const media = new MediaRegistry(
+      () => [
+        projectsRoot({
+          platform: process.platform,
+          env: process.env,
+          userData: app.getPath('userData'),
+        }),
+        previewFolder(),
+      ],
+      process.platform === 'win32',
+    );
+    session.defaultSession.protocol.handle(MEDIA_SCHEME, (request) =>
+      handleMediaRequest(request, media),
     );
     hardenSession({
       appOrigin: target.origin,
@@ -272,7 +296,13 @@ if (!app.requestSingleInstanceLock()) {
     });
     const area: AreaApi = {
       run: async (request) => {
-        const outcome = await picker.run(request);
+        let outcome = await picker.run(request);
+        // One quiet second try: a display that was mid change or a page that was slow to start often works the next time.
+        if (!outcome.ok && outcome.reason === 'failed') {
+          logger.info('area', { message: `retrying after ${outcome.step ?? 'a failure'}` });
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          outcome = await picker.run(request);
+        }
         if (!(outcome.ok && outcome.mode === 'record')) shell.show();
         if (outcome.ok && outcome.mode === 'screenshot') {
           // The result view opens in the main window for the button and for the shortcut alike.
@@ -282,6 +312,7 @@ if (!app.requestSingleInstanceLock()) {
               ? {}
               : {
                   saveError: {
+                    code: outcome.result.saveError.code,
                     message: outcome.result.saveError.message,
                     nextStep: outcome.result.saveError.nextStep,
                   },
@@ -305,6 +336,7 @@ if (!app.requestSingleInstanceLock()) {
       recording,
       area,
       exporter,
+      media,
       onSettingsChanged: (next) => {
         shortcutsRef.current?.apply(acceleratorsOf(next));
       },

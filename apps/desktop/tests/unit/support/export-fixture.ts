@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { SessionFile } from '@scrim/core';
@@ -172,8 +172,4 @@ export function makeFixture(tools: { ffmpeg: string }, options: FixtureOptions =
     JSON.stringify({ version: 1, frame: { width: 1280, height: 720 }, events }),
   );
   return { root, folder, outputDir };
-}
-
-export function exists(path: string): boolean {
-  return existsSync(path);
 }

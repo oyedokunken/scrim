@@ -10,6 +10,8 @@ export interface ImageDeps {
   platform: NodeJS.Platform;
   /** Where screenshots live. Only PNG files inside it can be read, edited, dragged or deleted. */
   screenshotFolder: () => string;
+  /** Other folders that hold screenshots Scrim made, such as its own fallback folder. */
+  extraScreenshotFolders?: () => string[];
   readFile: (path: string) => Promise<Buffer>;
   /** Creates a new file and fails if it exists, so an existing file is never overwritten. */
   writeNewFile: (path: string, data: Buffer) => Promise<void>;
@@ -87,7 +89,11 @@ type ImageHandlers = Pick<
 export function createImageHandlers(deps: ImageDeps): ImageHandlers {
   /** A PNG inside the screenshots folder, resolved. Anything else is refused. */
   const screenshot = (path: string): string => {
-    const inside = isInsideKnownFolder(path, [deps.screenshotFolder()], deps.platform);
+    const inside = isInsideKnownFolder(
+      path,
+      [deps.screenshotFolder(), ...(deps.extraScreenshotFolders?.() ?? [])],
+      deps.platform,
+    );
     if (!inside || extname(path).toLowerCase() !== '.png') throw new ImageError('path not allowed');
     return resolve(path);
   };

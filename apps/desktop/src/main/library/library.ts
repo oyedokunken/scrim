@@ -18,6 +18,10 @@ export interface LibraryDeps {
   /** Where finished MP4s go, and where older versions left working folders. */
   videosFolder: () => string;
   screenshotsFolder: () => string;
+  /** A second folder of screenshots, for the ones saved there when the chosen folder refused them. */
+  extraScreenshotsFolder?: () => string;
+  /** A folder of finished videos that the chosen folder refused. */
+  extraVideosFolder?: () => string;
   /** Entries directly inside a folder. Empty when it does not exist. */
   readDir: (folder: string) => Promise<DirEntry[]>;
   readText: (path: string) => Promise<string | undefined>;
@@ -125,11 +129,22 @@ export function createLibrary(deps: LibraryDeps) {
 
   async function scan(): Promise<Entry[]> {
     const videos = deps.videosFolder();
-    const [projectDirs, videoFiles, shotFiles] = await Promise.all([
+    const extra = deps.extraScreenshotsFolder?.();
+    const [projectDirs, videoFiles, mainShots, extraShots] = await Promise.all([
       deps.readDir(deps.projectsRoot()),
       deps.readDir(videos),
       deps.readDir(deps.screenshotsFolder()),
+      extra === undefined || extra === deps.screenshotsFolder()
+        ? Promise.resolve([])
+        : deps.readDir(extra),
     ]);
+    const extraVideos = deps.extraVideosFolder?.();
+    const extraMp4s =
+      extraVideos === undefined || extraVideos === videos ? [] : await deps.readDir(extraVideos);
+    const shotFiles = [
+      ...mainShots.map((file) => ({ file, folder: deps.screenshotsFolder() })),
+      ...extraShots.map((file) => ({ file, folder: extra ?? '' })),
+    ];
     const mp4s = videoFiles.filter(
       (entry) => !entry.isDirectory && extname(entry.name).toLowerCase() === '.mp4',
     );
@@ -197,11 +212,28 @@ export function createLibrary(deps: LibraryDeps) {
       });
     }
 
+    for (const file of extraMp4s) {
+      if (file.isDirectory || extname(file.name).toLowerCase() !== '.mp4') continue;
+      const path = join(extraVideos ?? '', file.name);
+      entries.push({
+        kind: 'recording',
+        name: basename(file.name, extname(file.name)),
+        createdMs: file.modifiedMs,
+        durationMs: await duration(path, file.modifiedMs),
+        bytes: file.bytes,
+        project: null,
+        file: path,
+        sourceVideo: null,
+        width: 0,
+        height: 0,
+        tracks: ['screen'],
+      });
+    }
+
     const shots = shotFiles.filter(
-      (entry) => !entry.isDirectory && extname(entry.name).toLowerCase() === '.png',
+      ({ file }) => !file.isDirectory && extname(file.name).toLowerCase() === '.png',
     );
-    const shotFolder = deps.screenshotsFolder();
-    for (const file of shots) {
+    for (const { file, folder: shotFolder } of shots) {
       const path = join(shotFolder, file.name);
       const size = await deps.imageSize(path);
       if (size === null) continue;

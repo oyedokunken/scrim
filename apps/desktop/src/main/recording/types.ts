@@ -64,6 +64,7 @@ export type RecordingErrorCode =
   | 'disk-too-full'
   | 'disk-full'
   | 'folder-not-writable'
+  | 'saved-elsewhere'
   | 'folder-unavailable'
   | 'write-failed'
   | 'screen-permission'

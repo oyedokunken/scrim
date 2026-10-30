@@ -69,7 +69,7 @@ function fillBackground(
  * unit is one output pixel: background, shadow, the recording seen through the camera, halo and
  * ripples, then the camera bubble. It reads the same description the export reads.
  */
-export function drawFrame(
+function drawFrame(
   ctx: CanvasRenderingContext2D,
   model: RenderModel,
   frame: FrameDescription,
@@ -200,7 +200,7 @@ export function splitFromPointer(clientX: number, left: number, width: number): 
  * The recording as it was captured, fitted into the output frame with nothing added: no zoom,
  * no halo, no background and no camera bubble. It is what Before shows.
  */
-export function drawRaw(
+function drawRaw(
   ctx: CanvasRenderingContext2D,
   output: { width: number; height: number },
   screen: FrameMedia['screen'],

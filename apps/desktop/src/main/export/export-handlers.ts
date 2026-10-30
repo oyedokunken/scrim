@@ -16,6 +16,8 @@ export interface ExportLike {
 export function toBridgeJob(job: ExportJob): ExportJobView {
   return {
     id: job.id,
+    preview: job.preview,
+    recording: basename(job.folder),
     phase: job.phase,
     progress:
       job.progress === null
@@ -36,6 +38,7 @@ export function toBridgeJob(job: ExportJob): ExportJobView {
             bytes: job.result.bytes,
             encoder: job.result.encoder,
             note: job.result.note,
+            fellBack: job.result.fellBack,
           },
     error:
       job.error === null
@@ -74,6 +77,7 @@ export function createExportHandlers(deps: {
           folder: input.folder,
           ...(input.fileName === undefined ? {} : { fileName: input.fileName }),
           ...(input.collision === undefined ? {} : { collision: input.collision }),
+          ...(input.preview === true ? { preview: true } : {}),
           ...(input.settings === undefined ? {} : { settings: definedOnly(input.settings) }),
         }),
       );

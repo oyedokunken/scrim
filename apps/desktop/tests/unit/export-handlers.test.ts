@@ -18,6 +18,7 @@ const job = (over: Partial<ExportJob> = {}): ExportJob => ({
   result: null,
   error: null,
   safer: false,
+  preview: false,
   ...over,
 });
 
@@ -46,6 +47,7 @@ describe('toBridgeJob', () => {
           encoder: 'h264_mf',
           elapsedMs: 1000,
           note: null,
+          fellBack: false,
         },
       }),
     );

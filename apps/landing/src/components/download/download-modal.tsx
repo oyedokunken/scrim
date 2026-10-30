@@ -227,7 +227,11 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
             className={styles.form}
           >
             <h2 id={titleId} className={styles.title} ref={heading} tabIndex={-1}>
-              {comingSoon ? `Scrim for ${systemName(os)} is coming soon` : 'Before you download'}
+              {comingSoon
+                ? `Scrim for ${systemName(os)} is coming soon`
+                : os === undefined
+                  ? 'Before you download'
+                  : `Scrim for ${systemName(os)} is available`}
             </h2>
             <p id={introId} className={styles.intro}>
               {comingSoon
@@ -291,11 +295,9 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                 </p>
               )}
               <p className={styles.hint}>
-                {detectedOs !== null && os === detectedOs
-                  ? `We picked ${systemName(detectedOs)} from your computer. Change it if that is wrong.`
-                  : platform?.os === 'unsupported'
-                    ? 'Scrim is for desktop computers. Windows has an installer today. macOS and Linux are coming soon.'
-                    : 'Windows has an installer today. macOS and Linux are coming soon.'}
+                {platform?.os === 'unsupported'
+                  ? 'Scrim is for desktop computers. Windows has an installer today. macOS and Linux are coming soon.'
+                  : 'Windows has an installer today. macOS and Linux are coming soon.'}
               </p>
             </fieldset>
 
@@ -335,15 +337,16 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                   ? 'Saving your email...'
                   : 'Starting your download...'
                 : comingSoon
-                  ? 'Tell me when it is ready'
-                  : 'Start download'}
+                  ? 'Download'
+                  : os === undefined
+                    ? 'Start download'
+                    : `Download for ${systemName(os)}`}
             </button>
 
             <p className={styles.privacy}>
-              We store your name, email, system, the app version, a hashed IP address and a
-              shortened browser string, only to count downloads.{' '}
+              We collect your name, email and OS type to count the number of downloads.{' '}
               <a href="/privacy" target="_blank" rel="noopener noreferrer">
-                Read the privacy policy
+                Read our privacy policy
                 <span className="visually-hidden"> (opens in a new tab)</span>
               </a>
               .

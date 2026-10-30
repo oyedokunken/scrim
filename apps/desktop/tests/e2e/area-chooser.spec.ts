@@ -136,6 +136,29 @@ test.afterEach(async () => {
   running = undefined;
 });
 
+test('the overlay covers the whole display, taskbar included', async () => {
+  test.setTimeout(90_000);
+  running = await launch();
+  const { main } = running;
+  const take = main.getByRole('button', { name: /take screenshot/i }).first();
+  if (!(await take.isVisible())) {
+    await main
+      .getByRole('button', { name: /screenshot/i })
+      .first()
+      .click();
+  }
+  await take.click();
+  const overlay = await overlayPage(running);
+  await overlay.locator('#hint').waitFor({ state: 'visible', timeout: 10_000 });
+  // Windows sizes a new window to the work area, which stops above the taskbar. The overlay must
+  // be as big as the display, or a box cannot be drawn over the taskbar and the bottom rows.
+  const size = await overlay.evaluate(() => ({
+    inner: [window.innerWidth, window.innerHeight],
+    display: [screen.width, screen.height],
+  }));
+  expect(size.inner).toEqual(size.display);
+});
+
 test('Start recording opens the chooser, a drawn region starts a recording, and Stop saves it', async () => {
   test.setTimeout(120_000);
   running = await launch();

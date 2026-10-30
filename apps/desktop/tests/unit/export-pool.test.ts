@@ -45,9 +45,9 @@ function fakeWorker(failOn?: number): WorkerLike {
       }
       handle(message);
     },
-    on: ((event: 'message' | 'error', listener: never) => {
+    on: ((event: 'message' | 'error' | 'exit', listener: never) => {
       if (event === 'message') onMessage = listener;
-      else onError = listener;
+      else if (event === 'error') onError = listener;
     }) as WorkerLike['on'],
     terminate: () => undefined,
   };
@@ -116,5 +116,29 @@ describe('drawing threads', () => {
     expect(workerCount(4)).toBe(3);
     expect(workerCount(8)).toBe(6);
     expect(workerCount(32)).toBe(6);
+  });
+});
+
+describe('a drawing thread that ends on its own', () => {
+  it('fails the waiting picture instead of leaving it for ever', async () => {
+    let exit: (code: number) => void = () => undefined;
+    const silent: WorkerLike = {
+      postMessage: () => undefined,
+      on: ((event: 'message' | 'error' | 'exit', listener: never) => {
+        if (event === 'exit') exit = listener;
+      }) as WorkerLike['on'],
+      terminate: () => undefined,
+    };
+    const pool = createWorkerBackend({
+      count: 1,
+      spawn: () => silent,
+      layout,
+      source,
+      base: new Uint8Array(output.width * output.height * 4),
+      paint,
+    });
+    const waiting = pool.render(input(1), pool.alloc(output.width * output.height * 4));
+    exit(1);
+    await expect(waiting).rejects.toThrow('A drawing thread stopped.');
   });
 });

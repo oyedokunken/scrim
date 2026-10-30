@@ -97,6 +97,8 @@ export interface ProbeResult {
   audioCodec?: string | undefined;
   width?: number | undefined;
   height?: number | undefined;
+  /** Frames per second of the video, when ffprobe reports a sensible one. */
+  fps?: number | undefined;
   durationSec?: number | undefined;
 }
 
@@ -109,11 +111,20 @@ const probeJsonSchema = z.object({
         width: z.number().optional(),
         height: z.number().optional(),
         duration: z.string().optional(),
+        avg_frame_rate: z.string().optional(),
       }),
     )
     .optional(),
   format: z.object({ duration: z.string().optional() }).optional(),
 });
+
+/** `30000/1001` becomes 29.97. Variable rate or missing values give undefined. */
+function framesPerSecond(rate: string | undefined): number | undefined {
+  const match = /^(\d+)\/(\d+)$/.exec(rate ?? '');
+  if (match === null || Number(match[2]) === 0) return undefined;
+  const fps = Number(match[1]) / Number(match[2]);
+  return fps > 0 && fps <= 240 ? Math.round(fps * 100) / 100 : undefined;
+}
 
 /** Reads what ffprobe says about a file. Returns undefined when it cannot be read at all. */
 export async function probeFile(
@@ -121,15 +132,11 @@ export async function probeFile(
   paths: FfmpegPaths,
   file: string,
 ): Promise<ProbeResult | undefined> {
-  const result = await run(paths.ffprobe, [
-    '-v',
-    'error',
-    '-print_format',
-    'json',
-    '-show_streams',
-    '-show_format',
-    file,
-  ]);
+  const result = await run(
+    paths.ffprobe,
+    ['-v', 'error', '-print_format', 'json', '-show_streams', '-show_format', file],
+    { timeoutMs: 20_000 },
+  );
   if (result.code !== 0) return undefined;
   let parsed: unknown;
   try {
@@ -149,6 +156,7 @@ export async function probeFile(
     audioCodec: audio?.codec_name,
     width: video?.width,
     height: video?.height,
+    fps: framesPerSecond(video?.avg_frame_rate),
     durationSec: Number.isFinite(seconds) ? seconds : undefined,
   };
 }

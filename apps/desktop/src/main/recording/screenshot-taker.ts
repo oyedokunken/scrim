@@ -1,4 +1,5 @@
-import { clipboard, ClipboardItem, desktopCapturer, screen, type NativeImage } from 'electron';
+import { app, clipboard, ClipboardItem, desktopCapturer, screen, type NativeImage } from 'electron';
+import { join } from 'node:path';
 import { realServiceFs } from './fs-adapter';
 import {
   takeScreenshot,
@@ -15,6 +16,11 @@ function findDisplay(displayId: string | undefined): Electron.Display {
 }
 
 const asImage = (image: NativeImage | undefined): ImageLike | undefined => image;
+
+/** Where a screenshot goes when the chosen folder refuses it, inside the app's own data. */
+export function screenshotFallbackFolder(): string {
+  return join(app.getPath('userData'), 'Screenshots');
+}
 
 /**
  * Takes a screenshot of a display, a region or a window, as a PNG saved to a folder and copied to
@@ -62,6 +68,7 @@ export function createScreenshotTaker(): (
             }),
           ]),
         now: () => new Date(),
+        fallbackFolder: screenshotFallbackFolder,
         log: (message) => {
           console.error(message);
         },

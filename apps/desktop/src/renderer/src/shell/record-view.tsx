@@ -1,40 +1,36 @@
 import { Monitor } from 'lucide-react';
 import { Button } from '../../ui';
-import { SavedCard, type SavedCardProps } from './saved-card';
+import { ReviewScreen, type ReviewScreenProps } from '../review/review-screen';
 import { SHORTCUTS } from './shortcuts';
 import { Stage } from './stage';
 
 export interface RecordViewProps {
   busy: boolean;
   onStart: () => void;
-  /** The recording that was just saved. It shows here and on no other page. */
-  saved?: SavedCardProps | undefined;
+  /** The recording that was just stopped. It replaces the start screen until the person is done. */
+  review?: ReviewScreenProps | undefined;
 }
 
-/** The stage shows what will be captured and holds the one big button. Cursor and zoom come after, in the editor. */
-export function RecordView({ busy, onStart, saved }: RecordViewProps) {
+/** One view: start a recording, or review the one that just ended. Nothing else sits beside it. */
+export function RecordView({ busy, onStart, review }: RecordViewProps) {
   return (
     <div className="record-view">
-      {saved === undefined ? null : <SavedCard {...saved} />}
-      <Stage
-        icon={<Monitor size={48} strokeWidth={1.5} />}
-        label="Record your screen"
-        text="Your screen is ready to record"
-        shortcut={SHORTCUTS.record.keys}
-        action={
-          <Button variant="primary" className="record-button" disabled={busy} onClick={onStart}>
-            <span className="record-dot" aria-hidden="true" />
-            {busy ? 'Starting...' : 'Start recording'}
-          </Button>
-        }
-      />
-
-      <section className="recent" aria-labelledby="recent-title">
-        <h2 id="recent-title" className="ui-section-title">
-          Recent recordings
-        </h2>
-        <p className="ui-help">No recordings yet. Your first one will show up here.</p>
-      </section>
+      {review === undefined ? (
+        <Stage
+          icon={<Monitor size={48} strokeWidth={1.5} />}
+          label="Record your screen"
+          text="Your screen is ready to record"
+          shortcut={SHORTCUTS.record.keys}
+          action={
+            <Button variant="primary" className="record-button" disabled={busy} onClick={onStart}>
+              <span className="record-dot" aria-hidden="true" />
+              {busy ? 'Starting...' : 'Start recording'}
+            </Button>
+          }
+        />
+      ) : (
+        <ReviewScreen {...review} />
+      )}
     </div>
   );
 }

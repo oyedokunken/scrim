@@ -42,6 +42,7 @@ export const recordingErrorSchema = z
       'disk-too-full',
       'disk-full',
       'folder-not-writable',
+      'saved-elsewhere',
       'folder-unavailable',
       'write-failed',
       'screen-permission',
@@ -131,7 +132,11 @@ const screenshotResultSchema = z
     path: pathSchema.optional(),
     /** Set when the picture could not be saved to the folder, such as when Windows protects it. */
     saveError: z
-      .object({ message: z.string().max(500), nextStep: z.string().max(500) })
+      .object({
+        code: z.string().max(64).optional(),
+        message: z.string().max(500),
+        nextStep: z.string().max(500),
+      })
       .strict()
       .optional(),
     copied: z.boolean(),
@@ -149,7 +154,17 @@ export const areaOutcomeSchema = z.union([
   z
     .object({ ok: z.literal(true), mode: z.literal('screenshot'), result: screenshotResultSchema })
     .strict(),
-  z.object({ ok: z.literal(false), reason: z.enum(['cancelled', 'failed', 'busy']) }).strict(),
+  z.object({ ok: z.literal(false), reason: z.enum(['cancelled', 'busy']) }).strict(),
+  z
+    .object({
+      ok: z.literal(false),
+      reason: z.literal('failed'),
+      /** Where the chooser failed, as a short code. It never holds a path. */
+      step: z
+        .enum(['no-displays', 'overlay-not-ready', 'overlay-open', 'nothing-confirmed'])
+        .optional(),
+    })
+    .strict(),
   z
     .object({ ok: z.literal(false), reason: z.literal('rejected'), error: recordingErrorSchema })
     .strict(),

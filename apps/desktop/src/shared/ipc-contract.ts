@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
 import { editorContract } from './editor-contract';
+import { reviewContract } from './review-contract';
 import { exportContract, exportJobSchema } from './export-contract';
 import { imageContract } from './image-contract';
 import { libraryContract } from './library-contract';
@@ -49,6 +50,8 @@ export const contract = {
   },
   'shell:show-in-folder': { input: z.object({ path: pathSchema }).strict(), output: z.void() },
   'logs:open-folder': { input: z.void(), output: z.void() },
+  /** Opens the Windows Security page for Ransomware protection. False on other systems. */
+  'security:open': { input: z.void(), output: z.boolean() },
   /** The answer to the close question, which the page shows in its own dialog. `shown` says it is on screen. */
   'window:close-answer': {
     input: z.object({ answer: z.enum(['shown', 'keep', 'stop', 'cancel']) }).strict(),
@@ -75,6 +78,7 @@ export const contract = {
   ...libraryContract,
   ...editorContract,
   ...exportContract,
+  ...reviewContract,
   // The destination is not an input: the main process uses the folder the person chose.
   'recording:start': {
     input: z
@@ -117,7 +121,11 @@ export const events = {
       /** Missing when the picture was copied but could not be saved. */
       path: pathSchema.optional(),
       saveError: z
-        .object({ message: z.string().max(500), nextStep: z.string().max(500) })
+        .object({
+          code: z.string().max(64).optional(),
+          message: z.string().max(500),
+          nextStep: z.string().max(500),
+        })
         .strict()
         .optional(),
       width: z.number().int().positive(),

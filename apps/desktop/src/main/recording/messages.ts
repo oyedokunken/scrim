@@ -23,6 +23,12 @@ const COPY: Readonly<Record<RecordingErrorCode, { message: string; nextStep: str
     nextStep:
       'Choose another folder. If Windows Security blocked Scrim, allow it under Controlled folder access.',
   },
+  'saved-elsewhere': {
+    message:
+      "Windows would not let Scrim save to that folder, so the screenshot was saved in Scrim's own folder instead.",
+    nextStep:
+      'To save there again, allow Scrim under Windows Security, Ransomware protection, Controlled folder access. Or choose another folder.',
+  },
   'folder-unavailable': {
     message: 'The folder is no longer available. Your recording was saved up to this point.',
     nextStep: 'Reconnect the drive if it was unplugged. The saved part is in the recording folder.',

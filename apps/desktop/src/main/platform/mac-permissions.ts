@@ -1,4 +1,4 @@
-export type MediaAccess = 'not-determined' | 'granted' | 'denied' | 'restricted' | 'unknown';
+type MediaAccess = 'not-determined' | 'granted' | 'denied' | 'restricted' | 'unknown';
 
 export interface MacPermissionDeps {
   /** `systemPreferences.getMediaAccessStatus`. */

@@ -11,7 +11,7 @@ export type EncoderName =
   | 'libopenh264';
 
 /** Hardware first, then the Windows Media Foundation encoder, then the software one. */
-export const ENCODER_ORDER: readonly EncoderName[] = [
+const ENCODER_ORDER: readonly EncoderName[] = [
   'h264_nvenc',
   'h264_qsv',
   'h264_amf',

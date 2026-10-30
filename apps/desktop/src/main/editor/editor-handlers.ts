@@ -15,6 +15,8 @@ export interface EditorDeps {
   writeEdits: (folder: string, edits: EditList) => Promise<void>;
   /** True for a folder Scrim made: inside the projects folder or the folder of finished videos. */
   isKnownFolder: (folder: string) => boolean;
+  /** Hands out an address for a file the page may play. Without it, addresses are made here. */
+  issueMedia?: (file: string, label: string) => string | undefined;
 }
 
 type EditorHandlers = Pick<Handlers, 'editor:open' | 'editor:save-edits'>;
@@ -56,7 +58,9 @@ export function createEditorHandlers(deps: EditorDeps): {
       }
       const { source } = loaded;
       const address = (kind: TrackKind): string | undefined => {
-        if (source.files[kind] === undefined) return undefined;
+        const file = source.files[kind];
+        if (file === undefined) return undefined;
+        if (deps.issueMedia !== undefined) return deps.issueMedia(file, kind);
         const token = randomUUID();
         tokens.set(token, { folder, kind });
         return `scrim-media://p/${token}/${kind}`;

@@ -110,7 +110,9 @@ test.describe('opening the download dialog', () => {
     page,
   }) => {
     await openDialog(page);
-    await expect(dialog(page).getByRole('heading', { name: 'Before you download' })).toBeVisible();
+    await expect(
+      dialog(page).getByRole('heading', { name: 'Scrim for Windows is available' }),
+    ).toBeVisible();
     await expect(dialog(page).getByText(/We track the number of downloads/)).toBeVisible();
     await expect(dialog(page).getByText(/get to know you/)).toBeVisible();
     await expect(dialog(page).getByLabel('Your name')).toBeFocused();
@@ -131,7 +133,9 @@ test.describe('opening the download dialog', () => {
     await page.locator('#download').getByRole('link', { name: 'Download for Windows' }).click();
     await expect(dialog(page)).toBeVisible();
     await expect(dialog(page).getByRole('radio', { name: 'Windows' })).toBeChecked();
-    await expect(dialog(page).getByRole('heading', { name: 'Before you download' })).toBeVisible();
+    await expect(
+      dialog(page).getByRole('heading', { name: 'Scrim for Windows is available' }),
+    ).toBeVisible();
   });
 
   test('a card for a system with no installer opens it as a Coming soon sign up', async ({
@@ -148,9 +152,7 @@ test.describe('opening the download dialog', () => {
     await expect(dialog(page)).toBeVisible();
     await expect(dialog(page).getByRole('heading', { name: /is coming soon/ })).toBeVisible();
     await expect(dialog(page).getByLabel('Email me when a new version is out')).toHaveCount(0);
-    await expect(
-      dialog(page).getByRole('button', { name: 'Tell me when it is ready' }),
-    ).toBeVisible();
+    await expect(dialog(page).getByRole('button', { name: 'Download', exact: true })).toBeVisible();
   });
 
   test('the closing call to action opens it with that system chosen', async ({ page }) => {
@@ -183,7 +185,6 @@ test.describe('the system is picked from the visitor computer', () => {
       const page = await visitorOn(browser, system);
       await openDialog(page);
       await expect(dialog(page).getByRole('radio', { name: label })).toBeChecked();
-      await expect(dialog(page).getByText(`We picked ${label} from your computer.`)).toBeVisible();
       await page.context().close();
     });
   }
@@ -207,7 +208,6 @@ test.describe('the system is picked from the visitor computer', () => {
     await dialog(page).getByRole('radio', { name: 'Linux' }).check();
     await expect(dialog(page).getByRole('radio', { name: 'Linux' })).toBeChecked();
     await expect(dialog(page).getByRole('radio', { name: 'Windows' })).not.toBeChecked();
-    await expect(dialog(page).getByText(/We picked Windows/)).toHaveCount(0);
     await page.context().close();
   });
 
@@ -275,7 +275,7 @@ test.describe('the form', () => {
   test('prints an error under each empty field and sends nothing', async ({ page, baseURL }) => {
     const requests = await mockServer(page, baseURL ?? '');
     await openDialog(page);
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
 
     await expect(dialog(page).getByText('Enter your name.')).toBeVisible();
     await expect(dialog(page).getByText('Enter a valid email address.')).toBeVisible();
@@ -294,7 +294,7 @@ test.describe('the form', () => {
     await mockServer(page, baseURL ?? '');
     await openDialog(page);
     await fillIn(page, 'Ada', 'ada.example.com');
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(dialog(page).getByText('Enter a valid email address.')).toBeVisible();
     await expect(dialog(page).getByText('Enter your name.')).toHaveCount(0);
 
@@ -312,7 +312,7 @@ test.describe('the form', () => {
         input.removeAttribute('maxlength');
       });
     await fillIn(page, 'a'.repeat(81));
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(dialog(page).getByText('Use 80 characters or fewer.')).toBeVisible();
   });
 
@@ -328,7 +328,7 @@ test.describe('the form', () => {
     const requests = await mockServer(page, baseURL ?? '');
     await openDialog(page);
     await fillIn(page, 'Ada Lovelace', 'ada@example.com', { pickSystem: false });
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(dialog(page).getByText('Choose your system.')).toBeVisible();
     expect(requests).toHaveLength(0);
     await context.close();
@@ -362,7 +362,7 @@ test.describe('starting the download', () => {
     await fillIn(page);
     const [download] = await Promise.all([
       page.waitForEvent('download'),
-      dialog(page).getByRole('button', { name: 'Start download' }).click(),
+      dialog(page).getByRole('button', { name: 'Download for Windows' }).click(),
     ]);
     expect(download.suggestedFilename()).toBe('Scrim-1.0.0-x64.exe');
 
@@ -400,7 +400,7 @@ test.describe('starting the download', () => {
     await dialog(page).getByLabel('Email me when a new version is out').check();
     await Promise.all([
       page.waitForEvent('download'),
-      dialog(page).getByRole('button', { name: 'Start download' }).click(),
+      dialog(page).getByRole('button', { name: 'Download for Windows' }).click(),
     ]);
     expect(requests[0]).toMatchObject({
       name: 'Ada',
@@ -422,7 +422,7 @@ test.describe('starting the download', () => {
     });
     await openDialog(page);
     await fillIn(page, 'Ada', 'ada@example.com');
-    await dialog(page).getByRole('button', { name: 'Tell me when it is ready' }).click();
+    await dialog(page).getByRole('button', { name: 'Download', exact: true }).click();
     await expect(dialog(page).getByRole('heading', { name: 'You are on the list.' })).toBeVisible();
     expect(requests[0]).toMatchObject({ os: 'macos', updatesOptIn: true });
     await page.context().close();
@@ -442,7 +442,7 @@ test.describe('starting the download', () => {
       );
     await openDialog(page);
     await fillIn(page);
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(
       dialog(page).getByRole('heading', { name: 'Your download is starting.' }),
     ).toBeVisible();
@@ -462,7 +462,7 @@ test.describe('starting the download', () => {
     await fillIn(page);
     await Promise.all([
       page.waitForEvent('download'),
-      dialog(page).getByRole('button', { name: 'Start download' }).click(),
+      dialog(page).getByRole('button', { name: 'Download for Windows' }).click(),
     ]);
     await dialog(page).getByRole('button', { name: 'Close', exact: true }).last().click();
     await expect(dialog(page)).toBeHidden();
@@ -492,13 +492,13 @@ test.describe('when something goes wrong', () => {
     });
     await openDialog(page);
     await fillIn(page);
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(dialog(page).getByRole('alert')).toContainText('try again in an hour');
     await expect(dialog(page).getByRole('alert').getByRole('link')).toHaveAttribute(
       'href',
       RELEASES,
     );
-    await expect(dialog(page).getByRole('button', { name: 'Start download' })).toBeEnabled();
+    await expect(dialog(page).getByRole('button', { name: 'Download for Windows' })).toBeEnabled();
   });
 
   test('a message from the server about a field appears under that field', async ({
@@ -514,7 +514,7 @@ test.describe('when something goes wrong', () => {
     });
     await openDialog(page);
     await fillIn(page);
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(dialog(page).getByText('That address is not accepted.')).toBeVisible();
     await expect(dialog(page).getByRole('alert')).toContainText('Check the form');
   });
@@ -525,7 +525,7 @@ test.describe('when something goes wrong', () => {
     await page.route('**/api/downloads', (route) => route.abort('failed'));
     await openDialog(page);
     await fillIn(page);
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(dialog(page).getByRole('alert')).toContainText('You can still get Scrim');
     await expect(dialog(page).getByRole('alert').getByRole('link')).toHaveAttribute(
       'href',
@@ -552,7 +552,7 @@ test.describe('when something goes wrong', () => {
       );
     await openDialog(page);
     await fillIn(page);
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(
       dialog(page).getByRole('button', { name: /Starting your download/ }),
     ).toBeDisabled();
@@ -613,7 +613,7 @@ test.describe('keyboard and focus', () => {
     await expect(dialog(page).getByLabel('Your email')).toHaveValue('ada@example.com');
     await chooseSystemIfNone(page, true);
 
-    const submit = dialog(page).getByRole('button', { name: 'Start download' });
+    const submit = dialog(page).getByRole('button', { name: 'Download for Windows' });
     await submit.focus();
     await Promise.all([page.waitForEvent('download'), page.keyboard.press('Enter')]);
     await expect(
@@ -636,7 +636,7 @@ test.describe('accessibility of the dialog', () => {
 
   test('the form with errors showing has no axe violations', async ({ page }) => {
     await openDialog(page);
-    await dialog(page).getByRole('button', { name: 'Start download' }).click();
+    await dialog(page).getByRole('button', { name: 'Download for Windows' }).click();
     await expect(dialog(page).getByText('Enter your name.')).toBeVisible();
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations).toEqual([]);
@@ -648,7 +648,7 @@ test.describe('accessibility of the dialog', () => {
     await fillIn(page);
     await Promise.all([
       page.waitForEvent('download'),
-      dialog(page).getByRole('button', { name: 'Start download' }).click(),
+      dialog(page).getByRole('button', { name: 'Download for Windows' }).click(),
     ]);
     await expect(
       dialog(page).getByRole('heading', { name: 'Your download is starting.' }),

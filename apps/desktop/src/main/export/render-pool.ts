@@ -34,6 +34,7 @@ export interface WorkerLike {
   on: {
     (event: 'message', listener: (reply: WorkerReply) => void): unknown;
     (event: 'error', listener: (error: Error) => void): unknown;
+    (event: 'exit', listener: (code: number) => void): unknown;
   };
   terminate: () => unknown;
 }
@@ -93,6 +94,7 @@ export function createWorkerBackend(options: {
   const running = new Map<number, { resolve: () => void; reject: (error: Error) => void }>();
   let nextId = 0;
   let failure: Error | undefined;
+  let closing = false;
   // Read through a function so the checks around awaits are not narrowed away.
   const failed = (): Error | undefined => failure;
 
@@ -120,6 +122,10 @@ export function createWorkerBackend(options: {
     });
     worker.on('error', (error) => {
       failAll(error);
+    });
+    // A thread that ends on its own would leave its picture waiting for ever.
+    worker.on('exit', () => {
+      if (!closing) failAll(new Error('A drawing thread stopped.'));
     });
     worker.postMessage({
       type: 'init',
@@ -168,6 +174,7 @@ export function createWorkerBackend(options: {
       await done;
     },
     async close() {
+      closing = true;
       await Promise.all(workers.map((worker) => worker.terminate()));
     },
   };

@@ -21,6 +21,8 @@ export interface ExportRequest {
   folder: string;
   /** The folder that receives the finished file. */
   outputDir: string;
+  /** The app's own folder, used when the folder above refuses the file. */
+  fallbackDir?: string | undefined;
   /** File name without the extension. Defaults to the recording name. */
   fileName?: string | undefined;
   /** What to do when the file already exists. The page asks the person first and sends `replace`. */
@@ -30,6 +32,8 @@ export interface ExportRequest {
   paint: CursorPaint;
   /** Use only the software encoder, for the retry with safer settings. */
   softwareOnly?: boolean | undefined;
+  /** Draw every picture on the calling thread. Used when the drawing threads stalled. */
+  inlineOnly?: boolean | undefined;
 }
 
 export interface ExportProgress {
@@ -43,7 +47,7 @@ export interface ExportProgress {
   speed: number;
 }
 
-export type ExportErrorCode =
+type ExportErrorCode =
   | 'source-missing'
   | 'source-invalid'
   | 'nothing-to-export'
@@ -55,6 +59,7 @@ export type ExportErrorCode =
   | 'folder-unwritable'
   | 'exists'
   | 'cancelled'
+  | 'stalled'
   | 'unknown';
 
 export interface ExportError {
@@ -76,6 +81,8 @@ export interface ExportSuccess {
   elapsedMs: number;
   /** Why effects are off, when they are. */
   note: string | null;
+  /** True when the chosen folder refused the file and it went to the app's own folder. */
+  fellBack: boolean;
 }
 
 export type ExportOutcome = ExportSuccess | { ok: false; error: ExportError };

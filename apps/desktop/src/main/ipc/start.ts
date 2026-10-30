@@ -1,6 +1,7 @@
 import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shell } from 'electron';
+import { screenshotFallbackFolder } from '../recording/screenshot-taker';
 import { createRealShare } from '../share/share';
-import { access, mkdir, open, readdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { access, mkdir, open, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EventPayload } from '../../shared/ipc-contract';
 import { findLegacyFolders, moveLegacyFolders } from '../export/legacy';
@@ -11,7 +12,10 @@ import { loadExportSource } from '../export/source';
 import { isInsideKnownFolder } from './handlers';
 import { realServiceFs } from '../recording/fs-adapter';
 import { projectsRoot } from '../recording/projects-folder';
-import type { ExportApi } from '../export/register';
+import { exportFallbackFolder, previewFolder, type ExportApi } from '../export/register';
+import type { MediaRegistry } from '../media/media-registry';
+import { probeFile, resolveFfmpegPaths, runProcess } from '../recording/ffmpeg';
+import { createReviewHandlers } from '../review/review-handlers';
 import { toBridgeJob } from '../export/export-handlers';
 import { createRealLibrary } from '../library/real-library';
 import { createLogger, type Logger } from '../log/logger';
@@ -54,6 +58,8 @@ export async function startIpc(options: {
   shortcutsSuspend: (suspended: boolean) => void;
   /** The export engine. Its status changes go to every window. */
   exporter: ExportApi;
+  /** The files the page may play, shared with the media protocol. */
+  media: MediaRegistry;
   closeAnswer: (answer: 'shown' | 'keep' | 'stop' | 'cancel') => void;
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
@@ -76,6 +82,52 @@ export async function startIpc(options: {
 
   // Folders the engine has written to this run, so a finished recording can be shown in its folder.
   const sessionFolders = new Set<string>();
+
+  const isKnownFolder = (folder: string): boolean =>
+    folder.endsWith('.scrim') &&
+    isInsideKnownFolder(
+      folder,
+      [
+        projectsRoot({
+          platform: process.platform,
+          env: process.env,
+          userData: app.getPath('userData'),
+        }),
+        settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+        ...sessionFolders,
+      ],
+      process.platform,
+    );
+  const ffmpegPaths = resolveFfmpegPaths({
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    platform: process.platform,
+    env: process.env,
+  });
+  const review = createReviewHandlers({
+    loadSource: loadExportSource,
+    isKnownFolder,
+    previewDir: previewFolder,
+    outputFolder: () => settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+    fileSize: async (file) => {
+      try {
+        return (await stat(file)).size;
+      } catch {
+        return undefined;
+      }
+    },
+    probe: (file) => probeFile(runProcess, ffmpegPaths, file),
+    issueMedia: (file, label) => options.media.issue(file, label),
+    forgetMedia: (file) => {
+      options.media.forget(file);
+    },
+    trash: (path) => shell.trashItem(path),
+    remove: (file) => rm(file, { force: true }),
+  });
+  // The working copy is not the person's file: once the real export is done it has no use.
+  options.exporter.service.on((event) => {
+    if (event.job.phase === 'done' && !event.job.preview) void review.cleanup(event.job.folder);
+  });
 
   // Every change of an export goes to every window, without the folder or the path.
   options.exporter.service.on((event) => {
@@ -156,31 +208,22 @@ export async function startIpc(options: {
         loadSource: loadExportSource,
         writeEdits: (folder, edits) =>
           realServiceFs.writeJsonAtomic(join(folder, 'edits.json'), edits),
-        isKnownFolder: (folder) =>
-          folder.endsWith('.scrim') &&
-          isInsideKnownFolder(
-            folder,
-            [
-              projectsRoot({
-                platform: process.platform,
-                env: process.env,
-                userData: app.getPath('userData'),
-              }),
-              settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
-              ...sessionFolders,
-            ],
-            process.platform,
-          ),
+        isKnownFolder,
+        issueMedia: (file, label) => options.media.issue(file, label),
       },
+      review: review.handlers,
       library: createRealLibrary({
         videosFolder: () =>
           settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
         screenshotsFolder: () =>
           screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+        extraScreenshotsFolder: screenshotFallbackFolder,
+        extraVideosFolder: exportFallbackFolder,
         share,
       }),
       recording,
       area,
+      extraScreenshotFolders: () => [screenshotFallbackFolder()],
       defaultScreenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
       defaultRecordingsFolder: () => join(app.getPath('videos'), 'Scrim'),
       ensureFolder: async (path) => {
@@ -277,6 +320,16 @@ export async function startIpc(options: {
       openExternal: (url) => openExternalChecked(url),
       version: app.getVersion(),
       logsFolder: logger.directory,
+      // A fixed address, never one from the page. Only Windows has this page.
+      openSecuritySettings: async () => {
+        if (process.platform !== 'win32') return false;
+        try {
+          await shell.openExternal('windowsdefender://ransomwareprotection');
+          return true;
+        } catch {
+          return false;
+        }
+      },
     }),
     // Only the failure kind and the channel name, never the input or the error text.
     onFailure: (failure, channel) => {

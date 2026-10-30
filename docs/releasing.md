@@ -136,3 +136,17 @@ built fine in a Linux container from the `linux-unpacked` folder.
 4. Ubuntu 24.04 blocks unprivileged user namespaces for the sandbox. The deb installs an AppArmor
    profile for this. If the AppImage fails to start, run it with `--no-sandbox` and report it.
 5. Check the global shortcuts, the tray icon and Recover after killing the process.
+
+## Windows Security and Controlled folder access
+
+Windows Controlled folder access (part of Ransomware protection) blocks apps it does not recognise
+from writing to Pictures, Videos and Documents. An unsigned build is not recognised, so on a computer
+with that setting on, saving a screenshot or a video into those folders fails with a permission error.
+
+What Scrim does about it: it keeps the capture in its own folder in app data, tells the person plainly
+where it went and why, and offers a button that opens the Windows Security page and one that chooses
+another folder. The Library lists both places.
+
+What makes it better for good: code signing. A signed installer and executable build reputation with
+SmartScreen and make Windows Security more willing to trust the app. Signing needs a certificate or a
+signing service (see `docs/code-signing.md` once it exists), so it is not part of this change.

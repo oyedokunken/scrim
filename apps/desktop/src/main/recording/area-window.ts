@@ -70,7 +70,11 @@ export function createOverlayOpener(options: {
       for (const listener of closedListeners) listener();
     });
     window.once('ready-to-show', () => {
+      // Windows sizes a new window to the work area, which leaves the taskbar uncovered. Ask for the
+      // whole display again once the window exists, and again after it is shown.
+      window.setBounds(bounds);
       window.show();
+      window.setBounds(bounds);
     });
     void window.loadURL(regionPageUrl(options.appOrigin)).catch((error: unknown) => {
       options.log(

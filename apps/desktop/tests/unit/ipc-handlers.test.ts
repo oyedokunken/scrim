@@ -71,6 +71,14 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       writeEdits: vi.fn(() => Promise.resolve()),
       isKnownFolder: () => false,
     },
+    review: {
+      'review:open': () =>
+        Promise.resolve({
+          ok: false as const,
+          error: { code: 'unknown' as const, message: 'm', nextStep: 'n' },
+        }),
+      'review:discard': () => Promise.resolve({ ok: true as const, value: undefined }),
+    },
     platform: process.platform,
     version: '1.0.0',
     chooseFolder: vi.fn(() => Promise.resolve(null)),
@@ -78,6 +86,7 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
     openPath: vi.fn(() => Promise.resolve('')),
     openExternal: vi.fn(() => Promise.resolve(true)),
     logsFolder: 'LOGS',
+    openSecuritySettings: vi.fn(() => Promise.resolve(false)),
     ...overrides,
   };
   return { handlers: createHandlers(deps), deps };
