@@ -25,7 +25,6 @@ import { LibraryView } from './library/library-view';
 import type { OpenedItem } from './library/use-library';
 import { editorApi } from './shell/editor-bridge';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
-import { ScreenshotSettingsPanel } from './screenshot/screenshot-settings-panel';
 import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
@@ -451,6 +450,8 @@ export function MainScreen() {
       <ScreenshotView
         key={shot?.path ?? 'none'}
         busy={shooting}
+        folder={settings.screenshotFolder}
+        onChooseFolder={() => void chooseFolder('screenshots')}
         shot={shot}
         onClearShot={() => {
           setShot(null);
@@ -587,11 +588,6 @@ export function MainScreen() {
         mics={devices.mics}
         onChange={update}
         onChooseFolder={() => void chooseFolder('recordings')}
-      />
-    ) : view === 'screenshot' ? (
-      <ScreenshotSettingsPanel
-        folder={settings.screenshotFolder}
-        onChooseFolder={() => void chooseFolder('screenshots')}
       />
     ) : (
       <Placeholder view={view} inPanel />

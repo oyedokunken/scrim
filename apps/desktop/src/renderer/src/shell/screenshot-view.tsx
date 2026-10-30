@@ -1,6 +1,6 @@
 import { Camera } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '../../ui';
+import { Button, PanelSection } from '../../ui';
 import { ScreenshotEditor } from '../screenshot/screenshot-editor';
 import { ScreenshotResult } from '../screenshot/screenshot-result';
 import { SHORTCUTS } from './shortcuts';
@@ -14,6 +14,9 @@ export interface ShotInfo {
 
 export interface ScreenshotViewProps {
   busy: boolean;
+  /** The folder the person chose for screenshots, or null for the default one. */
+  folder: string | null;
+  onChooseFolder: () => void;
   onTake: () => void;
   /** The screenshot that was just taken, if any. */
   shot?: ShotInfo | null;
@@ -29,6 +32,8 @@ export interface ScreenshotViewProps {
  */
 export function ScreenshotView({
   busy,
+  folder,
+  onChooseFolder,
   onTake,
   shot = null,
   onClearShot,
@@ -52,19 +57,34 @@ export function ScreenshotView({
     );
   }
 
+  const saveTo = (
+    <section className="save-to" aria-label="Save to">
+      <PanelSection
+        title="Save to"
+        help="Every screenshot is saved here and copied to the clipboard."
+      >
+        <p className="folder">{folder ?? 'Pictures\\Scrim'}</p>
+        <Button onClick={onChooseFolder}>Change folder</Button>
+      </PanelSection>
+    </section>
+  );
+
   if (shown !== null) {
     return (
-      <ScreenshotResult
-        path={shown.path}
-        width={shown.width}
-        height={shown.height}
-        onEdit={() => {
-          setEditing(true);
-        }}
-        onDone={() => {
-          onClearShot?.();
-        }}
-      />
+      <>
+        <ScreenshotResult
+          path={shown.path}
+          width={shown.width}
+          height={shown.height}
+          onEdit={() => {
+            setEditing(true);
+          }}
+          onDone={() => {
+            onClearShot?.();
+          }}
+        />
+        {saveTo}
+      </>
     );
   }
 
@@ -81,6 +101,7 @@ export function ScreenshotView({
           </Button>
         }
       />
+      {saveTo}
     </div>
   );
 }

@@ -1594,3 +1594,13 @@ input[type='checkbox'] {
 .share-secondary {
   justify-self: start;
 }
+
+/* Where screenshots are saved, under the main view of the Screenshot page. */
+.save-to {
+  justify-self: stretch;
+  width: 100%;
+  padding: 16px;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}

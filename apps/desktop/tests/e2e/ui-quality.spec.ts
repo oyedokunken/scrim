@@ -97,9 +97,9 @@ test.describe('the interface rules, on every page', () => {
       for (const view of VIEWS) {
         await page.getByRole('button', { name: view, exact: true }).click();
         await expect(page.getByRole('heading', { name: view, level: 1 })).toBeVisible();
-        // Every page keeps its right sidebar for its controls, except Library and Settings.
+        // Every page keeps its right sidebar for its controls, except Library, Settings and Screenshot.
         await expect(page.locator('.shell-panel')).toHaveCount(
-          view === 'Library' || view === 'Settings' ? 0 : 1,
+          view === 'Library' || view === 'Settings' || view === 'Screenshot' ? 0 : 1,
         );
         const report = await inspect(page);
         expect(report.sideways, `${view}: sideways overflow`).toEqual([]);

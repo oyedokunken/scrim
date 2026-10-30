@@ -1,5 +1,5 @@
 import type { ElectronApplication } from '@playwright/test';
-import { expect, test, enterApp } from './fixtures';
+import { expect, test, enterApp, removeAfterAppCloses } from './fixtures';
 import { picturesFixture } from './png-fixture';
 
 /** Sends an event to every window of the app, as the main process does. */
@@ -60,7 +60,7 @@ test.describe('the review screen', () => {
 });
 
 test.describe('the screenshot page', () => {
-  test('has a settings sidebar but no list of screenshots, shows a capture in the main view and clears it when you leave', async ({
+  test('has no sidebar, keeps Save to under the main view, has no list of screenshots, shows a capture in the main view and clears it when you leave', async ({
     app,
     page,
   }) => {
@@ -72,7 +72,8 @@ test.describe('the screenshot page', () => {
       }, pictures.root);
       await enterApp(page);
       await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
-      await expect(page.getByRole('complementary').getByText('Save to')).toBeVisible();
+      await expect(page.getByRole('complementary')).toHaveCount(0);
+      await expect(page.getByRole('region', { name: 'Save to' })).toBeVisible();
       await expect(page.getByRole('heading', { name: /Screenshots\s*\d/ })).toHaveCount(0);
 
       await send(app, 'screenshot:taken', { path: shot, width: 160, height: 90 });
@@ -84,7 +85,7 @@ test.describe('the screenshot page', () => {
       await expect(page.getByRole('img', { name: /Screenshot 160 by 90/ })).toHaveCount(0);
       await expect(page.getByRole('button', { name: 'Take screenshot' }).first()).toBeVisible();
     } finally {
-      pictures.cleanup();
+      removeAfterAppCloses(pictures.root);
     }
   });
 });
