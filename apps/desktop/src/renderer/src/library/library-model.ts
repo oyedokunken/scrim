@@ -1,4 +1,5 @@
 import type { LibraryItem } from '../../../shared/library-contract';
+import { formatBytes, formatWhen } from '../format';
 
 export type LibraryFilter = 'all' | 'recording' | 'screenshot';
 export type LibraryOrder = 'newest' | 'oldest';
@@ -60,4 +61,16 @@ export function isNew(item: LibraryItem, nowMs: number): boolean {
 export function fullFileName(item: LibraryItem): string {
   if (!item.isFile) return item.name;
   return `${item.name}${item.kind === 'screenshot' ? '.png' : '.mp4'}`;
+}
+
+/** The small facts under a card's name: size, length or pixels, and when it was made. */
+export function cardFacts(item: LibraryItem, nowMs: number): string[] {
+  const facts: string[] = [];
+  if (item.bytes > 0) facts.push(formatBytes(item.bytes));
+  if (item.kind === 'recording' && item.durationMs !== null) facts.push(itemKindLabel(item));
+  if (item.kind === 'screenshot' && item.width !== null && item.height !== null) {
+    facts.push(`${String(item.width)} by ${String(item.height)}`);
+  }
+  facts.push(formatWhen(item.createdMs, nowMs));
+  return facts;
 }

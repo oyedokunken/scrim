@@ -153,6 +153,35 @@ test.describe('the library', () => {
     }
   });
 
+  test('cards show the type, size and date, and the menu is a 44 pixel button that lists the actions', async ({
+    app,
+    page,
+  }) => {
+    const disk = await arrange(app, true);
+    try {
+      disk.pictures.add('A very long screenshot name that goes on and on and on and on.png', 120);
+      await openLibrary(page);
+      const card = cards(page).filter({ hasText: 'Login screen' });
+      await expect(card.getByRole('img', { name: 'Screenshot' })).toBeVisible();
+      await expect(card).toContainText('160 by 90');
+      const longCard = cards(page).filter({ hasText: 'A very long screenshot name' });
+      const menuButton = longCard.getByRole('button', { name: /^More for/ });
+      const box = await menuButton.boundingBox();
+      const cardBox = await longCard.boundingBox();
+      if (!box || !cardBox) throw new Error('no boxes');
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.x + box.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
+      await menuButton.focus();
+      await page.keyboard.press('Enter');
+      for (const name of ['Open', 'Show in folder', 'Share', 'Delete']) {
+        await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
+      }
+    } finally {
+      disk.cleanup();
+    }
+  });
+
   test('marks anything made in the last day with a NEW pill', async ({ app, page }) => {
     const disk = await arrange(app, true);
     try {

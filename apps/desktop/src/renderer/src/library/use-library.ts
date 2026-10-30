@@ -15,6 +15,8 @@ export interface LibraryActions {
   rename: (id: string, name: string) => Promise<OutputOf<'library:rename'>>;
   reveal: (id: string) => Promise<void>;
   openFile: (id: string) => Promise<boolean>;
+  /** Puts a screenshot on the clipboard as an image. */
+  copyImage: (id: string) => Promise<boolean>;
   share: (id: string) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
   recover: (
@@ -97,6 +99,16 @@ export function useLibrary(active: boolean): LibraryData {
       await window.scrim.invoke('library:reveal', { id }).catch(() => undefined);
     },
     openFile: (id) => window.scrim.invoke('library:open-file', { id }).catch(() => false),
+    copyImage: async (id) => {
+      try {
+        const dataUrl = await window.scrim.invoke('library:preview', { id });
+        if (dataUrl === null) return false;
+        await window.scrim.invoke('image:copy', { dataUrl });
+        return true;
+      } catch {
+        return false;
+      }
+    },
     share: (id) => attempt(() => window.scrim.invoke('library:share', { id })),
     remove: (id) => attempt(() => window.scrim.invoke('library:delete', { id })),
     recover: async (folder) => {

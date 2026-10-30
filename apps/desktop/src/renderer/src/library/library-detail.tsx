@@ -64,25 +64,17 @@ export function LibraryDetail({ item, actions, onBack, onOpened }: LibraryDetail
   };
 
   const copyImage = (): void => {
-    void window.scrim
-      .invoke('library:preview', { id: item.id })
-      .then((dataUrl) => {
-        if (dataUrl === null) throw new Error('no image');
-        return window.scrim.invoke('image:copy', { dataUrl });
-      })
-      .then(
-        () => {
-          toast('Copied to the clipboard');
-        },
-        () => {
-          showError({
-            title: 'Scrim could not copy the screenshot',
-            message: 'Try again.',
-            code: 'copy-failed',
-            retry: copyImage,
-          });
-        },
-      );
+    void actions.copyImage(item.id).then((ok) => {
+      if (ok) toast('Copied to the clipboard');
+      else {
+        showError({
+          title: 'Scrim could not copy the screenshot',
+          message: 'Try again.',
+          code: 'copy-failed',
+          retry: copyImage,
+        });
+      }
+    });
   };
 
   const facts: (readonly [string, string])[] = [

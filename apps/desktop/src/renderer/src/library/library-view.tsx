@@ -1,4 +1,14 @@
-import { FolderOpen, Image, Pencil, Search, Share2, Trash2, Video } from 'lucide-react';
+import {
+  Copy,
+  ExternalLink,
+  FolderOpen,
+  Image,
+  Pencil,
+  Search,
+  Share2,
+  Trash2,
+  Video,
+} from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
@@ -14,9 +24,10 @@ import type { LibraryItem } from '../../../shared/library-contract';
 import { formatWhen } from '../format';
 import { useClock } from '../hooks';
 import {
+  cardFacts,
   emptyReason,
+  fullFileName,
   isNew,
-  itemKindLabel,
   thumbKey,
   visibleItems,
   type LibraryFilter,
@@ -30,15 +41,26 @@ const thumbCache = new Map<string, string | null>();
 interface CardProps {
   item: LibraryItem;
   now: number;
-  canShare: boolean;
   onOpen: () => void;
+  onOpenFile: () => void;
   onRename: () => void;
   onReveal: () => void;
+  onCopy: () => void;
   onShare: () => void;
   onDelete: () => void;
 }
 
-function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDelete }: CardProps) {
+function Card({
+  item,
+  now,
+  onOpen,
+  onOpenFile,
+  onRename,
+  onReveal,
+  onCopy,
+  onShare,
+  onDelete,
+}: CardProps) {
   const key = thumbKey(item);
   const [loaded, setLoaded] = useState<{ key: string; url: string | null } | null>(null);
   const url = thumbCache.get(key) ?? (loaded?.key === key ? loaded.url : null);
@@ -58,14 +80,21 @@ function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDele
     };
   }, [key, item.id]);
 
+  const icon = (size: number) =>
+    item.kind === 'screenshot' ? (
+      <Image size={size} strokeWidth={1.5} aria-hidden="true" />
+    ) : (
+      <Video size={size} strokeWidth={1.5} aria-hidden="true" />
+    );
+
   const menu = [
     ...(item.isFile
       ? [
           {
-            key: 'rename',
-            label: 'Rename',
-            icon: <Pencil size={16} strokeWidth={1.75} />,
-            onSelect: onRename,
+            key: 'open',
+            label: 'Open',
+            icon: <ExternalLink size={16} strokeWidth={1.75} />,
+            onSelect: onOpenFile,
           },
         ]
       : []),
@@ -75,13 +104,29 @@ function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDele
       icon: <FolderOpen size={16} strokeWidth={1.75} />,
       onSelect: onReveal,
     },
-    ...(canShare && item.isFile
+    ...(item.isFile && item.kind === 'screenshot'
+      ? [
+          {
+            key: 'copy',
+            label: 'Copy',
+            icon: <Copy size={16} strokeWidth={1.75} />,
+            onSelect: onCopy,
+          },
+        ]
+      : []),
+    ...(item.isFile
       ? [
           {
             key: 'share',
             label: 'Share',
             icon: <Share2 size={16} strokeWidth={1.75} />,
             onSelect: onShare,
+          },
+          {
+            key: 'rename',
+            label: 'Rename',
+            icon: <Pencil size={16} strokeWidth={1.75} />,
+            onSelect: onRename,
           },
         ]
       : []),
@@ -99,24 +144,27 @@ function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDele
       <button type="button" className="lib-open" onClick={onOpen} aria-label={`Open ${item.name}`}>
         {isNew(item, now) ? <span className="lib-new">NEW</span> : null}
         <span className="thumb lib-thumb">
-          {url === null ? (
-            item.kind === 'screenshot' ? (
-              <Image size={24} strokeWidth={1.5} aria-hidden="true" />
-            ) : (
-              <Video size={24} strokeWidth={1.5} aria-hidden="true" />
-            )
-          ) : (
-            <img src={url} alt="" draggable={false} />
-          )}
+          {url === null ? icon(24) : <img src={url} alt="" draggable={false} />}
         </span>
       </button>
       <div className="lib-meta">
         <div className="lib-text">
-          <Tooltip label={item.name}>
-            <span className="lib-name">{item.name}</span>
+          <Tooltip label={fullFileName(item)}>
+            <span className="lib-card-name">{item.name}</span>
           </Tooltip>
-          <span className="lib-sub">
-            {itemKindLabel(item)}, {formatWhen(item.createdMs, now)}
+          <span className="lib-facts">
+            <span
+              className="lib-type"
+              role="img"
+              aria-label={item.kind === 'screenshot' ? 'Screenshot' : 'Recording'}
+            >
+              {icon(14)}
+            </span>
+            {cardFacts(item, now).map((fact) => (
+              <span key={fact} className="lib-fact">
+                {fact}
+              </span>
+            ))}
           </span>
         </div>
         <Menu label={`More for ${item.name}`} items={menu} />
@@ -347,9 +395,32 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
               key={item.id}
               item={item}
               now={now}
-              canShare={library.canShare}
               onOpen={() => {
                 openDetail(item.id);
+              }}
+              onOpenFile={() => {
+                void library.openFile(item.id).then((ok) => {
+                  if (!ok) {
+                    showError({
+                      title: 'Scrim could not find that file',
+                      message:
+                        'It may have been moved or deleted. The Library shows what is there now.',
+                      code: 'file-missing',
+                    });
+                  }
+                });
+              }}
+              onCopy={() => {
+                void library.copyImage(item.id).then((ok) => {
+                  if (ok) toast('Copied to the clipboard');
+                  else {
+                    showError({
+                      title: 'Scrim could not copy the screenshot',
+                      message: 'Try again.',
+                      code: 'copy-failed',
+                    });
+                  }
+                });
               }}
               onRename={() => {
                 setRenameText(item.name);
