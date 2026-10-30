@@ -2,7 +2,10 @@ import { app, BrowserWindow, clipboard, ClipboardItem, dialog, nativeImage, shel
 import { screenshotFallbackFolder } from '../recording/screenshot-taker';
 import { createRealShare } from '../share/share';
 import { access, mkdir, open, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import { join } from 'node:path';
+import { APP_NAME } from '../../shared/app-id';
+import { readAbout, readSystemInfo } from '../about/about-info';
 import type { EventPayload } from '../../shared/ipc-contract';
 import { findLegacyFolders, moveLegacyFolders } from '../export/legacy';
 import { createSessionIndex } from '../recording/session-store';
@@ -318,6 +321,23 @@ export async function startIpc(options: {
       },
       openPath: (path) => shell.openPath(path),
       openExternal: (url) => openExternalChecked(url),
+      about: {
+        about: () =>
+          readAbout({
+            name: APP_NAME,
+            version: app.getVersion(),
+            license: 'MIT',
+            buildStamp: typeof __SCRIM_BUILD_DATE__ === 'string' ? __SCRIM_BUILD_DATE__ : undefined,
+            modifiedMs: () => stat(process.execPath).then((info) => info.mtimeMs),
+          }),
+        system: () =>
+          readSystemInfo({
+            platform: process.platform,
+            version: os.version(),
+            release: os.release(),
+            hostname: os.hostname(),
+          }),
+      },
       version: app.getVersion(),
       logsFolder: logger.directory,
       // A fixed address, never one from the page. Only Windows has this page.

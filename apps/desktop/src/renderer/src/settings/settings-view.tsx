@@ -4,12 +4,8 @@ import type { Settings, SettingsPatch } from '../../../shared/settings';
 import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../../shared/shortcut-keys';
 import { Button, ConfirmDialog, Switch, Tooltip, useShowError, useToast } from '../../ui';
 import type { FolderKind } from '../hooks';
+import { AboutCard } from './about-card';
 import { ShortcutRow } from './shortcut-row';
-
-const SOURCE_URL = 'https://github.com/oyedokunken/scrim';
-const FFMPEG_NOTES_URL =
-  'https://github.com/oyedokunken/scrim/blob/main/docs/adr/0007-ffmpeg-bundling.md';
-const OWNER_URL = 'https://www.oyedokun.dev/';
 
 function Section({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
   return (
@@ -62,7 +58,6 @@ export interface SettingsViewProps {
   settings: Settings;
   update: (patch: SettingsPatch) => void;
   chooseFolder: (kind: FolderKind) => Promise<void>;
-  version: string | null;
   /** Shows the welcome screen now. */
   onShowWelcome: () => void;
   onOpenLink: (url: string) => void;
@@ -73,7 +68,6 @@ export function SettingsView({
   settings,
   update,
   chooseFolder,
-  version,
   onShowWelcome,
   onOpenLink,
 }: SettingsViewProps) {
@@ -263,40 +257,7 @@ export function SettingsView({
         </p>
       </Section>
 
-      <Section title="About">
-        <p className="set-about">
-          Scrim {version === null ? '' : `version ${version}`}. A free, open source screen recorder.
-          Nothing you record is uploaded.
-        </p>
-        <p className="ui-help">
-          Scrim is released under the MIT license. It includes FFmpeg, built under the LGPL version
-          3 and used unchanged. The FFmpeg license and its source offer are in the resources folder
-          of the installed app.
-        </p>
-        <div className="set-links">
-          <Button
-            onClick={() => {
-              onOpenLink(SOURCE_URL);
-            }}
-          >
-            Source code
-          </Button>
-          <Button
-            onClick={() => {
-              onOpenLink(FFMPEG_NOTES_URL);
-            }}
-          >
-            About the FFmpeg license
-          </Button>
-          <Button
-            onClick={() => {
-              onOpenLink(OWNER_URL);
-            }}
-          >
-            Built by @oyedokunken
-          </Button>
-        </div>
-      </Section>
+      <AboutCard onOpenLink={onOpenLink} />
 
       <ConfirmDialog
         open={confirmMove}

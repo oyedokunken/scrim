@@ -17,6 +17,14 @@ function setup(overrides: Partial<Handlers> = {}) {
   const failures: [IpcFailure, string][] = [];
   const handlers: Handlers = {
     'app:version': () => '1.0.0',
+    'app:about': () => ({
+      name: 'Scrim',
+      version: '1.0.0',
+      license: 'MIT',
+      releaseDate: null,
+      lastUpdated: null,
+    }),
+    'system:info': () => ({ computerName: 'PC', operatingSystem: 'Windows' }),
     'settings:get': () => DEFAULT_SETTINGS,
     'settings:set': () => DEFAULT_SETTINGS,
     'folder:choose': () => null,

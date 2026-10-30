@@ -80,6 +80,18 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       'review:discard': () => Promise.resolve({ ok: true as const, value: undefined }),
     },
     platform: process.platform,
+    about: {
+      about: vi.fn(() =>
+        Promise.resolve({
+          name: 'Scrim',
+          version: '1.0.0',
+          license: 'MIT',
+          releaseDate: null,
+          lastUpdated: null,
+        }),
+      ),
+      system: vi.fn(() => ({ computerName: 'PC', operatingSystem: 'Windows' })),
+    },
     version: '1.0.0',
     chooseFolder: vi.fn(() => Promise.resolve(null)),
     showItemInFolder: vi.fn(),

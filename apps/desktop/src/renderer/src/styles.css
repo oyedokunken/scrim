@@ -1212,15 +1212,25 @@ input[type='checkbox'] {
   outline: none;
 }
 
-/* Settings: one calm column of sections. Rows put the name on the left and the controls on the right. */
+/* Settings: cards in two columns. A row of cards is as tall as its tallest card, and one column
+   fills the width on a narrow window. */
 .settings {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-content: start;
+  align-items: stretch;
+}
+
+@media (width <= 900px) {
+  .settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .set-section {
   display: grid;
+  align-content: start;
   gap: 12px;
   padding: 20px;
   background: var(--scrim-white);
@@ -1283,6 +1293,62 @@ input[type='checkbox'] {
 
 .set-about {
   font-size: 14px;
+}
+
+.set-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.set-facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.set-fact {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 16px;
+  font-size: 14px;
+}
+
+.set-fact dt {
+  color: var(--scrim-text-secondary);
+}
+
+.set-fact dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.set-built-by {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Every button on a settings card is green with white text, and black on hover. White on green is
+   9.5 to 1 and white on black is 21 to 1. A disabled one is a quiet grey, so it never looks pressable. */
+.set-section .ui-button {
+  color: var(--scrim-white);
+  background: var(--scrim-green);
+  border-color: transparent;
+}
+
+.set-section .ui-button:hover:not(:disabled) {
+  color: var(--scrim-white);
+  background: var(--scrim-black);
+}
+
+.set-section .ui-button:disabled {
+  color: var(--scrim-text-secondary);
+  background: var(--scrim-fill-quiet-on-white);
+  border-color: var(--ui-border);
+  opacity: 1;
 }
 
 .set-links {

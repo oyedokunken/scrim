@@ -475,7 +475,6 @@ export function MainScreen() {
         settings={settings}
         update={update}
         chooseFolder={chooseFolder}
-        version={version}
         onShowWelcome={() => {
           setWelcomeNow(true);
           setChecking(false);
