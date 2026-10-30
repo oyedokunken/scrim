@@ -47,6 +47,7 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       lookup: vi.fn(() => Promise.resolve(null)),
       preview: vi.fn(() => Promise.resolve(null)),
       play: vi.fn(() => Promise.resolve(true)),
+      openFile: vi.fn(() => Promise.resolve(true)),
       reveal: vi.fn(),
       remove: vi.fn(() => Promise.resolve()),
       share: vi.fn(() => Promise.resolve()),

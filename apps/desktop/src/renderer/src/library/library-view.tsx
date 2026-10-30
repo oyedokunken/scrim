@@ -1,5 +1,5 @@
 import { FolderOpen, Image, Pencil, Search, Share2, Trash2, Video } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   ConfirmDialog,
@@ -15,12 +15,14 @@ import { formatWhen } from '../format';
 import { useClock } from '../hooks';
 import {
   emptyReason,
+  isNew,
   itemKindLabel,
   thumbKey,
   visibleItems,
   type LibraryFilter,
   type LibraryOrder,
 } from './library-model';
+import { LibraryDetail } from './library-detail';
 import { useLibrary, type OpenedItem, type Recoverable } from './use-library';
 
 const thumbCache = new Map<string, string | null>();
@@ -95,6 +97,7 @@ function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDele
   return (
     <li className="lib-card">
       <button type="button" className="lib-open" onClick={onOpen} aria-label={`Open ${item.name}`}>
+        {isNew(item, now) ? <span className="lib-new">NEW</span> : null}
         <span className="thumb lib-thumb">
           {url === null ? (
             item.kind === 'screenshot' ? (
@@ -155,40 +158,68 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
   const [renameText, setRenameText] = useState('');
   const [deleting, setDeleting] = useState<LibraryItem | null>(null);
   const [dismissing, setDismissing] = useState<Recoverable | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const scrollTop = useRef(0);
+
+  const openDetail = (id: string): void => {
+    const scroller = document.querySelector('.shell-main');
+    scrollTop.current = scroller?.scrollTop ?? 0;
+    try {
+      window.history.pushState(null, '', `#/library/${id}`);
+    } catch {
+      // A page that cannot change its address still shows the detail.
+    }
+    setDetailId(id);
+  };
+
+  const closeDetail = (): void => {
+    if (window.location.hash.startsWith('#/library/')) window.history.back();
+    else setDetailId(null);
+  };
+
+  // The route is the address: back, forward and a closed page all leave the detail the same way.
+  useEffect(() => {
+    const onPop = (): void => {
+      const match = /^#\/library\/(.+)$/.exec(window.location.hash);
+      setDetailId(match?.[1] ?? null);
+    };
+    const onKey = (event: KeyboardEvent): void => {
+      if (detailId === null || event.defaultPrevented) return;
+      if (document.querySelector('dialog[open]') !== null) return;
+      if (event.key === 'Escape' || (event.altKey && event.key === 'ArrowLeft')) {
+        event.preventDefault();
+        closeDetail();
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('keydown', onKey);
+    };
+  });
+
+  // Leaving the Library while a detail is open must not leave its address behind.
+  useEffect(
+    () => () => {
+      if (window.location.hash.startsWith('#/library/')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    },
+    [],
+  );
+
+  useLayoutEffect(() => {
+    if (detailId !== null) return;
+    const scroller = document.querySelector('.shell-main');
+    if (scroller !== null) scroller.scrollTop = scrollTop.current;
+  }, [detailId]);
 
   const items = library.items;
   const shown = useMemo(
     () => (items === null ? [] : visibleItems(items, { filter, query, order })),
     [items, filter, query, order],
   );
-
-  const open = (item: LibraryItem): void => {
-    void library.open(item.id).then(
-      (opened) => {
-        if (opened.kind === 'missing') {
-          showError({
-            title: 'Scrim could not find that file',
-            message: 'It may have been moved or deleted. The Library shows what is there now.',
-            code: 'file-missing',
-          });
-        } else if (opened.kind === 'played') {
-          toast('Opened in your video player');
-        } else {
-          onOpened(opened);
-        }
-      },
-      () => {
-        showError({
-          title: 'Scrim could not open that',
-          message: 'Try again. If it keeps happening, restart Scrim.',
-          code: 'open-failed',
-          retry: () => {
-            open(item);
-          },
-        });
-      },
-    );
-  };
 
   const submitRename = (): void => {
     const item = renaming;
@@ -220,7 +251,15 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
     });
   };
 
+  const detailItem = detailId === null ? undefined : items?.find((entry) => entry.id === detailId);
+
   const reason = items === null ? 'has-items' : emptyReason(items.length, shown.length);
+
+  if (detailItem !== undefined) {
+    return (
+      <LibraryDetail item={detailItem} actions={library} onBack={closeDetail} onOpened={onOpened} />
+    );
+  }
 
   return (
     <section className="library" aria-label="Library">
@@ -310,7 +349,7 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
               now={now}
               canShare={library.canShare}
               onOpen={() => {
-                open(item);
+                openDetail(item.id);
               }}
               onRename={() => {
                 setRenameText(item.name);

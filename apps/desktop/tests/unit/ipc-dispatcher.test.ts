@@ -47,6 +47,7 @@ function setup(overrides: Partial<Handlers> = {}) {
     'library:lookup': () => null,
     'library:preview': () => null,
     'library:play': () => true,
+    'library:open-file': () => true,
     'library:reveal': () => undefined,
     'library:delete': () => undefined,
     'library:share': () => undefined,

@@ -44,9 +44,3 @@ export function formatWhen(timeMs: number, nowMs: number): string {
   const month = MONTHS[time.getMonth()] ?? '';
   return `${String(time.getDate())} ${month} ${String(time.getFullYear())}`;
 }
-
-/** A file name without its folder, and without the extension when asked. */
-export function fileName(path: string, withoutExtension = false): string {
-  const name = path.split(/[\\/]/).pop() ?? path;
-  return withoutExtension ? name.replace(/\.[^.]+$/, '') : name;
-}

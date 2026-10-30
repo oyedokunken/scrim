@@ -22,7 +22,6 @@ import { SettingsView } from './settings/settings-view';
 import { LibraryView } from './library/library-view';
 import type { OpenedItem } from './library/use-library';
 import { editorApi } from './shell/editor-bridge';
-import { ScreenshotPanel } from './screenshot/screenshot-panel';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
 import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
@@ -36,7 +35,6 @@ import {
   useRecordingSnapshot,
   useScreenshotTaken,
   useExportJob,
-  useScreenshots,
   useSettings,
 } from './hooks';
 
@@ -110,10 +108,10 @@ export function MainScreen() {
   const [shooting, setShooting] = useState(false);
   const [shot, setShot] = useState<ShotInfo | null>(null);
   const [editorFolder, setEditorFolder] = useState<string | null>(null);
-  const [shotsVersion, setShotsVersion] = useState(0);
-  const shots = useScreenshots(shotsVersion, view === 'screenshot');
-  const refreshShots = useCallback(() => {
-    setShotsVersion((version) => version + 1);
+  /** Moves to another page. A screenshot lives in the main view only while the Screenshot page is open. */
+  const changeView = useCallback((next: ViewId) => {
+    if (next !== 'screenshot') setShot(null);
+    setView(next);
   }, []);
   const [entered, setEntered] = useState(false);
   // Set by Show welcome again in the settings, which shows the welcome screen once even when it is switched off.
@@ -208,9 +206,8 @@ export function MainScreen() {
           actions: blockedFolderActions('screenshots'),
         });
       }
-      refreshShots();
     },
-    [refreshShots, showError, blockedFolderActions],
+    [showError, blockedFolderActions],
   );
 
   // A capture from the shortcut opens the result too, whichever view was showing.
@@ -446,11 +443,9 @@ export function MainScreen() {
         shot={shot}
         onClearShot={() => {
           setShot(null);
-          refreshShots();
         }}
         onShot={(next) => {
           setShot(next);
-          refreshShots();
         }}
         onTake={() => void shoot()}
       />
@@ -579,14 +574,6 @@ export function MainScreen() {
         onChange={update}
         onChooseFolder={() => void chooseFolder('recordings')}
       />
-    ) : view === 'screenshot' ? (
-      <ScreenshotPanel
-        shots={shots}
-        openPath={shot?.path ?? null}
-        onOpen={(entry) => {
-          setShot({ path: entry.path, width: entry.width, height: entry.height });
-        }}
-      />
     ) : (
       <Placeholder view={view} inPanel />
     );
@@ -594,7 +581,7 @@ export function MainScreen() {
   return (
     <AppShell
       view={view}
-      onView={setView}
+      onView={changeView}
       title={VIEW_LABELS[view]}
       primary={view === 'record' ? startButton : view === 'screenshot' ? shotButton : undefined}
       status={{ state, folder }}

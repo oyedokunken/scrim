@@ -59,57 +59,30 @@ test.describe('the recording saved card', () => {
   });
 });
 
-test.describe('the screenshots panel', () => {
-  test('counts and lists every screenshot, newest first, and refreshes after a capture', async ({
+test.describe('the screenshot page', () => {
+  test('has no sidebar, shows a capture in the main view and clears it when you leave', async ({
     app,
     page,
   }) => {
     const pictures = picturesFixture();
     try {
-      pictures.add('old.png', 3600);
-      const newest = pictures.add('new.png', 10);
+      const shot = pictures.add('new.png', 10);
       await app.evaluate(({ app: electronApp }, root) => {
         electronApp.setPath('pictures', root);
       }, pictures.root);
       await enterApp(page);
       await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
+      await expect(page.getByRole('complementary')).toHaveCount(0);
+      await expect(page.getByRole('heading', { name: /Screenshots\s*\d/ })).toHaveCount(0);
 
-      const panel = page.getByRole('complementary');
-      await expect(panel.getByRole('heading', { name: /Screenshots\s*2/ })).toBeVisible();
-      const items = panel.locator('.shot-item');
-      await expect(items).toHaveCount(2);
-      await expect(items.nth(0)).toContainText('new.png');
-      await expect(items.nth(1)).toContainText('old.png');
-      await expect(items.nth(0).locator('img')).toBeVisible();
-      await expect(page.locator('.status-folder')).toContainText('Pictures');
-
-      // A capture from the shortcut: a new file, then the event from the main process.
-      const third = pictures.add('third.png', 0);
-      await send(app, 'screenshot:taken', { path: third, width: 160, height: 90 });
-      await expect(panel.getByRole('heading', { name: /Screenshots\s*3/ })).toBeVisible();
-      await expect(items.nth(0)).toContainText('third.png');
+      await send(app, 'screenshot:taken', { path: shot, width: 160, height: 90 });
       await expect(page.getByRole('img', { name: /Screenshot 160 by 90/ })).toBeVisible();
 
-      // Clicking one opens it.
-      await items.nth(1).click();
-      await expect(page.getByText(/Saved as new.png/)).toBeVisible();
-      expect(newest).toContain('new.png');
-    } finally {
-      pictures.cleanup();
-    }
-  });
-
-  test('shows the empty state only when there are none', async ({ app, page }) => {
-    const pictures = picturesFixture();
-    try {
-      await app.evaluate(({ app: electronApp }, root) => {
-        electronApp.setPath('pictures', root);
-      }, pictures.root);
-      await enterApp(page);
+      // Leaving the page clears the main view. The screenshot lives in the Library only.
+      await page.getByRole('button', { name: 'Library', exact: true }).click();
       await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
-      const panel = page.getByRole('complementary');
-      await expect(panel.getByRole('heading', { name: /Screenshots\s*0/ })).toBeVisible();
-      await expect(panel.getByText('Screenshots you take will show up here.')).toBeVisible();
+      await expect(page.getByRole('img', { name: /Screenshot 160 by 90/ })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Take screenshot' }).first()).toBeVisible();
     } finally {
       pictures.cleanup();
     }

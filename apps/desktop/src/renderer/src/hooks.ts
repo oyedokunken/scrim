@@ -201,48 +201,6 @@ export function useScreenshotTaken(onTaken: (shot: ScreenshotTaken) => void): vo
   );
 }
 
-export type ShotListEntry = OutputOf<'image:list'>[number];
-
-/**
- * The screenshots in the screenshots folder, newest first. It reads again whenever `refreshKey`
- * changes or the Screenshot view opens, which the screen bumps after every capture, edit and delete, and when the window regains focus.
- */
-export function useScreenshots(
-  refreshKey: number,
-  active: boolean,
-): readonly ShotListEntry[] | null {
-  const [shots, setShots] = useState<readonly ShotListEntry[] | null>(null);
-  const [focusKey, setFocusKey] = useState(0);
-
-  useEffect(() => {
-    const onFocus = (): void => {
-      setFocusKey((key) => key + 1);
-    };
-    window.addEventListener('focus', onFocus);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!active) return undefined;
-    let alive = true;
-    window.scrim
-      .invoke('image:list')
-      .then((list) => {
-        if (alive) setShots(list);
-      })
-      .catch(() => {
-        if (alive) setShots((current) => current ?? []);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [refreshKey, focusKey, active]);
-
-  return shots;
-}
-
 /** The time, read again every minute so words like Today and Yesterday stay right. */
 export function useClock(): number {
   const [time, setTime] = useState(() => Date.now());

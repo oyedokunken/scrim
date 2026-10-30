@@ -36,6 +36,7 @@ export const CHANNELS = [
   'library:lookup',
   'library:preview',
   'library:play',
+  'library:open-file',
   'library:reveal',
   'library:delete',
   'library:share',

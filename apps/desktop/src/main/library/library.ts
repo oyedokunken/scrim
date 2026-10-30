@@ -320,6 +320,13 @@ export function createLibrary(deps: LibraryDeps) {
       return (await deps.openPath(entry.file)) === '';
     },
 
+    /** Opens the exported video or the screenshot in the system app for its type. */
+    async openFile(id: string): Promise<boolean> {
+      const entry = need(id);
+      if (entry.file === null || !(await deps.exists(entry.file))) return false;
+      return (await deps.openPath(entry.file)) === '';
+    },
+
     async thumbnail(id: string): Promise<string | null> {
       const entry = need(id);
       try {

@@ -9,20 +9,25 @@ export type OpenedItem = Exclude<
 >;
 export type Recoverable = OutputOf<'recording:list-recoverable'>[number];
 
-interface LibraryData {
-  /** Null until the first listing arrives. */
-  items: readonly LibraryItem[] | null;
-  recoverable: readonly Recoverable[];
-  canShare: boolean;
+/** What can be done to one item. The list and the detail page use the same ones. */
+export interface LibraryActions {
   open: (id: string) => Promise<OutputOf<'library:open'>>;
   rename: (id: string, name: string) => Promise<OutputOf<'library:rename'>>;
   reveal: (id: string) => Promise<void>;
+  openFile: (id: string) => Promise<boolean>;
   share: (id: string) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
   recover: (
     folder: string,
   ) => Promise<{ ok: true; folder: string } | { ok: false; message: string }>;
   discard: (folder: string) => Promise<void>;
+}
+
+interface LibraryData extends LibraryActions {
+  /** Null until the first listing arrives. */
+  items: readonly LibraryItem[] | null;
+  recoverable: readonly Recoverable[];
+  canShare: boolean;
 }
 
 /**
@@ -91,6 +96,7 @@ export function useLibrary(active: boolean): LibraryData {
     reveal: async (id) => {
       await window.scrim.invoke('library:reveal', { id }).catch(() => undefined);
     },
+    openFile: (id) => window.scrim.invoke('library:open-file', { id }).catch(() => false),
     share: (id) => attempt(() => window.scrim.invoke('library:share', { id })),
     remove: (id) => attempt(() => window.scrim.invoke('library:delete', { id })),
     recover: async (folder) => {

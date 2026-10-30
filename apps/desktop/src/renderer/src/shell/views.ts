@@ -30,9 +30,9 @@ export const VIEW_LABELS: Record<ViewId, string> = {
   settings: 'Settings',
 };
 
-/** Library and Settings use the whole width, so they have no right panel. */
+/** Library, Settings and Screenshot use the whole width, so they have no right panel. */
 export function hasPanel(view: ViewId): boolean {
-  return view !== 'library' && view !== 'settings' && view !== 'editor';
+  return view !== 'library' && view !== 'settings' && view !== 'editor' && view !== 'screenshot';
 }
 
 /** The settings views whose panels the editor and the record view share. */

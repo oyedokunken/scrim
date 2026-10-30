@@ -48,3 +48,16 @@ export function emptyReason(
 export function thumbKey(item: LibraryItem): string {
   return `${item.kind}|${item.name}|${String(item.createdMs)}|${String(item.bytes)}`;
 }
+
+export const NEW_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Anything made in the last 24 hours gets the NEW pill. A clock set back never hides it. */
+export function isNew(item: LibraryItem, nowMs: number): boolean {
+  return nowMs - item.createdMs < NEW_WINDOW_MS;
+}
+
+/** The file name as it is on disk: the name plus .png or .mp4. A recording without a file has only its name. */
+export function fullFileName(item: LibraryItem): string {
+  if (!item.isFile) return item.name;
+  return `${item.name}${item.kind === 'screenshot' ? '.png' : '.mp4'}`;
+}

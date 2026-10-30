@@ -123,13 +123,41 @@ test.describe('the library', () => {
     }
   });
 
-  test('opens a screenshot in the result view', async ({ app, page }) => {
+  test('opens a detail page that keeps the filters, and goes back with Back or Escape', async ({
+    app,
+    page,
+  }) => {
     const disk = await arrange(app, true);
     try {
       await openLibrary(page);
+      await page.getByRole('radio', { name: 'Screenshots' }).click();
       await page.getByRole('button', { name: 'Open Login screen' }).click();
-      await expect(page.getByRole('heading', { name: 'Screenshot', level: 1 })).toBeVisible();
-      await expect(page.getByRole('img', { name: /Screenshot 160 by 90/ })).toBeVisible();
+      const detail = page.getByRole('region', { name: /Details for Login screen/ });
+      await expect(detail).toBeVisible();
+      await expect(detail.getByText('Login screen.png').first()).toBeVisible();
+      await expect(detail.getByText('160 by 90')).toBeVisible();
+      for (const name of ['Open', 'Show in folder', 'Copy', 'Delete']) {
+        await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
+      }
+      await page.getByRole('button', { name: 'Back', exact: true }).click();
+      await expect(cards(page)).toHaveCount(2);
+      await expect(page.getByRole('radio', { name: 'Screenshots' })).toBeChecked();
+
+      await page.getByRole('button', { name: 'Open Login screen' }).click();
+      await expect(detail).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(detail).toHaveCount(0);
+      await expect(cards(page)).toHaveCount(2);
+    } finally {
+      disk.cleanup();
+    }
+  });
+
+  test('marks anything made in the last day with a NEW pill', async ({ app, page }) => {
+    const disk = await arrange(app, true);
+    try {
+      await openLibrary(page);
+      await expect(page.locator('.lib-new').first()).toHaveText('NEW');
     } finally {
       disk.cleanup();
     }

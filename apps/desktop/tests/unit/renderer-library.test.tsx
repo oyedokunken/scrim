@@ -2,6 +2,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
   emptyReason,
+  fullFileName,
+  isNew,
+  NEW_WINDOW_MS,
   itemKindLabel,
   thumbKey,
   visibleItems,
@@ -137,5 +140,23 @@ describe('the library contract', () => {
     expect(input.safeParse({ id: 'a', name: 'ok' }).success).toBe(true);
     expect(input.safeParse({ id: 'a', name: '' }).success).toBe(false);
     expect(input.safeParse({ id: 'a', name: 'x'.repeat(121) }).success).toBe(false);
+  });
+});
+
+describe('isNew', () => {
+  it('marks anything made in the last 24 hours', () => {
+    const now = 10 * NEW_WINDOW_MS;
+    expect(isNew(item({ createdMs: now - 1000 }), now)).toBe(true);
+    expect(isNew(item({ createdMs: now - NEW_WINDOW_MS + 1 }), now)).toBe(true);
+    expect(isNew(item({ createdMs: now - NEW_WINDOW_MS }), now)).toBe(false);
+    expect(isNew(item({ createdMs: now + 5000 }), now)).toBe(true);
+  });
+});
+
+describe('fullFileName', () => {
+  it('adds the extension of the file on disk', () => {
+    expect(fullFileName(item({ name: 'Take 1' }))).toBe('Take 1.mp4');
+    expect(fullFileName(item({ kind: 'screenshot', name: 'Shot' }))).toBe('Shot.png');
+    expect(fullFileName(item({ name: 'Take 2', isFile: false }))).toBe('Take 2');
   });
 });

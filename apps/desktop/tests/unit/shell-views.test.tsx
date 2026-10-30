@@ -41,10 +41,13 @@ describe('views', () => {
     for (const id of VIEW_IDS) expect(VIEW_LABELS[id].length).toBeGreaterThan(0);
   });
 
-  it('gives library and settings the full width, and every other view a panel', () => {
+  it('gives library, settings and screenshot the full width, and every other view a panel', () => {
     expect(hasPanel('library')).toBe(false);
     expect(hasPanel('settings')).toBe(false);
-    for (const id of VIEW_IDS.filter((v) => v !== 'library' && v !== 'settings')) {
+    expect(hasPanel('screenshot')).toBe(false);
+    for (const id of VIEW_IDS.filter(
+      (v) => v !== 'library' && v !== 'settings' && v !== 'screenshot',
+    )) {
       expect(hasPanel(id)).toBe(true);
     }
   });

@@ -1095,6 +1095,105 @@ input[type='checkbox'] {
   border-radius: var(--ui-radius-md);
 }
 
+.lib-card {
+  position: relative;
+}
+
+.lib-new {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1;
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--scrim-white);
+  pointer-events: none;
+  background: var(--scrim-green);
+  border-radius: 999px;
+}
+
+.lib-detail {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.lib-detail-bar {
+  display: flex;
+}
+
+.lib-detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .lib-detail-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lib-detail-preview {
+  display: grid;
+  min-height: 200px;
+  place-items: center;
+  overflow: hidden;
+  color: var(--scrim-text-secondary);
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.lib-detail-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+}
+
+.lib-detail-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.lib-detail-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.lib-detail-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.lib-detail-facts div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.lib-detail-facts dt {
+  color: var(--scrim-text-secondary);
+}
+
+.lib-detail-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.lib-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .lib-open {
   display: block;
   padding: 0;
