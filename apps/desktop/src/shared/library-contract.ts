@@ -70,6 +70,8 @@ export const libraryContract = {
   'library:preview': { input: idInput, output: z.string().nullable() },
   /** Plays the exported video in the system player. */
   'library:play': { input: idInput, output: z.boolean() },
+  /** Opens the file itself in the system app for its type. False when the file is gone or no app opened it. */
+  'library:open-file': { input: idInput, output: z.boolean() },
   'library:reveal': { input: idInput, output: z.void() },
   'library:delete': { input: idInput, output: z.void() },
   'library:share': { input: idInput, output: z.void() },

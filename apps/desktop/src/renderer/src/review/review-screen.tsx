@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, ConfirmDialog, Segmented } from '../../ui';
 import { formatBytes, formatTimer } from '../format';
 import type { ExportJobView, Finished } from '../hooks';
+import { ShareDialog } from '../share/share-dialog';
 import { ReviewPlayer, type ReviewMode } from './review-player';
 
 type Review = Extract<
@@ -20,8 +21,6 @@ export interface ReviewScreenProps {
   onRetrySafer: (jobId: string) => void;
   onOpenEditor?: () => void;
   onShowInFolder: () => void;
-  /** Left out until sharing exists for the platform. */
-  onShare?: () => void;
   onRecordAgain: () => void;
   /** Called after the recording was moved to the Recycle Bin. */
   onDiscarded: () => void;
@@ -72,7 +71,6 @@ export function ReviewScreen({
   onRetrySafer,
   onOpenEditor,
   onShowInFolder,
-  onShare,
   onRecordAgain,
   onDiscarded,
   onExported,
@@ -82,6 +80,7 @@ export function ReviewScreen({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<ReviewMode>('before');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const mine = job !== null && job.recording === folderName(finished.folder);
   const preview = mine && job.preview ? job : null;
@@ -298,7 +297,13 @@ export function ReviewScreen({
               <Button onClick={onOpenEditor}>Open in editor</Button>
             )}
             <Button onClick={onShowInFolder}>Show in folder</Button>
-            {onShare === undefined ? null : <Button onClick={onShare}>Share</Button>}
+            <Button
+              onClick={() => {
+                setSharing(true);
+              }}
+            >
+              Share
+            </Button>
             <Button onClick={onRecordAgain}>Record again</Button>
             <Button
               variant="danger"
@@ -311,6 +316,15 @@ export function ReviewScreen({
           </div>
         </>
       )}
+
+      {sharing ? (
+        <ShareDialog
+          source={{ kind: 'review', folder: finished.folder }}
+          onClose={() => {
+            setSharing(false);
+          }}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={confirmDiscard}

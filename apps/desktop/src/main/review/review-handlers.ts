@@ -41,7 +41,7 @@ const NOT_FOUND = {
 };
 
 /** The name of the working copy for a recording folder: its session name with `.mp4`. */
-function previewPathFor(previewDir: string, folder: string): string {
+export function previewPathFor(previewDir: string, folder: string): string {
   return join(previewDir, `${basename(folder).replace(/\.scrim$/i, '')}.mp4`);
 }
 

@@ -1,14 +1,16 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { enterApp, expect, test } from './fixtures';
 
 async function open(page: Page, view: string): Promise<void> {
-  await page.getByRole('button', { name: /get started|continue/i }).click();
+  await enterApp(page);
   await page.getByRole('button', { name: view, exact: true }).click();
   await expect(page.getByRole('heading', { name: view, level: 1 })).toBeVisible();
 }
 
 async function noSidewaysScroll(page: Page): Promise<void> {
   for (const selector of ['.shell-panel', '.shell-main']) {
+    // Camera and Screenshot have no right panel.
+    if ((await page.locator(selector).count()) === 0) continue;
     expect(
       await page
         .locator(selector)
@@ -52,6 +54,13 @@ test.describe('the Camera page', () => {
     await page.mouse.move(frame.x + 20, frame.y + frame.height - 20, { steps: 6 });
     await page.mouse.up();
     await expect(bubble).toHaveClass(/bubble-bottom-left/);
+    await noSidewaysScroll(page);
+  });
+
+  test('keeps its controls in the right panel', async ({ page }) => {
+    await open(page, 'Camera');
+    const panel = page.getByRole('complementary');
+    await expect(panel.getByRole('switch', { name: 'Show camera' })).toBeVisible();
     await noSidewaysScroll(page);
   });
 

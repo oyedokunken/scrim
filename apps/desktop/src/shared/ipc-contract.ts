@@ -7,6 +7,7 @@ import { reviewContract } from './review-contract';
 import { exportContract, exportJobSchema } from './export-contract';
 import { imageContract } from './image-contract';
 import { libraryContract } from './library-contract';
+import { shareContract } from './share-contract';
 import {
   areaOutcomeSchema,
   areaRequestSchema,
@@ -78,6 +79,7 @@ export const contract = {
   ...aboutContract,
   ...imageContract,
   ...libraryContract,
+  ...shareContract,
   ...editorContract,
   ...exportContract,
   ...reviewContract,

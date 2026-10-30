@@ -111,6 +111,16 @@
   transition: background var(--ui-ease);
 }
 
+/* A choice with a tooltip sits in a host element, which takes the share the button would. */
+.ui-segmented > .ui-tooltip-host {
+  display: flex;
+  flex: 1;
+}
+
+.ui-segmented > .ui-tooltip-host > .ui-segment {
+  width: 100%;
+}
+
 .ui-segment.selected {
   color: var(--scrim-black);
   background: var(--scrim-white);
@@ -653,6 +663,32 @@
 
 .shot-toolbar .ui-segment {
   min-width: 36px;
+}
+
+/* Small, Medium and Thick take the same width with even gaps, and the chosen one is solid green. */
+.shot-toolbar .shot-thickness {
+  display: grid;
+  grid-auto-columns: minmax(72px, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+}
+
+.shot-thickness .ui-tooltip-host {
+  display: flex;
+}
+
+.shot-thickness .ui-segment {
+  width: 100%;
+  min-width: 0;
+  padding: 0 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.shot-thickness .ui-segment.selected {
+  color: var(--scrim-white);
+  background: var(--scrim-green);
+  box-shadow: none;
 }
 
 .shot-tools {

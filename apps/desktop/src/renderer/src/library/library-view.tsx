@@ -1,5 +1,15 @@
-import { FolderOpen, Image, Pencil, Search, Share2, Trash2, Video } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  Copy,
+  ExternalLink,
+  FolderOpen,
+  Image,
+  Pencil,
+  Search,
+  Share2,
+  Trash2,
+  Video,
+} from 'lucide-react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   ConfirmDialog,
@@ -14,13 +24,18 @@ import type { LibraryItem } from '../../../shared/library-contract';
 import { formatWhen } from '../format';
 import { useClock } from '../hooks';
 import {
+  cardFacts,
   emptyReason,
-  itemKindLabel,
+  fullFileName,
+  isNew,
   thumbKey,
   visibleItems,
   type LibraryFilter,
   type LibraryOrder,
 } from './library-model';
+import { ShareDialog } from '../share/share-dialog';
+import type { ShareSource } from '../../../shared/share-contract';
+import { LibraryDetail } from './library-detail';
 import { useLibrary, type OpenedItem, type Recoverable } from './use-library';
 
 const thumbCache = new Map<string, string | null>();
@@ -28,15 +43,26 @@ const thumbCache = new Map<string, string | null>();
 interface CardProps {
   item: LibraryItem;
   now: number;
-  canShare: boolean;
   onOpen: () => void;
+  onOpenFile: () => void;
   onRename: () => void;
   onReveal: () => void;
+  onCopy: () => void;
   onShare: () => void;
   onDelete: () => void;
 }
 
-function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDelete }: CardProps) {
+function Card({
+  item,
+  now,
+  onOpen,
+  onOpenFile,
+  onRename,
+  onReveal,
+  onCopy,
+  onShare,
+  onDelete,
+}: CardProps) {
   const key = thumbKey(item);
   const [loaded, setLoaded] = useState<{ key: string; url: string | null } | null>(null);
   const url = thumbCache.get(key) ?? (loaded?.key === key ? loaded.url : null);
@@ -56,14 +82,21 @@ function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDele
     };
   }, [key, item.id]);
 
+  const icon = (size: number) =>
+    item.kind === 'screenshot' ? (
+      <Image size={size} strokeWidth={1.5} aria-hidden="true" />
+    ) : (
+      <Video size={size} strokeWidth={1.5} aria-hidden="true" />
+    );
+
   const menu = [
     ...(item.isFile
       ? [
           {
-            key: 'rename',
-            label: 'Rename',
-            icon: <Pencil size={16} strokeWidth={1.75} />,
-            onSelect: onRename,
+            key: 'open',
+            label: 'Open',
+            icon: <ExternalLink size={16} strokeWidth={1.75} />,
+            onSelect: onOpenFile,
           },
         ]
       : []),
@@ -73,13 +106,29 @@ function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDele
       icon: <FolderOpen size={16} strokeWidth={1.75} />,
       onSelect: onReveal,
     },
-    ...(canShare && item.isFile
+    ...(item.isFile && item.kind === 'screenshot'
+      ? [
+          {
+            key: 'copy',
+            label: 'Copy',
+            icon: <Copy size={16} strokeWidth={1.75} />,
+            onSelect: onCopy,
+          },
+        ]
+      : []),
+    ...(item.isFile
       ? [
           {
             key: 'share',
             label: 'Share',
             icon: <Share2 size={16} strokeWidth={1.75} />,
             onSelect: onShare,
+          },
+          {
+            key: 'rename',
+            label: 'Rename',
+            icon: <Pencil size={16} strokeWidth={1.75} />,
+            onSelect: onRename,
           },
         ]
       : []),
@@ -94,26 +143,42 @@ function Card({ item, now, canShare, onOpen, onRename, onReveal, onShare, onDele
 
   return (
     <li className="lib-card">
-      <button type="button" className="lib-open" onClick={onOpen} aria-label={`Open ${item.name}`}>
+      <button
+        type="button"
+        className="lib-open"
+        onClick={onOpen}
+        aria-label={`Open ${item.name}`}
+        draggable={item.isFile}
+        onDragStart={(event) => {
+          event.preventDefault();
+          if (item.isFile) {
+            void window.scrim.invoke('share:drag', { source: { kind: 'library', id: item.id } });
+          }
+        }}
+      >
+        {isNew(item, now) ? <span className="lib-new">NEW</span> : null}
         <span className="thumb lib-thumb">
-          {url === null ? (
-            item.kind === 'screenshot' ? (
-              <Image size={24} strokeWidth={1.5} aria-hidden="true" />
-            ) : (
-              <Video size={24} strokeWidth={1.5} aria-hidden="true" />
-            )
-          ) : (
-            <img src={url} alt="" draggable={false} />
-          )}
+          {url === null ? icon(24) : <img src={url} alt="" draggable={false} />}
         </span>
       </button>
       <div className="lib-meta">
         <div className="lib-text">
-          <Tooltip label={item.name}>
-            <span className="lib-name">{item.name}</span>
+          <Tooltip label={fullFileName(item)}>
+            <span className="lib-card-name">{item.name}</span>
           </Tooltip>
-          <span className="lib-sub">
-            {itemKindLabel(item)}, {formatWhen(item.createdMs, now)}
+          <span className="lib-facts">
+            <span
+              className="lib-type"
+              role="img"
+              aria-label={item.kind === 'screenshot' ? 'Screenshot' : 'Recording'}
+            >
+              {icon(14)}
+            </span>
+            {cardFacts(item, now).map((fact) => (
+              <span key={fact} className="lib-fact">
+                {fact}
+              </span>
+            ))}
           </span>
         </div>
         <Menu label={`More for ${item.name}`} items={menu} />
@@ -155,40 +220,69 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
   const [renameText, setRenameText] = useState('');
   const [deleting, setDeleting] = useState<LibraryItem | null>(null);
   const [dismissing, setDismissing] = useState<Recoverable | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<ShareSource | null>(null);
+  const scrollTop = useRef(0);
+
+  const openDetail = (id: string): void => {
+    const scroller = document.querySelector('.shell-main');
+    scrollTop.current = scroller?.scrollTop ?? 0;
+    try {
+      window.history.pushState(null, '', `#/library/${id}`);
+    } catch {
+      // A page that cannot change its address still shows the detail.
+    }
+    setDetailId(id);
+  };
+
+  const closeDetail = (): void => {
+    if (window.location.hash.startsWith('#/library/')) window.history.back();
+    else setDetailId(null);
+  };
+
+  // The route is the address: back, forward and a closed page all leave the detail the same way.
+  useEffect(() => {
+    const onPop = (): void => {
+      const match = /^#\/library\/(.+)$/.exec(window.location.hash);
+      setDetailId(match?.[1] ?? null);
+    };
+    const onKey = (event: KeyboardEvent): void => {
+      if (detailId === null || event.defaultPrevented) return;
+      if (document.querySelector('dialog[open]') !== null) return;
+      if (event.key === 'Escape' || (event.altKey && event.key === 'ArrowLeft')) {
+        event.preventDefault();
+        closeDetail();
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.removeEventListener('keydown', onKey);
+    };
+  });
+
+  // Leaving the Library while a detail is open must not leave its address behind.
+  useEffect(
+    () => () => {
+      if (window.location.hash.startsWith('#/library/')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    },
+    [],
+  );
+
+  useLayoutEffect(() => {
+    if (detailId !== null) return;
+    const scroller = document.querySelector('.shell-main');
+    if (scroller !== null) scroller.scrollTop = scrollTop.current;
+  }, [detailId]);
 
   const items = library.items;
   const shown = useMemo(
     () => (items === null ? [] : visibleItems(items, { filter, query, order })),
     [items, filter, query, order],
   );
-
-  const open = (item: LibraryItem): void => {
-    void library.open(item.id).then(
-      (opened) => {
-        if (opened.kind === 'missing') {
-          showError({
-            title: 'Scrim could not find that file',
-            message: 'It may have been moved or deleted. The Library shows what is there now.',
-            code: 'file-missing',
-          });
-        } else if (opened.kind === 'played') {
-          toast('Opened in your video player');
-        } else {
-          onOpened(opened);
-        }
-      },
-      () => {
-        showError({
-          title: 'Scrim could not open that',
-          message: 'Try again. If it keeps happening, restart Scrim.',
-          code: 'open-failed',
-          retry: () => {
-            open(item);
-          },
-        });
-      },
-    );
-  };
 
   const submitRename = (): void => {
     const item = renaming;
@@ -220,7 +314,21 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
     });
   };
 
+  const detailItem = detailId === null ? undefined : items?.find((entry) => entry.id === detailId);
+
   const reason = items === null ? 'has-items' : emptyReason(items.length, shown.length);
+
+  if (detailItem !== undefined) {
+    return (
+      <LibraryDetail
+        item={detailItem}
+        actions={library}
+        onBack={closeDetail}
+        onOpened={onOpened}
+        onReload={library.reload}
+      />
+    );
+  }
 
   return (
     <section className="library" aria-label="Library">
@@ -308,9 +416,32 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
               key={item.id}
               item={item}
               now={now}
-              canShare={library.canShare}
               onOpen={() => {
-                open(item);
+                openDetail(item.id);
+              }}
+              onOpenFile={() => {
+                void library.openFile(item.id).then((ok) => {
+                  if (!ok) {
+                    showError({
+                      title: 'Scrim could not find that file',
+                      message:
+                        'It may have been moved or deleted. The Library shows what is there now.',
+                      code: 'file-missing',
+                    });
+                  }
+                });
+              }}
+              onCopy={() => {
+                void library.copyImage(item.id).then((ok) => {
+                  if (ok) toast('Copied to the clipboard');
+                  else {
+                    showError({
+                      title: 'Scrim could not copy the screenshot',
+                      message: 'Try again.',
+                      code: 'copy-failed',
+                    });
+                  }
+                });
               }}
               onRename={() => {
                 setRenameText(item.name);
@@ -320,15 +451,7 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
                 void library.reveal(item.id);
               }}
               onShare={() => {
-                void library.share(item.id).then((ok) => {
-                  if (!ok) {
-                    showError({
-                      title: 'Scrim could not open the share sheet',
-                      message: 'Try again.',
-                      code: 'share-failed',
-                    });
-                  }
-                });
+                setSharing({ kind: 'library', id: item.id });
               }}
               onDelete={() => {
                 setDeleting(item);
@@ -337,6 +460,17 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
           ))}
         </ul>
       )}
+
+      <ShareDialog
+        source={sharing}
+        onClose={() => {
+          setSharing(null);
+        }}
+        onMissing={() => {
+          setSharing(null);
+          library.reload();
+        }}
+      />
 
       <Dialog
         open={renaming !== null}

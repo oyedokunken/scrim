@@ -47,11 +47,21 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       lookup: vi.fn(() => Promise.resolve(null)),
       preview: vi.fn(() => Promise.resolve(null)),
       play: vi.fn(() => Promise.resolve(true)),
+      openFile: vi.fn(() => Promise.resolve(true)),
+      fileOf: vi.fn(() => undefined),
       reveal: vi.fn(),
       remove: vi.fn(() => Promise.resolve()),
       share: vi.fn(() => Promise.resolve()),
     },
     share: null,
+    shareService: {
+      isAllowed: vi.fn(() => true),
+      info: vi.fn(() =>
+        Promise.resolve({ ok: false as const, reason: 'missing' as const, message: 'x' }),
+      ),
+      run: vi.fn(() => Promise.resolve({ ok: true as const, message: 'x' })),
+      drag: vi.fn(() => Promise.resolve()),
+    },
     shortcutStatus: () => [],
     exporter: {
       start: vi.fn(),
