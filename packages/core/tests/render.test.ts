@@ -550,3 +550,26 @@ describe('smoothness', () => {
     expect(smoothnessToEaseMs(7)).toBe(700);
   });
 });
+
+describe('pointer in a frame description', () => {
+  it('follows the mouse even when the cursor style is off, if the capture hides the cursor', () => {
+    const model = createRenderModel(
+      input({
+        session: session({ capture: { cursorInCapture: false } }),
+        settings: { preset: '1080p', fps: 30, style: { cursor: { style: 'off' } } },
+      }),
+    );
+    const at = model.describeAt(2000);
+    expect(at.cursor.halo).toBeNull();
+    expect(at.pointer?.x).toBeCloseTo(960, 0);
+    expect(at.pointer?.y).toBeCloseTo(540, 0);
+  });
+
+  it('is null when the capture already holds the cursor, or there is no log', () => {
+    expect(createRenderModel(input()).describeAt(2000).pointer).toBeNull();
+    const noLog = createRenderModel(
+      input({ session: session({ capture: { cursorInCapture: false } }), log: null }),
+    );
+    expect(noLog.describeAt(2000).pointer).toBeNull();
+  });
+});

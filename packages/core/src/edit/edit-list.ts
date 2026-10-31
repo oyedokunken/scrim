@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { zoomEditsSchema } from '../zoom/moments-schema';
+import { textListSchema } from './text-schema';
 
 const span = z
   .strictObject({ startMs: z.number().nonnegative(), endMs: z.number().nonnegative() })
@@ -16,6 +17,8 @@ export const editListSchema = z.strictObject({
   cuts: z.array(span),
   /** The zoom moments the person edited. Absent means the planner decides, an empty list means no zoom. */
   zoom: zoomEditsSchema.optional(),
+  /** Text laid over the video. Absent in files saved before text existed, which load as no text. */
+  texts: textListSchema.optional(),
 });
 
 export type EditList = z.infer<typeof editListSchema>;

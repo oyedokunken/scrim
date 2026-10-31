@@ -572,6 +572,7 @@ export async function exportRecording(
             cameraSize,
             view: description.view,
             cursor: description.cursor,
+            texts: description.texts,
             bubble: cameraFrame === null ? null : placement,
           },
           out,
