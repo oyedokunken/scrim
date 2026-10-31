@@ -44,7 +44,10 @@ describe.skipIf(folders.length === 0)('the editor model on a real recording', ()
       const clicks = log.events.filter(
         (e) => e.type === 'click' && e.button === 'left' && e.t < model.totalMs - 1200,
       );
-      if (clicks.length > 0) expect(model.zoomMoments.length).toBeGreaterThan(0);
+      // Zoom is planned from the clicks only when the person did not save their own zoom moments, and
+      // a region recording ignores clicks that land outside the recorded box.
+      const planned = edits.zoom === undefined && session.source.cropPx === undefined;
+      if (planned && clicks.length > 0) expect(model.zoomMoments.length).toBeGreaterThan(0);
       for (let t = 0; t < model.totalMs; t += 250) {
         const frame = model.describeAt(t);
         expect(frame.view.x).toBeGreaterThanOrEqual(-1e-6);
