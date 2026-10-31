@@ -65,7 +65,7 @@ jobs:
         run: |
           pnpm build
           Set-Content -Path "$env:RUNNER_TEMP/bare-main.js" -Value "console.log('bare electron ok', process.versions.electron); require('electron').app.quit();"
-          $electron = (Resolve-Path "../../node_modules/.pnpm/electron@*/node_modules/electron/dist/electron.exe").Path | Select-Object -First 1
+          $electron = (node -p "require('electron')").Trim()
           Write-Host "electron: $electron"
           $env:ELECTRON_ENABLE_LOGGING = "1"
           $bare = Start-Process -FilePath $electron -ArgumentList "$env:RUNNER_TEMP/bare-main.js","--no-sandbox","--disable-gpu" -PassThru -Wait -RedirectStandardOutput "$env:RUNNER_TEMP/bare.out" -RedirectStandardError "$env:RUNNER_TEMP/bare.err"
