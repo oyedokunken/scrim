@@ -10,7 +10,11 @@ import {
   thumbKey,
   visibleItems,
 } from '../../src/renderer/src/library/library-model';
+import { LibraryDetail } from '../../src/renderer/src/library/library-detail';
+import type { LibraryActions } from '../../src/renderer/src/library/use-library';
+import { ErrorProvider } from '../../src/renderer/ui/error-dialog';
 import { Menu } from '../../src/renderer/ui/menu';
+import { ToastProvider } from '../../src/renderer/ui/toast';
 import { libraryContract } from '../../src/shared/library-contract';
 import type { LibraryItem } from '../../src/shared/library-contract';
 
@@ -183,5 +187,49 @@ describe('cardFacts', () => {
       createdMs: Date.parse('2026-10-29T10:00:00'),
     });
     expect(cardFacts(shot, now)).toEqual(['800 by 600', 'Yesterday 10:00']);
+  });
+});
+
+describe('the Library detail page', () => {
+  const actions = {} as unknown as LibraryActions;
+  const render = (entry: LibraryItem) =>
+    renderToStaticMarkup(
+      <ToastProvider>
+        <ErrorProvider>
+          <LibraryDetail
+            item={entry}
+            actions={actions}
+            onBack={vi.fn()}
+            onOpened={vi.fn()}
+            onReload={vi.fn()}
+          />
+        </ErrorProvider>
+      </ToastProvider>,
+    );
+  /** The button names inside the actions group, in order. */
+  const labels = (html: string): (string | undefined)[] => {
+    const group = html.slice(html.indexOf('lib-detail-actions'));
+    const end = group.indexOf('</div>');
+    return [...group.slice(0, end).matchAll(/<\/span>([^<]+)<\/button>/g)].map((m) => m[1]);
+  };
+
+  it('puts Edit first for a screenshot, then Open and Show in folder', () => {
+    const names = labels(render(item({ kind: 'screenshot', width: 10, height: 10 })));
+    expect(names).toEqual(['Edit', 'Open', 'Show in folder', 'Copy', 'Share', 'Delete']);
+  });
+
+  it('puts Edit first for a recording that can still be edited', () => {
+    expect(labels(render(item({})))).toEqual([
+      'Edit',
+      'Open',
+      'Show in folder',
+      'Copy file',
+      'Share',
+      'Delete',
+    ]);
+  });
+
+  it('offers no Edit for a recording without its working files', () => {
+    expect(labels(render(item({ canEdit: false })))).not.toContain('Edit');
   });
 });
