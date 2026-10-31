@@ -286,6 +286,14 @@ test('Stop opens the review, Before, After and Compare play, and Export writes o
       await sleep(500);
     }
     expect(job?.phase, JSON.stringify(job) + recent()).toBe('done');
+    // The done dialog opens first, with a green progress bar already gone and the actions in it.
+    const doneDialog = page.getByRole('dialog', { name: 'Your video is ready' });
+    await expect(doneDialog).toBeVisible({ timeout: 20_000 });
+    await expect(doneDialog.getByRole('button', { name: 'Show in folder' })).toBeVisible();
+    await expect(doneDialog.getByRole('button', { name: 'Open', exact: true })).toBeVisible();
+    await expect(doneDialog.getByRole('button', { name: 'Share' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Review your recording' })).toHaveCount(1);
+    await doneDialog.getByRole('button', { name: 'Done' }).click();
     await expect(page.getByRole('heading', { name: 'Review your recording' })).toHaveCount(0);
     expect(readdirSync(cache).filter((name) => name.endsWith('.mp4'))).toHaveLength(0);
 

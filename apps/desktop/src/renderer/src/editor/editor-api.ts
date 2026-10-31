@@ -28,6 +28,10 @@ export interface ExportView {
   detail?: string | undefined;
   /** The finished file's name. */
   fileName?: string | undefined;
+  /** The finished file's size, length and whether it landed in the app's own folder. */
+  bytes?: number | undefined;
+  durationMs?: number | undefined;
+  fellBack?: boolean | undefined;
 }
 
 type StartExportResult = { ok: true; jobId: string } | { ok: false; message: string };

@@ -423,21 +423,11 @@ export function MainScreen() {
                 },
                 onRecordAgain: dismiss,
                 onDiscarded: dismiss,
-                // The file is in Library now, so the main view clears and Library opens on it.
-                onExported: (result) => {
+                // The done dialog told the person where the file is (and any fall back to the app's
+                // own folder). Closing it clears the main view and opens Library.
+                onExported: () => {
                   dismiss();
                   setView('library');
-                  if (result.fellBack) {
-                    showError({
-                      title: "The video was saved in Scrim's own folder",
-                      message:
-                        "Windows would not let Scrim save to your folder, so the video is in the Library from Scrim's own folder instead.",
-                      nextStep:
-                        'To save to your folder again, allow Scrim under Windows Security, Ransomware protection, Controlled folder access. Or choose another folder.',
-                      code: 'saved-elsewhere',
-                      actions: blockedFolderActions('recordings'),
-                    });
-                  }
                 },
                 onProblem: (message: string, nextStep: string) => {
                   showError({ title: 'Scrim could not discard this recording', message, nextStep });

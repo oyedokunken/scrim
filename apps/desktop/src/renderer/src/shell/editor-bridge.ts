@@ -14,7 +14,14 @@ function toExportView(job: ExportJobView): ExportView {
     etaMs: job.progress?.etaMs ?? null,
     ...(job.error === null ? {} : { message: `${job.error.message} ${job.error.nextStep}` }),
     ...(job.error?.stderrTail === undefined ? {} : { detail: job.error.stderrTail }),
-    ...(job.result === null ? {} : { fileName: job.result.fileName }),
+    ...(job.result === null
+      ? {}
+      : {
+          fileName: job.result.fileName,
+          bytes: job.result.bytes,
+          durationMs: job.result.durationMs,
+          fellBack: job.result.fellBack,
+        }),
   };
 }
 
