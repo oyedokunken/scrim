@@ -6,6 +6,7 @@ import {
   type ViewRect,
 } from '../camera/camera';
 import { toMediaTime } from '../clock/media-time';
+import { activeTexts, isTextVisible, tidyTexts, type TextItem } from '../edit/text';
 import type { EditList } from '../edit/edit-list';
 import { outputSize, type ResolutionPreset } from '../export/size';
 import type { Frame, InputEvent } from '../input/types';
@@ -72,6 +73,8 @@ export interface RenderInput {
   /** `zoom` holds the moments the person edited. Without it the moments come from the clicks. */
   edits: Pick<EditList, 'trim' | 'cuts'> & {
     zoom?: { moments: readonly ZoomMoment[] } | undefined;
+    /** Text laid over the video. Kept in the order given. */
+    texts?: readonly TextItem[] | undefined;
   };
   settings: RenderSettings;
 }
@@ -96,6 +99,8 @@ export interface FrameDescription {
    * the cursor. The plain Before view uses it.
    */
   pointer: { x: number; y: number } | null;
+  /** The text items on screen now, after the trim and the cuts. Empty most of the time. */
+  texts: readonly TextItem[];
   bubble: BubbleLayout | null;
 }
 
@@ -115,6 +120,8 @@ export interface RenderModel {
   zoomMoments: readonly ZoomMoment[];
   /** Mic pieces in output order, or an empty list when there is no mic or sound is dropped. */
   audio: readonly AudioPiece[];
+  /** The text items that show at some point in the finished video, tidied and sorted by start. */
+  texts: readonly TextItem[];
   /** Why zoom and cursor effects are off, in plain words, or null when they are on. */
   effectsOffReason: string | null;
   describeAt(outputTimeMs: number): FrameDescription;
@@ -158,6 +165,8 @@ function intoCrop<T extends LogLike>(
   }
   return { ...log, frame: { width: crop.width, height: crop.height }, events };
 }
+
+const NO_TEXTS: readonly TextItem[] = [];
 
 function pointerAt(track: CursorTrack | null, t: number): { x: number; y: number } | null {
   if (track === null || track.events.length === 0) return null;
@@ -234,6 +243,10 @@ export function createRenderModel(input: RenderInput): RenderModel {
   const bubble =
     cameraOffset === null ? null : computeBubble(layout.content, style.bubble ?? BUBBLE_DEFAULTS);
 
+  const texts = tidyTexts(edits.texts ?? [], duration).filter((item) =>
+    isTextVisible(item, timeline),
+  );
+
   const describeAt = (outputTimeMs: number): FrameDescription => {
     const recordingTimeMs = outputToSource(timeline, outputTimeMs);
     const pose = sampleCamera(keyframes, recordingTimeMs, cameraFrame);
@@ -249,6 +262,7 @@ export function createRenderModel(input: RenderInput): RenderModel {
         cursorTrack === null ? NO_CURSOR : cursorStateAt(cursorTrack, recordingTimeMs, cursorStyle),
       // A capture that already holds the cursor needs no second one drawn over it.
       pointer: session.capture.cursorInCapture ? null : pointerAt(cursorTrack, recordingTimeMs),
+      texts: texts.length === 0 ? NO_TEXTS : activeTexts(texts, recordingTimeMs),
       bubble,
     };
   };
@@ -263,6 +277,7 @@ export function createRenderModel(input: RenderInput): RenderModel {
     keyframes,
     zoomMoments,
     audio,
+    texts,
     effectsOffReason,
     describeAt,
     describeFrame: (index) => describeAt(frameTime(index, fps)),
