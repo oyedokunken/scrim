@@ -186,35 +186,22 @@ describe('the welcome screen', () => {
     expect(welcome(true, null)).toContain('<span class="version-pill"></span>');
   });
 
-  it('credits the owner with a handle that opens a closed card, and has no privacy line', () => {
+  it('credits the owner with one plain link to the website, and has no privacy line', () => {
     const html = welcome(true);
     expect(html).toContain('Built by');
     expect(html).toMatch(
-      /<button[^>]*class="built-by-handle"[^>]*aria-expanded="false"[^>]*>@oyedokunken<\/button>/,
+      /<a[^>]*href="https:\/\/www\.oyedokun\.dev\/"[^>]*class="built-by-link"[^>]*>@oyedokunken/,
     );
-    // The card is in the page but hidden until the handle is hovered, clicked or focused.
-    expect(html).toMatch(/class="built-by-panel"[^>]*hidden/);
+    expect(html).toContain('aria-label="Built by @oyedokunken, website (opens in your browser)"');
+    expect(html).not.toContain('built-by-panel');
+    expect(html).not.toContain('built-by-tip');
+    expect(html).not.toContain('github.com');
+    expect(html).not.toContain('linkedin.com');
     expect(html).not.toContain('Nothing leaves your computer');
   });
 
-  it('offers the website, GitHub and LinkedIn in the card, each with a tooltip name', () => {
-    const html = welcome(true);
-    for (const [name, href] of [
-      ['Website', 'https://www.oyedokun.dev/'],
-      ['GitHub', 'https://github.com/oyedokunken'],
-      ['LinkedIn', 'https://www.linkedin.com/in/oyedokunken'],
-    ] as const) {
-      expect(html).toContain(`href="${href}"`);
-      expect(html).toContain(`aria-label="${name} (opens in your browser)"`);
-      expect(html).toContain(
-        `class="built-by-tip" data-visible="false" aria-hidden="true">${name}`,
-      );
-    }
-    expect(html.match(/class="built-by-link"/g)).toHaveLength(3);
-  });
-
-  it('has the main button and the handle as its only buttons', () => {
-    expect(welcome(true).match(/<button/g)).toHaveLength(2);
+  it('has the main button as its only button', () => {
+    expect(welcome(true).match(/<button/g)).toHaveLength(1);
   });
 });
 

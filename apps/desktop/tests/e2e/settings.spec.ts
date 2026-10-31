@@ -132,17 +132,19 @@ test.describe('the settings', () => {
     await openSettings(page);
     const about = page.getByRole('region', { name: 'About' });
     await expect(
-      about.getByText('A free, open source screen recorder and screenshot tool'),
+      about.getByText('Scrim is a free, open source screen recorder and screenshot tool'),
     ).toBeVisible();
     await expect(about.getByText(/^1./)).toBeVisible();
     await expect(about.getByText('MIT', { exact: true })).toBeVisible();
-    await expect(about.getByText('Computer name')).toBeVisible();
-    await expect(about.getByText(/never sent anywhere/)).toBeVisible();
     await expect(about.getByText(/LGPL version 3/)).toBeVisible();
     await expect(about.getByRole('button', { name: 'Source code' })).toBeVisible();
-    await expect(about.getByRole('button', { name: 'About the FFmpeg license' })).toBeVisible();
-    await expect(about.locator('.built-by-handle')).toHaveText('@oyedokunken');
-    await expect(page.getByRole('button', { name: 'Open logs folder' })).toBeVisible();
+    await expect(about.getByRole('button', { name: 'FFmpeg' })).toBeVisible();
+    await expect(about.locator('.built-by-link')).toContainText('@oyedokunken');
+    const machine = page.getByRole('region', { name: 'Your machine' });
+    await expect(machine.getByText('Computer name')).toBeVisible();
+    await expect(machine.getByText(/never sent anywhere/)).toBeVisible();
+    await expect(machine.getByRole('button', { name: 'Open logs folder' })).toBeVisible();
+    await expect(about.getByText('Computer name')).toHaveCount(0);
     const sideways = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );

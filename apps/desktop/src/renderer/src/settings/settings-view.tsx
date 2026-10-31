@@ -7,6 +7,7 @@ import type { FolderKind } from '../hooks';
 import type { UpdatesApi } from '../updates/use-updates';
 import { UpdatesCard } from '../updates/updates-card';
 import { AboutCard } from './about-card';
+import { MachineCard } from './machine-card';
 import { ShortcutRow } from './shortcut-row';
 
 function Section({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
@@ -242,27 +243,7 @@ export function SettingsView({
         </Section>
       )}
 
-      <Section title="Help">
-        <div>
-          <Button
-            icon={<FolderOpen size={16} strokeWidth={1.75} />}
-            onClick={() => {
-              void window.scrim.invoke('logs:open-folder').catch(() => {
-                showError({
-                  title: 'Scrim could not open the logs folder',
-                  message: 'Try again.',
-                  code: 'logs-open-failed',
-                });
-              });
-            }}
-          >
-            Open logs folder
-          </Button>
-        </div>
-        <p className="ui-help">
-          Logs stay on this computer. They never hold a file path or a window title.
-        </p>
-      </Section>
+      <MachineCard />
 
       <UpdatesCard
         snapshot={updates.snapshot}

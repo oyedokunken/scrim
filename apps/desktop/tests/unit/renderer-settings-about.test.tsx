@@ -6,30 +6,21 @@ describe('the about card', () => {
   it('shows the short line, the facts and the privacy note', () => {
     const html = renderToStaticMarkup(<AboutCard onOpenLink={() => undefined} />);
     expect(html).toContain(
-      'A free, open source screen recorder and screenshot tool for Windows, macOS and Linux.',
+      'Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux.',
     );
-    for (const label of [
-      'App name',
-      'Version',
-      'License',
-      'Release date',
-      'Last updated',
-      'Computer name',
-      'Operating system',
-    ]) {
+    for (const label of ['App name', 'Version', 'License', 'Release date', 'Last updated']) {
       expect(html).toContain(label);
     }
-    expect(html).toContain('It is never sent anywhere or saved in the logs.');
     expect(html).toContain('Source code');
-    expect(html).toContain('About the FFmpeg license');
+    expect(html).toContain('>FFmpeg<');
     expect(html).toContain('@oyedokunken');
     expect(html).toContain('LGPL version 3');
   });
 
-  it('does not repeat the app name in every sentence', () => {
+  it('names the app once, in the first sentence', () => {
     const html = renderToStaticMarkup(<AboutCard onOpenLink={() => undefined} />);
     const text = html.replace(/<[^>]+>/g, ' ');
-    expect(text.match(/Scrim/g) ?? []).toHaveLength(0);
+    expect(text.match(/Scrim/g) ?? []).toHaveLength(1);
   });
 
   it('formats dates for the reader and passes odd text through', () => {
