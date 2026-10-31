@@ -128,6 +128,9 @@ test.describe('the views', () => {
   test('the select is custom, lists each device once, and works from the keyboard', async ({
     page,
   }) => {
+    // The camera controls sit near the bottom of the Record page, so give the list room to open
+    // downwards. The test after this one covers the list flipping upwards when there is none.
+    await page.setViewportSize({ width: 1100, height: 1100 });
     // Let the real device list land first, or it would overwrite the stub below.
     await page.waitForTimeout(800);
     await page.evaluate(() => {
