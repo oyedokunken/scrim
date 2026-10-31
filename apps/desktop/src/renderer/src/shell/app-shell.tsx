@@ -8,6 +8,8 @@ import { hasPanel, type ViewId } from './views';
 
 export interface AppShellProps {
   view: ViewId;
+  /** The rail item to show as selected, when it is not the view itself (the editor opened from the Library). */
+  railSelected?: ViewId;
   onView: (view: ViewId) => void;
   /** The view title, shown at the top of the main area. The header carries only the brand. */
   title: string;
@@ -28,6 +30,7 @@ export interface AppShellProps {
 /** Header, icon rail, main area, right panel and status bar. Only the main area and the panel scroll. */
 export function AppShell({
   view,
+  railSelected,
   onView,
   title,
   recordingName,
@@ -52,7 +55,12 @@ export function AppShell({
           setHelpOpen(true);
         }}
       />
-      <Rail view={view} onView={onView} updatePill={updatePill} onUpdatePill={onUpdatePill} />
+      <Rail
+        view={railSelected ?? view}
+        onView={onView}
+        updatePill={updatePill}
+        onUpdatePill={onUpdatePill}
+      />
       <main className="shell-main">
         <h1 className="page-title">{title}</h1>
         {children}

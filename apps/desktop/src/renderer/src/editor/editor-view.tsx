@@ -31,6 +31,7 @@ import {
   type History,
   type Span,
 } from './edits';
+import { BackBar } from './back-bar';
 import { Timeline } from './timeline';
 import { usePlayback } from './use-playback';
 import { ExportPanel } from './export-panel';
@@ -48,6 +49,8 @@ export interface EditorViewProps {
   folder: string;
   api: EditorApi;
   settings: Settings;
+  /** Leaves the editor for the page the person came from. */
+  onBack: () => void;
 }
 
 /** Opens a recording and shows the editor, or says why it could not. */
@@ -74,19 +77,35 @@ export function EditorView(props: EditorViewProps) {
     };
   }, [api, folder]);
 
-  if (state.status === 'loading') return <p className="editor-note">Opening the recording</p>;
+  if (state.status === 'loading') {
+    return (
+      <>
+        <BackBar onBack={props.onBack} />
+        <p className="editor-note">Opening the recording</p>
+      </>
+    );
+  }
   if (state.status === 'error') {
     return (
-      <div className="editor-note" role="alert">
-        <p>{state.message}</p>
-        <p>Your recording was not changed.</p>
-      </div>
+      <>
+        <BackBar onBack={props.onBack} />
+        <div className="editor-note" role="alert">
+          <p>{state.message}</p>
+          <p>Your recording was not changed.</p>
+        </div>
+      </>
     );
   }
   return <Editor {...props} project={state.project} />;
 }
 
-function Editor({ folder, api, settings, project }: EditorViewProps & { project: EditorProject }) {
+function Editor({
+  folder,
+  api,
+  settings,
+  project,
+  onBack,
+}: EditorViewProps & { project: EditorProject }) {
   const screenEl = useRef<HTMLVideoElement>(null);
   const cameraEl = useRef<HTMLVideoElement>(null);
   const micEl = useRef<HTMLAudioElement>(null);
@@ -297,6 +316,7 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
   return (
     <div className="editor" role="group" aria-label="Editor" onKeyDown={onKeyDown}>
       <div className="editor-main">
+        <BackBar onBack={onBack} />
         <div className="editor-modes">
           <Segmented label="View" options={MODE_OPTIONS} value={mode} onChange={setMode} />
         </div>

@@ -147,6 +147,17 @@ describe('the Record view', () => {
     );
   });
 
+  it('shows the controls under the start screen and never beside a review', () => {
+    const controls = <p>camera and microphone</p>;
+    const start = render({ controls });
+    expect(start).toContain('class="record-controls"');
+    expect(start).toContain('camera and microphone');
+    expect(start.indexOf('record-controls')).toBeGreaterThan(start.indexOf('Start recording'));
+    const reviewing = render({ review, controls });
+    expect(reviewing).not.toContain('record-controls');
+    expect(reviewing).not.toContain('camera and microphone');
+  });
+
   it('does not print the folder path on screen', () => {
     expect(render({ review })).not.toContain('Recordings');
   });

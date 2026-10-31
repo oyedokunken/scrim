@@ -1,13 +1,13 @@
-/** The items of the icon rail, in order. The divider sits before the library. */
+/** The items of the icon rail, in order. Only Settings is pinned to the bottom. */
 export const VIEW_IDS = [
   'record',
   'screenshot',
+  'library',
   'cursor',
   'zoom',
   'camera',
   'audio',
   'background',
-  'library',
   'settings',
 ] as const;
 
@@ -31,11 +31,20 @@ export const VIEW_LABELS: Record<ViewId, string> = {
 };
 
 /**
- * Library, Settings and Screenshot use the whole width, so they have no right panel. Screenshot keeps
- * its one setting, where the pictures go, under the main view. The editor has its own panel.
+ * Only the pages that change how a recording looks keep a right panel. Record and Screenshot put
+ * their few controls under the main view, and Library, Settings and the editor use the full width.
  */
 export function hasPanel(view: ViewId): boolean {
-  return view !== 'library' && view !== 'settings' && view !== 'screenshot' && view !== 'editor';
+  return isSettingsPanel(view);
+}
+
+/**
+ * The rail item that shows as selected. A screenshot or recording opened from the Library keeps the
+ * Library selected, whatever page it leads to, until the person picks another rail item.
+ */
+export function railView(view: ViewId, openedFrom: ViewId | null): ViewId {
+  if (openedFrom === 'library' && (view === 'editor' || view === 'screenshot')) return 'library';
+  return view;
 }
 
 /** The settings views whose panels the editor and the record view share. */

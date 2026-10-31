@@ -15,6 +15,7 @@ import {
   hasPanel,
   isSettingsPanel,
   isViewId,
+  railView,
   showsSavedCard,
 } from '../../src/renderer/src/shell/views';
 import { Welcome } from '../../src/renderer/src/shell/welcome';
@@ -27,12 +28,12 @@ describe('views', () => {
     expect(VIEW_IDS).toEqual([
       'record',
       'screenshot',
+      'library',
       'cursor',
       'zoom',
       'camera',
       'audio',
       'background',
-      'library',
       'settings',
     ]);
   });
@@ -41,15 +42,21 @@ describe('views', () => {
     for (const id of VIEW_IDS) expect(VIEW_LABELS[id].length).toBeGreaterThan(0);
   });
 
-  it('gives library, settings and screenshot the full width, and every other view a panel', () => {
-    expect(hasPanel('library')).toBe(false);
-    expect(hasPanel('settings')).toBe(false);
+  it('keeps a right panel on the settings pages only', () => {
+    expect(VIEW_IDS.filter(hasPanel)).toEqual(['cursor', 'zoom', 'camera', 'audio', 'background']);
+    expect(hasPanel('record')).toBe(false);
     expect(hasPanel('screenshot')).toBe(false);
-    for (const id of VIEW_IDS.filter(
-      (v) => v !== 'library' && v !== 'settings' && v !== 'screenshot',
-    )) {
-      expect(hasPanel(id)).toBe(true);
-    }
+    expect(hasPanel('editor')).toBe(false);
+  });
+
+  it('keeps the Library selected for an editor or screenshot opened from it', () => {
+    expect(railView('editor', 'library')).toBe('library');
+    expect(railView('screenshot', 'library')).toBe('library');
+    expect(railView('library', 'library')).toBe('library');
+    expect(railView('editor', 'record')).toBe('editor');
+    expect(railView('editor', null)).toBe('editor');
+    expect(railView('screenshot', null)).toBe('screenshot');
+    expect(railView('zoom', 'library')).toBe('zoom');
   });
 
   it('knows which views are settings panels', () => {
@@ -91,12 +98,19 @@ describe('the icon rail', () => {
     expect(html.match(/aria-hidden="true"/g)).toHaveLength(9);
   });
 
-  it('pins the library and settings below a divider, apart from the scrolling group', () => {
+  it('keeps the library in the main group and pins only settings at the bottom', () => {
     expect(html).toContain('rail-top');
     expect(html.match(/class="rail-bottom"/g)).toHaveLength(1);
+    const bottom = html.slice(html.indexOf('rail-bottom'));
     expect(html.indexOf('rail-bottom')).toBeGreaterThan(html.indexOf('Background'));
-    expect(html.slice(html.indexOf('rail-bottom'))).toContain('Library');
-    expect(html.slice(html.indexOf('rail-bottom'))).toContain('Settings');
+    expect(html.indexOf('Library')).toBeLessThan(html.indexOf('rail-bottom'));
+    expect(bottom).not.toContain('Library');
+    expect(bottom).toContain('Settings');
+  });
+
+  it('shows the Library as selected when an editor opened from it is the view', () => {
+    const open = renderToStaticMarkup(<Rail view="library" onView={noop} />);
+    expect(open).toMatch(/rail-item selected" aria-current="page"[^>]*><svg[^>]*>.*?Library/s);
   });
 });
 
@@ -131,7 +145,7 @@ describe('the status bar', () => {
 });
 
 describe('the shell', () => {
-  const shell = (view: 'record' | 'library') =>
+  const shell = (view: 'zoom' | 'record' | 'library') =>
     renderToStaticMarkup(
       <AppShell
         view={view}
@@ -145,16 +159,16 @@ describe('the shell', () => {
     );
 
   it('has one main landmark, the rail, the panel and the status bar', () => {
-    const html = shell('record');
+    const html = shell('zoom');
     expect(html.match(/<main/g)).toHaveLength(1);
     expect(html).toContain('<nav class="rail"');
-    expect(html).toContain('<aside class="shell-panel" aria-label="Record settings">');
+    expect(html).toContain('<aside class="shell-panel" aria-label="Zoom settings">');
     expect(html).toContain('panel content');
     expect(html).toContain('<footer class="status-bar">');
   });
 
   it('drops the panel on views that use the whole width', () => {
-    const html = shell('library');
+    const html = shell('record');
     expect(html).toContain('shell no-panel');
     expect(html).not.toContain('shell-panel');
     expect(html).not.toContain('panel content');
@@ -311,15 +325,24 @@ describe('the placeholder', () => {
 });
 
 describe('the Screenshot view', () => {
-  const html = renderToStaticMarkup(
-    <ScreenshotView busy={false} folder={null} onChooseFolder={noop} onTake={noop} />,
-  );
+  const html = renderToStaticMarkup(<ScreenshotView busy={false} onTake={noop} />);
 
   it('uses the same stage with the button inside and Ctrl Shift X in the corner', () => {
     expect(html).toContain('class="stage"');
     expect(html).toContain('Take screenshot');
     expect(html).toContain('aria-label="Ctrl Shift X"');
     expect(html.indexOf('record-button')).toBeLessThan(html.indexOf('</section>'));
+  });
+
+  it('shows the save folder as one compact row under the stage, not a sidebar', () => {
+    const withFolder = renderToStaticMarkup(
+      <ScreenshotView busy={false} onTake={noop} folder={'D:\\Shots'} onChooseFolder={noop} />,
+    );
+    expect(withFolder).toContain('class="save-to"');
+    expect(withFolder).toContain('D:\\Shots');
+    expect(withFolder).toContain('Change folder');
+    expect(withFolder.indexOf('save-to')).toBeGreaterThan(withFolder.indexOf('Take screenshot'));
+    expect(html).not.toContain('save-to');
   });
 });
 
