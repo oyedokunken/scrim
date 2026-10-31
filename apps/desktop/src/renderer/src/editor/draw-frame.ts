@@ -1,6 +1,7 @@
 import { CURSOR_DEFAULTS, unit } from '@scrim/core/render';
 import type { BackgroundFill, FrameDescription, RenderModel } from '@scrim/core/render';
 import type { CssCursorPaint } from '../../../shared/render-style';
+import { drawTexts } from './draw-text';
 
 /** The pictures a frame is made from. Sizes come from the elements, in their own pixels. */
 export interface FrameMedia {
@@ -162,6 +163,7 @@ function drawFrame(
   }
   ctx.restore();
   drawBubble(ctx, frame, media);
+  drawTexts(ctx, frame.texts, output);
 }
 
 /** A plain arrow pointer with its tip at (x, y), `size` tall. */

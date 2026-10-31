@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import type { ZoomMoment } from '@scrim/core/zoom';
+import type { TextItem } from '@scrim/core/render';
 import { formatTimer } from '../format';
 import type { Span } from './edits';
 
@@ -15,6 +16,10 @@ export interface TimelineProps {
   selection: Span | null;
   /** Before shows no effects, so the zoom lane says where they went. */
   effectsHidden?: boolean;
+  /** Text items to mark on the strip. Empty in Before. */
+  texts?: readonly TextItem[];
+  selectedText?: string | null;
+  onSelectText?: (id: string) => void;
   onSeek: (recordingMs: number) => void;
   onSelectMoment: (index: number | null) => void;
   onMoveMoment: (index: number, deltaMs: number) => void;
@@ -193,6 +198,23 @@ export function Timeline(props: TimelineProps) {
             </div>
           ))}
         </div>
+        {props.texts === undefined || props.texts.length === 0 ? null : (
+          <div className="timeline-textlane">
+            {props.texts.map((item) => (
+              <div
+                key={item.id}
+                className={item.id === props.selectedText ? 'text-marker selected' : 'text-marker'}
+                data-testid="text-marker"
+                title={item.text}
+                style={{ left: pct(item.startMs), width: pct(item.endMs - item.startMs) }}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  props.onSelectText?.(item.id);
+                }}
+              />
+            ))}
+          </div>
+        )}
         <div className="timeline-track">
           {cuts.map((cut) => (
             <div
