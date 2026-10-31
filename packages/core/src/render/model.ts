@@ -22,7 +22,14 @@ import {
   ZOOM_LIMITS,
   type CursorStyle,
 } from './constants';
-import { cursorStateAt, NO_CURSOR, prepareCursor, type CursorState } from './cursor';
+import { cursorAt } from '../zoom/cursor';
+import {
+  cursorStateAt,
+  NO_CURSOR,
+  prepareCursor,
+  type CursorState,
+  type CursorTrack,
+} from './cursor';
 import {
   computeBubble,
   computeLayout,
@@ -83,6 +90,12 @@ export interface FrameDescription {
   view: ViewRect;
   /** Halo and ripples, in frame pixels of the recorded area, so they zoom with the picture. */
   cursor: CursorState;
+  /**
+   * Where the mouse is, in frame pixels of the recorded area, whatever the cursor style. Null when
+   * there is no input log, the mouse is outside the recorded area, or the capture already holds
+   * the cursor. The plain Before view uses it.
+   */
+  pointer: { x: number; y: number } | null;
   bubble: BubbleLayout | null;
 }
 
@@ -144,6 +157,14 @@ function intoCrop<T extends LogLike>(
     events.push({ ...event, x: event.x - crop.x, y: event.y - crop.y });
   }
   return { ...log, frame: { width: crop.width, height: crop.height }, events };
+}
+
+function pointerAt(track: CursorTrack | null, t: number): { x: number; y: number } | null {
+  if (track === null || track.events.length === 0) return null;
+  const point = cursorAt(track.events, t, track.frame);
+  const inside =
+    point.x >= 0 && point.y >= 0 && point.x <= track.frame.width && point.y <= track.frame.height;
+  return inside ? { x: point.x, y: point.y } : null;
 }
 
 function clampZoom(value: number): number {
@@ -226,6 +247,8 @@ export function createRenderModel(input: RenderInput): RenderModel {
       view: viewRect(pose, cameraFrame),
       cursor:
         cursorTrack === null ? NO_CURSOR : cursorStateAt(cursorTrack, recordingTimeMs, cursorStyle),
+      // A capture that already holds the cursor needs no second one drawn over it.
+      pointer: session.capture.cursorInCapture ? null : pointerAt(cursorTrack, recordingTimeMs),
       bubble,
     };
   };

@@ -13,6 +13,8 @@ export interface TimelineProps {
   moments: readonly ZoomMoment[];
   selectedMoment: number | null;
   selection: Span | null;
+  /** Before shows no effects, so the zoom lane says where they went. */
+  effectsHidden?: boolean;
   onSeek: (recordingMs: number) => void;
   onSelectMoment: (index: number | null) => void;
   onMoveMoment: (index: number, deltaMs: number) => void;
@@ -146,6 +148,11 @@ export function Timeline(props: TimelineProps) {
         onPointerCancel={onUp}
       >
         <div className="timeline-zoomlane">
+          {props.effectsHidden === true ? (
+            <span className="zoomlane-hint" data-testid="effects-hidden">
+              Zoom and effects show in After
+            </span>
+          ) : null}
           {moments.map((moment, index) => (
             <div
               key={`${String(moment.startMs)}-${String(index)}`}

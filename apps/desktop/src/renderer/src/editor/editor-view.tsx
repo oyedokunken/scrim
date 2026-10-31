@@ -35,6 +35,7 @@ import { Timeline } from './timeline';
 import { usePlayback } from './use-playback';
 import { ExportPanel } from './export-panel';
 import { mediaSources } from './media-source';
+import { timelineForMode } from './mode-view';
 import { ZoomMoments } from './zoom-moments';
 import './editor.css';
 
@@ -195,6 +196,7 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
 
   const recordingMs = model.describeAt(outputMs).recordingTimeMs;
   const moments: readonly ZoomMoment[] = model.zoomMoments;
+  const shown = timelineForMode(mode, moments, []);
   const clickTimes = useMemo(
     () =>
       (project.log?.events ?? []).flatMap((e) =>
@@ -384,7 +386,8 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
           playheadMs={recordingMs}
           trim={edits.trim}
           cuts={edits.cuts}
-          moments={moments}
+          moments={shown.moments}
+          effectsHidden={shown.effectsHidden}
           selectedMoment={selectedMoment}
           selection={selection}
           onSeek={(ms) => {
