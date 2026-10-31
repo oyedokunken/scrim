@@ -31,10 +31,17 @@ import {
   type History,
   type Span,
 } from './edits';
+import { BackBar } from './back-bar';
 import { Timeline } from './timeline';
 import { usePlayback } from './use-playback';
 import { ExportPanel } from './export-panel';
 import { mediaSources } from './media-source';
+import { timelineForMode } from './mode-view';
+import { ensureTextFont } from './draw-text';
+import { TextHandle } from './text-handle';
+import { TextPanel } from './text-panel';
+import { addText, deleteText, freshTextId, textsOf, updateText } from './text-edits';
+import type { TextItem } from '@scrim/core/render';
 import { ZoomMoments } from './zoom-moments';
 import './editor.css';
 
@@ -48,6 +55,8 @@ export interface EditorViewProps {
   folder: string;
   api: EditorApi;
   settings: Settings;
+  /** Leaves the editor for the page the person came from. */
+  onBack: () => void;
 }
 
 /** Opens a recording and shows the editor, or says why it could not. */
@@ -74,23 +83,40 @@ export function EditorView(props: EditorViewProps) {
     };
   }, [api, folder]);
 
-  if (state.status === 'loading') return <p className="editor-note">Opening the recording</p>;
+  if (state.status === 'loading') {
+    return (
+      <>
+        <BackBar onBack={props.onBack} />
+        <p className="editor-note">Opening the recording</p>
+      </>
+    );
+  }
   if (state.status === 'error') {
     return (
-      <div className="editor-note" role="alert">
-        <p>{state.message}</p>
-        <p>Your recording was not changed.</p>
-      </div>
+      <>
+        <BackBar onBack={props.onBack} />
+        <div className="editor-note" role="alert">
+          <p>{state.message}</p>
+          <p>Your recording was not changed.</p>
+        </div>
+      </>
     );
   }
   return <Editor {...props} project={state.project} />;
 }
 
-function Editor({ folder, api, settings, project }: EditorViewProps & { project: EditorProject }) {
+function Editor({
+  folder,
+  api,
+  settings,
+  project,
+  onBack,
+}: EditorViewProps & { project: EditorProject }) {
   const screenEl = useRef<HTMLVideoElement>(null);
   const cameraEl = useRef<HTMLVideoElement>(null);
   const micEl = useRef<HTMLAudioElement>(null);
-  const canvasEl = useRef<HTMLCanvasElement>(null);
+  const canvasEl = useRef<HTMLCanvasElement | null>(null);
+  const [canvasNode, setCanvasNode] = useState<HTMLCanvasElement | null>(null);
   const [history, setHistory] = useState<History>(() => createHistory(project.edits));
   const [draft, setDraftState] = useState<Edits | null>(null);
   const draftRef = useRef<Edits | null>(null);
@@ -102,6 +128,7 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
   const [split, setSplit] = useState(0.5);
   const [selectedMoment, setSelectedMoment] = useState<number | null>(null);
   const [selection, setSelection] = useState<Span | null>(null);
+  const [selectedText, setSelectedText] = useState<string | null>(null);
   const [saveNote, setSaveNote] = useState('');
   const edits = draft ?? history.present;
 
@@ -111,7 +138,7 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
       createRenderModel({
         session: project.session,
         log: project.log,
-        edits: { trim: edits.trim, cuts: edits.cuts, zoom: edits.zoom },
+        edits: { trim: edits.trim, cuts: edits.cuts, zoom: edits.zoom, texts: edits.texts },
         settings: {
           preset: 'source',
           fps: 30,
@@ -176,6 +203,18 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
     };
   }, [paintCanvas, outputMs]);
 
+  // The text font loads on first use, so redraw once it is ready.
+  useEffect(() => {
+    let live = true;
+    void ensureTextFont().then(() => {
+      if (live) seek(Math.min(outputMs, model.totalMs));
+    });
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on open
+  }, []);
+
   // The edit list is saved beside the recording a moment after each finished change.
   const first = useRef(true);
   useEffect(() => {
@@ -195,6 +234,9 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
 
   const recordingMs = model.describeAt(outputMs).recordingTimeMs;
   const moments: readonly ZoomMoment[] = model.zoomMoments;
+  const texts = textsOf(edits);
+  const shown = timelineForMode(mode, moments, texts);
+  const selectedTextItem: TextItem | undefined = texts.find((t) => t.id === selectedText);
   const clickTimes = useMemo(
     () =>
       (project.log?.events ?? []).flatMap((e) =>
@@ -222,6 +264,20 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
     },
     [setDraft, history.present, model.zoomMoments, durationMs],
   );
+
+  const changeText = (id: string, patch: Partial<Omit<TextItem, 'id'>>): void => {
+    change(updateText(history.present, id, patch, durationMs));
+  };
+  const addTextHere = (): void => {
+    const id = freshTextId(history.present);
+    change(addText(history.present, id, recordingMs, durationMs).edits);
+    setSelectedText(id);
+  };
+  const moveText = (id: string, x: number, y: number, final: boolean): void => {
+    const next = updateText(draftRef.current ?? history.present, id, { x, y }, durationMs);
+    if (final) change(next);
+    else setDraft(next);
+  };
 
   const seekRecording = useCallback(
     (ms: number): void => {
@@ -297,18 +353,32 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
   return (
     <div className="editor" role="group" aria-label="Editor" onKeyDown={onKeyDown}>
       <div className="editor-main">
+        <BackBar onBack={onBack} />
         <div className="editor-modes">
           <Segmented label="View" options={MODE_OPTIONS} value={mode} onChange={setMode} />
         </div>
         <div className="editor-stage" data-testid="editor-stage">
           <canvas
-            ref={canvasEl}
+            ref={(node) => {
+              canvasEl.current = node;
+              setCanvasNode(node);
+            }}
             className="editor-canvas"
             width={canvasWidth}
             height={canvasHeight}
             style={{ aspectRatio: `${String(output.width)} / ${String(output.height)}` }}
             aria-label="Preview of the finished video"
           />
+          {selectedTextItem === undefined || mode === 'before' ? null : (
+            <TextHandle
+              item={selectedTextItem}
+              output={model.layout.output}
+              canvas={canvasNode}
+              onMove={(x, y, final) => {
+                moveText(selectedTextItem.id, x, y, final);
+              }}
+            />
+          )}
           {mode === 'compare' ? (
             <div
               className="compare-divider"
@@ -384,7 +454,18 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
           playheadMs={recordingMs}
           trim={edits.trim}
           cuts={edits.cuts}
-          moments={moments}
+          moments={shown.moments}
+          effectsHidden={shown.effectsHidden}
+          texts={shown.texts}
+          selectedText={selectedText}
+          onSelectText={(id) => {
+            setSelectedText(id);
+            const item = texts.find((t) => t.id === id);
+            if (item !== undefined) {
+              pause();
+              seekRecording(item.startMs);
+            }
+          }}
           selectedMoment={selectedMoment}
           selection={selection}
           onSeek={(ms) => {
@@ -436,6 +517,19 @@ function Editor({ folder, api, settings, project }: EditorViewProps & { project:
             setSelectedMoment(null);
           }}
           edited={edits.zoom !== undefined}
+        />
+        <TextPanel
+          texts={texts}
+          selectedId={selectedText}
+          playheadMs={recordingMs}
+          visibleInView={mode !== 'before'}
+          onSelect={setSelectedText}
+          onAdd={addTextHere}
+          onChange={changeText}
+          onDelete={(id) => {
+            change(deleteText(history.present, id));
+            setSelectedText(null);
+          }}
         />
         {api.exporter === undefined ? null : (
           <ExportPanel

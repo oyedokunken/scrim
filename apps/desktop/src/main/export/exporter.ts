@@ -236,6 +236,10 @@ export async function exportRecording(
 ): Promise<ExportOutcome> {
   const now = deps.now ?? Date.now;
   const began = now();
+  // One line per stage with the time since the start, so a slow or stuck render shows where it was.
+  const mark = (stage: string): void => {
+    deps.log(`export.stage ${stage} at ${String(now() - began)} ms`);
+  };
   const { signal } = options;
   const cancelled = (): boolean => signal?.aborted === true;
 
@@ -254,6 +258,7 @@ export async function exportRecording(
         );
   }
   const source = loaded.source;
+  mark('source-loaded');
   const { settings } = request;
 
   const screenFile = source.files.screen;
@@ -265,6 +270,7 @@ export async function exportRecording(
     );
   }
   const video = await probeFile(deps.run, deps.paths, screenFile);
+  mark('probed');
   if (video?.width === undefined || video.height === undefined) {
     return fail(
       'source-invalid',
@@ -355,6 +361,7 @@ export async function exportRecording(
     );
   }
   if (prepared !== undefined) return prepared;
+  mark('folder-ready');
 
   const choice = await pickEncoder({
     run: deps.run,
@@ -372,6 +379,7 @@ export async function exportRecording(
       'Try again with a smaller size. If it keeps failing, report it on GitHub.',
     );
   }
+  mark('encoder-picked');
   deps.log(`export: encoder ${choice.encoder}, skipped ${choice.skipped.join(', ') || 'none'}`);
 
   const background =
@@ -399,6 +407,7 @@ export async function exportRecording(
       deps.log('export: drawing threads could not start, drawing on one thread');
     }
   }
+  mark(`backend parallel=${String(backend.parallel)}`);
 
   const bubbles =
     source.files.camera === undefined
@@ -523,6 +532,7 @@ export async function exportRecording(
       if (first === undefined) return;
       await writeAll(stdin, await first);
       written += 1;
+      if (written === 1) mark('first-frame');
       if (written === 1 || written % 60 === 0)
         deps.log(`export: ${String(written)} of ${String(model.frameCount)} frames`);
       if (options.onProgress !== undefined && (written % 8 === 0 || written === model.frameCount)) {
@@ -562,6 +572,7 @@ export async function exportRecording(
             cameraSize,
             view: description.view,
             cursor: description.cursor,
+            texts: description.texts,
             bubble: cameraFrame === null ? null : placement,
           },
           out,
@@ -627,6 +638,7 @@ export async function exportRecording(
     audio: audio !== null,
     fps,
   });
+  mark('verified');
   if (!verdict.ok) {
     await rm(partial, { force: true });
     return fail(

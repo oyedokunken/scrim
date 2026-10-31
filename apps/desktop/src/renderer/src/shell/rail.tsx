@@ -26,8 +26,8 @@ const ICONS: Record<RailViewId, LucideIcon> = {
   settings: Settings,
 };
 
-/** Library and Settings stay pinned at the bottom, the rest scrolls inside the rail. */
-const BOTTOM = new Set<RailViewId>(['library', 'settings']);
+/** Settings stays pinned at the bottom, the rest scrolls inside the rail. */
+const BOTTOM = new Set<RailViewId>(['settings']);
 
 export interface RailProps {
   view: ViewId;

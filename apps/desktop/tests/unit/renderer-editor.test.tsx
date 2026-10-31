@@ -12,7 +12,7 @@ import {
   undo,
   type Edits,
 } from '../../src/renderer/src/editor/edits';
-import { ExportPanel, percent } from '../../src/renderer/src/editor/export-panel';
+import { ExportPanel } from '../../src/renderer/src/editor/export-panel';
 import { Timeline, tickSeconds } from '../../src/renderer/src/editor/timeline';
 import { ZoomMoments } from '../../src/renderer/src/editor/zoom-moments';
 import { cursorPaintCss, renderStyleFromSettings } from '../../src/shared/render-style';
@@ -207,8 +207,7 @@ describe('export panel', () => {
       <ExportPanel controls={controls} folder="C:/x" beforeStart={() => Promise.resolve()} />,
     );
     expect(html).toContain('Export MP4');
-    expect(percent(null)).toBe('Starting');
-    expect(percent(0.426)).toBe('43%');
+    expect(html).not.toContain('<progress');
   });
 });
 

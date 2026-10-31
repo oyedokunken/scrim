@@ -74,8 +74,10 @@ describe('the media allow list', () => {
   });
 
   it('is case blind only where the platform is', () => {
-    const win = new MediaRegistry(() => ['C:\\Data\\Projects'], true);
-    expect(win.issue('c:\\data\\projects\\One.scrim\\screen.mp4')).toBeDefined();
+    const blind = new MediaRegistry(() => ['/Data/Projects'], true);
+    expect(blind.issue('/data/projects/One.scrim/screen.mp4')).toBeDefined();
+    const sharp = new MediaRegistry(() => ['/Data/Projects'], false);
+    expect(sharp.issue('/data/projects/One.scrim/screen.mp4')).toBeUndefined();
   });
 });
 

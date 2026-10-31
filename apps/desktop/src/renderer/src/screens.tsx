@@ -25,8 +25,7 @@ import { LibraryView } from './library/library-view';
 import type { OpenedItem } from './library/use-library';
 import { editorApi } from './shell/editor-bridge';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
-import { ScreenshotSettingsPanel } from './screenshot/screenshot-settings-panel';
-import { showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
+import { railView, showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
 import { Camera } from 'lucide-react';
@@ -111,11 +110,25 @@ export function MainScreen() {
   const [shooting, setShooting] = useState(false);
   const [shot, setShot] = useState<ShotInfo | null>(null);
   const [editorFolder, setEditorFolder] = useState<string | null>(null);
+  /** The page an editor was opened from, so Back returns there. Null when it was not opened from a page. */
+  const [openedFrom, setOpenedFrom] = useState<ViewId | null>(null);
+  /** The Library detail page that was open, so coming back from an editor lands on the same item. */
+  const [libraryDetail, setLibraryDetail] = useState<string | null>(null);
   /** Moves to another page. A screenshot lives in the main view only while the Screenshot page is open. */
   const changeView = useCallback((next: ViewId) => {
     if (next !== 'screenshot') setShot(null);
+    if (next === 'library') setLibraryDetail(null);
+    setOpenedFrom(null);
     setView(next);
   }, []);
+  /** Goes back from an editor to where it was opened from, or to the Library when nowhere is known. */
+  const leaveEditor = useCallback(() => {
+    const target = openedFrom ?? 'library';
+    setShot(null);
+    setOpenedFrom(null);
+    if (target !== 'library') setLibraryDetail(null);
+    setView(target);
+  }, [openedFrom]);
   const [entered, setEntered] = useState(false);
   // Set by Show welcome again in the settings, which shows the welcome screen once even when it is switched off.
   const [welcomeNow, setWelcomeNow] = useState(false);
@@ -224,6 +237,7 @@ export function MainScreen() {
   // A capture from the shortcut opens the result too, whichever view was showing.
   useScreenshotTaken((taken) => {
     acceptShot(taken);
+    setOpenedFrom(null);
     setView('screenshot');
   });
 
@@ -274,6 +288,8 @@ export function MainScreen() {
   }, [failure, showError]);
 
   const openItem = (opened: OpenedItem): void => {
+    // Back from the editor returns to the page that opened it. The Library stays selected in the rail.
+    setOpenedFrom(view);
     if (opened.kind === 'editor') {
       setEditorFolder(opened.folder);
       setView('editor');
@@ -359,7 +375,7 @@ export function MainScreen() {
       variant="primary"
       disabled={starting || live}
       onClick={() => {
-        setView('record');
+        changeView('record');
         void start(settings);
       }}
     >
@@ -397,6 +413,15 @@ export function MainScreen() {
       <RecordView
         busy={starting}
         onStart={() => void start(settings)}
+        controls={
+          <RecordPanel
+            settings={settings}
+            cameras={devices.cameras}
+            mics={devices.mics}
+            onChange={update}
+            onChooseFolder={() => void chooseFolder('recordings')}
+          />
+        }
         review={
           finished === null || !showsSavedCard(view)
             ? undefined
@@ -423,21 +448,11 @@ export function MainScreen() {
                 },
                 onRecordAgain: dismiss,
                 onDiscarded: dismiss,
-                // The file is in Library now, so the main view clears and Library opens on it.
-                onExported: (result) => {
+                // The done dialog told the person where the file is (and any fall back to the app's
+                // own folder). Closing it clears the main view and opens Library.
+                onExported: () => {
                   dismiss();
-                  setView('library');
-                  if (result.fellBack) {
-                    showError({
-                      title: "The video was saved in Scrim's own folder",
-                      message:
-                        "Windows would not let Scrim save to your folder, so the video is in the Library from Scrim's own folder instead.",
-                      nextStep:
-                        'To save to your folder again, allow Scrim under Windows Security, Ransomware protection, Controlled folder access. Or choose another folder.',
-                      code: 'saved-elsewhere',
-                      actions: blockedFolderActions('recordings'),
-                    });
-                  }
+                  changeView('library');
                 },
                 onProblem: (message: string, nextStep: string) => {
                   showError({ title: 'Scrim could not discard this recording', message, nextStep });
@@ -451,6 +466,8 @@ export function MainScreen() {
       <ScreenshotView
         key={shot?.path ?? 'none'}
         busy={shooting}
+        folder={settings.screenshotFolder}
+        onChooseFolder={() => void chooseFolder('screenshots')}
         shot={shot}
         onClearShot={() => {
           setShot(null);
@@ -459,19 +476,29 @@ export function MainScreen() {
           setShot(next);
         }}
         onTake={() => void shoot()}
+        startEditing={openedFrom !== null}
+        onLeaveEditor={openedFrom === null ? undefined : leaveEditor}
       />
     );
   } else if (view === 'editor' && editorFolder !== null) {
     main = (
-      <EditorView key={editorFolder} folder={editorFolder} api={editorApi} settings={settings} />
+      <EditorView
+        key={editorFolder}
+        folder={editorFolder}
+        api={editorApi}
+        settings={settings}
+        onBack={leaveEditor}
+      />
     );
   } else if (view === 'library') {
     main = (
       <LibraryView
         active
+        initialDetailId={libraryDetail}
+        onDetail={setLibraryDetail}
         onOpened={openItem}
         onRecord={() => {
-          setView('record');
+          changeView('record');
         }}
       />
     );
@@ -580,19 +607,6 @@ export function MainScreen() {
           }}
         />
       </div>
-    ) : view === 'record' ? (
-      <RecordPanel
-        settings={settings}
-        cameras={devices.cameras}
-        mics={devices.mics}
-        onChange={update}
-        onChooseFolder={() => void chooseFolder('recordings')}
-      />
-    ) : view === 'screenshot' ? (
-      <ScreenshotSettingsPanel
-        folder={settings.screenshotFolder}
-        onChooseFolder={() => void chooseFolder('screenshots')}
-      />
     ) : (
       <Placeholder view={view} inPanel />
     );
@@ -601,6 +615,7 @@ export function MainScreen() {
     <>
       <AppShell
         view={view}
+        railSelected={railView(view, openedFrom)}
         onView={changeView}
         updatePill={hasUpdateToShow(updates.snapshot)}
         onUpdatePill={() => {

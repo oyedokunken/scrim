@@ -127,11 +127,14 @@ describe('a normal recording', () => {
     h.clock.time += 1000;
     h.fireHeartbeat();
     await flushWork();
+    // The writes go to a real disk, so wait for them instead of hoping a fixed pause was long enough.
+    await expect
+      .poll(async () => (await readSessionFile(folder)).tracks[0]?.bytesWritten, { timeout: 5000 })
+      .toBe(64);
     const session = await readSessionFile(folder);
     expect(session.cleanClose).toBe(false);
-    expect(session.tracks[0]?.bytesWritten).toBe(64);
     expect(session.heartbeatElapsedMs).toBe(1000);
-    expect(await h.deps.index.list()).toEqual([folder]);
+    await expect.poll(() => h.deps.index.list(), { timeout: 5000 }).toEqual([folder]);
     await h.service.stop();
   });
 

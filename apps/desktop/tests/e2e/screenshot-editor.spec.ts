@@ -1,10 +1,10 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
-import { expect, test, enterApp } from './fixtures';
+import { expect, test, enterApp, removeAfterAppCloses } from './fixtures';
 
 const WIDTH = 600;
 const HEIGHT = 400;
@@ -81,7 +81,7 @@ async function arrange(app: ElectronApplication): Promise<Fixture> {
     original,
     originalHash: hash(original),
     cleanup: () => {
-      rmSync(root, { recursive: true, force: true });
+      removeAfterAppCloses(root);
     },
   };
 }

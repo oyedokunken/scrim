@@ -117,7 +117,8 @@ export function createImageHandlers(deps: ImageDeps): ImageHandlers {
     },
     'image:save-as': async ({ dataUrl, name }) => {
       const bytes = decodePngDataUrl(dataUrl);
-      const safeName = basename(name).replace(/[<>:"/\\|?*\0]/g, '_');
+      // Both kinds of separator count on every system: a name from the page can use either one.
+      const safeName = (name.split(/[\\/]/).pop() ?? name).replace(/[<>:"/\\|?*\0]/g, '_');
       const chosen = await deps.chooseSavePath(
         safeName.toLowerCase().endsWith('.png') ? safeName : `${safeName}.png`,
       );

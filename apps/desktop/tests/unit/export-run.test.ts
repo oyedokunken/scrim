@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -186,6 +186,81 @@ describe.skipIf(tools === undefined)('exportRecording', () => {
     expect(none).not.toBe(planned);
     expect(added).not.toBe(none);
     expect(added).not.toBe(planned);
+  }, 180_000);
+
+  it('draws a text in the exported video only while it is shown', async () => {
+    if (tools === undefined) return;
+    const fixture = makeFixture(tools, { seconds: 4 });
+    made.push(fixture);
+    const deps = { paths: tools, run: runProcess, log: () => undefined };
+    const request = {
+      ...requestFor(fixture, { collision: 'replace' }),
+      style: {
+        zoom: { enabled: false },
+        background: { spec: { kind: 'none' as const } },
+      },
+    };
+    // How alike two videos look at one moment, in decibels. A lossy encode can change a few pixels
+    // that have nothing to do with the text, so "the same" means "almost the same" here.
+    const alike = (first: string, second: string, at: string): number => {
+      const result = spawnSync(
+        tools.ffmpeg,
+        [
+          '-v',
+          'info',
+          '-ss',
+          at,
+          '-i',
+          first,
+          '-ss',
+          at,
+          '-i',
+          second,
+          '-frames:v',
+          '1',
+          '-lavfi',
+          'psnr',
+          '-f',
+          'null',
+          '-',
+        ],
+        { encoding: 'utf8' },
+      );
+      const match = /average:([\d.]+|inf)/.exec(result.stderr);
+      if (match === null) throw new Error('no psnr');
+      return match[1] === 'inf' ? 100 : Number(match[1]);
+    };
+    const writeEdits = (texts: unknown[]): void => {
+      writeFileSync(
+        join(fixture.folder, 'edits.json'),
+        JSON.stringify({ version: 1, trim: null, cuts: [], texts }),
+      );
+    };
+    const run = async (name: string): Promise<string> => {
+      const outcome = await exportRecording(deps, { ...request, fileName: name });
+      if (!outcome.ok) throw new Error(outcome.error.message);
+      return outcome.path;
+    };
+    writeEdits([]);
+    const plain = await run('no-text');
+    writeEdits([
+      {
+        id: 't1',
+        text: 'Hello Scrim',
+        startMs: 1000,
+        endMs: 2500,
+        x: 0.5,
+        y: 0.5,
+        size: 'large',
+        color: 'white',
+        chip: true,
+      },
+    ]);
+    const withText = await run('with-text');
+    // While it is shown the picture differs, and before and after it the picture is the same.
+    expect(alike(withText, plain, '1.6')).toBeLessThan(35);
+    expect(alike(withText, plain, '0.2')).toBeGreaterThan(45);
+    expect(alike(withText, plain, '3.6')).toBeGreaterThan(45);
   }, 180_000);
 
   it('draws the camera bubble at its recorded position, with sound in step with the picture', async () => {

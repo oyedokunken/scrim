@@ -8,7 +8,9 @@ import type { ExportJob } from '../../src/main/export/service';
 import { exportContract, exportJobSchema } from '../../src/shared/export-contract';
 import { events } from '../../src/shared/ipc-contract';
 
-const FOLDER = 'C:\\Projects\\Take 1.scrim';
+import { join } from 'node:path';
+
+const FOLDER = join('C:', 'Projects', 'Take 1.scrim');
 
 const job = (over: Partial<ExportJob> = {}): ExportJob => ({
   id: 'job-1',
@@ -41,7 +43,7 @@ describe('toBridgeJob', () => {
         phase: 'done',
         result: {
           ok: true,
-          path: 'C:\\Videos\\Scrim\\Take 1.mp4',
+          path: join('Videos', 'Scrim', 'Take 1.mp4'),
           durationMs: 5000,
           bytes: 99,
           encoder: 'h264_mf',
