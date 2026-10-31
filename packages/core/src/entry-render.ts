@@ -3,3 +3,4 @@
 export * from './export';
 export * from './render';
 export * from './edit/text';
+export * from './edit/text-layout';
