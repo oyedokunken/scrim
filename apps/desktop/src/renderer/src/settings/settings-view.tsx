@@ -259,9 +259,6 @@ export function SettingsView({
             Open logs folder
           </Button>
         </div>
-        <p className="ui-help">
-          Logs stay on this computer. They never hold a file path or a window title.
-        </p>
       </Section>
 
       <UpdatesCard

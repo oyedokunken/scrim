@@ -95,5 +95,23 @@ for (const size of SIZES) {
       await shoot(page, `camera-${tag}`);
       await expectNoViolations(page);
     });
+
+    test('the Settings page drops the removed texts and has no accessibility violations', async ({
+      page,
+    }) => {
+      await page.setViewportSize(size);
+      await enterApp(page);
+      await go(page, 'Settings');
+      for (const text of [
+        'Shown only here. It is never sent anywhere or saved in the logs.',
+        'Logs stay on this computer. They never hold a file path or a window title.',
+        'Updates work in the installed app, not in a development run.',
+      ]) {
+        await expect(page.getByText(text)).toHaveCount(0);
+      }
+      await expect(page.getByText('Discover a new version of Scrim')).toBeVisible();
+      await shoot(page, `settings-${tag}`);
+      await expectNoViolations(page);
+    });
   });
 }

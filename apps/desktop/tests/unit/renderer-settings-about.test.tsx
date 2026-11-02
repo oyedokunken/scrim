@@ -20,7 +20,8 @@ describe('the about card', () => {
     ]) {
       expect(html).toContain(label);
     }
-    expect(html).toContain('It is never sent anywhere or saved in the logs.');
+    expect(html).not.toContain('It is never sent anywhere');
+    expect(html).not.toContain('Shown only here');
     expect(html).toContain('Source code');
     expect(html).toContain('About the FFmpeg license');
     expect(html).toContain('@oyedokunken');

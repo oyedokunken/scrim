@@ -76,7 +76,7 @@ function createAppUpdates(options: {
       : undefined;
   let unsupported = '';
   if (!app.isPackaged && testFeedUrl === undefined) {
-    unsupported = 'Updates work in the installed app, not in a development run.';
+    unsupported = 'Updates are not available in this copy of the app.';
   } else if (
     process.platform === 'linux' &&
     process.env['APPIMAGE'] === undefined &&

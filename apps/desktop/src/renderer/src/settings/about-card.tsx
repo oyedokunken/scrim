@@ -77,7 +77,6 @@ export function AboutCard({ onOpenLink }: AboutCardProps) {
         <Fact label="Computer name" value={system?.computerName ?? unknown} />
         <Fact label="Operating system" value={system?.operatingSystem ?? unknown} />
       </dl>
-      <p className="ui-help">Shown only here. It is never sent anywhere or saved in the logs.</p>
 
       <h3 className="set-subtitle">FFmpeg</h3>
       <p className="ui-help">
