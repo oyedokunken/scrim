@@ -7,7 +7,7 @@ import { Stage } from './stage';
 
 export interface RecordViewProps {
   busy: boolean;
-  /** The camera and microphone options, shown in one row under the stage. */
+  /** The camera and microphone options, two cards in one row under the stage. */
   options?: ReactNode;
   onStart: () => void;
   /** The recording that was just stopped. It replaces the start screen until the person is done. */
@@ -25,14 +25,14 @@ export function RecordView({ busy, options, onStart, review }: RecordViewProps) 
             label="Record your screen"
             text="Drag a box over the part of the screen to record"
             shortcut={SHORTCUTS.record.keys}
+            action={
+              <Button variant="primary" className="record-button" disabled={busy} onClick={onStart}>
+                <span className="record-dot" aria-hidden="true" />
+                {busy ? 'Starting...' : 'Start recording'}
+              </Button>
+            }
           />
-          <div className="option-row">
-            {options}
-            <Button variant="primary" className="record-button" disabled={busy} onClick={onStart}>
-              <span className="record-dot" aria-hidden="true" />
-              {busy ? 'Starting...' : 'Start recording'}
-            </Button>
-          </div>
+          <div className="option-row">{options}</div>
         </>
       ) : (
         <ReviewScreen {...review} />

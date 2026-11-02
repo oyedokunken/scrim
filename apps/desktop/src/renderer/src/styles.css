@@ -621,19 +621,15 @@ svg {
   align-content: start;
 }
 
-/* The bottom row of a capture page: two bordered option cards and the action at the end, as in
-   the app screen of the website's hero video. Screenshot has the action alone, at the end. */
+/* The bottom row of the Record page: two bordered option cards sharing the full width, as in the
+   app screen of the website's hero video. The action sits on the green stage above them. */
 .option-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   align-items: end;
   width: 100%;
   min-width: 0;
-}
-
-.option-row > .record-button {
-  grid-column: 3;
 }
 
 .option-row .ui-section {
@@ -691,6 +687,17 @@ svg {
   font-size: 16px;
   border-radius: var(--ui-radius-md);
   box-shadow: var(--ui-shadow-soft);
+}
+
+/* On the green stage the button is butter with green text, so it stands out from the stage. */
+.stage .record-button {
+  margin-top: 8px;
+  color: var(--scrim-green);
+  background: var(--scrim-butter);
+}
+
+.stage .record-button:hover:not(:disabled) {
+  background: var(--scrim-white);
 }
 
 .record-dot {
