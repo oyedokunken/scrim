@@ -79,6 +79,7 @@ export function createExportHandlers(deps: {
           ...(input.collision === undefined ? {} : { collision: input.collision }),
           ...(input.preview === true ? { preview: true } : {}),
           ...(input.settings === undefined ? {} : { settings: definedOnly(input.settings) }),
+          ...(input.look === undefined ? {} : { look: input.look }),
         }),
       );
     },

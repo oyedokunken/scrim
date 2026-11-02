@@ -27,6 +27,7 @@ import { realServiceFs } from '../recording/fs-adapter';
 import { projectsRoot } from '../recording/projects-folder';
 import { exportFallbackFolder, previewFolder, type ExportApi } from '../export/register';
 import type { MediaRegistry } from '../media/media-registry';
+import type { BackgroundStore } from '../backgrounds/store';
 import { probeFile, resolveFfmpegPaths, runProcess } from '../recording/ffmpeg';
 import { createReviewHandlers } from '../review/review-handlers';
 import { toBridgeJob } from '../export/export-handlers';
@@ -126,6 +127,8 @@ export async function startIpc(options: {
   exporter: ExportApi;
   /** The files the page may play, shared with the media protocol. */
   media: MediaRegistry;
+  /** The person's own background pictures. */
+  backgrounds: BackgroundStore;
   closeAnswer: (answer: 'shown' | 'keep' | 'stop' | 'cancel') => void;
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
@@ -315,6 +318,7 @@ export async function startIpc(options: {
       },
       review: review.handlers,
       library,
+      backgrounds: options.backgrounds,
       shareService: createRealShareService({
         library,
         share,

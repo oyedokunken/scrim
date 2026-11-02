@@ -15,6 +15,7 @@ import type { LibraryItem } from '../../../shared/library-contract';
 import { formatBytes, formatMoment, formatTimer } from '../format';
 import { useExportJob } from '../hooks';
 import { fullFileName } from './library-model';
+import { RecordingEditPane } from '../edit/recording-edit-pane';
 import { ShareDialog } from '../share/share-dialog';
 import type { OpenedItem } from './use-library';
 import type { LibraryActions } from './use-library';
@@ -47,6 +48,8 @@ export function LibraryDetail({
   const [preview, setPreview] = useState<{ id: string; url: string | null } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [sharing, setSharing] = useState(false);
+  /** The working folder of the recording being edited, while the edit pane is open. */
+  const [editing, setEditing] = useState<string | null>(null);
   /** True from pressing Make video until that render ends. */
   const [making, setMaking] = useState(false);
   const wasWorking = useRef(false);
@@ -145,6 +148,23 @@ export function LibraryDetail({
     ['Folder', item.folder],
   ];
 
+  if (editing !== null) {
+    return (
+      <RecordingEditPane
+        key={editing}
+        folder={editing}
+        name={item.name}
+        onClose={() => {
+          setEditing(null);
+        }}
+        onSaved={() => {
+          setEditing(null);
+          onReload();
+        }}
+      />
+    );
+  }
+
   return (
     <section className="lib-detail" aria-label={`Details for ${item.name}`}>
       <div className="lib-detail-bar">
@@ -212,7 +232,9 @@ export function LibraryDetail({
               disabled={item.kind === 'recording' && !item.canEdit}
               onClick={() => {
                 void actions.open(item.id).then((opened) => {
-                  if (opened.kind === 'editor' || opened.kind === 'screenshot') onOpened(opened);
+                  // A recording is edited right here, in the pane with Background, Cursor and Zoom.
+                  if (opened.kind === 'editor') setEditing(opened.folder);
+                  else if (opened.kind === 'screenshot') onOpened(opened);
                   else if (opened.kind === 'missing') missing();
                 });
               }}

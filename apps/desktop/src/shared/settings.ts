@@ -65,6 +65,36 @@ export const settingsPatchSchema = z
   .strict();
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
 
+/**
+ * The look of one render: the cursor, zoom and background choices, without the rest of the settings.
+ * An edit to a finished recording sends this, and it wins over the saved settings for that render only.
+ */
+export const lookSchema = settingsSchema
+  .pick({
+    cursorStyle: true,
+    haloColor: true,
+    zoomOn: true,
+    zoomLevel: true,
+    holdAfterClickMs: true,
+    smoothness: true,
+    backgroundId: true,
+    backgroundPadding: true,
+    backgroundCorners: true,
+    backgroundShadow: true,
+  })
+  .partial()
+  .strict();
+export type Look = z.infer<typeof lookSchema>;
+
+/** The settings with the look laid over them. A key that is missing or undefined keeps the saved value. */
+export function applyLook(settings: Settings, look: Look | undefined): Settings {
+  if (look === undefined) return settings;
+  const defined = Object.fromEntries(
+    Object.entries(look).filter(([, value]) => value !== undefined),
+  );
+  return { ...settings, ...defined };
+}
+
 /** Every change the main process itself may make, which includes the destination folder. */
 export const settingsChangeSchema = z.object(fields).partial().strict();
 export type SettingsChange = z.infer<typeof settingsChangeSchema>;

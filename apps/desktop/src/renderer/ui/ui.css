@@ -725,6 +725,42 @@
   line-height: 0;
 }
 
+/* The editor work area: the stage, and beside it the Background panel when it is open. */
+.shot-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.shot-work.with-panel {
+  grid-template-columns: minmax(0, 1fr) 300px;
+}
+
+.shot-bg-panel {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+  height: clamp(240px, calc(100vh - 340px), 900px);
+  padding: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+/* A screenshot with a background: the same padding, corners and shadow the saved picture gets. */
+.shot-canvas-wrap.shot-framed {
+  padding: var(--shot-pad, 0);
+}
+
+.shot-framed .shot-canvas {
+  position: relative;
+  border-radius: var(--shot-radius, 0);
+  box-shadow: var(--shot-shadow, none);
+}
+
 .shot-canvas {
   display: block;
   box-shadow: var(--ui-shadow-soft);

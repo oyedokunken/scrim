@@ -443,9 +443,6 @@ export function MainScreen() {
                 onShowInFolder: () => {
                   void window.scrim.invoke('shell:show-in-folder', { path: finished.folder });
                 },
-                onOpenEditor: () => {
-                  openItem({ kind: 'editor', folder: finished.folder });
-                },
                 onRecordAgain: dismiss,
                 onDiscarded: dismiss,
                 // The done dialog told the person where the file is (and any fall back to the app's

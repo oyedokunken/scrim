@@ -35,6 +35,8 @@ export interface ExportApi {
 
 export interface RegisterOptions {
   settings: () => Settings;
+  /** Where one of the person's own background images is. */
+  backgroundPath?: (imageId: string) => string | undefined;
   log: (message: string) => void;
 }
 
@@ -78,6 +80,7 @@ export function registerExport(options: RegisterOptions): ExportApi {
         run,
       ),
     settings: options.settings,
+    ...(options.backgroundPath === undefined ? {} : { backgroundPath: options.backgroundPath }),
     destination: () => destination(options.settings()),
     previewDir: previewFolder,
     fallbackDir: exportFallbackFolder,

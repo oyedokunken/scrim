@@ -2,6 +2,7 @@ import {
   Copy,
   Crop,
   EyeOff,
+  Frame,
   GripHorizontal,
   Highlighter,
   MousePointer2,
@@ -19,7 +20,16 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } 
 import { Button, ConfirmDialog, Segmented, Switch, Tooltip, useToast } from '../../ui';
 import type { ShareSource } from '../../../shared/share-contract';
 import { BackBar } from '../editor/back-bar';
+import { BackgroundPanel, backgroundClass } from '../panels/background-panel';
+import { useBackgroundElement, useBackgroundUrl } from '../panels/use-backgrounds';
 import { ShareDialog } from '../share/share-dialog';
+import {
+  NO_SHOT_BACKGROUND,
+  composeOnBackground,
+  frameGeometry,
+  hasBackground,
+  type ShotBackground,
+} from './background';
 import {
   EMPTY_DOC,
   addItem,
@@ -146,13 +156,19 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
   const [shareSource, setShareSource] = useState<ShareSource | null>(null);
   const [textEdit, setTextEdit] = useState<{ at: Point; value: string } | null>(null);
   const [available, setAvailable] = useState<Size>({ width: 800, height: 400 });
+  /** The background around the picture. Nothing, until the person chooses one. */
+  const [background, setBackground] = useState<ShotBackground>(NO_SHOT_BACKGROUND);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const backgroundImage = useBackgroundElement(background.id);
+  const backgroundUrl = useBackgroundUrl(background.id);
 
   const stage = useRef<HTMLDivElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const textInput = useRef<HTMLInputElement>(null);
   const gesture = useRef<Gesture | null>(null);
   const dragFile = useRef<string | null>(null);
-  const dragVersion = useRef<Doc | null>(null);
+  const dragVersion = useRef<{ doc: Doc; background: ShotBackground } | null>(null);
 
   const doc = live ?? history.present;
   const imageSize = useMemo<Size>(
@@ -160,9 +176,12 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
     [image],
   );
   const view = visibleRect(doc, imageSize);
-  const scale = fitScale(view, available);
+  // With a background the picture grows by the padding, and the whole frame has to fit the stage.
+  const frame = frameGeometry(view, background);
+  const scale = fitScale(frame, available);
   const selected = doc.items.find((item) => item.id === selectedId) ?? null;
-  const dirty = isDirty(history);
+  const framed = hasBackground(background);
+  const dirty = isDirty(history) || framed;
 
   useEffect(() => {
     let alive = true;
@@ -207,6 +226,21 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
     drawDoc(context, image, imageSize, doc, { scale, draft });
     drawOverlay(context, doc, imageSize, { scale, selected, cropDraft });
   }, [image, imageSize, doc, draft, scale, selected, cropDraft, view.width, view.height]);
+
+  // The background is drawn around the canvas with the same padding and corners the saved picture gets.
+  // The sizes are set through the CSSOM because the page's policy refuses inline styles.
+  useEffect(() => {
+    const element = wrap.current;
+    if (!element) return;
+    element.style.setProperty('--shot-pad', `${String(frame.pad * scale)}px`);
+    element.style.setProperty('--shot-radius', `${String(frame.radius * scale)}px`);
+    element.style.setProperty(
+      '--shot-shadow',
+      frame.shadow === null
+        ? 'none'
+        : `0 ${String(frame.shadow.offsetY * scale)}px ${String(frame.shadow.blur * scale)}px rgba(0, 0, 0, ${String(frame.shadow.alpha)})`,
+    );
+  }, [frame.pad, frame.radius, frame.shadow, scale, image]);
 
   // The text box sits over the picture where the text will go, placed through the CSSOM.
   useEffect(() => {
@@ -437,8 +471,8 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
     const context = out.getContext('2d');
     if (!context) return null;
     drawDoc(context, image, imageSize, history.present, { scale: 1 });
-    return out.toDataURL('image/png');
-  }, [image, imageSize, history.present]);
+    return composeOnBackground(out, background, backgroundImage).toDataURL('image/png');
+  }, [image, imageSize, history.present, background, backgroundImage]);
 
   const failed = (): void => {
     toast('Scrim could not do that. Try again.');
@@ -459,7 +493,8 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
       .invoke('image:save-edited', { sourcePath: path, dataUrl, copy })
       .then((result) => {
         toast(`Saved ${fileName(result.path)}${result.copied ? ' and copied it' : ''}`);
-        onSaved(result.path, outputSize(history.present, imageSize));
+        const saved = frameGeometry(outputSize(history.present, imageSize), background);
+        onSaved(result.path, { width: saved.width, height: saved.height });
       })
       .catch(failed)
       .finally(() => {
@@ -513,10 +548,17 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
   // A drag out needs a file. The edit is written when the pointer goes down on the handle, and the
   // drag, which starts a moment later, hands that file to the system.
   const prepareDrag = (): void => {
-    if (dragVersion.current === history.present && dragFile.current !== null) return;
+    const version = dragVersion.current;
+    if (
+      version?.doc === history.present &&
+      version.background === background &&
+      dragFile.current !== null
+    ) {
+      return;
+    }
     const dataUrl = render();
     if (dataUrl === null) return;
-    dragVersion.current = history.present;
+    dragVersion.current = { doc: history.present, background };
     dragFile.current = null;
     void window.scrim
       .invoke('image:save-edited', { sourcePath: path, dataUrl, copy: false })
@@ -586,6 +628,21 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
             if (selected) commit(replaceItem(history.present, { ...selected, thickness: value }));
           }}
         />
+        <Tooltip label="Background around the screenshot">
+          <button
+            type="button"
+            className={
+              backgroundOpen || framed ? 'icon-button shot-tool selected' : 'icon-button shot-tool'
+            }
+            aria-label="Background"
+            aria-pressed={backgroundOpen}
+            onClick={() => {
+              setBackgroundOpen((open) => !open);
+            }}
+          >
+            <Frame size={20} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </Tooltip>
         <div className="shot-tools">
           <Tooltip label="Undo" keys={['Ctrl', 'Z']}>
             <button
@@ -623,44 +680,65 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
         </div>
       </div>
 
-      <div ref={stage} className="shot-stage">
-        {image ? (
-          <div className="shot-canvas-wrap">
-            <canvas
-              ref={canvas}
-              className={`shot-canvas ${cursor}`}
-              aria-label="The screenshot. Choose a tool, then drag on the picture."
-              role="img"
-              onPointerDown={onPointerDown}
-              onMouseDown={(event) => {
-                // A text box is about to appear, and the click must not move focus away from it.
-                if (tool === 'text') event.preventDefault();
-              }}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-            />
-            {textEdit ? (
-              <input
-                ref={textInput}
-                className="shot-text-input"
-                aria-label="Text to add"
-                value={textEdit.value}
-                onChange={(event) => {
-                  setTextEdit({ ...textEdit, value: event.target.value });
+      <div className={backgroundOpen ? 'shot-work with-panel' : 'shot-work'}>
+        <div ref={stage} className="shot-stage">
+          {image ? (
+            <div
+              ref={wrap}
+              className={
+                framed
+                  ? `shot-canvas-wrap shot-framed ${
+                      background.id.startsWith('image:')
+                        ? 'bg-user'
+                        : backgroundClass(background.id)
+                    }`
+                  : 'shot-canvas-wrap'
+              }
+            >
+              {framed && backgroundUrl !== null ? (
+                <img className="bg-frame-image" src={backgroundUrl} alt="" draggable={false} />
+              ) : null}
+              <canvas
+                ref={canvas}
+                className={`shot-canvas ${cursor}`}
+                aria-label="The screenshot. Choose a tool, then drag on the picture."
+                role="img"
+                onPointerDown={onPointerDown}
+                onMouseDown={(event) => {
+                  // A text box is about to appear, and the click must not move focus away from it.
+                  if (tool === 'text') event.preventDefault();
                 }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') finishText(true);
-                  if (event.key === 'Escape') finishText(false);
-                }}
-                onBlur={() => {
-                  finishText(true);
-                }}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
               />
-            ) : null}
-          </div>
-        ) : (
-          <p className="ui-help">Opening the screenshot</p>
-        )}
+              {textEdit ? (
+                <input
+                  ref={textInput}
+                  className="shot-text-input"
+                  aria-label="Text to add"
+                  value={textEdit.value}
+                  onChange={(event) => {
+                    setTextEdit({ ...textEdit, value: event.target.value });
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') finishText(true);
+                    if (event.key === 'Escape') finishText(false);
+                  }}
+                  onBlur={() => {
+                    finishText(true);
+                  }}
+                />
+              ) : null}
+            </div>
+          ) : (
+            <p className="ui-help">Opening the screenshot</p>
+          )}
+        </div>
+        {backgroundOpen ? (
+          <aside className="shot-bg-panel" aria-label="Background">
+            <BackgroundPanel value={background} onChange={setBackground} subject="screenshot" />
+          </aside>
+        ) : null}
       </div>
 
       <p className="ui-help" role="status">

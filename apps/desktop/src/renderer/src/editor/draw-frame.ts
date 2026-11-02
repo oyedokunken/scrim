@@ -7,9 +7,29 @@ import { drawTexts } from './draw-text';
 export interface FrameMedia {
   screen: CanvasImageSource & { videoWidth: number; videoHeight: number };
   camera: (CanvasImageSource & { videoWidth: number; videoHeight: number }) | null;
+  /** The person's own picture, when the background is one. Drawn to cover the frame. */
+  background?: HTMLImageElement | null;
 }
 
-function fillBackground(
+/** Draws a picture so it covers the whole area without changing its shape, cropping the overflow. */
+export function drawCover(
+  ctx: CanvasRenderingContext2D,
+  image: { naturalWidth: number; naturalHeight: number } & CanvasImageSource,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  const iw = image.naturalWidth;
+  const ih = image.naturalHeight;
+  if (iw <= 0 || ih <= 0) return;
+  const scale = Math.max(w / iw, h / ih);
+  const sw = w / scale;
+  const sh = h / scale;
+  ctx.drawImage(image, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, y, w, h);
+}
+
+export function fillBackground(
   ctx: CanvasRenderingContext2D,
   fill: BackgroundFill,
   w: number,
@@ -83,6 +103,8 @@ function drawFrame(
   ctx.clearRect(0, 0, output.width, output.height);
   if (layout.background.kind === 'fill') {
     fillBackground(ctx, layout.background.fill, output.width, output.height);
+  } else if (layout.background.kind === 'image' && media.background) {
+    drawCover(ctx, media.background, 0, 0, output.width, output.height);
   } else {
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, output.width, output.height);

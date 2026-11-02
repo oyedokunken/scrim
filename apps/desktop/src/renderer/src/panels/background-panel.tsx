@@ -1,12 +1,15 @@
 import { BACKGROUND_PRESETS } from '@scrim/core/render';
-import { ImagePlus } from 'lucide-react';
-import { PanelSection, Segmented, Switch } from '../../ui';
+import { ImagePlus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { MAX_BACKGROUNDS, customBackgroundId } from '../../../shared/backgrounds-contract';
+import { Button, ConfirmDialog, PanelSection, Segmented, Switch } from '../../ui';
+import { useBackgroundImages } from './use-backgrounds';
 
 type BackgroundPadding = 'none' | 'small' | 'medium' | 'large';
 type BackgroundCorners = 'square' | 'soft' | 'round';
 
 export interface BackgroundValue {
-  /** A preset id from the render constants, or `none` for the recording alone. */
+  /** A preset id from the render constants, `none` for the recording alone, or `image:` and the id of the person's own picture. */
   id: string;
   padding: BackgroundPadding;
   corners: BackgroundCorners;
@@ -16,6 +19,8 @@ export interface BackgroundValue {
 export interface BackgroundPanelProps {
   value: BackgroundValue;
   onChange: (value: BackgroundValue) => void;
+  /** What the thing around the background is called in the help text. */
+  subject?: string;
 }
 
 const PADDING_OPTIONS = [
@@ -38,12 +43,25 @@ export function backgroundClass(id: string): string {
   return BACKGROUND_PRESETS.some((preset) => preset.id === id) ? `bg-${id}` : 'bg-deep-green';
 }
 
-/** A swatch grid of the presets, then padding, corners and shadow. */
-export function BackgroundPanel({ value, onChange }: BackgroundPanelProps) {
+/** A swatch grid of the presets and the person's own images, then padding, corners and shadow. */
+export function BackgroundPanel({ value, onChange, subject = 'recording' }: BackgroundPanelProps) {
   const none = value.id === NO_BACKGROUND;
+  const { images, add, remove } = useBackgroundImages();
+  const [problem, setProblem] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const selected = images.find((image) => customBackgroundId(image.id) === value.id);
+
+  const addImage = (): void => {
+    setProblem(null);
+    void add().then((outcome) => {
+      if (outcome.ok) onChange({ ...value, id: customBackgroundId(outcome.background.id) });
+      else if (outcome.reason !== 'cancelled') setProblem(outcome.message);
+    });
+  };
+
   return (
     <>
-      <PanelSection title="Background" help="What shows around your recording.">
+      <PanelSection title="Background" help={`What shows around your ${subject}.`}>
         <div className="swatch-grid" role="radiogroup" aria-label="Background">
           {BACKGROUND_PRESETS.map((preset) => (
             <button
@@ -70,18 +88,54 @@ export function BackgroundPanel({ value, onChange }: BackgroundPanelProps) {
           >
             None
           </button>
+          {images.map((image) => {
+            const id = customBackgroundId(image.id);
+            return (
+              <button
+                key={image.id}
+                type="button"
+                role="radio"
+                aria-checked={value.id === id}
+                aria-label={`Your image ${image.name}`}
+                className={`bg-swatch bg-user${value.id === id ? ' selected' : ''}`}
+                onClick={() => {
+                  onChange({ ...value, id });
+                }}
+              >
+                {image.url === null ? null : (
+                  <img className="bg-swatch-image" src={image.url} alt="" draggable={false} />
+                )}
+              </button>
+            );
+          })}
           <button
             type="button"
-            role="radio"
-            aria-checked={false}
-            aria-label="Your image, coming soon"
-            disabled
+            aria-label="Add your own image"
             className="bg-swatch bg-image"
+            disabled={images.length >= MAX_BACKGROUNDS}
+            onClick={addImage}
           >
             <ImagePlus size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
-        <p className="ui-help">Using your own image is coming soon.</p>
+        <p className="ui-help">
+          Add a PNG, JPG or WebP picture. Scrim keeps a copy on this computer and never uploads it.
+        </p>
+        {problem === null ? null : (
+          <p className="panel-error" role="alert">
+            {problem}
+          </p>
+        )}
+        {selected === undefined ? null : (
+          <Button
+            icon={<Trash2 size={16} strokeWidth={1.75} />}
+            onClick={() => {
+              setRemoving(true);
+            }}
+          >
+            Remove this image
+          </Button>
+        )}
       </PanelSection>
       <PanelSection title="Padding">
         <Segmented
@@ -113,6 +167,26 @@ export function BackgroundPanel({ value, onChange }: BackgroundPanelProps) {
           }}
         />
       </PanelSection>
+      <ConfirmDialog
+        open={removing && selected !== undefined}
+        title="Remove this image?"
+        confirmLabel="Remove image"
+        destructive
+        onCancel={() => {
+          setRemoving(false);
+        }}
+        onConfirm={() => {
+          setRemoving(false);
+          if (selected === undefined) return;
+          onChange({ ...value, id: BACKGROUND_PRESETS[0]?.id ?? NO_BACKGROUND });
+          void remove(selected.id);
+        }}
+      >
+        <p>
+          Scrim deletes its copy of the image. Videos and screenshots you already saved keep their
+          look, and your original file is not touched.
+        </p>
+      </ConfirmDialog>
     </>
   );
 }

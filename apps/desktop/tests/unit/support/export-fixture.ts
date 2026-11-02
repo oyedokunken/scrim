@@ -58,17 +58,23 @@ export function makeFixture(tools: { ffmpeg: string }, options: FixtureOptions =
     });
   };
   const duration = String(seconds);
-  run([
+  const screen = (encoder: string): string[] => [
     '-f',
     'lavfi',
     '-i',
     `testsrc2=size=1280x720:rate=30:duration=${duration}`,
     '-c:v',
-    'libopenh264',
+    encoder,
     '-pix_fmt',
     'yuv420p',
     join(folder, 'screen.mp4'),
-  ]);
+  ];
+  try {
+    run(screen('libopenh264'));
+  } catch {
+    // A system FFmpeg may not carry the Cisco encoder. Any H.264 encoder makes an equal stand in.
+    run(screen('libx264'));
+  }
   const tracks: SessionFile['tracks'] = [
     {
       kind: 'screen',

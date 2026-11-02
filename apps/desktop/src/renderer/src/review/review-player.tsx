@@ -22,6 +22,8 @@ export interface ReviewPlayerProps {
    * After view has nothing to show until the file is made.
    */
   live?: LivePreviewSource | undefined;
+  /** The text on the live picture. Null leaves it off. */
+  liveLabel?: string | null;
 }
 
 interface PaneProps {
@@ -138,7 +140,7 @@ function SeekBar({ seconds, length, onSeek }: SeekBarProps) {
  * Plays the raw recording, the finished look, or both side by side. One set of controls (play,
  * seek and speed) drives every video on screen, so the two halves of Compare stay in step.
  */
-export function ReviewPlayer({ mode, before, after, live }: ReviewPlayerProps) {
+export function ReviewPlayer({ mode, before, after, live, liveLabel }: ReviewPlayerProps) {
   const beforeEl = useRef<HTMLVideoElement | null>(null);
   const afterEl = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -280,6 +282,7 @@ export function ReviewPlayer({ mode, before, after, live }: ReviewPlayerProps) {
             onEnded={pauseAll}
             onLoaded={onLoaded}
             playing={playing}
+            {...(liveLabel === undefined ? {} : { label: liveLabel })}
           />
         ) : null}
         {showBefore ? (
