@@ -1,4 +1,3 @@
-import { ArrowUpRight } from 'lucide-react';
 import { formatReleaseDate, type ReleaseSummary } from '@/lib/release-date';
 import { siteConfig } from '@/site.config';
 import { SiteLink } from '../site-link';
@@ -23,20 +22,13 @@ export function DownloadSection({ release }: DownloadSectionProps) {
           {release === null ? (
             <p className={styles.status}>
               We could not load the latest release from GitHub. Get the installers from the{' '}
-              <SiteLink href={siteConfig.releasesUrl}>
-                Releases page
-                <ArrowUpRight aria-hidden="true" size={18} />
-              </SiteLink>
-              .
+              <SiteLink href={siteConfig.releasesUrl}>Releases page</SiteLink>.
             </p>
           ) : (
             <p className={styles.status}>
               Version {release.version}
               {date === null ? '' : `, published on ${date}`}. Choose your system below.{' '}
-              <SiteLink href={release.url}>
-                Read the release notes
-                <ArrowUpRight aria-hidden="true" size={18} />
-              </SiteLink>
+              <SiteLink href={release.url}>Read the release notes</SiteLink>
             </p>
           )}
         </header>

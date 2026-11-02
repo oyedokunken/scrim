@@ -274,7 +274,7 @@ function ExportScreen() {
             </div>
             <div>
               <dt>Resolution</dt>
-              <dd>1080p</dd>
+              <dd>Same as recording</dd>
             </div>
             <div>
               <dt>Frame rate</dt>

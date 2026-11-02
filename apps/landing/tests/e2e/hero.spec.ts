@@ -289,6 +289,60 @@ test.describe('sound', () => {
   });
 });
 
+test.describe('the video controls', () => {
+  for (const width of [320, 768, 1440]) {
+    test(`sit bottom right as Sound, Play and Zoom, all alike, at ${String(width)} px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const sound = page.getByRole('button', { name: 'Sound' });
+      const play = playButton(page);
+      const zoom = page.getByRole('switch', { name: 'Auto zoom' });
+      const boxes = await Promise.all([sound, play, zoom].map((control) => control.boundingBox()));
+      const [a, b, c] = boxes;
+      // Left to right: Sound, Play, Zoom, on one row.
+      expect((a?.x ?? 0) + (a?.width ?? 0)).toBeLessThanOrEqual((b?.x ?? 0) + 1);
+      expect((b?.x ?? 0) + (b?.width ?? 0)).toBeLessThanOrEqual((c?.x ?? 0) + 1);
+      expect(Math.abs((a?.y ?? 0) - (b?.y ?? 0))).toBeLessThan(2);
+      expect(Math.abs((b?.y ?? 0) - (c?.y ?? 0))).toBeLessThan(2);
+      for (const box of boxes) {
+        expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+        expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      }
+      // The same black, the same height, the same type, so they read as one set.
+      const looks = await Promise.all(
+        [sound, play, zoom].map((control) =>
+          control.evaluate((element) => {
+            const style = getComputedStyle(element);
+            return [style.backgroundColor, style.borderTopColor, style.color, style.height];
+          }),
+        ),
+      );
+      expect(looks[0]).toEqual(looks[1]);
+      expect(looks[1]).toEqual(looks[2]);
+    });
+  }
+
+  test('each has a tooltip, and the toggles say whether they are pressed', async ({ page }) => {
+    await page.goto('/');
+    const sound = page.getByRole('button', { name: 'Sound' });
+    await expect(sound).toHaveAttribute('data-tip', 'Turn sound on');
+    await expect(sound).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.getByRole('switch', { name: 'Auto zoom' })).toHaveAttribute(
+      'data-tip',
+      /auto zoom/,
+    );
+    await expect(page.getByRole('switch', { name: 'Auto zoom' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(playButton(page)).toHaveAttribute('data-tip', /the video/);
+    await sound.click();
+    await expect(sound).toHaveAttribute('data-tip', 'Turn sound off');
+  });
+});
+
 test.describe('the chapter buttons', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
