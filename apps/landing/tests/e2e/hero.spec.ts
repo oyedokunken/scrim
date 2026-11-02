@@ -321,6 +321,81 @@ test.describe('the chapter buttons', () => {
   });
 });
 
+test.describe('text in the hero video', () => {
+  // For every visible piece of text on every slide: its colour is never its background, and the
+  // contrast clears 4.5 to 1. The slides are sampled well inside their scene, after fades finish.
+  for (const width of [320, 768, 1440]) {
+    test(`is readable on every slide at ${String(width)} px wide`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      await pause(page);
+      for (const entry of SEGMENTS) {
+        await clickTimelineAt(page, shareOf(entry.id));
+        await expect(demo(page)).toHaveAttribute('data-scene', entry.id);
+        const report = await page.getByTestId('hero-cards').evaluate((cards) => {
+          const parse = (value: string) => {
+            const match = /rgba?\(([^)]+)\)/.exec(value);
+            const parts = (match?.[1] ?? '0,0,0,0')
+              .split(/[ ,/]+/)
+              .filter(Boolean)
+              .map(Number);
+            return { r: parts[0] ?? 0, g: parts[1] ?? 0, b: parts[2] ?? 0, a: parts[3] ?? 1 };
+          };
+          const channel = (v: number) => {
+            const x = v / 255;
+            return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+          };
+          const luminance = (c: { r: number; g: number; b: number }) =>
+            0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+          const problems: string[] = [];
+          let checked = 0;
+          for (const element of cards.querySelectorAll<HTMLElement>('*')) {
+            const hasText = [...element.childNodes].some(
+              (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() !== '',
+            );
+            if (!hasText) continue;
+            let opacity = 1;
+            for (
+              let node: HTMLElement | null = element;
+              node !== null && node !== cards;
+              node = node.parentElement
+            ) {
+              opacity *= Number(getComputedStyle(node).opacity);
+            }
+            if (opacity < 0.95) continue;
+            const text = parse(getComputedStyle(element).color);
+            let background = { r: 255, g: 255, b: 255, a: 1 };
+            for (let node: HTMLElement | null = element; node !== null; node = node.parentElement) {
+              const candidate = parse(getComputedStyle(node).backgroundColor);
+              if (candidate.a >= 0.95) {
+                background = candidate;
+                break;
+              }
+            }
+            const light = Math.max(luminance(text), luminance(background));
+            const dark = Math.min(luminance(text), luminance(background));
+            const ratio = (light + 0.05) / (dark + 0.05);
+            checked += 1;
+            const same =
+              text.r === background.r && text.g === background.g && text.b === background.b;
+            if (same || ratio < 4.5) {
+              problems.push(
+                `"${element.textContent.trim().slice(0, 30)}" ratio ${ratio.toFixed(2)}`,
+              );
+            }
+          }
+          return { checked, problems };
+        });
+        expect(report.problems, `slide ${entry.id}`).toEqual([]);
+        // The slides that carry text have some. The app screens are checked once they have text.
+        if (['headline', 'platforms', 'address', 'closing'].includes(entry.id)) {
+          expect(report.checked, `text on ${entry.id}`).toBeGreaterThan(0);
+        }
+      }
+    });
+  }
+});
+
 test.describe('the logo', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');

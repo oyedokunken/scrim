@@ -462,7 +462,11 @@ export function HeroDemo() {
               <SceneScreen scene={card} />
             </div>
           ))}
-          <div className={styles.card} data-card="closing" style={{ opacity: 'var(--on-closing)' }}>
+          <div
+            className={`${styles.card} ${styles.lightCard}`}
+            data-card="closing"
+            style={{ opacity: 'var(--on-closing)' }}
+          >
             <p className={styles.address}>{siteConfig.heroAddress}</p>
             <ul className={styles.logos}>
               {PLATFORMS.map((os, index) => (

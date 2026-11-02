@@ -625,3 +625,14 @@
 .soundToggle[aria-pressed='true'] {
   background: var(--scrim-green);
 }
+
+/* The slides after the headline sit on butter. Text is black and accents are green, so it reads. */
+.lightCard {
+  background: var(--scrim-butter);
+  color: var(--scrim-black);
+}
+
+.lightCard .address,
+.lightCard .logos {
+  color: var(--scrim-green);
+}
