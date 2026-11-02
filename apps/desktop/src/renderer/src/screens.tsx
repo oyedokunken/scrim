@@ -15,6 +15,7 @@ import { CursorPreview } from './panels/cursor-preview';
 import { ZoomPanel } from './panels/zoom-panel';
 import { ZoomPreview } from './panels/zoom-preview';
 import { Placeholder } from './shell/placeholder';
+import { FolderChip } from './shell/folder-chip';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
 import { EditorView } from './editor/editor-view';
@@ -586,13 +587,9 @@ export function MainScreen() {
         cameras={devices.cameras}
         mics={devices.mics}
         onChange={update}
-        onChooseFolder={() => void chooseFolder('recordings')}
       />
     ) : view === 'screenshot' ? (
-      <ScreenshotSettingsPanel
-        folder={settings.screenshotFolder}
-        onChooseFolder={() => void chooseFolder('screenshots')}
-      />
+      <ScreenshotSettingsPanel />
     ) : (
       <Placeholder view={view} inPanel />
     );
@@ -607,6 +604,19 @@ export function MainScreen() {
           setUpdateOpen(true);
         }}
         title={VIEW_LABELS[view]}
+        titleAction={
+          view === 'record' ? (
+            <FolderChip
+              path={settings.destinationFolder ?? 'Videos\\Scrim'}
+              onChoose={() => void chooseFolder('recordings')}
+            />
+          ) : view === 'screenshot' ? (
+            <FolderChip
+              path={settings.screenshotFolder ?? 'Pictures\\Scrim'}
+              onChoose={() => void chooseFolder('screenshots')}
+            />
+          ) : undefined
+        }
         primary={view === 'record' ? startButton : view === 'screenshot' ? shotButton : undefined}
         status={{ state, folder }}
         panel={panel}

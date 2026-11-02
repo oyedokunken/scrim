@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { AppShell } from '../../src/renderer/src/shell/app-shell';
+import { FolderChip } from '../../src/renderer/src/shell/folder-chip';
 import { Header } from '../../src/renderer/src/shell/header';
 import { ScreenshotView } from '../../src/renderer/src/shell/screenshot-view';
 import { Placeholder } from '../../src/renderer/src/shell/placeholder';
@@ -256,16 +257,14 @@ describe('the Record panel', () => {
         ]}
         mics={[]}
         onChange={noop}
-        onChooseFolder={noop}
       />,
     );
 
-  it('has camera, microphone and the save folder, and nothing about cursor or zoom', () => {
+  it('has camera and microphone, no save folder, and nothing about cursor or zoom', () => {
     const html = panel();
     expect(html).toContain('>Camera<');
     expect(html).toContain('>Microphone<');
-    expect(html).toContain('>Save to<');
-    expect(html).toContain('Videos\\Scrim');
+    expect(html).not.toContain('Save to');
     expect(html).not.toContain('Zoom');
     expect(html).not.toContain('Cursor');
   });
@@ -292,9 +291,29 @@ describe('the Record panel', () => {
   it('labels every list so a screen reader can name it', () => {
     expect(panel()).toContain('for="camera-device"');
   });
+});
 
-  it('shows a chosen folder', () => {
-    expect(panel({ destinationFolder: 'D:\\Takes' })).toContain('D:\\Takes');
+describe('the folder chip in the page header', () => {
+  it('shows a folder icon and the path, and is a named button', () => {
+    const html = renderToStaticMarkup(<FolderChip path={'Videos\\Scrim'} onChoose={noop} />);
+    expect(html).toContain('lucide-folder-open');
+    expect(html).toContain('Videos\\Scrim');
+    expect(html).toContain('aria-label="Save to Videos\\Scrim. Change folder"');
+  });
+
+  it('sits on the same row as the page title', () => {
+    const html = renderToStaticMarkup(
+      <AppShell
+        view="record"
+        onView={noop}
+        title="Record"
+        titleAction={<FolderChip path={'Videos\\Scrim'} onChoose={noop} />}
+        status={{ state: 'Ready', folder: 'Videos\\Scrim' }}
+      >
+        <p>main</p>
+      </AppShell>,
+    );
+    expect(html).toMatch(/<div class="page-head"><h1 class="page-title">Record<\/h1><button/);
   });
 });
 
@@ -332,6 +351,8 @@ describe('the app shell title', () => {
       </AppShell>,
     );
     expect(html.match(/<h1/g)).toHaveLength(1);
-    expect(html).toMatch(/<main class="shell-main"><h1 class="page-title">Screenshot<\/h1>/);
+    expect(html).toMatch(
+      /<main class="shell-main"><div class="page-head"><h1 class="page-title">Screenshot<\/h1>/,
+    );
   });
 });

@@ -1,21 +1,14 @@
-import { Button, PanelSection } from '../../ui';
+import { PanelSection } from '../../ui';
 
-export interface ScreenshotSettingsPanelProps {
-  /** The folder the person chose, or null for the default one. */
-  folder: string | null;
-  onChooseFolder: () => void;
-}
-
-/** The right panel of the Screenshot page: where screenshots are saved. */
-export function ScreenshotSettingsPanel({ folder, onChooseFolder }: ScreenshotSettingsPanelProps) {
+/** The right panel of the Screenshot page. The save folder sits beside the page title. */
+export function ScreenshotSettingsPanel() {
   return (
     <div className="panel-body">
       <PanelSection
-        title="Save to"
-        help="Every screenshot is saved here and copied to the clipboard."
+        title="Saving"
+        help="Every screenshot is saved to your folder and copied to the clipboard."
       >
-        <p className="folder">{folder ?? 'Pictures\\Scrim'}</p>
-        <Button onClick={onChooseFolder}>Change folder</Button>
+        <p className="ui-help">Change the folder at the top right of this page.</p>
       </PanelSection>
     </div>
   );

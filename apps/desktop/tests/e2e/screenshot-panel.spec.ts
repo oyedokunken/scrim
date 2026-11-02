@@ -72,7 +72,7 @@ test.describe('the screenshot page', () => {
       }, pictures.root);
       await enterApp(page);
       await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
-      await expect(page.getByRole('complementary').getByText('Save to')).toBeVisible();
+      await expect(page.getByRole('button', { name: /Save to Pictures/ })).toBeVisible();
       await expect(page.getByRole('heading', { name: /Screenshots\s*\d/ })).toHaveCount(0);
 
       await send(app, 'screenshot:taken', { path: shot, width: 160, height: 90 });

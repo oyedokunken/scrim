@@ -11,6 +11,8 @@ export interface AppShellProps {
   onView: (view: ViewId) => void;
   /** The view title, shown at the top of the main area. The header carries only the brand. */
   title: string;
+  /** Sits at the right of the title, on the same row. */
+  titleAction?: ReactNode;
   /** The recording name, editable, for the editor. */
   recordingName?: ReactNode;
   headerCenter?: ReactNode;
@@ -30,6 +32,7 @@ export function AppShell({
   view,
   onView,
   title,
+  titleAction,
   recordingName,
   headerCenter,
   primary,
@@ -54,7 +57,10 @@ export function AppShell({
       />
       <Rail view={view} onView={onView} updatePill={updatePill} onUpdatePill={onUpdatePill} />
       <main className="shell-main">
-        <h1 className="page-title">{title}</h1>
+        <div className="page-head">
+          <h1 className="page-title">{title}</h1>
+          {titleAction}
+        </div>
         {children}
       </main>
       {showPanel ? (

@@ -1,5 +1,5 @@
 import type { Settings, SettingsPatch } from '../../../shared/settings';
-import { Button, PanelSection, Select, Switch } from '../../ui';
+import { PanelSection, Select, Switch } from '../../ui';
 import type { DeviceOption } from '../hooks';
 
 export interface RecordPanelProps {
@@ -7,7 +7,6 @@ export interface RecordPanelProps {
   cameras: DeviceOption[];
   mics: DeviceOption[];
   onChange: (patch: SettingsPatch) => void;
-  onChooseFolder: () => void;
 }
 
 interface DevicePickerProps {
@@ -50,13 +49,7 @@ function DevicePicker({ id, label, devices, value, enabled, noneText, onPick }: 
 }
 
 /** The only things needed before recording: camera, microphone and where to save. */
-export function RecordPanel({
-  settings,
-  cameras,
-  mics,
-  onChange,
-  onChooseFolder,
-}: RecordPanelProps) {
+export function RecordPanel({ settings, cameras, mics, onChange }: RecordPanelProps) {
   return (
     <div className="panel-body">
       <PanelSection title="Camera">
@@ -99,13 +92,6 @@ export function RecordPanel({
             onChange({ micDeviceId });
           }}
         />
-      </PanelSection>
-
-      <PanelSection title="Save to">
-        <p className="folder" title={settings.destinationFolder ?? undefined}>
-          {settings.destinationFolder ?? 'Videos\\Scrim'}
-        </p>
-        <Button onClick={onChooseFolder}>Change folder</Button>
       </PanelSection>
     </div>
   );
