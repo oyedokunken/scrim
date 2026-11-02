@@ -1,5 +1,6 @@
 import { tidyMoments } from '@scrim/core/zoom';
 import type { ZoomMoment } from '@scrim/core/zoom';
+import type { TextItem } from '@scrim/core/render';
 
 /** A stretch of the recording clock, in milliseconds. */
 export interface Span {
@@ -15,6 +16,8 @@ export interface Edits {
   trim: Span | null;
   cuts: Span[];
   zoom?: { moments: ZoomMoment[] } | undefined;
+  /** Text laid over the video. Absent when there is none. */
+  texts?: TextItem[] | undefined;
 }
 
 const MIN_TRIM_MS = 500;
@@ -76,7 +79,9 @@ export function editZoom(
 
 /** Puts the zoom back to what the planner finds on its own. */
 export function resetZoom(edits: Edits): Edits {
-  return { trim: edits.trim, cuts: edits.cuts };
+  return edits.texts === undefined
+    ? { trim: edits.trim, cuts: edits.cuts }
+    : { trim: edits.trim, cuts: edits.cuts, texts: edits.texts };
 }
 
 function sameEdits(a: Edits, b: Edits): boolean {

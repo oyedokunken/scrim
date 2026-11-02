@@ -170,26 +170,23 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
             ))}
           </dl>
           <div className="lib-detail-actions" role="group" aria-label="Actions">
-            {item.isFile ? (
+            {(item.kind === 'screenshot' ? item.isFile : item.canEdit) ? (
               <Button
                 variant="primary"
-                icon={<ExternalLink size={16} strokeWidth={1.75} />}
-                onClick={openFile}
-              >
-                Open
-              </Button>
-            ) : null}
-            {item.canEdit ? (
-              <Button
                 icon={<Pencil size={16} strokeWidth={1.75} />}
                 onClick={() => {
                   void actions.open(item.id).then((opened) => {
-                    if (opened.kind === 'editor') onOpened(opened);
+                    if (opened.kind === 'editor' || opened.kind === 'screenshot') onOpened(opened);
                     else if (opened.kind === 'missing') missing();
                   });
                 }}
               >
-                Open in editor
+                Edit
+              </Button>
+            ) : null}
+            {item.isFile ? (
+              <Button icon={<ExternalLink size={16} strokeWidth={1.75} />} onClick={openFile}>
+                Open
               </Button>
             ) : null}
             <Button

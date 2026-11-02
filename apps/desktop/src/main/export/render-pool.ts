@@ -22,6 +22,7 @@ export interface WorkerFrame {
   view: FrameInput['view'];
   cursor: FrameInput['cursor'];
   bubble: FrameInput['bubble'];
+  texts?: FrameInput['texts'];
   out: SharedArrayBuffer;
 }
 
@@ -169,6 +170,7 @@ export function createWorkerBackend(options: {
         view: input.view,
         cursor: input.cursor,
         bubble: input.bubble,
+        ...(input.texts === undefined || input.texts.length === 0 ? {} : { texts: input.texts }),
         out: shared(out),
       });
       await done;
@@ -205,6 +207,7 @@ export function createWorkerHandler(
           view: message.view,
           cursor: message.cursor,
           bubble: message.bubble,
+          texts: message.texts,
         },
         new Uint8Array(message.out),
       );

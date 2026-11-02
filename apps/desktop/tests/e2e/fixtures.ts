@@ -23,7 +23,9 @@ const PACKAGED = process.env['SCRIM_E2E_TARGET'] === 'packaged';
  * over the Chromium debugging port. That gives a page but no main process handle, so specs
  * that need the main process skip themselves in this mode.
  */
-const sandboxFlags = process.env['CI'] ? ['--no-sandbox'] : [];
+// A hosted runner has no GPU and no user session of its own. Software drawing keeps the app from
+// crashing at start there, and the logging says what Chromium thought if it still does.
+const sandboxFlags = process.env['CI'] ? ['--no-sandbox', '--disable-gpu'] : [];
 
 /** Ends the app and its helper processes, which keep the user data folder locked on Windows. */
 async function stopTree(child: ChildProcess): Promise<void> {
@@ -68,7 +70,11 @@ interface Launched {
 function startBuilt(userDataDir: string): Promise<ElectronApplication> {
   return electron.launch({
     args: [APP_DIR, `--user-data-dir=${userDataDir}`, ...sandboxFlags],
-    env: { ...process.env, SCRIM_E2E: '1' },
+    env: {
+      ...process.env,
+      SCRIM_E2E: '1',
+      ...(process.env['CI'] ? { ELECTRON_ENABLE_LOGGING: '1' } : {}),
+    },
   });
 }
 
@@ -82,8 +88,25 @@ async function closeQuietly(app: ElectronApplication): Promise<void> {
 
 async function launchBuilt(userDataDir: string, use: (value: Launched) => Promise<void>) {
   const app = await startBuilt(userDataDir);
+  // What the app printed, so a launch that dies at once explains itself in the test report.
+  const output: string[] = [];
+  const child = app.process();
+  child.stdout?.on('data', (data: Buffer) => output.push(data.toString()));
+  child.stderr?.on('data', (data: Buffer) => output.push(data.toString()));
   try {
-    const page = await app.firstWindow();
+    let page: Page;
+    try {
+      page = await app.firstWindow();
+    } catch (error) {
+      const why = error instanceof Error ? error.message : 'unknown';
+      throw new Error(
+        `${why}
+Exit code: ${String(child.exitCode)}
+What the app printed:
+${output.join('').slice(-3000)}`,
+        { cause: error },
+      );
+    }
     await page.waitForLoadState('domcontentloaded');
     await use({ page, app, userDataDir });
   } finally {
@@ -127,6 +150,17 @@ interface Fixtures {
   relaunch: () => Promise<ElectronApplication>;
 }
 
+const removeLater: string[] = [];
+
+/**
+ * Removes folders once the app has closed. A test that deletes its temp folders while the app is
+ * still running races the app, which can still hold them open, and Windows then refuses with EPERM.
+ * Tests run one at a time in a worker, so one list is enough.
+ */
+export function removeAfterAppCloses(...paths: string[]): void {
+  removeLater.push(...paths);
+}
+
 export const test = base.extend<Fixtures>({
   // A fresh user data folder per test, removed afterwards. Playwright reads the fixture
   // dependencies from the destructuring, so the empty pattern has to stay.
@@ -136,6 +170,8 @@ export const test = base.extend<Fixtures>({
     try {
       await (PACKAGED ? launchPackaged : launchBuilt)(userDataDir, use);
     } finally {
+      // The app has quit by now, so nothing holds these folders any more.
+      for (const path of removeLater.splice(0)) rmSync(path, { recursive: true, force: true });
       try {
         rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
       } catch {

@@ -93,12 +93,25 @@ function paintMode(mode: CompareMode, split = 0.5) {
 }
 
 describe('before, compare and after', () => {
-  it('before draws only the raw capture, whole', () => {
+  it('before draws the whole recording on the background with no zoom, halo or ripples', () => {
     const calls = paintMode('before');
     const images = calls.filter((c) => c.name === 'drawImage');
     expect(images).toHaveLength(1);
-    // The plain form of drawImage: no crop of a zoomed view.
-    expect(images[0]?.args).toHaveLength(5);
+    // The crop is the full frame even where the finished frame is zoomed in.
+    expect(images[0]?.args.slice(1, 5)).toEqual([0, 0, 1280, 720]);
+    expect(calls.some((c) => c.name === 'arc')).toBe(false);
+  });
+
+  it('before keeps the cursor as a plain pointer when the capture hides it', () => {
+    const hidden = createRenderModel({
+      session: { ...session, capture: { cursorInCapture: false } },
+      log,
+      edits: { trim: null, cuts: [] },
+      settings: { preset: 'source', fps: 30, keepAudio: true },
+    });
+    const { ctx, calls } = fakeContext();
+    paintFrame(ctx, 'before', 0.5, hidden, hidden.describeAt(2500), media, paint);
+    expect(calls.some((c) => c.name === 'lineTo')).toBe(true);
     expect(calls.some((c) => c.name === 'arc')).toBe(false);
   });
 
@@ -113,7 +126,10 @@ describe('before, compare and after', () => {
   it('compare draws both, with the raw capture clipped to the left of the divider', () => {
     const calls = paintMode('compare', 0.3);
     const images = calls.filter((c) => c.name === 'drawImage');
-    expect(images.map((c) => c.args.length)).toEqual([9, 5]);
+    expect(images.map((c) => c.args.length)).toEqual([9, 9]);
+    // The left half is the plain picture: the whole frame, no zoom.
+    expect(images[1]?.args.slice(1, 5)).toEqual([0, 0, 1280, 720]);
+    expect(images[0]?.args.slice(1, 5)).not.toEqual([0, 0, 1280, 720]);
     const rect = calls.filter((c) => c.name === 'rect').at(-1);
     expect(rect?.args).toEqual([0, 0, model.layout.output.width * 0.3, model.layout.output.height]);
     expect(calls.at(-1)?.name).toBe('restore');
