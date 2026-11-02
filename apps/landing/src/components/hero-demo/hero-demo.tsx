@@ -144,6 +144,7 @@ export function HeroDemo() {
   const sceneRef = useRef<Scene>('opening');
   const sound = useRef<SoundController | null>(null);
   const lastTime = useRef(0);
+  const runningRef = useRef(false);
 
   const reducedMotion = usePrefersReducedMotion();
   // Auto means "play when the hero is on screen, unless the visitor prefers reduced motion".
@@ -168,6 +169,21 @@ export function HeroDemo() {
   const wantsToPlay = mode === 'playing' || (mode === 'auto' && !reducedMotion);
   const running = wantsToPlay && inView && tabVisible && !scrubbing && !ended;
   const showsPause = wantsToPlay && !ended;
+
+  // The music plays only while the video does: it stops for a pause, a hidden tab, a video that is
+  // off screen or a scrub, and starts again at the right bar when the video plays.
+  useEffect(() => {
+    runningRef.current = running;
+    const controller = sound.current;
+    if (controller === null || !controller.on) {
+      return;
+    }
+    if (running) {
+      controller.resume(lastTime.current);
+    } else {
+      controller.pause();
+    }
+  }, [running]);
 
   const draw = useCallback((timeMs: number) => {
     const element = root.current;
@@ -501,7 +517,10 @@ export function HeroDemo() {
                 setSoundOn(false);
                 return;
               }
-              void controller.enable().then(() => {
+              void controller.enable(lastTime.current).then(() => {
+                if (!runningRef.current) {
+                  controller.pause();
+                }
                 setSoundOn(controller.on);
               });
             }}

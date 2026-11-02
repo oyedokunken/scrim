@@ -9,12 +9,16 @@ import type { SoundEngine } from './sound';
 export interface SoundController {
   /** True once the visitor has turned sound on and it has not been turned off. */
   readonly on: boolean;
-  /** Turns sound on. Must be called from a click, because browsers block audio otherwise. */
-  enable(): Promise<void>;
+  /** Turns sound on, and starts the music at this time of the video. Call it from a click. */
+  enable(timeMs: number): Promise<void>;
   /** Turns sound off and closes the audio context. */
   disable(): void;
   /** Plays the cues in the step from one frame to the next, while the video is running. */
   step(fromMs: number, toMs: number): void;
+  /** Silences the music while the video is paused, hidden or off screen. */
+  pause(): void;
+  /** Brings the music back at this time of the video, when it plays again. */
+  resume(timeMs: number): void;
 }
 
 export function createSoundController(
@@ -29,7 +33,7 @@ export function createSoundController(
     get on() {
       return on;
     },
-    async enable() {
+    async enable(timeMs) {
       on = true;
       generation += 1;
       const mine = generation;
@@ -42,7 +46,9 @@ export function createSoundController(
       engine = loaded;
       if (loaded === null) {
         on = false;
+        return;
       }
+      loaded.sync(timeMs);
     },
     disable() {
       on = false;
@@ -55,8 +61,14 @@ export function createSoundController(
         return;
       }
       for (const cue of cuesBetween(cues, fromMs, toMs)) {
-        engine.play(cue.kind);
+        engine.play(cue);
       }
+    },
+    pause() {
+      engine?.hush();
+    },
+    resume(timeMs) {
+      engine?.sync(timeMs);
     },
   };
 }

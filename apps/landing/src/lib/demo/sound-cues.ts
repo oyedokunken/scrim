@@ -1,13 +1,34 @@
-import type { Segment } from './master';
+import { MASTER_DURATION_MS, type Segment } from './master';
 
-/** The sounds the hero video can make. Each one is synthesised, so nothing is downloaded. */
-export type CueKind = 'click' | 'pop' | 'whoosh' | 'rise' | 'fall' | 'chime' | 'shutter';
+/** The effects and the music parts the hero video can play. Everything is synthesised. */
+export type CueKind =
+  | 'click'
+  | 'pop'
+  | 'whoosh'
+  | 'rise'
+  | 'fall'
+  | 'chime'
+  | 'shutter'
+  /** One bar of the pad chord. */
+  | 'pad'
+  /** A soft beat. */
+  | 'pulse'
+  /** A short swell where the scene changes. */
+  | 'swell'
+  /** The music fades in. */
+  | 'musicIn'
+  /** The music fades out, at the end of the loop. */
+  | 'musicOut';
 
 /** One sound at one moment of the master timeline. */
 export interface Cue {
   /** Master milliseconds. */
   t: number;
   kind: CueKind;
+  /** Which chord of the progression a pad plays. */
+  chord?: number;
+  /** How long a pad lasts, in milliseconds. */
+  ms?: number;
 }
 
 export interface CueSource {
@@ -48,12 +69,57 @@ const SCENE_CUES: Readonly<Record<string, readonly { at: number; kind: CueKind }
   address: [{ at: 1000, kind: 'click' }],
 };
 
+/** A calm, modern pace: 96 beats a minute, four beats to a bar. */
+export const BPM = 96;
+export const BEAT_MS = 60_000 / BPM;
+export const BAR_MS = BEAT_MS * 4;
+/** How long the music takes to fade out at the end of the loop. */
+export const FADE_OUT_MS = 1600;
+
 /**
- * Every sound of the video with its time, in order. A pure function of the timeline, so the cue
- * list can be tested without a browser or an audio device.
+ * The four chords of the pad, as frequencies in hertz: Cmaj7, Am7, Fmaj7 and G6. Soft, open and
+ * in no hurry. Each bar plays one, and the progression repeats.
+ */
+export const CHORDS: readonly (readonly number[])[] = [
+  [130.81, 196.0, 246.94, 329.63],
+  [110.0, 164.81, 220.0, 329.63],
+  [87.31, 174.61, 220.0, 329.63],
+  [98.0, 196.0, 246.94, 329.63],
+];
+
+/** The chord that plays at a master time, and how long is left of its bar. */
+export function chordAt(timeMs: number): { chord: number; remainingMs: number } {
+  const t = Math.max(0, timeMs);
+  const bar = Math.floor(t / BAR_MS);
+  return { chord: bar % CHORDS.length, remainingMs: (bar + 1) * BAR_MS - t };
+}
+
+/** The music of the whole video: a pad each bar, a beat each beat, a swell at each new scene. */
+function musicCues(segments: readonly Segment[]): Cue[] {
+  const cues: Cue[] = [{ t: 1, kind: 'musicIn' }];
+  const total = MASTER_DURATION_MS;
+  for (let bar = 0; bar * BAR_MS < total; bar += 1) {
+    cues.push({ t: bar * BAR_MS + 2, kind: 'pad', chord: bar % CHORDS.length, ms: BAR_MS });
+  }
+  for (let beat = 0; beat * BEAT_MS < total - FADE_OUT_MS; beat += 1) {
+    // The first beat of each bar is the strongest, and the pulse starts once the headline is up.
+    if (beat * BEAT_MS >= 2000) {
+      cues.push({ t: beat * BEAT_MS + 3, kind: 'pulse' });
+    }
+  }
+  for (const segment of segments.slice(1)) {
+    cues.push({ t: segment.start + 4, kind: 'swell' });
+  }
+  cues.push({ t: total - FADE_OUT_MS, kind: 'musicOut' });
+  return cues;
+}
+
+/**
+ * Every sound of the video with its time, in order: the effects and the music. A pure function of
+ * the timeline, so the cue list can be tested without a browser or an audio device.
  */
 export function soundCuesFor(source: CueSource): Cue[] {
-  const cues: Cue[] = [];
+  const cues: Cue[] = musicCues(source.segments);
   for (const segment of source.segments) {
     for (const entry of SCENE_CUES[segment.id] ?? []) {
       cues.push({ t: segment.start + entry.at, kind: entry.kind });
@@ -68,6 +134,13 @@ export function soundCuesFor(source: CueSource): Cue[] {
     }
   }
   return cues.sort((a, b) => a.t - b.t);
+}
+
+/** The cue kinds that are music rather than effects. Effects duck the music. */
+const MUSIC_KINDS: ReadonlySet<CueKind> = new Set(['pad', 'pulse', 'swell', 'musicIn', 'musicOut']);
+
+export function isMusic(kind: CueKind): boolean {
+  return MUSIC_KINDS.has(kind);
 }
 
 /** The longest step between two frames that still counts as playing rather than as a seek. */
