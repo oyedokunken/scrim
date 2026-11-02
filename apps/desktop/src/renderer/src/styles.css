@@ -1240,8 +1240,38 @@ input[type='checkbox'] {
   gap: 8px;
 }
 
+.lib-thumb-wrap {
+  position: relative;
+}
+
+/* A round play badge on the middle of a video's thumbnail. It is a button beside the open button. */
+.lib-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: var(--scrim-black);
+  cursor: pointer;
+  background: color-mix(in srgb, var(--scrim-white) 90%, transparent);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--scrim-black) 28%, transparent);
+  translate: -50% -50%;
+  transition: scale 120ms ease;
+}
+
+.lib-play:hover {
+  scale: 1.12;
+}
+
 .lib-open {
   display: block;
+  width: 100%;
   padding: 0;
   cursor: pointer;
   background: none;

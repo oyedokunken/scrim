@@ -20,6 +20,8 @@ import type { LibraryActions } from './use-library';
 
 export interface LibraryDetailProps {
   item: LibraryItem;
+  /** Start playing as soon as the view opens, for a recording opened from its play badge. */
+  autoPlay?: boolean;
   actions: LibraryActions;
   /** Goes back to the list, which keeps its scroll position and filters. */
   onBack: () => void;

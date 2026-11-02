@@ -154,6 +154,44 @@ test.describe('the library', () => {
     }
   });
 
+  test('marks every recording with a centered 44 pixel play badge and no screenshot', async ({
+    app,
+    page,
+  }) => {
+    const disk = await arrange(app, true);
+    try {
+      await openLibrary(page);
+      await expect(page.getByRole('button', { name: /^Play / })).toHaveCount(2);
+      for (const card of await cards(page).all()) {
+        const isShot = (await card.getByRole('img', { name: 'Screenshot' }).count()) > 0;
+        await expect(card.getByRole('button', { name: /^Play / })).toHaveCount(isShot ? 0 : 1);
+      }
+      const card = cards(page).filter({ hasText: 'Loose clip' });
+      const badge = card.getByRole('button', { name: 'Play Loose clip' });
+      const badgeBox = await badge.boundingBox();
+      const thumbBox = await card.locator('.lib-thumb').boundingBox();
+      if (!badgeBox || !thumbBox) throw new Error('no boxes');
+      expect(Math.round(badgeBox.width)).toBe(44);
+      expect(Math.round(badgeBox.height)).toBe(44);
+      expect(
+        Math.abs(badgeBox.x + badgeBox.width / 2 - (thumbBox.x + thumbBox.width / 2)),
+      ).toBeLessThan(2);
+      expect(
+        Math.abs(badgeBox.y + badgeBox.height / 2 - (thumbBox.y + thumbBox.height / 2)),
+      ).toBeLessThan(2);
+
+      await badge.hover();
+      await expect
+        .poll(async () => (await badge.boundingBox())?.width ?? 0)
+        .toBeGreaterThan(badgeBox.width);
+
+      await badge.click();
+      await expect(page.getByRole('region', { name: /Details for Loose clip/ })).toBeVisible();
+    } finally {
+      disk.cleanup();
+    }
+  });
+
   test('cards show the type, size and date, and the menu is a 44 pixel button that lists the actions', async ({
     app,
     page,
