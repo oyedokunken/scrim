@@ -50,7 +50,7 @@ export function AudioPreview({ value, micOn, deviceId }: AudioPreviewProps) {
 
   let message = 'Speak to see the level move.';
   if (!value.keepSound) message = 'Sound is off, so the video will have no audio.';
-  else if (!micOn) message = 'The microphone is off. Turn on Record my voice on the Record page.';
+  else if (!micOn) message = 'The microphone is off. Turn on Use microphone on the Record page.';
   else if (stream.status === 'failed') message = 'Scrim could not open this microphone.';
 
   return (

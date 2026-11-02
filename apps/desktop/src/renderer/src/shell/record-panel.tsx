@@ -1,3 +1,4 @@
+import { Mic, Video } from 'lucide-react';
 import type { Settings, SettingsPatch } from '../../../shared/settings';
 import { PanelSection, Select, Switch } from '../../ui';
 import type { DeviceOption } from '../hooks';
@@ -29,9 +30,6 @@ function DevicePicker({ id, label, devices, value, enabled, noneText, onPick }: 
     : ((devices.find((device) => device.isDefault) ?? devices[0])?.deviceId ?? '');
   return (
     <div className="field">
-      <label htmlFor={id} className="ui-help">
-        {label}
-      </label>
       <Select
         id={id}
         label={label}
@@ -48,13 +46,13 @@ function DevicePicker({ id, label, devices, value, enabled, noneText, onPick }: 
   );
 }
 
-/** The only things needed before recording: camera, microphone and where to save. */
+/** The only things needed before recording: camera and microphone. */
 export function RecordPanel({ settings, cameras, mics, onChange }: RecordPanelProps) {
   return (
     <div className="panel-body">
-      <PanelSection title="Camera">
+      <PanelSection title="Camera" icon={<Video size={16} strokeWidth={1.75} aria-hidden="true" />}>
         <Switch
-          label="Show my face"
+          label="Use camera"
           checked={settings.cameraOn}
           onChange={(cameraOn) => {
             onChange({ cameraOn });
@@ -73,9 +71,12 @@ export function RecordPanel({ settings, cameras, mics, onChange }: RecordPanelPr
         />
       </PanelSection>
 
-      <PanelSection title="Microphone">
+      <PanelSection
+        title="Microphone"
+        icon={<Mic size={16} strokeWidth={1.75} aria-hidden="true" />}
+      >
         <Switch
-          label="Record my voice"
+          label="Use microphone"
           checked={settings.micOn}
           onChange={(micOn) => {
             onChange({ micOn });

@@ -555,6 +555,7 @@ svg {
   grid-area: panel;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--scrim-white);
   border-left: 1px solid var(--ui-border);
 }

@@ -288,8 +288,22 @@ describe('the Record panel', () => {
     expect(panel()).toContain('No microphone found');
   });
 
-  it('labels every list so a screen reader can name it', () => {
-    expect(panel()).toContain('for="camera-device"');
+  it('names every list for a screen reader without a visible label', () => {
+    const html = panel();
+    expect(html).toContain('aria-label="Camera to use"');
+    expect(html).not.toContain('<label');
+    expect(html).not.toMatch(/>Camera to use</);
+    expect(html).not.toMatch(/>Microphone to use</);
+  });
+
+  it('puts an icon beside each heading and names the switches Use camera and Use microphone', () => {
+    const html = panel();
+    expect(html).toContain('lucide-video');
+    expect(html).toContain('lucide-mic');
+    expect(html).toContain('Use camera');
+    expect(html).toContain('Use microphone');
+    expect(html).not.toContain('Show my face');
+    expect(html).not.toContain('Record my voice');
   });
 });
 

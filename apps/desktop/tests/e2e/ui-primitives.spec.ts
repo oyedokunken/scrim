@@ -145,7 +145,7 @@ test.describe('the views', () => {
       navigator.mediaDevices.enumerateDevices = () => Promise.resolve(devices as MediaDeviceInfo[]);
       navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
     });
-    await page.getByRole('switch', { name: 'Show my face' }).click();
+    await page.getByRole('switch', { name: 'Use camera' }).click();
 
     const select = page.getByRole('combobox', { name: 'Camera to use' });
     await expect(select).toContainText('Integrated Webcam');
@@ -202,7 +202,7 @@ test.describe('the views', () => {
       navigator.mediaDevices.enumerateDevices = () => Promise.resolve(devices as MediaDeviceInfo[]);
       navigator.mediaDevices.dispatchEvent(new Event('devicechange'));
     });
-    await page.getByRole('switch', { name: 'Record my voice' }).click();
+    await page.getByRole('switch', { name: 'Use microphone' }).click();
     const select = page.getByRole('combobox', { name: 'Microphone to use' });
     await expect(select).toBeVisible();
     await select.click();
