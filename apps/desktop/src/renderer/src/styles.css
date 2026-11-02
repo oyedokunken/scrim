@@ -828,6 +828,34 @@ input[type='checkbox'] {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.review-panes.stacked > .review-pane {
+  grid-area: 1 / 1;
+}
+
+.review-pane.covered {
+  visibility: hidden;
+}
+
+/* The live picture and its label. The label sits on the picture so it cannot be missed. */
+.review-live {
+  position: relative;
+}
+
+.review-live .review-video {
+  display: block;
+}
+
+.review-live-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--scrim-white);
+  background: color-mix(in srgb, var(--scrim-black) 72%, transparent);
+  border-radius: 999px;
+}
+
 .review-panes.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1504,6 +1532,26 @@ input[type='checkbox'] {
 }
 
 /* Export progress and result inside the saved card. */
+.saved-export-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.saved-export-main {
+  display: grid;
+  flex: 1 1 0;
+  gap: 6px;
+  min-width: 0;
+}
+
+.saved-export-cancel {
+  flex: none;
+  white-space: nowrap;
+}
+
 .saved-export {
   display: grid;
   gap: 6px;

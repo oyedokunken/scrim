@@ -214,7 +214,8 @@ test('Stop opens the review, Before, After and Compare play, and Export writes o
     });
     await expect(page.locator('.stage')).toHaveCount(0);
 
-    // BEFORE plays straight away.
+    // The review opens on After while the video is made, so pick Before to play the raw recording.
+    await page.getByRole('radio', { name: 'Before' }).click();
     const before = page.locator('video[aria-label="Before"]');
     await expect(before).toHaveCount(1);
     await page.waitForFunction(() => {
