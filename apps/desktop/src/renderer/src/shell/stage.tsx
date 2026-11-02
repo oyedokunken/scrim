@@ -6,8 +6,8 @@ export interface StageProps {
   label: string;
   /** The line under the icon. */
   text: string;
-  /** The view's one big action, centered under the text. */
-  action: ReactNode;
+  /** An optional action, centered under the text. The views keep theirs in the bottom row. */
+  action?: ReactNode;
   /** The shortcut for that action, shown small in the top right corner. */
   shortcut: readonly string[];
 }

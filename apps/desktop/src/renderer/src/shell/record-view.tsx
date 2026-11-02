@@ -23,16 +23,16 @@ export function RecordView({ busy, options, onStart, review }: RecordViewProps) 
           <Stage
             icon={<Monitor size={48} strokeWidth={1.5} />}
             label="Record your screen"
-            text="Your screen is ready to record"
+            text="Drag a box over the part of the screen to record"
             shortcut={SHORTCUTS.record.keys}
-            action={
-              <Button variant="primary" className="record-button" disabled={busy} onClick={onStart}>
-                <span className="record-dot" aria-hidden="true" />
-                {busy ? 'Starting...' : 'Start recording'}
-              </Button>
-            }
           />
-          {options}
+          <div className="option-row">
+            {options}
+            <Button variant="primary" className="record-button" disabled={busy} onClick={onStart}>
+              <span className="record-dot" aria-hidden="true" />
+              {busy ? 'Starting...' : 'Start recording'}
+            </Button>
+          </div>
         </>
       ) : (
         <ReviewScreen {...review} />

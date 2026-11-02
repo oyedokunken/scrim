@@ -75,12 +75,12 @@ export function ScreenshotView({
         label="Take a screenshot"
         text="Capture a region, a window or the whole screen"
         shortcut={SHORTCUTS.screenshot.keys}
-        action={
-          <Button variant="primary" className="record-button" disabled={busy} onClick={onTake}>
-            {busy ? 'Opening...' : 'Take screenshot'}
-          </Button>
-        }
       />
+      <div className="option-row">
+        <Button variant="primary" className="record-button" disabled={busy} onClick={onTake}>
+          {busy ? 'Opening...' : 'Take screenshot'}
+        </Button>
+      </div>
     </div>
   );
 }

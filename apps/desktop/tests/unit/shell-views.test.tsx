@@ -231,12 +231,13 @@ describe('the welcome screen', () => {
 describe('the Record view', () => {
   const view = (busy = false) => renderToStaticMarkup(<RecordView busy={busy} onStart={noop} />);
 
-  it('has the stage holding the big button with the red dot and the shortcut in its corner', () => {
+  it('has the stage with its shortcut, and the red dot button at the end of the bottom row', () => {
     const html = view();
     expect(html).toContain('class="stage"');
     expect(html).toMatch(/stage-shortcut"><span>Shortcut<\/span>.*Ctrl Shift R/s);
     expect(html.indexOf('record-button')).toBeGreaterThan(html.indexOf('class="stage"'));
-    expect(html.indexOf('record-button')).toBeLessThan(html.indexOf('</section>'));
+    expect(html.indexOf('record-button')).toBeGreaterThan(html.indexOf('</section>'));
+    expect(html).toContain('class="option-row"');
     expect(html.match(/ui-keycaps/g)).toHaveLength(1);
     expect(html).toMatch(
       /record-button[^>]*><span class="record-dot" aria-hidden="true"><\/span>Start recording/,
@@ -352,11 +353,11 @@ describe('the placeholder', () => {
 describe('the Screenshot view', () => {
   const html = renderToStaticMarkup(<ScreenshotView busy={false} onTake={noop} />);
 
-  it('uses the same stage with the button inside and Ctrl Shift X in the corner', () => {
+  it('uses the same stage with the button in the bottom row and Ctrl Shift X in the corner', () => {
     expect(html).toContain('class="stage"');
     expect(html).toContain('Take screenshot');
     expect(html).toContain('aria-label="Ctrl Shift X"');
-    expect(html.indexOf('record-button')).toBeLessThan(html.indexOf('</section>'));
+    expect(html.indexOf('record-button')).toBeGreaterThan(html.indexOf('</section>'));
   });
 });
 

@@ -49,7 +49,7 @@ function DevicePicker({ id, label, devices, value, enabled, noneText, onPick }: 
 /** The only things needed before recording: camera and microphone. */
 export function RecordPanel({ settings, cameras, mics, onChange }: RecordPanelProps) {
   return (
-    <div className="record-options">
+    <>
       <PanelSection title="Camera" icon={<Video size={16} strokeWidth={1.75} aria-hidden="true" />}>
         <Switch
           label="Use camera"
@@ -94,6 +94,6 @@ export function RecordPanel({ settings, cameras, mics, onChange }: RecordPanelPr
           }}
         />
       </PanelSection>
-    </div>
+    </>
   );
 }

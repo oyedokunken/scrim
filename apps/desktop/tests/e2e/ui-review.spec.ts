@@ -58,7 +58,7 @@ for (const size of SIZES) {
       const layout = await page.evaluate(() => {
         const main = document.querySelector('.shell-main');
         const stage = document.querySelector('.stage')?.getBoundingClientRect();
-        const sections = [...document.querySelectorAll('.record-options .ui-section')].map((s) =>
+        const sections = [...document.querySelectorAll('.option-row .ui-section')].map((s) =>
           s.getBoundingClientRect(),
         );
         return {

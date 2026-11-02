@@ -438,8 +438,8 @@ svg {
   font: inherit;
   font-size: 14px;
   color: var(--scrim-black);
-  background: transparent;
-  border: 0;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-sm);
   cursor: pointer;
 }
@@ -621,23 +621,32 @@ svg {
   align-content: start;
 }
 
-/* Camera and microphone under the stage, side by side, so the page needs no side panel. */
-.record-options {
+/* The bottom row of a capture page: two bordered option cards and the action at the end, as in
+   the app screen of the website's hero video. Screenshot has the action alone, at the end. */
+.option-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
   width: 100%;
   min-width: 0;
 }
 
-.record-options .ui-section + .ui-section {
-  margin-top: 0;
+.option-row > .record-button {
+  grid-column: 3;
 }
 
-.record-options .ui-section {
+.option-row .ui-section {
   gap: 8px;
   min-width: 0;
+  padding: 10px 14px;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.option-row .ui-section + .ui-section {
+  margin-top: 0;
 }
 
 .stage {
@@ -648,9 +657,9 @@ svg {
   gap: 12px;
   width: 100%;
   aspect-ratio: 16 / 9;
-  max-height: min(55vh, calc(100vh - 340px));
-  color: var(--scrim-text-secondary);
-  background: var(--ui-track);
+  max-height: min(55vh, calc(100vh - 360px));
+  color: var(--scrim-butter);
+  background: var(--scrim-green);
   border-radius: var(--ui-radius-lg);
   box-shadow: var(--ui-shadow-soft);
 }
@@ -670,6 +679,7 @@ svg {
 }
 
 .stage-shortcut .ui-keycap {
+  color: var(--scrim-black);
   min-width: 0;
   padding: 0 6px;
   font-size: 11px;
