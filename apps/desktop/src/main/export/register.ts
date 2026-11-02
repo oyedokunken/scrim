@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { availableParallelism } from 'node:os';
 import { readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Settings } from '../../shared/settings';
+import type { Look, Settings } from '../../shared/settings';
 import { resolveFfmpegPaths, runProcess } from '../recording/ffmpeg';
 import { realServiceFs } from '../recording/fs-adapter';
 import { projectsRoot } from '../recording/projects-folder';
@@ -29,7 +29,11 @@ export interface ExportApi {
   retrySafer: (jobId: string) => ReturnType<ExportService['retrySafer']>;
   retry: (jobId: string) => ReturnType<ExportService['retry']>;
   /** Renders a recording again after an edit: write over the old video, or save a new one. */
-  rerender: (folder: string, mode: 'replace' | 'new') => ReturnType<ExportService['rerender']>;
+  rerender: (
+    folder: string,
+    mode: 'replace' | 'new',
+    look?: Look,
+  ) => ReturnType<ExportService['rerender']>;
   /** The recordings whose video was unfinished when Scrim last closed. */
   pending: () => Promise<{ folder: string; name: string }[]>;
   resumePending: (folder: string) => ReturnType<ExportService['start']> | undefined;
@@ -46,6 +50,8 @@ export interface ExportApi {
 
 export interface RegisterOptions {
   settings: () => Settings;
+  /** Where one of the person's own background images is. */
+  backgroundPath?: (imageId: string) => string | undefined;
   log: (message: string) => void;
 }
 
@@ -104,6 +110,7 @@ export async function registerExport(options: RegisterOptions): Promise<ExportAp
         run,
       ),
     settings: options.settings,
+    ...(options.backgroundPath === undefined ? {} : { backgroundPath: options.backgroundPath }),
     destination: () => destination(options.settings()),
     previewDir: previewFolder,
     fallbackDir: exportFallbackFolder,
@@ -144,7 +151,7 @@ export async function registerExport(options: RegisterOptions): Promise<ExportAp
     },
     retrySafer: (jobId) => service.retrySafer(jobId),
     retry: (jobId) => service.retry(jobId),
-    rerender: (folder, mode) => service.rerender(folder, mode),
+    rerender: (folder, mode, look) => service.rerender(folder, mode, look),
     pending: async () => {
       const found: { folder: string; name: string }[] = [];
       for (const folder of pending.leftover()) {

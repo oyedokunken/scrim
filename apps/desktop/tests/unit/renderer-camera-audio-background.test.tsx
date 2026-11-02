@@ -84,11 +84,13 @@ describe('the Audio panel', () => {
 describe('the Background panel and preview', () => {
   const html = renderToStaticMarkup(<BackgroundPanel value={background} onChange={noop} />);
 
-  it('lists the render presets, None and a disabled image tile, with padding, corners and shadow', () => {
+  it('lists the render presets, None and the add image tile, with padding, corners and shadow', () => {
     for (const label of ['Butter', 'Green', 'Deep green', 'Dots', 'Grid', 'None']) {
       expect(html).toContain(`aria-label="${label}"`);
     }
-    expect(html).toMatch(/aria-label="Your image, coming soon"[^>]*disabled/);
+    expect(html).toContain('aria-label="Add your own image"');
+    expect(html).not.toMatch(/aria-label="Add your own image"[^>]*disabled/);
+    expect(html).not.toContain('coming soon');
     for (const label of ['Small', 'Medium', 'Large', 'Square', 'Soft', 'Round']) {
       expect(html).toContain(`>${label}<`);
     }

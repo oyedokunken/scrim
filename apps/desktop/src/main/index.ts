@@ -37,6 +37,7 @@ import { createAreaPicker } from './recording/area-picker';
 import { buildAreaRequest, devicesFromSettings, type AreaApi } from './ipc/area-handlers';
 import { acceleratorsOf } from '../shared/shortcut-keys';
 import { autoRender, registerExport } from './export/register';
+import { createRealBackgroundStore } from './backgrounds/real-store';
 import { DEFAULT_SETTINGS } from '../shared/settings';
 import { createShortcutManager } from './shell/shortcut-manager';
 import { createRecordingControl, isLivePhase } from './shell/recording-control';
@@ -182,8 +183,10 @@ if (!app.requestSingleInstanceLock()) {
     logger.info('app.start', { version: app.getVersion(), platform: process.platform });
     const recording = registerRecording({ appOrigin: target.origin });
     // Every finished recording, a recovered one too, becomes one MP4 in the recordings folder.
+    const backgrounds = createRealBackgroundStore();
     const exporter = await registerExport({
       settings: () => settings?.get() ?? DEFAULT_SETTINGS,
+      backgroundPath: (id) => backgrounds.pathOf(id),
       log: (message) => {
         logger.info('export', { message });
       },
@@ -340,6 +343,7 @@ if (!app.requestSingleInstanceLock()) {
       area,
       exporter,
       media,
+      backgrounds,
       onSettingsChanged: (next) => {
         shortcutsRef.current?.apply(acceleratorsOf(next));
       },

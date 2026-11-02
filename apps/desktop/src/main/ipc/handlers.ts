@@ -14,6 +14,7 @@ import { createEditorHandlers, type EditorDeps } from '../editor/editor-handlers
 import { createLibraryHandlers } from '../library/library-handlers';
 import type { Library } from '../library/library';
 import type { ShareService } from '../share/share-service';
+import { createBackgroundHandlers, type BackgroundStore } from '../backgrounds/store';
 import { createRecordingHandlers, type RecordingApi } from './recording-handlers';
 
 /** Everything the handlers need from the outside world, so a test can supply fakes. */
@@ -29,6 +30,8 @@ export interface HandlerDeps {
   editor: EditorDeps;
   /** The review screen calls, already built so the main process can share their cleanup. */
   review: Pick<Handlers, 'review:open' | 'review:discard'>;
+  /** The person's own background pictures. */
+  backgrounds: BackgroundStore;
   /** The recordings and screenshots listing and its actions. */
   library: Library;
   /** The one service that shares recordings and screenshots, whatever screen asks. */
@@ -183,6 +186,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       exporter: deps.exporter,
       isKnownFolder: deps.editor.isKnownFolder,
     }),
+    ...createBackgroundHandlers(deps.backgrounds),
     ...createLibraryHandlers({ library: deps.library, canShare: () => deps.share !== null }),
     'share:info': ({ source }) => deps.shareService.info(source),
     'share:run': ({ source, action }) => deps.shareService.run(source, action),

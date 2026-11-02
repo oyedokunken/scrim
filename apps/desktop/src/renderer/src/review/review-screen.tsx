@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button, ConfirmDialog, Segmented } from '../../ui';
+import { RecordingEditPane } from '../edit/recording-edit-pane';
 import { editorApi } from '../shell/editor-bridge';
 import { formatBytes, formatMoment, formatTimer } from '../format';
 import type { ExportJobView, Finished } from '../hooks';
@@ -20,7 +21,6 @@ export interface ReviewScreenProps {
   onCancelJob: (jobId: string) => void;
   onRetryJob: (jobId: string) => void;
   onRetrySafer: (jobId: string) => void;
-  onOpenEditor?: () => void;
   onShowInFolder: () => void;
   onRecordAgain: () => void;
   /** Called after the recording was moved to the Recycle Bin. */
@@ -86,7 +86,6 @@ export function ReviewScreen({
   onCancelJob,
   onRetryJob,
   onRetrySafer,
-  onOpenEditor,
   onShowInFolder,
   onRecordAgain,
   onDiscarded,
@@ -101,6 +100,8 @@ export function ReviewScreen({
   const [live, setLive] = useState<LivePreviewSource | null>(null);
   // A person who has not picked a view yet is moved to After while the video is made.
   const [picked, setPicked] = useState(false);
+  /** True while the edit pane (Background, Cursor and Zoom) is open instead of the review. */
+  const [editing, setEditing] = useState(false);
 
   const mine = job !== null && !job.preview && job.recording === folderName(finished.folder);
   const rendering = mine ? job : null;
@@ -171,6 +172,21 @@ export function ReviewScreen({
   const makeVideo = (): void => {
     void window.scrim.invoke('export:start', { folder: finished.folder });
   };
+
+  if (editing) {
+    return (
+      <RecordingEditPane
+        folder={finished.folder}
+        name={review?.name ?? finished.name}
+        onClose={() => {
+          setEditing(false);
+        }}
+        onSaved={() => {
+          setEditing(false);
+        }}
+      />
+    );
+  }
 
   return (
     <section className="review" aria-labelledby="review-title">
@@ -268,11 +284,14 @@ export function ReviewScreen({
           ) : null}
 
           <div className="review-actions" role="group" aria-label="What to do next">
-            {onOpenEditor === undefined ? null : (
-              <Button variant="primary" onClick={onOpenEditor}>
-                Open in editor
-              </Button>
-            )}
+            <Button
+              variant="primary"
+              onClick={() => {
+                setEditing(true);
+              }}
+            >
+              Edit
+            </Button>
             <Button onClick={onShowInFolder}>Show in folder</Button>
             <Button
               disabled={libraryId === null}

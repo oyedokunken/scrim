@@ -482,9 +482,6 @@ export function MainScreen() {
                 onShowInFolder: () => {
                   void window.scrim.invoke('shell:show-in-folder', { path: finished.folder });
                 },
-                onOpenEditor: () => {
-                  openItem({ kind: 'editor', folder: finished.folder });
-                },
                 onRecordAgain: dismiss,
                 onDiscarded: dismiss,
                 onProblem: (message: string, nextStep: string) => {

@@ -1,6 +1,6 @@
 import { basename, extname } from 'node:path';
 import type { RecordingEvent } from '../recording/types';
-import type { Settings } from '../../shared/settings';
+import { applyLook, type Look, type Settings } from '../../shared/settings';
 import { renderStyleFromSettings } from '../../shared/render-style';
 import { saferPreset } from './encoders';
 import { cursorPaintFor, micGainFor } from './look';
@@ -40,6 +40,8 @@ export interface StartInput {
   fileName?: string | undefined;
   collision?: Collision | undefined;
   settings?: Partial<ExportSettings> | undefined;
+  /** The cursor, zoom and background for this render, which win over the saved ones. */
+  look?: Look | undefined;
   safer?: boolean | undefined;
   /** Render the working copy into the cache folder instead of the person's folder. */
   preview?: boolean | undefined;
@@ -52,6 +54,8 @@ export interface ExportServiceDeps {
     options: { signal: AbortSignal; onProgress: (progress: ExportProgress) => void },
   ) => Promise<ExportOutcome>;
   settings: () => Settings;
+  /** Where one of the person's own background images is. Undefined when it was removed. */
+  backgroundPath?: (imageId: string) => string | undefined;
   /** The folder that receives finished files. */
   destination: () => string;
   /** The app's own cache folder for working copies. Nothing there is the person's file. */
@@ -156,13 +160,15 @@ export class ExportService {
    * New saves another beside it. A render still running for the recording is stopped first, and the
    * new one is queued behind it, so only one file is ever being written for a recording.
    */
-  async rerender(folder: string, mode: 'replace' | 'new'): Promise<ExportJob> {
+  async rerender(folder: string, mode: 'replace' | 'new', look?: Look): Promise<ExportJob> {
     this.cancelFor(folder);
-    if (mode === 'new') return this.start({ folder, collision: 'number' });
+    if (mode === 'new')
+      return this.start({ folder, collision: 'number', ...(look === undefined ? {} : { look }) });
     const known = this.outputs.get(folder) ?? (await this.deps.findOutput?.(folder));
     return this.start({
       folder,
       collision: known === undefined ? 'number' : 'replace',
+      ...(look === undefined ? {} : { look }),
       ...(known === undefined ? {} : { fileName: basename(known, extname(known)) }),
     });
   }
@@ -243,7 +249,7 @@ export class ExportService {
     job.phase = 'running';
     this.emit(job);
 
-    const saved = this.deps.settings();
+    const saved = applyLook(this.deps.settings(), input.look);
     const preview = input.preview === true;
     const request: ExportRequest = {
       folder: input.folder,
@@ -257,7 +263,7 @@ export class ExportService {
         input.fileName ?? (preview ? basename(input.folder).replace(/\.scrim$/i, '') : undefined),
       collision: preview ? 'replace' : (input.collision ?? 'number'),
       settings: { ...defaultExportSettings(saved), ...input.settings },
-      style: renderStyleFromSettings(saved),
+      style: renderStyleFromSettings(saved, this.deps.backgroundPath ?? (() => undefined)),
       paint: cursorPaintFor(saved.haloColor),
       softwareOnly: input.safer === true,
     };
