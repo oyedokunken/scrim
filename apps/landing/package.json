@@ -9,7 +9,6 @@
     "start": "next start",
     "typecheck": "next typegen && tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
     "test:lighthouse": "lhci autorun",
     "demo:export": "node scripts/export-hero.mjs",

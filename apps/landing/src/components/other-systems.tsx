@@ -60,8 +60,7 @@ function SystemCircle({ os }: { os: SupportedOs }) {
 
 /**
  * Round buttons for the two systems the visitor is not on. They open the same download dialog,
- * preselected, so macOS and Linux go through the coming soon and update email flow. The server and
- * the no JavaScript view show Linux and macOS, and the pair is swapped after the system is known.
+ * preselected. The server and the no JavaScript view show Linux and macOS, and the pair is swapped after the system is known.
  * Both circles are always there, so nothing shifts when they change.
  */
 export function OtherSystems() {

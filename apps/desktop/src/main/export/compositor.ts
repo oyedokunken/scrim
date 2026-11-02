@@ -1,7 +1,8 @@
-import { CURSOR_DEFAULTS, unit } from '@scrim/core/render';
-import type { CursorState, Layout } from '@scrim/core/render';
+import { CURSOR_DEFAULTS, layoutText, TEXT_CHIP_ALPHA, TEXT_PAINT, unit } from '@scrim/core/render';
+import type { CursorState, Layout, TextItem } from '@scrim/core/render';
 import type { Frame, ViewRect } from '@scrim/core';
 import { roundedRectDistance } from './raster';
+import { rasterizeText, textWidth, type TextMask } from './text-raster';
 
 /** One colour with an opacity, in red, green, blue, alpha (alpha 0 to 1). */
 export type Rgba = readonly [number, number, number, number];
@@ -30,6 +31,14 @@ export interface FrameInput {
   view: ViewRect;
   cursor: CursorState;
   bubble: BubblePlacement | null;
+  /** Text on screen at this frame, in output order. Absent means none. */
+  texts?: readonly TextItem[] | undefined;
+}
+
+/** Red, green, blue from a palette hex such as `#004E52`. */
+function parseHexRgb(hex: string): [number, number, number] {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
 const clamp01 = (value: number): number => (value < 0 ? 0 : value > 1 ? 1 : value);
@@ -57,6 +66,7 @@ export class Compositor {
   private readonly xi1: Int32Array;
   private readonly xw: Uint16Array;
   private readonly unitScale: number;
+  private readonly masks = new Map<string, TextMask>();
 
   constructor(
     private readonly layout: Layout,
@@ -91,6 +101,53 @@ export class Compositor {
     this.drawContent(input, out);
     this.drawCursor(input, out);
     this.drawBubble(input, out);
+    this.drawTexts(input, out);
+  }
+
+  /** Text goes on last, over the picture, the cursor and the camera bubble. */
+  private drawTexts(input: FrameInput, out: Uint8Array): void {
+    const { texts } = input;
+    if (texts === undefined || texts.length === 0) return;
+    const { width: ow, height: oh } = this.layout.output;
+    for (const item of texts) {
+      const layout = layoutText(item, (px) => textWidth(item.text, px), this.layout.output);
+      const paint = TEXT_PAINT[item.color];
+      const { box } = layout;
+      if (item.chip) {
+        const chip = parseHexRgb(paint.chip);
+        const x0 = Math.max(0, Math.floor(box.x) - 1);
+        const y0 = Math.max(0, Math.floor(box.y) - 1);
+        const x1 = Math.min(ow, Math.ceil(box.x + box.width) + 1);
+        const y1 = Math.min(oh, Math.ceil(box.y + box.height) + 1);
+        for (let y = y0; y < y1; y += 1) {
+          for (let x = x0; x < x1; x += 1) {
+            const distance = roundedRectDistance(x + 0.5, y + 0.5, box, layout.chipRadius);
+            const cover = clamp01(0.5 - distance);
+            if (cover > 0) blend(out, (y * ow + x) * 4, [...chip, TEXT_CHIP_ALPHA], cover);
+          }
+        }
+      }
+      const key = `${item.text}\u0000${String(Math.round(layout.fontPx * 8))}`;
+      let mask = this.masks.get(key);
+      if (mask === undefined) {
+        if (this.masks.size > 64) this.masks.clear();
+        mask = rasterizeText(item.text, layout.fontPx);
+        this.masks.set(key, mask);
+      }
+      const color = parseHexRgb(paint.text);
+      const left = Math.round(layout.textX) - mask.originX;
+      const top = Math.round(layout.baselineY) - mask.baselineY;
+      for (let row = 0; row < mask.height; row += 1) {
+        const y = top + row;
+        if (y < 0 || y >= oh) continue;
+        for (let col = 0; col < mask.width; col += 1) {
+          const x = left + col;
+          if (x < 0 || x >= ow) continue;
+          const cover = (mask.alpha[row * mask.width + col] ?? 0) / 255;
+          if (cover > 0) blend(out, (y * ow + x) * 4, [...color, 1], cover);
+        }
+      }
+    }
   }
 
   private drawContent(input: FrameInput, out: Uint8Array): void {

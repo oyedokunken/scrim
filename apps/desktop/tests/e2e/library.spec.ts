@@ -1,9 +1,9 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test, enterApp } from './fixtures';
+import { expect, test, enterApp, removeAfterAppCloses } from './fixtures';
 import { picturesFixture } from './png-fixture';
 
 function sessionJson(name: string): string {
@@ -69,9 +69,9 @@ async function arrange(app: ElectronApplication, withItems: boolean): Promise<Di
   return {
     root,
     pictures,
+    // Removed after the app closes, because the app can still have these folders open until then.
     cleanup: () => {
-      pictures.cleanup();
-      rmSync(root, { recursive: true, force: true });
+      removeAfterAppCloses(pictures.root, root);
     },
   };
 }
@@ -137,9 +137,17 @@ test.describe('the library', () => {
       await expect(detail).toBeVisible();
       await expect(detail.getByText('Login screen.png').first()).toBeVisible();
       await expect(detail.getByText('160 by 90')).toBeVisible();
-      for (const name of ['Open', 'Show in folder', 'Copy', 'Delete']) {
+      for (const name of ['Edit', 'Open', 'Show in folder', 'Copy', 'Delete']) {
         await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
       }
+      // Edit comes first, and the buttons sit three to a row.
+      const tops = await detail
+        .locator('.lib-detail-actions button')
+        .evaluateAll((buttons) => buttons.map((b) => Math.round(b.getBoundingClientRect().top)));
+      expect(await detail.locator('.lib-detail-actions button').first().innerText()).toContain(
+        'Edit',
+      );
+      expect(tops.filter((top) => top === tops[0])).toHaveLength(3);
       await page.getByRole('button', { name: 'Back', exact: true }).click();
       await expect(cards(page)).toHaveCount(2);
       await expect(page.getByRole('radio', { name: 'Screenshots' })).toBeChecked();
@@ -149,6 +157,41 @@ test.describe('the library', () => {
       await page.keyboard.press('Escape');
       await expect(detail).toHaveCount(0);
       await expect(cards(page)).toHaveCount(2);
+    } finally {
+      disk.cleanup();
+    }
+  });
+
+  test('keeps Library selected through Edit, always has Back, and returns to the same item', async ({
+    app,
+    page,
+  }) => {
+    const disk = await arrange(app, true);
+    try {
+      await openLibrary(page);
+      const library = page.getByRole('button', { name: 'Library', exact: true });
+      const bottom = page.locator('.rail-bottom');
+      await expect(bottom.getByRole('button', { name: 'Library' })).toHaveCount(0);
+      await expect(library).toHaveAttribute('aria-current', 'page');
+
+      await page.getByRole('button', { name: 'Open Login screen' }).click();
+      await expect(library).toHaveAttribute('aria-current', 'page');
+      await page
+        .getByRole('region', { name: /Details for Login screen/ })
+        .getByRole('button', {
+          name: 'Edit',
+          exact: true,
+        })
+        .click();
+
+      // The screenshot editor is open, the Library is still the selected item, and Back is there.
+      await expect(page.getByRole('toolbar', { name: 'Editing tools' })).toBeVisible();
+      await expect(library).toHaveAttribute('aria-current', 'page');
+      await expect(page.locator('.rail-item[aria-current="page"]')).toHaveCount(1);
+      await page.getByRole('button', { name: 'Back', exact: true }).click();
+
+      await expect(page.getByRole('region', { name: /Details for Login screen/ })).toBeVisible();
+      await expect(library).toHaveAttribute('aria-current', 'page');
     } finally {
       disk.cleanup();
     }

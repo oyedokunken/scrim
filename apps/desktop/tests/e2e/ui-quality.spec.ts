@@ -4,14 +4,17 @@ import { expect, test, enterApp } from './fixtures';
 const VIEWS = [
   'Record',
   'Screenshot',
+  'Library',
   'Cursor',
   'Zoom',
   'Camera',
   'Audio',
   'Background',
-  'Library',
   'Settings',
 ] as const;
+
+/** Only these pages change how a recording looks, so only they keep a right sidebar. */
+const WITH_SIDEBAR = ['Cursor', 'Zoom', 'Camera', 'Audio', 'Background'];
 
 const SIZES = [
   { width: 1100, height: 700 },
@@ -97,10 +100,8 @@ test.describe('the interface rules, on every page', () => {
       for (const view of VIEWS) {
         await page.getByRole('button', { name: view, exact: true }).click();
         await expect(page.getByRole('heading', { name: view, level: 1 })).toBeVisible();
-        // Every page keeps its right sidebar for its controls, except Library and Settings.
-        await expect(page.locator('.shell-panel')).toHaveCount(
-          view === 'Library' || view === 'Settings' ? 0 : 1,
-        );
+        // Record and Screenshot keep their few controls under the main view, not in a sidebar.
+        await expect(page.locator('.shell-panel')).toHaveCount(WITH_SIDEBAR.includes(view) ? 1 : 0);
         const report = await inspect(page);
         expect(report.sideways, `${view}: sideways overflow`).toEqual([]);
         expect(report.pokingOut, `${view}: sticks out past its area`).toEqual([]);
@@ -115,7 +116,7 @@ test.describe('the interface rules, on every page', () => {
 
 test.describe('long device names', () => {
   for (const size of SIZES) {
-    test(`stay inside the Record panel at ${String(size.width)} by ${String(size.height)}`, async ({
+    test(`stay inside the Record controls at ${String(size.width)} by ${String(size.height)}`, async ({
       page,
     }) => {
       await page.setViewportSize(size);
@@ -156,10 +157,11 @@ test.describe('long device names', () => {
       expect(report.sideways).toEqual([]);
       expect(report.pokingOut).toEqual([]);
       const scrollbar = await page.evaluate(() => {
-        const panel = document.querySelector('.shell-panel');
+        const panel = document.querySelector('.record-controls');
         return panel !== null && panel.scrollWidth > panel.clientWidth;
       });
       expect(scrollbar).toBe(false);
+      await expect(page.locator('.shell-panel')).toHaveCount(0);
     });
   }
 });

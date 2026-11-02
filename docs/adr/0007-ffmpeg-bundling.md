@@ -32,7 +32,7 @@ project, release branch 8.1, and pin it exactly.
   asar archive, because a program cannot run from inside an archive. `LICENSE.txt` and `SOURCE.txt`
   travel with the binaries, and the README's licence section names the build and links the source.
 - **Choosing the path.** One function, `resolveFfmpegPaths`, returns the bundled files in a packaged
-  app and the system FFmpeg, or `SCRIM_FFMPEG` and `SCRIM_FFPROBE`, in development. A packaged app
+  app and the system FFmpeg, or `SCRIM_FFMPEG` and `SCRIM_FFPROBE`, in dev mode. A packaged app
   ignores those variables, so nothing in the environment can swap the binary.
 
 ## Consequences

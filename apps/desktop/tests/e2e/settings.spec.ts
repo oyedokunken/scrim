@@ -32,6 +32,22 @@ async function saved(userDataDir: string, key: string, expected: unknown): Promi
 const registered = (app: ElectronApplication, accelerator: string) =>
   app.evaluate(({ globalShortcut }, key) => globalShortcut.isRegistered(key), accelerator);
 
+/**
+ * Whether Windows let this app have a default shortcut. Another program, such as a second copy of
+ * Scrim that is already running, can own it, and then the app reports it as unavailable instead of
+ * registering it. So the app must register exactly the shortcuts it says it could take.
+ */
+async function couldTake(page: Page, id: 'record' | 'stop' | 'screenshot'): Promise<boolean> {
+  const status = await page.evaluate(() =>
+    (
+      globalThis as unknown as {
+        scrim: { invoke(channel: string): Promise<{ unavailable: string[] }> };
+      }
+    ).scrim.invoke('shortcuts:status'),
+  );
+  return !status.unavailable.includes(id);
+}
+
 test.describe('the settings', () => {
   test('rebinds a shortcut by pressing keys, and the new keys work at once', async ({
     app,
@@ -39,7 +55,9 @@ test.describe('the settings', () => {
     userDataDir,
   }) => {
     await openSettings(page);
-    expect(await registered(app, 'CommandOrControl+Shift+X')).toBe(true);
+    expect(await registered(app, 'CommandOrControl+Shift+X')).toBe(
+      await couldTake(page, 'screenshot'),
+    );
     await page.getByRole('button', { name: 'Change take screenshot shortcut' }).click();
     await expect(page.getByText('Press the new keys')).toBeVisible();
     // While a key is being chosen the global shortcuts let go, so the old keys cannot run.
@@ -51,11 +69,13 @@ test.describe('the settings', () => {
     await saved(userDataDir, 'shortcutScreenshot', 'CommandOrControl+Alt+K');
     await expect.poll(() => registered(app, 'CommandOrControl+Alt+K')).toBe(true);
     expect(await registered(app, 'CommandOrControl+Shift+X')).toBe(false);
-    expect(await registered(app, 'CommandOrControl+Shift+R')).toBe(true);
+    expect(await registered(app, 'CommandOrControl+Shift+R')).toBe(await couldTake(page, 'record'));
 
     await page.getByRole('button', { name: 'Reset take screenshot shortcut' }).click();
     await saved(userDataDir, 'shortcutScreenshot', 'CommandOrControl+Shift+X');
-    await expect.poll(() => registered(app, 'CommandOrControl+Shift+X')).toBe(true);
+    await expect
+      .poll(async () => registered(app, 'CommandOrControl+Shift+X'))
+      .toBe(await couldTake(page, 'screenshot'));
     expect(await registered(app, 'CommandOrControl+Alt+K')).toBe(false);
   });
 
@@ -132,17 +152,19 @@ test.describe('the settings', () => {
     await openSettings(page);
     const about = page.getByRole('region', { name: 'About' });
     await expect(
-      about.getByText('A free, open source screen recorder and screenshot tool'),
+      about.getByText('Scrim is a free, open source screen recorder and screenshot tool'),
     ).toBeVisible();
     await expect(about.getByText(/^1./)).toBeVisible();
     await expect(about.getByText('MIT', { exact: true })).toBeVisible();
-    await expect(about.getByText('Computer name')).toBeVisible();
-    await expect(about.getByText(/never sent anywhere/)).toBeVisible();
     await expect(about.getByText(/LGPL version 3/)).toBeVisible();
     await expect(about.getByRole('button', { name: 'Source code' })).toBeVisible();
-    await expect(about.getByRole('button', { name: 'About the FFmpeg license' })).toBeVisible();
-    await expect(about.locator('.built-by-handle')).toHaveText('@oyedokunken');
-    await expect(page.getByRole('button', { name: 'Open logs folder' })).toBeVisible();
+    await expect(about.getByRole('button', { name: 'FFmpeg' })).toBeVisible();
+    await expect(about.locator('.built-by-link')).toContainText('@oyedokunken');
+    const machine = page.getByRole('region', { name: 'Your machine' });
+    await expect(machine.getByText('Computer name')).toBeVisible();
+    await expect(machine.getByText(/never sent anywhere/)).toBeVisible();
+    await expect(machine.getByRole('button', { name: 'Open logs folder' })).toBeVisible();
+    await expect(about.getByText('Computer name')).toHaveCount(0);
     const sideways = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );

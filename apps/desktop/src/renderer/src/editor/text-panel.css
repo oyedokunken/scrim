@@ -1,0 +1,61 @@
+.text-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--scrim-space-2);
+  margin-top: var(--scrim-space-3);
+}
+
+.text-field-label {
+  font-weight: 600;
+}
+
+.text-field {
+  padding: var(--scrim-space-2) var(--scrim-space-3);
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: 8px;
+  background: var(--scrim-white);
+  color: var(--scrim-black);
+  font: inherit;
+}
+
+.text-field:focus-visible {
+  outline: 2px solid var(--scrim-green);
+  outline-offset: 1px;
+}
+
+.text-handle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 2px dashed var(--scrim-green);
+  border-radius: 6px;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.text-handle:focus-visible {
+  outline: 2px solid var(--scrim-black);
+  outline-offset: 2px;
+}
+
+.timeline-textlane {
+  position: relative;
+  height: 14px;
+  margin-bottom: 4px;
+}
+
+.text-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--scrim-green) 55%, var(--scrim-butter));
+  cursor: pointer;
+}
+
+.text-marker.selected {
+  background: var(--scrim-green);
+  outline: 2px solid var(--scrim-black);
+  outline-offset: 1px;
+}

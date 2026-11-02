@@ -339,31 +339,22 @@ describe('handleDownloadRequest', () => {
     });
   });
 
-  describe.each(['macos', 'linux'] as const)(
-    'a visitor on %s, which has no installer yet',
-    (os) => {
-      it('joins the update list, with no file and no email', async () => {
-        const { deps, recorded } = setup();
-        const result = await handleDownloadRequest(
-          { headers: headers(), bodyText: body({ ...valid, os, updatesOptIn: false }) },
-          deps,
-        );
-        expect(result.status).toBe(200);
-        expect(result.body).toEqual({
-          url: RELEASES_URL,
-          filename: '',
-          version: '',
-          direct: false,
-          comingSoon: true,
-        });
-        expect(result.email).toBeUndefined();
-        expect(recorded).toHaveLength(1);
-        expect(recorded[0]?.os).toBe(os);
-        expect(recorded[0]?.updatesOptIn).toBe(true);
-        expect(recorded[0]?.version).toBe('waitlist');
-      });
-    },
-  );
+  describe.each(['macos', 'linux'] as const)('a visitor on %s', (os) => {
+    it('is recorded as a download and sent to the Releases page when no installer matches', async () => {
+      const { deps, recorded } = setup();
+      const result = await handleDownloadRequest(
+        { headers: headers(), bodyText: body({ ...valid, os, updatesOptIn: false }) },
+        deps,
+      );
+      expect(result.status).toBe(200);
+      expect(result.body).toMatchObject({ direct: false, url: RELEASES_URL, filename: '' });
+      expect(result.body).not.toHaveProperty('comingSoon');
+      expect(recorded).toHaveLength(1);
+      expect(recorded[0]?.os).toBe(os);
+      expect(recorded[0]?.updatesOptIn).toBe(false);
+      expect(recorded[0]?.version).not.toBe('waitlist');
+    });
+  });
 
   it('records the opt in only when it was ticked', async () => {
     const { deps, recorded } = setup();

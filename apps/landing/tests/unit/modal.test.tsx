@@ -26,7 +26,7 @@ describe('DownloadModal markup', () => {
   });
 
   it('has placeholders on the name and the email', () => {
-    expect(html).toContain('placeholder="Ada Lovelace"');
+    expect(html).toContain('placeholder="Your Name"');
     expect(html).toContain('placeholder="you@example.com"');
   });
 
@@ -61,8 +61,8 @@ describe('DownloadModal markup', () => {
     expect(html).toMatch(/<div[^>]*aria-hidden="true"[^>]*><label>Website<input[^>]*tabindex="-1"/);
   });
 
-  it('has a Start download button and the privacy line with a link that opens in a new tab', () => {
-    expect(html).toContain('Start download');
+  it('has a Download button and the privacy line with a link that opens in a new tab', () => {
+    expect(html).toMatch(/<\/svg>Download<\/button>/);
     expect(html).toContain('Read our privacy policy');
     expect(html).toMatch(/href="\/privacy"[^>]*target="_blank"/);
   });

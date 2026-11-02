@@ -98,14 +98,14 @@ export function createRealShareService(options: RealShareOptions): ShareService 
     now: () => Date.now(),
     nativeShare: options.share,
     copyFile: copyFileFor(platform),
-    copyImage: (png) => {
-      clipboard.write([
+    copyImage: async (png) => {
+      await clipboard.write([
         new ClipboardItem({ 'image/png': new Blob([new Uint8Array(png)], { type: 'image/png' }) }),
       ]);
     },
     readFile: (path) => readFile(path),
-    copyText: (text) => {
-      clipboard.writeText(text);
+    copyText: async (text) => {
+      await clipboard.writeText(text);
     },
     openMail: (subject) => shell.openExternal(`mailto:?subject=${encodeURIComponent(subject)}`),
     reveal: (path) => {

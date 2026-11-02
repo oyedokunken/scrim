@@ -46,7 +46,10 @@ function setup(over: Partial<ShareServiceDeps> = {}) {
     now: () => 10_000_000,
     nativeShare: vi.fn(() => Promise.resolve()),
     copyFile: vi.fn(() => Promise.resolve()),
-    copyImage: vi.fn((_png: Buffer) => undefined),
+    // The argument is typed so the tests can read what was copied.
+    copyImage: vi.fn((png: Buffer) => {
+      expect(png.length).toBeGreaterThan(0);
+    }),
     readFile: vi.fn(() => Promise.resolve(Buffer.from('png'))),
     copyText: vi.fn(),
     openMail: vi.fn(() => Promise.resolve()),

@@ -153,4 +153,18 @@ describe('SiteFooter', () => {
     expect(html).toContain('fill="var(--scrim-white)"');
     expect(html).not.toContain('markSection');
   });
+
+  it('adds external link arrows to footer links that go to other sites', () => {
+    const externalFooterLinks = [
+      'https://github.com/oyedokunken/scrim/releases',
+      'https://github.com/oyedokunken/scrim',
+      'https://github.com/oyedokunken/scrim/issues',
+      'https://github.com/oyedokunken/scrim/blob/main/LICENSE',
+      'https://github.com/oyedokunken/scrim/blob/main/SECURITY.md',
+    ];
+    for (const href of externalFooterLinks) {
+      const linkHtml = html.slice(html.indexOf(href) - 100, html.indexOf(href) + 300);
+      expect(linkHtml).toContain('lucide-arrow-up-right');
+    }
+  });
 });

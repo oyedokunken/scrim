@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '../../ui';
+import { ExportDoneDialog } from '../review/export-done-dialog';
+import { ExportProgress } from '../review/export-progress';
 import type { ExportControls, ExportView } from './editor-api';
 
 export interface ExportPanelProps {
@@ -9,17 +11,13 @@ export interface ExportPanelProps {
   beforeStart: () => Promise<void>;
 }
 
-/** Percent text for the progress line. */
-export function percent(fraction: number | null): string {
-  return fraction === null ? 'Starting' : `${String(Math.round(fraction * 100))}%`;
-}
-
 /** The Export button and the progress, result or error of the last export. */
 export function ExportPanel({ controls, folder, beforeStart }: ExportPanelProps) {
   const [job, setJob] = useState<ExportView | null>(null);
   const [starting, setStarting] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [closedJob, setClosedJob] = useState<string | null>(null);
 
   useEffect(
     () =>
@@ -50,10 +48,7 @@ export function ExportPanel({ controls, folder, beforeStart }: ExportPanelProps)
       <h2 className="ui-section-title">Export</h2>
       {job?.phase === 'running' || job?.phase === 'queued' ? (
         <>
-          <progress max={1} value={job.fraction ?? undefined} aria-label="Export progress" />
-          <p className="ui-help" role="status">
-            {percent(job.fraction)}
-          </p>
+          <ExportProgress fraction={job.fraction} label="Export progress" />
           <Button
             onClick={() => {
               controls.cancel(job.id);
@@ -72,18 +67,23 @@ export function ExportPanel({ controls, folder, beforeStart }: ExportPanelProps)
           {problem}
         </p>
       )}
-      {job?.phase === 'done' ? (
-        <div role="status">
-          <p>Saved{job.fileName === undefined ? '' : ` as ${job.fileName}`}.</p>
-          <Button
-            onClick={() => {
-              controls.reveal(job.id, 'output');
-            }}
-          >
-            Show in folder
-          </Button>
-        </div>
-      ) : null}
+      <ExportDoneDialog
+        done={
+          job?.phase === 'done' && job.fileName !== undefined && closedJob !== job.id
+            ? {
+                jobId: job.id,
+                fileName: job.fileName,
+                bytes: job.bytes ?? 0,
+                durationMs: job.durationMs ?? 0,
+                fellBack: job.fellBack === true,
+              }
+            : null
+        }
+        folder={folder}
+        onDone={() => {
+          if (job !== null) setClosedJob(job.id);
+        }}
+      />
       {job?.phase === 'cancelled' ? (
         <p role="status">Export cancelled. Nothing was saved.</p>
       ) : null}

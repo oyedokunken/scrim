@@ -1,6 +1,7 @@
 import { CURSOR_DEFAULTS, unit } from '@scrim/core/render';
 import type { BackgroundFill, FrameDescription, RenderModel } from '@scrim/core/render';
 import type { CssCursorPaint } from '../../../shared/render-style';
+import { drawTexts } from './draw-text';
 
 /** The pictures a frame is made from. Sizes come from the elements, in their own pixels. */
 export interface FrameMedia {
@@ -75,6 +76,7 @@ function drawFrame(
   frame: FrameDescription,
   media: FrameMedia,
   paint: CssCursorPaint,
+  plain = false,
 ): void {
   const { layout } = model;
   const { output, content } = layout;
@@ -86,7 +88,10 @@ function drawFrame(
     ctx.fillRect(0, 0, output.width, output.height);
   }
 
-  const { view } = frame;
+  // The plain picture shows the whole recording: no zoom, so the view is the full frame.
+  const view = plain
+    ? { x: 0, y: 0, width: model.source.width, height: model.source.height }
+    : frame.view;
   const sw = media.screen.videoWidth;
   const sh = media.screen.videoHeight;
   ctx.save();
@@ -123,6 +128,13 @@ function drawFrame(
   const toX = (x: number): number => content.x + (x - view.x) * zoomK;
   const toY = (y: number): number => content.y + (y - view.y) * zoomK;
   const u = unit(model.source) * zoomK;
+  if (plain) {
+    if (frame.pointer !== null)
+      drawPointer(ctx, toX(frame.pointer.x), toY(frame.pointer.y), u * 20);
+    ctx.restore();
+    drawBubble(ctx, frame, media);
+    return;
+  }
   for (const ripple of frame.cursor.ripples) {
     ctx.beginPath();
     ctx.arc(toX(ripple.x), toY(ripple.y), Math.max(0, ripple.radius * zoomK - 1), 0, Math.PI * 2);
@@ -150,7 +162,37 @@ function drawFrame(
     ctx.stroke();
   }
   ctx.restore();
+  drawBubble(ctx, frame, media);
+  drawTexts(ctx, frame.texts, output);
+}
 
+/** A plain arrow pointer with its tip at (x, y), `size` tall. */
+function drawPointer(ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 20, size / 20);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, 17);
+  ctx.lineTo(4.5, 13);
+  ctx.lineTo(7.5, 19.5);
+  ctx.lineTo(10, 18.4);
+  ctx.lineTo(7, 12);
+  ctx.lineTo(13, 12);
+  ctx.closePath();
+  ctx.fillStyle = '#000000';
+  ctx.fill();
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBubble(
+  ctx: CanvasRenderingContext2D,
+  frame: FrameDescription,
+  media: FrameMedia,
+): void {
   const bubble = frame.bubble;
   const camera = media.camera;
   if (bubble !== null && camera !== null && frame.cameraTimeMs !== null) {
@@ -197,28 +239,11 @@ export function splitFromPointer(clientX: number, left: number, width: number): 
 }
 
 /**
- * The recording as it was captured, fitted into the output frame with nothing added: no zoom,
- * no halo, no background and no camera bubble. It is what Before shows.
- */
-function drawRaw(
-  ctx: CanvasRenderingContext2D,
-  output: { width: number; height: number },
-  screen: FrameMedia['screen'],
-): void {
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(0, 0, output.width, output.height);
-  if (screen.videoWidth <= 0 || screen.videoHeight <= 0) return;
-  const fit = Math.min(output.width / screen.videoWidth, output.height / screen.videoHeight);
-  const w = screen.videoWidth * fit;
-  const h = screen.videoHeight * fit;
-  ctx.drawImage(screen, (output.width - w) / 2, (output.height - h) / 2, w, h);
-}
-
-/**
- * Paints the stage for the chosen mode at one moment. Before is the raw capture, After is the
- * finished frame with every effect, and Compare is the finished frame with the raw capture over
- * its left side up to `split`. Both come from the same description and the same video clock, so
- * they never drift apart.
+ * Paints the stage for the chosen mode at one moment. Before is the plain picture: the
+ * background, the whole recording with no zoom, the cursor and the camera bubble, and nothing
+ * else. After is the finished frame with every effect. Compare is the finished frame with the
+ * plain picture over its left side up to `split`. Both come from the same description and the same
+ * video clock, so they never drift apart.
  */
 export function paintFrame(
   ctx: CanvasRenderingContext2D,
@@ -231,7 +256,7 @@ export function paintFrame(
 ): void {
   const { output } = model.layout;
   if (mode === 'before') {
-    drawRaw(ctx, output, media.screen);
+    drawFrame(ctx, model, frame, media, paint, true);
     return;
   }
   drawFrame(ctx, model, frame, media, paint);
@@ -240,6 +265,6 @@ export function paintFrame(
   ctx.beginPath();
   ctx.rect(0, 0, output.width * split, output.height);
   ctx.clip();
-  drawRaw(ctx, output, media.screen);
+  drawFrame(ctx, model, frame, media, paint, true);
   ctx.restore();
 }
