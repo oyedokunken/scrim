@@ -2,6 +2,7 @@ import { Pause, Play } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../ui';
 import { formatTimer } from '../format';
+import { LivePane, type LivePreviewSource } from './live-preview';
 
 export type ReviewMode = 'before' | 'after' | 'compare';
 
@@ -16,6 +17,11 @@ export interface ReviewPlayerProps {
   before: string;
   /** Null until the working copy exists. */
   after: string | null;
+  /**
+   * What the finished look is drawn from while the real video does not exist yet. Without it the
+   * After view has nothing to show until the file is made.
+   */
+  live?: LivePreviewSource | undefined;
 }
 
 interface PaneProps {
@@ -26,11 +32,24 @@ interface PaneProps {
   onTime?: () => void;
   onEnded?: () => void;
   onLoaded?: () => void;
+  onLoadedData?: () => void;
+  /** Keeps the picture in its place but out of sight, while another one still covers it. */
+  covered?: boolean;
 }
 
-function Pane({ label, src, muted, setRef, onTime, onEnded, onLoaded }: PaneProps) {
+function Pane({
+  label,
+  src,
+  muted,
+  setRef,
+  onTime,
+  onEnded,
+  onLoaded,
+  onLoadedData,
+  covered = false,
+}: PaneProps) {
   return (
-    <figure className="review-pane">
+    <figure className={covered ? 'review-pane covered' : 'review-pane'}>
       <video
         ref={setRef}
         className="review-video"
@@ -42,6 +61,7 @@ function Pane({ label, src, muted, setRef, onTime, onEnded, onLoaded }: PaneProp
         onTimeUpdate={onTime}
         onEnded={onEnded}
         onLoadedMetadata={onLoaded}
+        onLoadedData={onLoadedData}
       />
       <figcaption className="review-caption">{label}</figcaption>
     </figure>
@@ -118,7 +138,7 @@ function SeekBar({ seconds, length, onSeek }: SeekBarProps) {
  * Plays the raw recording, the finished look, or both side by side. One set of controls (play,
  * seek and speed) drives every video on screen, so the two halves of Compare stay in step.
  */
-export function ReviewPlayer({ mode, before, after }: ReviewPlayerProps) {
+export function ReviewPlayer({ mode, before, after, live }: ReviewPlayerProps) {
   const beforeEl = useRef<HTMLVideoElement | null>(null);
   const afterEl = useRef<HTMLVideoElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -126,10 +146,22 @@ export function ReviewPlayer({ mode, before, after }: ReviewPlayerProps) {
   const [length, setLength] = useState(0);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
 
-  const showBefore = mode === 'before' || mode === 'compare' || after === null;
+  // The real file takes over from the live picture once it has shown its first frame.
+  const [loadedAfter, setLoadedAfter] = useState<string | null>(null);
+  const afterShown = after !== null && loadedAfter === after;
+  // Only a person who saw the wait gets the hand over. Opening a finished recording shows the file.
+  const [sawWait, setSawWait] = useState(after === null);
+  if (after === null && !sawWait) setSawWait(true);
+  const showLive =
+    live !== undefined && mode === 'after' && (after === null || (sawWait && !afterShown));
+  const showBefore = !showLive && (mode === 'before' || mode === 'compare' || after === null);
   const showAfter = after !== null && (mode === 'after' || mode === 'compare');
+  const playingNow = useRef(false);
+  useEffect(() => {
+    playingNow.current = playing;
+  }, [playing]);
   const active = (): HTMLVideoElement[] =>
-    [showBefore ? beforeEl.current : null, showAfter ? afterEl.current : null].filter(
+    [showBefore || showLive ? beforeEl.current : null, showAfter ? afterEl.current : null].filter(
       (element): element is HTMLVideoElement => element !== null,
     );
   // The first picture on screen is the clock for the controls.
@@ -141,7 +173,7 @@ export function ReviewPlayer({ mode, before, after }: ReviewPlayerProps) {
   }, []);
 
   // Changing the view stops playback, and starts again from the same moment on the videos now shown.
-  const viewKey = `${mode}:${after === null ? 'no' : 'yes'}`;
+  const viewKey = `${mode}:${after === null && live === undefined ? 'no' : 'yes'}`;
   const [seenKey, setSeenKey] = useState(viewKey);
   if (seenKey !== viewKey) {
     setSeenKey(viewKey);
@@ -202,6 +234,25 @@ export function ReviewPlayer({ mode, before, after }: ReviewPlayerProps) {
     }
   };
 
+  // The finished file has its first frame. It starts where the live picture is and goes on playing
+  // if it was playing, and only then does it cover the live picture, so nothing jumps.
+  const onAfterReady = (): void => {
+    const real = afterEl.current;
+    if (real === null || after === null || !showLive) return;
+    const wanted = beforeEl.current?.currentTime ?? timeNow.current;
+    real.playbackRate = speed;
+    const reveal = (): void => {
+      setLoadedAfter(after);
+      if (playingNow.current) void real.play().catch(() => undefined);
+    };
+    if (Math.abs(real.currentTime - wanted) < 0.05) {
+      reveal();
+      return;
+    }
+    real.addEventListener('seeked', reveal, { once: true });
+    real.currentTime = wanted;
+  };
+
   const onLoaded = (): void => {
     const first = lead();
     if (first !== null && Number.isFinite(first.duration)) setLength(first.duration);
@@ -209,7 +260,28 @@ export function ReviewPlayer({ mode, before, after }: ReviewPlayerProps) {
 
   return (
     <div className="review-player">
-      <div className={mode === 'compare' && showAfter ? 'review-panes two' : 'review-panes'}>
+      <div
+        className={
+          mode === 'compare' && showAfter
+            ? 'review-panes two'
+            : showLive
+              ? 'review-panes stacked'
+              : 'review-panes'
+        }
+      >
+        {live !== undefined && showLive ? (
+          <LivePane
+            source={live}
+            screenUrl={before}
+            setScreenRef={(element) => {
+              beforeEl.current = element;
+            }}
+            onTime={onTime}
+            onEnded={pauseAll}
+            onLoaded={onLoaded}
+            playing={playing}
+          />
+        ) : null}
         {showBefore ? (
           <Pane
             label="Before"
@@ -227,11 +299,13 @@ export function ReviewPlayer({ mode, before, after }: ReviewPlayerProps) {
           <Pane
             label="After"
             src={after}
-            muted={false}
+            muted={showLive}
+            covered={showLive}
             setRef={(element) => {
               afterEl.current = element;
             }}
-            {...(showBefore ? {} : { onTime, onEnded: pauseAll, onLoaded })}
+            onLoadedData={onAfterReady}
+            {...(showBefore || showLive ? {} : { onTime, onEnded: pauseAll, onLoaded })}
           />
         ) : null}
       </div>
