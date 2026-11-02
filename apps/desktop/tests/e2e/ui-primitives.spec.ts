@@ -164,7 +164,11 @@ test.describe('the views', () => {
     const listBox = await list.boundingBox();
     const selectBox = await select.boundingBox();
     if (!listBox || !selectBox) throw new Error('missing box');
-    expect(listBox.y).toBeGreaterThanOrEqual(selectBox.y + selectBox.height - 1);
+    // The options now sit at the foot of the page, so the list flips above its button.
+    const below = listBox.y >= selectBox.y + selectBox.height - 1;
+    const above = listBox.y + listBox.height <= selectBox.y + 1;
+    expect(below || above).toBe(true);
+    expect(listBox.y).toBeGreaterThanOrEqual(0);
 
     await page.keyboard.press('ArrowDown');
     await expect(options.nth(1)).toBeFocused();

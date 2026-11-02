@@ -432,7 +432,7 @@ svg {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  max-width: 60%;
+  flex: 0 1 auto;
   min-height: 36px;
   padding: 0 12px;
   font: inherit;
@@ -621,6 +621,25 @@ svg {
   align-content: start;
 }
 
+/* Camera and microphone under the stage, side by side, so the page needs no side panel. */
+.record-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.record-options .ui-section + .ui-section {
+  margin-top: 0;
+}
+
+.record-options .ui-section {
+  gap: 8px;
+  min-width: 0;
+}
+
 .stage {
   position: relative;
   display: grid;
@@ -629,7 +648,7 @@ svg {
   gap: 12px;
   width: 100%;
   aspect-ratio: 16 / 9;
-  max-height: 55vh;
+  max-height: min(55vh, calc(100vh - 340px));
   color: var(--scrim-text-secondary);
   background: var(--ui-track);
   border-radius: var(--ui-radius-lg);

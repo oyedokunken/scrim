@@ -43,9 +43,12 @@ describe('views', () => {
   });
 
   it('gives library and settings the full width, and every other view a panel', () => {
+    expect(hasPanel('record')).toBe(false);
+    expect(hasPanel('screenshot')).toBe(false);
     expect(hasPanel('library')).toBe(false);
     expect(hasPanel('settings')).toBe(false);
-    for (const id of VIEW_IDS.filter((v) => v !== 'library' && v !== 'settings')) {
+    const wide = ['record', 'screenshot', 'library', 'settings'];
+    for (const id of VIEW_IDS.filter((v) => !wide.includes(v))) {
       expect(hasPanel(id)).toBe(true);
     }
   });
@@ -129,7 +132,7 @@ describe('the status bar', () => {
 });
 
 describe('the shell', () => {
-  const shell = (view: 'record' | 'library') =>
+  const shell = (view: 'record' | 'camera' | 'library') =>
     renderToStaticMarkup(
       <AppShell
         view={view}
@@ -143,12 +146,18 @@ describe('the shell', () => {
     );
 
   it('has one main landmark, the rail, the panel and the status bar', () => {
-    const html = shell('record');
+    const html = shell('camera');
     expect(html.match(/<main/g)).toHaveLength(1);
     expect(html).toContain('<nav class="rail"');
-    expect(html).toContain('<aside class="shell-panel" aria-label="Record settings">');
+    expect(html).toContain('<aside class="shell-panel" aria-label="Camera settings">');
     expect(html).toContain('panel content');
     expect(html).toContain('<footer class="status-bar">');
+  });
+
+  it('has no side panel on Record, so the page holds its own options', () => {
+    const html = shell('record');
+    expect(html).toContain('shell no-panel');
+    expect(html).not.toContain('<aside');
   });
 
   it('drops the panel on views that use the whole width', () => {

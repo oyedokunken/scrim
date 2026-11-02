@@ -53,22 +53,29 @@ for (const size of SIZES) {
       await expect(page.getByText('Camera to use')).toHaveCount(0);
       await expect(page.getByText('Microphone to use')).toHaveCount(0);
 
-      const overflow = await page.evaluate(() => {
+      // No side panel: the options sit under the stage, camera and microphone in one row.
+      await expect(page.locator('.shell-panel')).toHaveCount(0);
+      const layout = await page.evaluate(() => {
         const main = document.querySelector('.shell-main');
-        const panel = document.querySelector('.shell-panel');
+        const stage = document.querySelector('.stage')?.getBoundingClientRect();
+        const sections = [...document.querySelectorAll('.record-options .ui-section')].map((s) =>
+          s.getBoundingClientRect(),
+        );
         return {
-          main: main !== null && main.scrollHeight > main.clientHeight + 1,
-          panel: panel !== null && panel.scrollHeight > panel.clientHeight + 1,
+          scrolls: main !== null && main.scrollHeight > main.clientHeight + 1,
           sideways:
             document.documentElement.scrollWidth > document.documentElement.clientWidth ||
             (main !== null && main.scrollWidth > main.clientWidth + 1),
+          below: stage !== undefined && sections.every((box) => box.top >= stage.bottom),
+          oneRow:
+            sections.length === 2 &&
+            Math.round(sections[0]?.top ?? 0) === Math.round(sections[1]?.top ?? 1),
         };
       });
-      expect(overflow.sideways).toBe(false);
-      if (size.width === 1920) {
-        expect(overflow.main).toBe(false);
-        expect(overflow.panel).toBe(false);
-      }
+      expect(layout.sideways).toBe(false);
+      expect(layout.scrolls).toBe(false);
+      expect(layout.below).toBe(true);
+      expect(layout.oneRow).toBe(true);
       await shoot(page, `record-${tag}`);
       await expectNoViolations(page);
     });
@@ -82,6 +89,7 @@ for (const size of SIZES) {
       ).toBeVisible();
       await expect(page.getByRole('button', { name: 'Change folder', exact: true })).toHaveCount(0);
       await expect(page.getByRole('heading', { name: 'Save to' })).toHaveCount(0);
+      await expect(page.locator('.shell-panel')).toHaveCount(0);
       await shoot(page, `screenshot-${tag}`);
       await expectNoViolations(page);
     });
