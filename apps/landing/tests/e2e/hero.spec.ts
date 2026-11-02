@@ -160,7 +160,7 @@ test.describe('the hero video', () => {
     await expect.poll(() => scale(view)).toBeGreaterThan(1.5);
   });
 
-  test('plays all nine chapters in order, then offers Replay in the same button', async ({
+  test('plays all ten chapters in order, then offers Replay in the same button', async ({
     page,
   }) => {
     test.setTimeout(120_000);
@@ -388,7 +388,7 @@ test.describe('text in the hero video', () => {
         });
         expect(report.problems, `slide ${entry.id}`).toEqual([]);
         // The slides that carry text have some. The app screens are checked once they have text.
-        if (['headline', 'platforms', 'address', 'closing'].includes(entry.id)) {
+        if (['headline', 'platforms', 'address'].includes(entry.id)) {
           expect(report.checked, `text on ${entry.id}`).toBeGreaterThan(0);
         }
       }
@@ -565,7 +565,7 @@ test.describe('with reduced motion', () => {
   test('shows the final frame and a static timeline, with no autoplay', async ({ page }) => {
     await page.goto('/');
     const view = demo(page);
-    await expect(view).toHaveAttribute('data-scene', 'closing');
+    await expect(view).toHaveAttribute('data-scene', 'address');
     await expect(view).toHaveAttribute('data-playing', 'false');
     await expect(page.getByTestId('hero-cards').getByText(/scrim\.app$/)).toBeVisible();
     await expect(playButton(page)).toHaveAccessibleName('Replay');

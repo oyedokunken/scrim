@@ -24,7 +24,7 @@ import { splitWords } from '@/lib/demo/words';
 import { siteConfig } from '@/site.config';
 
 describe('the master timeline', () => {
-  it('has nine chapters that touch and cover the whole video', () => {
+  it('has ten chapters that touch and cover the whole video', () => {
     expect(SEGMENTS.map((segment) => segment.id)).toEqual([
       'opening',
       'headline',
@@ -34,7 +34,8 @@ describe('the master timeline', () => {
       'edit',
       'export',
       'library',
-      'closing',
+      'platforms',
+      'address',
     ]);
     expect(SEGMENTS[0]?.start).toBe(0);
     for (let index = 1; index < SEGMENTS.length; index += 1) {
@@ -63,7 +64,7 @@ describe('the master timeline', () => {
     expect(segmentAt(DEMO_START_MS - 1).id).toBe('record');
     expect(segmentAt(DEMO_START_MS).id).toBe('recording');
     expect(segmentAt(DEMO_START_MS + DEMO_DURATION_MS).id).toBe('stop');
-    expect(segmentAt(MASTER_DURATION_MS).id).toBe('closing');
+    expect(segmentAt(MASTER_DURATION_MS).id).toBe('address');
     expect(segmentAt(-50).id).toBe('opening');
     expect(clampTime(-1)).toBe(0);
     expect(clampTime(MASTER_DURATION_MS + 9)).toBe(MASTER_DURATION_MS);
@@ -102,9 +103,9 @@ describe('the master timeline', () => {
     expect(first.wordmark).toBe(0);
     expect(first.brand).toBe(1);
     expect(first.address).toBe(0);
-    expect(cardOpacity(0, 'closing')).toBe(0);
+    expect(cardOpacity(0, 'address')).toBe(0);
     const last = frameAt(MASTER_DURATION_MS);
-    expect(cardOpacity(MASTER_DURATION_MS, 'closing')).toBe(1);
+    expect(cardOpacity(MASTER_DURATION_MS, 'address')).toBe(1);
     expect(last.address).toBe(1);
     expect(last.brand).toBe(0);
   });
@@ -150,8 +151,8 @@ describe('the master timeline', () => {
 
   it('writes the frame as css variables, the same ones for the server and the player', () => {
     const variables = frameVars(MASTER_DURATION_MS);
-    expect(variables['--on-closing']).toBe('1.000');
-    expect(variables['--p-closing']).toBe('1.0000');
+    expect(variables['--on-address']).toBe('1.000');
+    expect(variables['--p-address']).toBe('1.0000');
     expect(variables['--master']).toBe('1.00000');
     expect(Object.keys(frameVars(0))).toEqual(Object.keys(variables));
   });

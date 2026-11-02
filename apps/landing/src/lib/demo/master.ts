@@ -2,7 +2,7 @@ import { DEMO_DURATION_MS } from './script';
 
 /**
  * The one timeline behind the hero video. Every layer (the logo, the headline, the app screens,
- * the live recording and the closing card) reads its state from the same clock, so they stay in
+ * the live recording and the closing cards) reads its state from the same clock, so they stay in
  * step while playing, pausing and scrubbing.
  */
 
@@ -16,7 +16,8 @@ export type Scene =
   | 'edit'
   | 'export'
   | 'library'
-  | 'closing';
+  | 'platforms'
+  | 'address';
 
 export interface Segment {
   id: Scene;
@@ -34,8 +35,9 @@ const PLAN: readonly { id: Scene; label: string; ms: number }[] = [
   { id: 'stop', label: 'Stop', ms: 3600 },
   { id: 'edit', label: 'Edit', ms: 5000 },
   { id: 'export', label: 'Export', ms: 3600 },
-  { id: 'library', label: 'Library', ms: 4400 },
-  { id: 'closing', label: 'Address', ms: 3400 },
+  { id: 'library', label: 'Library', ms: 4000 },
+  { id: 'platforms', label: 'Platforms', ms: 3000 },
+  { id: 'address', label: 'Address', ms: 3000 },
 ];
 
 export const SEGMENTS: readonly Segment[] = PLAN.reduce<Segment[]>((list, entry) => {
@@ -101,7 +103,8 @@ export const CARD_SCENES: readonly Scene[] = [
   'edit',
   'export',
   'library',
-  'closing',
+  'platforms',
+  'address',
 ];
 
 /** How far a scene has got, from 0 at its start to 1 at its end. */
@@ -133,7 +136,7 @@ export interface Frame {
   words: number;
   /** The green card behind the logo and the headline. It goes once the record card covers it. */
   brand: number;
-  /** The platform logos on the closing card have arrived at 1. */
+  /** The platform logos on the platforms card have arrived at 1. */
   logos: number;
   /** The address has arrived. */
   address: number;
@@ -145,14 +148,15 @@ export function frameAt(timeMs: number): Frame {
   const opening = segmentOf('opening');
   const headline = segmentOf('headline');
   const record = segmentOf('record');
-  const closing = segmentOf('closing');
+  const platforms = segmentOf('platforms');
+  const address = segmentOf('address');
   return {
     wordmark: ease(t, 500, 800),
     logo: 1 - ease(t, opening.end - 350, 350),
     words: ease(t, headline.start + 250, 1500),
     brand: t < record.start + FADE_MS ? 1 : 0,
-    logos: ease(t, closing.start + 900, 900),
-    address: ease(t, closing.start + 250, 900),
+    logos: ease(t, platforms.start + 600, 900),
+    address: ease(t, address.start + 250, 900),
   };
 }
 

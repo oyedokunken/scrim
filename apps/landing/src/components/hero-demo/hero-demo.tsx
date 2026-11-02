@@ -89,7 +89,7 @@ const makeSound = () =>
     return createBrowserSoundEngine();
   });
 /** The scenes that are an app screen on a card of their own, in the order they play. */
-const SCENE_CARDS = CARD_SCENES.filter((scene) => scene !== 'closing');
+const SCENE_CARDS = CARD_SCENES.filter((scene) => scene !== 'platforms' && scene !== 'address');
 
 // The first frame, drawn by the server: the logo card with the mark alone, and the demo (hidden
 // under the card) at its starting point, so the page never shows an empty box.
@@ -463,19 +463,25 @@ export function HeroDemo() {
             </div>
           ))}
           <div
-            className={`${styles.card} ${styles.lightCard}`}
-            data-card="closing"
-            style={{ opacity: 'var(--on-closing)' }}
+            className={styles.card}
+            data-card="platforms"
+            style={{ opacity: 'var(--on-platforms)' }}
           >
-            <p className={styles.address}>{siteConfig.heroAddress}</p>
             <ul className={styles.logos}>
               {PLATFORMS.map((os, index) => (
                 <li key={os} style={vars({ '--i': String(index) })}>
-                  <OsIcon os={os} size={32} />
+                  <OsIcon os={os} size={44} />
                 </li>
               ))}
             </ul>
             <p className={styles.line}>{siteConfig.heroPlatformLine}</p>
+          </div>
+          <div
+            className={`${styles.card} ${styles.lightCard}`}
+            data-card="address"
+            style={{ opacity: 'var(--on-address)' }}
+          >
+            <p className={styles.address}>{siteConfig.heroAddress}</p>
           </div>
         </div>
 

@@ -44,7 +44,8 @@ const SCENE_CUES: Readonly<Record<string, readonly { at: number; kind: CueKind }
     { at: 800, kind: 'pop' },
     { at: 2200, kind: 'whoosh' },
   ],
-  closing: [{ at: 1200, kind: 'click' }],
+  platforms: [{ at: 700, kind: 'pop' }],
+  address: [{ at: 1000, kind: 'click' }],
 };
 
 /**

@@ -626,13 +626,8 @@
   background: var(--scrim-green);
 }
 
-/* The slides after the headline sit on butter. Text is black and accents are green, so it reads. */
+/* The butter slides carry green text, which reads at 9 to 1 on butter. */
 .lightCard {
   background: var(--scrim-butter);
-  color: var(--scrim-black);
-}
-
-.lightCard .address,
-.lightCard .logos {
   color: var(--scrim-green);
 }
