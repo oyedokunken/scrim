@@ -1,5 +1,5 @@
-import { basename } from 'node:path';
-import type { ExportJobView } from '../../shared/export-contract';
+import { basename, dirname } from 'node:path';
+import type { ExportJobView, PendingRender } from '../../shared/export-contract';
 import type { Handlers } from '../ipc/dispatcher';
 import type { ExportJob, StartInput } from './service';
 
@@ -8,6 +8,12 @@ export interface ExportLike {
   start: (input: StartInput) => ExportJob;
   cancel: (jobId: string) => void;
   retrySafer: (jobId: string) => ExportJob | undefined;
+  retry: (jobId: string) => ExportJob | undefined;
+  rerender: (folder: string, mode: 'replace' | 'new') => Promise<ExportJob>;
+  /** Recordings whose video was unfinished when Scrim last closed, and the calls that settle them. */
+  pending: () => Promise<PendingRender[]>;
+  resumePending: (folder: string) => ExportJob | undefined;
+  dismissPending: (folder: string) => void;
   latest: () => ExportJob | undefined;
   reveal: (jobId: string, what: 'output' | 'source') => Promise<boolean>;
 }
@@ -39,6 +45,7 @@ export function toBridgeJob(job: ExportJob): ExportJobView {
             encoder: job.result.encoder,
             note: job.result.note,
             fellBack: job.result.fellBack,
+            savedIn: dirname(job.result.path),
           },
     error:
       job.error === null
@@ -60,7 +67,16 @@ function definedOnly(settings: object): NonNullable<StartInput['settings']> {
 
 type ExportHandlers = Pick<
   Handlers,
-  'export:start' | 'export:cancel' | 'export:retry-safer' | 'export:latest' | 'export:reveal'
+  | 'export:start'
+  | 'export:cancel'
+  | 'export:retry-safer'
+  | 'export:retry'
+  | 'export:latest'
+  | 'export:reveal'
+  | 'export:rerender'
+  | 'export:pending'
+  | 'export:resume-pending'
+  | 'export:dismiss-pending'
 >;
 
 /** The export calls. A render starts only for a folder Scrim made, and the destination is never the page's. */
@@ -88,6 +104,23 @@ export function createExportHandlers(deps: {
     'export:retry-safer': ({ jobId }) => {
       const job = exporter.retrySafer(jobId);
       return job === undefined ? null : toBridgeJob(job);
+    },
+    'export:retry': ({ jobId }) => {
+      const job = exporter.retry(jobId);
+      return job === undefined ? null : toBridgeJob(job);
+    },
+    'export:rerender': async ({ folder, mode }) => {
+      if (!deps.isKnownFolder(folder)) return null;
+      return toBridgeJob(await exporter.rerender(folder, mode));
+    },
+    'export:pending': () => exporter.pending(),
+    'export:resume-pending': ({ folder }) => {
+      if (!deps.isKnownFolder(folder)) return null;
+      const job = exporter.resumePending(folder);
+      return job === undefined ? null : toBridgeJob(job);
+    },
+    'export:dismiss-pending': ({ folder }) => {
+      exporter.dismissPending(folder);
     },
     'export:latest': () => {
       const job = exporter.latest();

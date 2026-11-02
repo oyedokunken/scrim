@@ -218,6 +218,47 @@ export function useClock(): number {
 export type ExportJobView = EventPayload<'export:status'>;
 
 /**
+ * Calls back on every change of every export, not only the latest one, so a video that finishes or
+ * fails while the person is on another page is still told about.
+ */
+export function useExportStatus(onStatus: (job: ExportJobView) => void): void {
+  const latest = useRef(onStatus);
+  useEffect(() => {
+    latest.current = onStatus;
+  });
+  useEffect(
+    () =>
+      window.scrim.on('export:status', (job) => {
+        latest.current(job);
+      }),
+    [],
+  );
+}
+
+export type PendingRender = OutputOf<'export:pending'>[number];
+
+/** The recordings whose video was unfinished when Scrim last closed, read once when the app opens. */
+export function usePendingRenders(): { pending: PendingRender[]; settle: () => void } {
+  const [pending, setPending] = useState<PendingRender[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void window.scrim.invoke('export:pending').then(
+      (found) => {
+        if (alive) setPending(found);
+      },
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const settle = useCallback(() => {
+    setPending([]);
+  }, []);
+  return { pending, settle };
+}
+
+/**
  * The most recent export, kept in step with the main process: the one running after Stop, or the last
  * one that finished. It is read once when the page opens and then follows every status change.
  */

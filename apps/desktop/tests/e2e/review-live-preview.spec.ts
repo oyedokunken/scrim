@@ -134,7 +134,7 @@ const job = (fixture: Fixture, over: Record<string, unknown>) => ({
   result: null,
   error: null,
   safer: false,
-  preview: true,
+  preview: false,
   recording: basename(fixture.folder),
   ...over,
 });
@@ -225,7 +225,7 @@ test('while the video renders the preview shows the camera bubble, plays, and ha
       '-t',
       '4',
       '-c:v',
-      'libx264',
+      'libopenh264',
       '-pix_fmt',
       'yuv420p',
       join(fixture.previews, `${basename(fixture.folder, '.scrim')}.mp4`),
@@ -243,6 +243,7 @@ test('while the video renders the preview shows the camera bubble, plays, and ha
           encoder: 'x264',
           note: null,
           fellBack: false,
+          savedIn: 'D:/Videos/Scrim',
         },
       }),
     );

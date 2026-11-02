@@ -185,6 +185,9 @@ describe('autoRender', () => {
     });
     await settle();
     expect(requests.map((request) => request.folder)).toEqual(['C:/p/Rec.scrim']);
+    // The real file goes to the recordings folder, not the cache.
+    expect(requests[0]?.outputDir).toBe('D:/Videos/Scrim');
+    expect(requests[0]?.collision).toBe('number');
   });
 });
 

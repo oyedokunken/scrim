@@ -15,6 +15,10 @@ export interface ReviewDeps {
   isKnownFolder: (folder: string) => boolean;
   /** The app's cache folder for working copies. */
   previewDir: () => string;
+  /** The finished video of this recording that Scrim made in this run, or undefined. */
+  finalVideo?: (folder: string) => string | undefined;
+  /** Stops any render of this recording, before it is discarded. */
+  stopRendering?: (folder: string) => void;
   /** The folder the final video goes to, shown so the person knows before pressing Export. */
   outputFolder: () => string;
   fileSize: (file: string) => Promise<number | undefined>;
@@ -67,8 +71,13 @@ export function createReviewHandlers(deps: ReviewDeps): {
       const before = deps.issueMedia(screen, 'before');
       if (before === undefined) return { ok: false, error: NOT_FOUND };
 
-      const previewFile = previewPathFor(deps.previewDir(), folder);
-      const previewBytes = await deps.fileSize(previewFile);
+      // The finished video in the person's folder is what the After view plays. The working copy in the
+      // cache stands in only for a recording that has no such video.
+      const finalFile = deps.finalVideo?.(folder);
+      const finalBytes = finalFile === undefined ? undefined : await deps.fileSize(finalFile);
+      const useFinal = finalFile !== undefined && finalBytes !== undefined && finalBytes > 0;
+      const previewFile = useFinal ? finalFile : previewPathFor(deps.previewDir(), folder);
+      const previewBytes = useFinal ? finalBytes : await deps.fileSize(previewFile);
       const after =
         previewBytes === undefined || previewBytes === 0
           ? null
@@ -92,6 +101,7 @@ export function createReviewHandlers(deps: ReviewDeps): {
 
     'review:discard': async ({ folder }) => {
       if (!deps.isKnownFolder(folder)) return { ok: false, error: NOT_FOUND };
+      deps.stopRendering?.(folder);
       await cleanup(folder);
       try {
         await deps.trash(folder);

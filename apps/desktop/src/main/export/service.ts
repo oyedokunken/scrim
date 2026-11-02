@@ -1,4 +1,4 @@
-import { basename } from 'node:path';
+import { basename, extname } from 'node:path';
 import type { RecordingEvent } from '../recording/types';
 import type { Settings } from '../../shared/settings';
 import { renderStyleFromSettings } from '../../shared/render-style';
@@ -62,6 +62,13 @@ export interface ExportServiceDeps {
   stallMs?: number;
   newId: () => string;
   log: (message: string) => void;
+  /**
+   * Remembers which recordings are being turned into a video, so a render that Scrim did not live to
+   * finish can be offered again on the next launch.
+   */
+  journal?: { add: (folder: string) => void; remove: (folder: string) => void };
+  /** The finished video of a recording that this run did not make, for Replace. Undefined when none. */
+  findOutput?: (folder: string) => Promise<string | undefined>;
 }
 
 /** The export settings the person has saved: the size of the source, their frame rate and sound choice. */
@@ -87,6 +94,8 @@ export class ExportService {
   private readonly controllers = new Map<string, AbortController>();
   private readonly inputs = new Map<string, StartInput>();
   private readonly listeners = new Set<(event: ExportEvent) => void>();
+  /** The video each recording last produced in this run, so Replace writes over the same file. */
+  private readonly outputs = new Map<string, string>();
   private queue: Promise<void> = Promise.resolve();
 
   constructor(private readonly deps: ExportServiceDeps) {}
@@ -111,6 +120,7 @@ export class ExportService {
       preview: input.preview === true,
     };
     this.jobs.set(job.id, job);
+    if (!job.preview) this.deps.journal?.add(job.folder);
     this.inputs.set(job.id, input);
     this.controllers.set(job.id, new AbortController());
     this.emit(job);
@@ -131,12 +141,61 @@ export class ExportService {
     });
   }
 
+  /** The same render again with the same settings, after a failure. */
+  retry(jobId: string): ExportJob | undefined {
+    const input = this.inputs.get(jobId);
+    if (input === undefined) return undefined;
+    return this.start({
+      ...input,
+      collision: input.collision === 'replace' ? 'replace' : 'number',
+    });
+  }
+
+  /**
+   * Renders a recording again after its edits changed. Replace writes over the video made before, and
+   * New saves another beside it. A render still running for the recording is stopped first, and the
+   * new one is queued behind it, so only one file is ever being written for a recording.
+   */
+  async rerender(folder: string, mode: 'replace' | 'new'): Promise<ExportJob> {
+    this.cancelFor(folder);
+    if (mode === 'new') return this.start({ folder, collision: 'number' });
+    const known = this.outputs.get(folder) ?? (await this.deps.findOutput?.(folder));
+    return this.start({
+      folder,
+      collision: known === undefined ? 'number' : 'replace',
+      ...(known === undefined ? {} : { fileName: basename(known, extname(known)) }),
+    });
+  }
+
+  /** Stops every render that is queued or running for a recording. Its files are not touched. */
+  cancelFor(folder: string): void {
+    for (const job of this.jobs.values()) {
+      if (job.folder === folder && !job.preview) this.cancel(job.id);
+    }
+  }
+
+  /** True while a render of this recording is queued or running. */
+  busyFor(folder: string): boolean {
+    return [...this.jobs.values()].some(
+      (job) =>
+        job.folder === folder &&
+        !job.preview &&
+        (job.phase === 'queued' || job.phase === 'running'),
+    );
+  }
+
+  /** The finished video of a recording from this run, or undefined. */
+  outputFor(folder: string): string | undefined {
+    return this.outputs.get(folder);
+  }
+
   cancel(jobId: string): void {
     const job = this.jobs.get(jobId);
     if (job === undefined || job.phase === 'done' || job.phase === 'failed') return;
     this.controllers.get(jobId)?.abort();
     if (job.phase === 'queued') {
       job.phase = 'cancelled';
+      this.settle(job);
       this.emit(job);
     }
   }
@@ -156,6 +215,19 @@ export class ExportService {
   /** True while a render is queued or running. The window should not quit silently then. */
   busy(): boolean {
     return [...this.jobs.values()].some((job) => job.phase === 'queued' || job.phase === 'running');
+  }
+
+  /** A job that is over no longer counts for the journal, unless another render of the recording is waiting. */
+  private settle(job: ExportJob): void {
+    if (job.preview) return;
+    const another = [...this.jobs.values()].some(
+      (other) =>
+        other.id !== job.id &&
+        other.folder === job.folder &&
+        !other.preview &&
+        (other.phase === 'queued' || other.phase === 'running'),
+    );
+    if (!another) this.deps.journal?.remove(job.folder);
   }
 
   private emit(job: ExportJob): void {
@@ -270,6 +342,7 @@ export class ExportService {
       job.phase = 'done';
       job.result = outcome;
       job.progress = null;
+      if (!job.preview) this.outputs.set(job.folder, outcome.path);
     } else if (outcome.error.code === 'cancelled') {
       job.phase = 'cancelled';
     } else {
@@ -277,16 +350,22 @@ export class ExportService {
       job.error = outcome.error;
       this.deps.log(`export: failed with ${outcome.error.code}`);
     }
+    this.settle(job);
     this.emit(job);
   }
 }
 
-/** Renders every finished recording, including a recovered one, with the saved settings. */
+/**
+ * Renders every finished recording, including a recovered one, with the saved settings. The result
+ * is the one MP4 in the person's recordings folder. Nothing but that file goes there.
+ */
 export function autoRender(
   recording: { on: (listener: (event: RecordingEvent) => void) => () => void },
   service: Pick<ExportService, 'start'>,
 ): () => void {
   return recording.on((event) => {
-    if (event.type === 'finished') service.start({ folder: event.result.folder, preview: true });
+    if (event.type === 'finished') {
+      service.start({ folder: event.result.folder, collision: 'number' });
+    }
   });
 }

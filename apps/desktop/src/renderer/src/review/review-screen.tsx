@@ -4,8 +4,7 @@ import { editorApi } from '../shell/editor-bridge';
 import { formatBytes, formatMoment, formatTimer } from '../format';
 import type { ExportJobView, Finished } from '../hooks';
 import { ShareDialog } from '../share/share-dialog';
-import { ExportDoneDialog } from './export-done-dialog';
-import { ExportProgress, toPercent } from './export-progress';
+import { ExportProgress } from './export-progress';
 import type { LivePreviewSource } from './live-preview';
 import { ReviewPlayer, type ReviewMode } from './review-player';
 
@@ -18,8 +17,6 @@ export interface ReviewScreenProps {
   finished: Finished;
   /** The newest export job. Only the ones for this recording count. */
   job: ExportJobView | null;
-  /** Starts the real export into the folder the person chose. */
-  onExport: () => void;
   onCancelJob: (jobId: string) => void;
   onRetryJob: (jobId: string) => void;
   onRetrySafer: (jobId: string) => void;
@@ -28,19 +25,28 @@ export interface ReviewScreenProps {
   onRecordAgain: () => void;
   /** Called after the recording was moved to the Recycle Bin. */
   onDiscarded: () => void;
-  /** Called once the real export is finished and the file is in the chosen folder. */
-  onExported: (result: { fellBack: boolean }) => void;
   onProblem: (message: string, nextStep: string) => void;
 }
 
 const folderName = (path: string): string => path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 
-function etaText(etaMs: number | null): string {
+/** "about 20 seconds left", or nothing before there is a speed to judge by. */
+export function etaWords(etaMs: number | null): string {
   if (etaMs === null) return '';
   const seconds = Math.max(1, Math.round(etaMs / 1000));
   return seconds < 90
     ? `, about ${String(seconds)} seconds left`
     : `, about ${String(Math.round(seconds / 60))} minutes left`;
+}
+
+/** What the progress row says: the step, the percent and the time left. */
+export function progressWords(job: ExportJobView): string {
+  const waiting = job.phase === 'queued';
+  const percent =
+    job.progress === null ? '' : `, ${String(Math.round(job.progress.fraction * 100))}%`;
+  return `${waiting ? 'Waiting to make your video' : 'Making your video'}${percent}${
+    job.progress === null ? '' : etaWords(job.progress.etaMs)
+  }`;
 }
 
 interface ProgressRowProps {
@@ -70,13 +76,13 @@ function ProgressRow({ text, label, fraction, onCancel }: ProgressRowProps) {
 }
 
 /**
- * What the Record page shows after a recording stops: the raw recording, the finished look, or
- * both side by side. Nothing reaches the person's folder until they press Export.
+ * What the Record page shows after a recording stops: the finished look playing at once, drawn live
+ * from the raw tracks, while the one MP4 is made in the background. The real file replaces the live
+ * picture when it is ready.
  */
 export function ReviewScreen({
   finished,
   job,
-  onExport,
   onCancelJob,
   onRetryJob,
   onRetrySafer,
@@ -84,25 +90,21 @@ export function ReviewScreen({
   onShowInFolder,
   onRecordAgain,
   onDiscarded,
-  onExported,
   onProblem,
 }: ReviewScreenProps) {
   const [review, setReview] = useState<Review | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<ReviewMode>('before');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const [sharing, setSharing] = useState(false);
+  const [sharing, setSharing] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [live, setLive] = useState<LivePreviewSource | null>(null);
   // A person who has not picked a view yet is moved to After while the video is made.
   const [picked, setPicked] = useState(false);
-  const [doneClosed, setDoneClosed] = useState(false);
 
-  const mine = job !== null && job.recording === folderName(finished.folder);
-  const preview = mine && job.preview ? job : null;
-  const exporting = mine && !job.preview ? job : null;
-  const previewWorking = preview?.phase === 'queued' || preview?.phase === 'running';
-  const exportWorking = exporting?.phase === 'queued' || exporting?.phase === 'running';
+  const mine = job !== null && !job.preview && job.recording === folderName(finished.folder);
+  const rendering = mine ? job : null;
+  const working = rendering?.phase === 'queued' || rendering?.phase === 'running';
 
   const load = useCallback(() => {
     void window.scrim.invoke('review:open', { folder: finished.folder }).then(
@@ -125,11 +127,11 @@ export function ReviewScreen({
     );
   }, [finished.folder]);
 
-  // Open on mount, and again when the working copy has just been finished.
-  const previewPhase = preview?.phase;
+  // Open on mount, and again when the video has just been finished, so the real file is found.
+  const renderPhase = rendering?.phase;
   useEffect(() => {
     load();
-  }, [load, previewPhase]);
+  }, [load, renderPhase]);
 
   // The raw tracks and the saved look, so the finished picture can be drawn live while it renders.
   useEffect(() => {
@@ -145,19 +147,29 @@ export function ReviewScreen({
     };
   }, [finished.folder]);
 
-  const exportDone = exporting?.phase === 'done';
-  const fellBack = exporting?.result?.fellBack === true;
-  const doneResult = exportDone ? exporting.result : null;
-
   const afterReady = review?.after != null;
-  // The live picture stands in until the file exists, and through the moment between the two.
-  const liveWanted =
-    live !== null && (previewWorking || (preview?.phase === 'done' && !afterReady));
-  if (!picked && liveWanted && mode === 'before') setMode('after');
+  const liveWanted = live !== null && !afterReady;
+  if (!picked && live !== null && mode === 'before') setMode('after');
 
-  const retry = (): void => {
-    if (preview !== null) onRetryJob(preview.id);
-    else void window.scrim.invoke('export:start', { folder: finished.folder, preview: true });
+  // The Library entry of the finished file, which the share menu works through.
+  const [libraryId, setLibraryId] = useState<string | null>(null);
+  const done = rendering?.phase === 'done';
+  useEffect(() => {
+    if (!done) return undefined;
+    let alive = true;
+    void window.scrim.invoke('library:lookup', { path: finished.folder }).then(
+      (item) => {
+        if (alive) setLibraryId(item === null ? null : item.id);
+      },
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [done, finished.folder]);
+
+  const makeVideo = (): void => {
+    void window.scrim.invoke('export:start', { folder: finished.folder });
   };
 
   return (
@@ -175,11 +187,7 @@ export function ReviewScreen({
           }}
           options={[
             { value: 'before', label: 'Before' },
-            {
-              value: 'after',
-              label: 'After',
-              disabled: !afterReady && !previewWorking && preview?.phase !== 'failed',
-            },
+            { value: 'after', label: 'After', disabled: !afterReady && live === null && !working },
             { value: 'compare', label: 'Compare', disabled: !afterReady },
           ]}
         />
@@ -191,82 +199,100 @@ export function ReviewScreen({
         </p>
       )}
 
+      {/* Above the picture, so the progress and Cancel are in view without scrolling. */}
+      {working ? (
+        <ProgressRow
+          text={progressWords(rendering)}
+          label="Making your video"
+          fraction={rendering.progress?.fraction ?? null}
+          onCancel={() => {
+            setConfirmCancel(true);
+          }}
+        />
+      ) : null}
+
       {review === null ? null : mode === 'after' && !afterReady && !liveWanted ? (
         <div className="review-wait" role="status">
-          {previewWorking ? (
-            <>
-              <p className="saved-export-line">
-                {preview.phase === 'queued' ? 'Waiting to make your video' : 'Making your video'}
-                {preview.progress === null
-                  ? ''
-                  : `, ${String(Math.round(preview.progress.fraction * 100))}%`}
-                {preview.progress === null ? '' : etaText(preview.progress.etaMs)}
-              </p>
-              <ExportProgress
-                fraction={preview.progress?.fraction ?? null}
-                label="Making your video"
-              />
-              <Button
-                onClick={() => {
-                  onCancelJob(preview.id);
-                }}
-              >
-                Cancel
-              </Button>
-            </>
-          ) : preview?.phase === 'failed' && preview.error !== null ? (
-            <div role="alert">
-              <p className="saved-export-line">{preview.error.message}</p>
-              <p className="ui-help">{preview.error.nextStep}</p>
+          <p className="saved-export-line">Getting your preview ready</p>
+        </div>
+      ) : (
+        <ReviewPlayer
+          mode={mode}
+          before={review.before}
+          after={review.after}
+          live={live ?? undefined}
+        />
+      )}
+
+      {review === null ? null : (
+        <>
+          {rendering?.phase === 'done' && rendering.result !== null ? (
+            <p className="saved-export-line" role="status" data-testid="review-saved">
+              {rendering.result.fellBack
+                ? "Saved in Scrim's own folder, because your folder could not be written to."
+                : `Saved to ${rendering.result.savedIn}`}
+            </p>
+          ) : null}
+          {rendering?.phase === 'cancelled' ? (
+            <div className="saved-export" role="status">
+              <p className="saved-export-line">The export was cancelled. Your recording is kept.</p>
               <div className="review-actions">
-                <Button variant="primary" onClick={retry}>
+                <Button variant="primary" onClick={makeVideo}>
+                  Make video
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          {rendering?.phase === 'failed' && rendering.error !== null ? (
+            <div className="saved-export error" role="alert">
+              <p className="saved-export-line">{rendering.error.message}</p>
+              <p className="ui-help">{rendering.error.nextStep}</p>
+              <div className="review-actions">
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    onRetryJob(rendering.id);
+                  }}
+                >
                   Try again
                 </Button>
                 <Button
                   onClick={() => {
-                    onRetrySafer(preview.id);
+                    onRetrySafer(rendering.id);
                   }}
                 >
                   Try with safer settings
                 </Button>
               </div>
             </div>
-          ) : (
-            <>
-              <p className="saved-export-line">The finished look has not been made yet.</p>
-              <Button variant="primary" onClick={retry}>
-                Make it now
-              </Button>
-            </>
-          )}
-        </div>
-      ) : (
-        <>
-          <ReviewPlayer
-            mode={mode}
-            before={review.before}
-            after={review.after}
-            live={liveWanted || review.after !== null ? (live ?? undefined) : undefined}
-          />
-          {previewWorking && mode === 'after' && review.after === null ? (
-            <ProgressRow
-              text={`${preview.phase === 'queued' ? 'Waiting to make your video' : 'Making your video'}${
-                preview.progress === null
-                  ? ''
-                  : `, ${String(Math.round(preview.progress.fraction * 100))}%`
-              }${preview.progress === null ? '' : etaText(preview.progress.etaMs)}`}
-              label="Making your video"
-              fraction={preview.progress?.fraction ?? null}
-              onCancel={() => {
-                onCancelJob(preview.id);
-              }}
-            />
           ) : null}
-        </>
-      )}
 
-      {review === null ? null : (
-        <>
+          <div className="review-actions" role="group" aria-label="What to do next">
+            {onOpenEditor === undefined ? null : (
+              <Button variant="primary" onClick={onOpenEditor}>
+                Open in editor
+              </Button>
+            )}
+            <Button onClick={onShowInFolder}>Show in folder</Button>
+            <Button
+              disabled={libraryId === null}
+              onClick={() => {
+                setSharing(libraryId);
+              }}
+            >
+              Share
+            </Button>
+            <Button onClick={onRecordAgain}>Record again</Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                setConfirmDiscard(true);
+              }}
+            >
+              Discard
+            </Button>
+          </div>
+
           <div className="review-info">
             <p className="review-name">{review.name}</p>
             <dl className="review-facts">
@@ -291,9 +317,13 @@ export function ReviewScreen({
                 <dd>{formatBytes(review.rawBytes)}</dd>
               </div>
               <div>
-                <dt>Preview file</dt>
+                <dt>Video file</dt>
                 <dd>
-                  {review.previewBytes === null ? 'Not made yet' : formatBytes(review.previewBytes)}
+                  {review.previewBytes === null
+                    ? working
+                      ? 'Being made'
+                      : 'Not made yet'
+                    : formatBytes(review.previewBytes)}
                 </dd>
               </div>
               <div>
@@ -301,7 +331,7 @@ export function ReviewScreen({
                 <dd>{formatMoment(review.createdAt)}</dd>
               </div>
               <div className="review-fact-wide">
-                <dt>Export goes to</dt>
+                <dt>Saved in</dt>
                 <dd>{review.outputFolder}</dd>
               </div>
             </dl>
@@ -311,100 +341,20 @@ export function ReviewScreen({
               </p>
             ))}
           </div>
-
-          {exportWorking ? (
-            <ProgressRow
-              text={`Exporting your video${
-                exporting.progress === null
-                  ? ''
-                  : `, ${String(Math.round(exporting.progress.fraction * 100))}%`
-              }${exporting.progress === null ? '' : etaText(exporting.progress.etaMs)}`}
-              label="Exporting"
-              fraction={exporting.progress?.fraction ?? null}
-              onCancel={() => {
-                setConfirmCancel(true);
-              }}
-            />
-          ) : null}
-          {exporting?.phase === 'failed' && exporting.error !== null ? (
-            <div className="saved-export error" role="alert">
-              <p className="saved-export-line">{exporting.error.message}</p>
-              <p className="ui-help">{exporting.error.nextStep}</p>
-              <div className="review-actions">
-                <Button variant="primary" onClick={onExport}>
-                  Try again
-                </Button>
-                <Button
-                  onClick={() => {
-                    onRetrySafer(exporting.id);
-                  }}
-                >
-                  Try with safer settings
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          <div className="review-actions" role="group" aria-label="What to do next">
-            <Button variant="primary" disabled={exportWorking} onClick={onExport}>
-              {exportWorking
-                ? `Exporting ${String(toPercent(exporting.progress?.fraction ?? null))}%`
-                : 'Export'}
-            </Button>
-            {onOpenEditor === undefined ? null : (
-              <Button onClick={onOpenEditor}>Open in editor</Button>
-            )}
-            <Button onClick={onShowInFolder}>Show in folder</Button>
-            <Button
-              onClick={() => {
-                setSharing(true);
-              }}
-            >
-              Share
-            </Button>
-            <Button onClick={onRecordAgain}>Record again</Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setConfirmDiscard(true);
-              }}
-            >
-              Discard
-            </Button>
-          </div>
         </>
       )}
 
-      {sharing ? (
+      {sharing === null ? null : (
         <ShareDialog
-          source={{ kind: 'review', folder: finished.folder }}
+          source={{ kind: 'library', id: sharing }}
           onClose={() => {
-            setSharing(false);
+            setSharing(null);
           }}
         />
-      ) : null}
-
-      <ExportDoneDialog
-        done={
-          exporting === null || doneResult === null || doneClosed
-            ? null
-            : {
-                jobId: exporting.id,
-                fileName: doneResult.fileName,
-                bytes: doneResult.bytes,
-                durationMs: doneResult.durationMs,
-                fellBack,
-              }
-        }
-        folder={finished.folder}
-        onDone={() => {
-          setDoneClosed(true);
-          onExported({ fellBack });
-        }}
-      />
+      )}
 
       <ConfirmDialog
-        open={confirmCancel && exportWorking}
+        open={confirmCancel && working}
         title="Cancel the export?"
         confirmLabel="Cancel export"
         cancelLabel="Keep exporting"
@@ -414,7 +364,7 @@ export function ReviewScreen({
         }}
         onConfirm={() => {
           setConfirmCancel(false);
-          if (exporting !== null) onCancelJob(exporting.id);
+          if (rendering !== null) onCancelJob(rendering.id);
         }}
       >
         The unfinished file is removed. Your recording is kept.
@@ -441,7 +391,8 @@ export function ReviewScreen({
           );
         }}
       >
-        It goes to the Recycle Bin, so you can still get it back from there.
+        It goes to the Recycle Bin, so you can still get it back from there. A video already saved
+        in your folder stays where it is.
       </ConfirmDialog>
     </section>
   );

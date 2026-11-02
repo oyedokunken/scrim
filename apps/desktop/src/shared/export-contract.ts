@@ -34,6 +34,8 @@ export const exportJobSchema = z
         encoder: z.string().max(64),
         note: z.string().max(500).nullable(),
         fellBack: z.boolean(),
+        /** The folder the file went to, for the words "Saved to". */
+        savedIn: z.string().max(1024),
       })
       .strict()
       .nullable(),
@@ -47,6 +49,10 @@ export const exportJobSchema = z
   .strict();
 
 export type ExportJobView = z.infer<typeof exportJobSchema>;
+export type PendingRender = z.infer<typeof pendingRenderSchema>;
+
+/** A recording that was being turned into a video when Scrim closed. */
+const pendingRenderSchema = z.object({ folder: pathSchema, name: z.string().max(200) }).strict();
 
 const jobIdInput = z.object({ jobId: z.string().min(1).max(64) }).strict();
 
@@ -78,7 +84,23 @@ export const exportContract = {
   },
   'export:cancel': { input: jobIdInput, output: z.void() },
   'export:retry-safer': { input: jobIdInput, output: exportJobSchema.nullable() },
+  'export:retry': { input: jobIdInput, output: exportJobSchema.nullable() },
   'export:latest': { input: z.void(), output: exportJobSchema.nullable() },
+  /**
+   * Renders a recording again after its edits changed. `replace` writes over the video it made
+   * before. `new` saves another video beside it. Anything still rendering for it is stopped first.
+   */
+  'export:rerender': {
+    input: z.object({ folder: pathSchema, mode: z.enum(['replace', 'new']) }).strict(),
+    output: exportJobSchema.nullable(),
+  },
+  /** Recordings whose video was still being made when Scrim last closed. */
+  'export:pending': { input: z.void(), output: z.array(pendingRenderSchema).max(50) },
+  'export:resume-pending': {
+    input: z.object({ folder: pathSchema }).strict(),
+    output: exportJobSchema.nullable(),
+  },
+  'export:dismiss-pending': { input: z.object({ folder: pathSchema }).strict(), output: z.void() },
   'export:reveal': {
     input: z
       .object({ jobId: z.string().min(1).max(64), what: z.enum(['output', 'source']) })

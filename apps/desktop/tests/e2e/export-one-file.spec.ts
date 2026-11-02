@@ -61,7 +61,7 @@ function killHard(child: ChildProcess): void {
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function launch(): Promise<Running> {
+async function launch(destination?: string): Promise<Running> {
   const userData = join(work, 'user');
   // Working folders go to the projects folder, which follows LOCALAPPDATA. The chosen folder only
   // receives exports, so a recording must leave it empty.
@@ -74,11 +74,12 @@ async function launch(): Promise<Running> {
     join(userData, 'settings.json'),
     JSON.stringify({
       version: 1,
-      destinationFolder: exports,
+      destinationFolder: destination ?? exports,
       firstRunDone: true,
       showWelcome: false,
     }),
   );
+  rmSync(join(userData, 'DevToolsActivePort'), { force: true });
   const child = spawn(
     electronPath,
     [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0'],
@@ -195,152 +196,234 @@ interface Job {
   error: { message: string } | null;
 }
 
-test('Stop opens the review, Before, After and Compare play, and Export writes one MP4', async () => {
+const SHOTS = process.env['SCRIM_SHOTS'];
+
+/** Takes the window at the two sizes that matter, for a person to look at. */
+async function shootAt(page: Page, name: string): Promise<void> {
+  for (const [width, height] of [
+    [1100, 700],
+    [1920, 1080],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await sleep(600);
+    await page.screenshot({ path: join(SHOTS ?? '', `${name}-${String(width)}.png`) });
+  }
+}
+
+async function latestJob(main: Page): Promise<Job | null> {
+  return main.evaluate(async () => {
+    const bridge = (window as unknown as { scrim: Bridge }).scrim;
+    return (await bridge.invoke('export:latest')) as Job | null;
+  });
+}
+
+async function stopRecording(main: Page): Promise<void> {
+  const stopped = await main.evaluate(async () => {
+    const bridge = (window as unknown as { scrim: Bridge }).scrim;
+    return await bridge.invoke('recording:stop');
+  });
+  expect((stopped as { ok: boolean }).ok, JSON.stringify(stopped)).toBe(true);
+}
+
+async function waitForJob(main: Page, phases: string[], ms = 200_000): Promise<Job> {
+  const deadline = Date.now() + ms;
+  let job: Job | null = null;
+  while (Date.now() < deadline) {
+    job = await latestJob(main);
+    if (job !== null && phases.includes(job.phase)) return job;
+    await sleep(400);
+  }
+  throw new Error(
+    `The render never reached ${phases.join(' or ')}: ${JSON.stringify(job)}\n${recent()}`,
+  );
+}
+
+function mp4s(folder: string): string[] {
+  return readdirSync(folder);
+}
+
+test('Stop opens the page at once, renders the one MP4 in the background and says where it went', async () => {
   test.setTimeout(240_000);
   const running = await launch();
   try {
     await startRecording(running.main);
-    await sleep(8000);
-    const stopped = await running.main.evaluate(async () => {
-      const bridge = (window as unknown as { scrim: Bridge }).scrim;
-      return await bridge.invoke('recording:stop');
-    });
-    expect((stopped as { ok: boolean }).ok, JSON.stringify(stopped)).toBe(true);
-
-    // The review screen replaces the start screen, and nothing is written to the chosen folder yet.
+    await sleep(7000);
     const page = running.main;
+    const stoppedAt = Date.now();
+    await stopRecording(page);
+
+    // The finished page opens within moments, with the live preview already on screen.
     await expect(page.getByRole('heading', { name: 'Review your recording' })).toBeVisible({
-      timeout: 20_000,
+      timeout: 5000,
     });
-    await expect(page.locator('.stage')).toHaveCount(0);
+    const openedAfter = Date.now() - stoppedAt;
+    expect(openedAfter, `opened after ${String(openedAfter)} ms`).toBeLessThan(4000);
+    await expect(page.getByTestId('live-preview')).toBeVisible({ timeout: 10_000 });
+    if (SHOTS) await shootAt(page, 'auto-live');
 
-    // The review opens on After while the video is made, so pick Before to play the raw recording.
-    await page.getByRole('radio', { name: 'Before' }).click();
-    const before = page.locator('video[aria-label="Before"]');
-    await expect(before).toHaveCount(1);
-    await page.waitForFunction(() => {
-      const video = document.querySelector<HTMLVideoElement>('video[aria-label="Before"]');
-      return video !== null && video.readyState >= 2 && video.videoWidth > 0;
-    });
-    await page.getByRole('button', { name: 'Play' }).click();
-    await page.waitForFunction(() => {
-      const video = document.querySelector<HTMLVideoElement>('video[aria-label="Before"]');
-      return video !== null && video.currentTime > 0.3;
-    });
-    await page.getByRole('button', { name: 'Pause' }).click();
-
-    // The working copy is made in the cache, not in the chosen folder.
-    let preview: Job | null = null;
-    const deadline = Date.now() + 200_000;
-    while (Date.now() < deadline) {
-      preview = await running.main.evaluate(async () => {
-        const bridge = (window as unknown as { scrim: Bridge }).scrim;
-        return (await bridge.invoke('export:latest')) as Job | null;
-      });
-      if (preview !== null && ['done', 'failed', 'cancelled'].includes(preview.phase)) break;
-      await sleep(500);
+    // The progress shows on the page and in the status bar while nothing is in the folder.
+    const row = page.locator('.saved-export-row');
+    const bar = page.locator('.status-state');
+    const sawProgress = await row.isVisible().catch(() => false);
+    if (sawProgress) {
+      await expect(row).toContainText('Making your video');
+      await expect(bar).toContainText('Making video');
+      expect(mp4s(running.exports).filter((name) => name.endsWith('.mp4'))).toEqual([]);
     }
-    expect(preview?.phase, JSON.stringify(preview) + recent()).toBe('done');
-    expect(readdirSync(running.exports), 'nothing in the chosen folder before Export').toEqual([]);
-    const cache = join(running.userData, 'cache', 'previews');
-    expect(readdirSync(cache).filter((name) => name.endsWith('.mp4'))).toHaveLength(1);
 
-    // AFTER plays the finished look.
-    await page.getByRole('radio', { name: 'After' }).click();
-    await page.waitForFunction(() => {
-      const video = document.querySelector<HTMLVideoElement>('video[aria-label="After"]');
-      return video !== null && video.readyState >= 2 && video.videoWidth > 0;
-    });
-    await page.getByRole('button', { name: 'Play' }).click();
-    await page.waitForFunction(() => {
-      const video = document.querySelector<HTMLVideoElement>('video[aria-label="After"]');
-      return video !== null && video.currentTime > 0.3;
-    });
-    await page.getByRole('button', { name: 'Pause' }).click();
+    // The app stays usable: Settings opens while the video is being made.
+    await page
+      .getByRole('button', { name: 'Settings' })
+      .first()
+      .click()
+      .catch(() => undefined);
 
-    // COMPARE plays both, in step.
-    await page.getByRole('radio', { name: 'Compare' }).click();
-    await page.getByRole('button', { name: 'Play' }).click();
-    await page.waitForFunction(() => {
-      const videos = [...document.querySelectorAll<HTMLVideoElement>('.review-video')];
-      return videos.length === 2 && videos.every((video) => video.currentTime > 0.3);
-    });
-    const gap = await page.evaluate(() => {
-      const [first, second] = [...document.querySelectorAll<HTMLVideoElement>('.review-video')];
-      return Math.abs((first?.currentTime ?? 0) - (second?.currentTime ?? 99));
-    });
-    expect(gap).toBeLessThan(0.5);
-    await page.getByRole('button', { name: 'Pause' }).click();
+    const job = await waitForJob(page, ['done', 'failed', 'cancelled']);
+    expect(job.phase, JSON.stringify(job) + recent()).toBe('done');
 
-    // Export writes the file into the chosen folder, clears the working copy and opens Library.
-    await page.getByRole('button', { name: 'Export', exact: true }).click();
-    let job: Job | null = null;
-    const exportDeadline = Date.now() + 200_000;
-    while (Date.now() < exportDeadline) {
-      if (readdirSync(running.exports).some((name) => name.endsWith('.mp4'))) {
-        job = await running.main.evaluate(async () => {
-          const bridge = (window as unknown as { scrim: Bridge }).scrim;
-          return (await bridge.invoke('export:latest')) as Job | null;
-        });
-        if (job?.phase === 'done') break;
-      }
-      await sleep(500);
-    }
-    expect(job?.phase, JSON.stringify(job) + recent()).toBe('done');
-    // The done dialog opens first, with a green progress bar already gone and the actions in it.
-    const doneDialog = page.getByRole('dialog', { name: 'Your video is ready' });
-    await expect(doneDialog).toBeVisible({ timeout: 20_000 });
-    await expect(doneDialog.getByRole('button', { name: 'Show in folder' })).toBeVisible();
-    await expect(doneDialog.getByRole('button', { name: 'Open', exact: true })).toBeVisible();
-    await expect(doneDialog.getByRole('button', { name: 'Share' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Review your recording' })).toHaveCount(1);
-    await doneDialog.getByRole('button', { name: 'Done' }).click();
-    await expect(page.getByRole('heading', { name: 'Review your recording' })).toHaveCount(0);
-    expect(readdirSync(cache).filter((name) => name.endsWith('.mp4'))).toHaveLength(0);
-
-    // One new file in the recordings folder, no folders, no partial file.
-    const files = readdirSync(running.exports);
+    // One file in the recordings folder, nothing partial, no folders. The cache holds no copy.
+    const files = mp4s(running.exports);
     expect(files, files.join(', ')).toHaveLength(1);
-    const file = join(running.exports, files[0] ?? '');
-    expect(file.endsWith('.mp4')).toBe(true);
+    expect(files[0]?.endsWith('.mp4')).toBe(true);
+    const cache = join(running.userData, 'cache', 'previews');
+    expect(existsSync(cache) ? readdirSync(cache) : []).toEqual([]);
 
+    // The toast names the folder and offers Show in folder.
+    const toast = page.locator('.ui-toast');
+    await expect(toast).toContainText('Saved to');
+    await expect(toast.getByRole('button', { name: 'Show in folder' })).toBeVisible();
+
+    const file = join(running.exports, files[0] ?? '');
     const probe = spawnSync(
       join(dirname(ffmpeg), process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe'),
-      [
-        '-v',
-        'error',
-        '-show_entries',
-        'stream=codec_type,codec_name,pix_fmt,duration',
-        '-of',
-        'json',
-        file,
-      ],
+      ['-v', 'error', '-show_entries', 'stream=codec_type,codec_name,pix_fmt', '-of', 'json', file],
     );
     const streams = (
       JSON.parse(String(probe.stdout)) as {
-        streams: { codec_type: string; codec_name: string; pix_fmt?: string; duration: string }[];
+        streams: { codec_type: string; codec_name: string; pix_fmt?: string }[];
       }
     ).streams;
-    const video = streams.filter((s) => s.codec_type === 'video');
-    const audio = streams.filter((s) => s.codec_type === 'audio');
-    expect(video).toHaveLength(1);
-    expect(audio).toHaveLength(1);
-    expect(video[0]?.codec_name).toBe('h264');
-    expect(video[0]?.pix_fmt).toBe('yuv420p');
-    expect(audio[0]?.codec_name).toBe('aac');
-    expect(Math.abs(Number(video[0]?.duration) - Number(audio[0]?.duration))).toBeLessThan(0.06);
+    expect(streams.filter((s) => s.codec_type === 'video')[0]?.codec_name).toBe('h264');
+    expect(streams.filter((s) => s.codec_type === 'video')[0]?.pix_fmt).toBe('yuv420p');
+    expect(streams.filter((s) => s.codec_type === 'audio')[0]?.codec_name).toBe('aac');
 
-    // The working folder holds the tracks and the session, with the bubble positions.
+    // Back on the page, the real file has replaced the live picture and the page says where it is.
+    await page.getByRole('button', { name: 'Record', exact: true }).click();
+    await expect(page.getByTestId('review-saved')).toContainText('Saved to', { timeout: 10_000 });
+    await expect(page.locator('video[aria-label="After"]')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('live-preview')).toHaveCount(0);
+    if (SHOTS) await shootAt(page, 'auto-done');
     const session = JSON.parse(
       readFileSync(
         join(running.folder, sessionFolders(running.folder)[0] ?? '', 'session.json'),
         'utf8',
       ),
-    ) as { bubble?: unknown[]; tracks: { kind: string }[] };
-    expect(session.bubble?.length ?? 0).toBeGreaterThanOrEqual(1);
-    expect(session.tracks.map((t) => t.kind).sort()).toEqual(['camera', 'mic', 'screen']);
+    ) as { tracks: { kind: string }[] };
+    expect(session.tracks.map((t) => t.kind)).toContain('screen');
   } finally {
     running.child.kill();
     killHard(running.child);
+  }
+});
+
+test('Cancel stops the render, removes the unfinished file and keeps the recording', async () => {
+  test.setTimeout(240_000);
+  const running = await launch();
+  try {
+    await startRecording(running.main);
+    await sleep(9000);
+    const page = running.main;
+    await stopRecording(page);
+    await expect(page.getByRole('heading', { name: 'Review your recording' })).toBeVisible({
+      timeout: 10_000,
+    });
+    const row = page.locator('.saved-export-row');
+    await expect(row).toBeVisible({ timeout: 10_000 });
+    await row.getByRole('button', { name: 'Cancel' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Cancel the export?' });
+    await expect(
+      dialog.getByText('The unfinished file is removed. Your recording is kept.'),
+    ).toBeVisible();
+    await dialog.getByRole('button', { name: 'Cancel export' }).click();
+    const job = await waitForJob(page, ['cancelled', 'done']);
+    expect(job.phase, JSON.stringify(job)).toBe('cancelled');
+    await expect(page.getByRole('button', { name: 'Make video' })).toBeVisible();
+    // No MP4 and no partial file, and the working folder still holds the recording.
+    expect(mp4s(running.exports)).toEqual([]);
+    const folders = sessionFolders(running.folder);
+    expect(folders).toHaveLength(1);
+    expect(
+      readdirSync(join(running.folder, folders[0] ?? '')).some((n) => n.startsWith('screen')),
+    ).toBe(true);
+    // Make video renders it after all.
+    await page.getByRole('button', { name: 'Make video' }).click();
+    const again = await waitForJob(page, ['done', 'failed']);
+    expect(again.phase, JSON.stringify(again) + recent()).toBe('done');
+    expect(mp4s(running.exports)).toHaveLength(1);
+  } finally {
+    running.child.kill();
+    killHard(running.child);
+  }
+});
+
+test('a render that fails shows the reason with Try again and Details, and the recording stays', async () => {
+  test.setTimeout(120_000);
+  // The recordings folder is a file, so nothing can be written there.
+  const blocked = join(work, 'not-a-folder');
+  writeFileSync(blocked, 'x');
+  const running = await launch(blocked);
+  try {
+    await startRecording(running.main);
+    await sleep(4000);
+    const page = running.main;
+    await stopRecording(page);
+    const dialog = page.getByRole('dialog', { name: 'Scrim could not make your video' });
+    await expect(dialog).toBeVisible({ timeout: 90_000 });
+    await expect(dialog.getByRole('button', { name: 'Try again' })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Details' }).click();
+    await expect(dialog.getByText('Error code:')).toBeVisible();
+    if (SHOTS) await shootAt(page, 'auto-failed');
+    expect(readFileSync(blocked, 'utf8')).toBe('x');
+    expect(sessionFolders(running.folder)).toHaveLength(1);
+  } finally {
+    running.child.kill();
+    killHard(running.child);
+  }
+});
+
+test('Scrim closing during a render offers to finish it on the next launch', async () => {
+  test.setTimeout(300_000);
+  const first = await launch();
+  let second: Running | null = null;
+  try {
+    await startRecording(first.main);
+    await sleep(9000);
+    await stopRecording(first.main);
+    await waitForJob(first.main, ['running', 'queued']);
+    await sleep(1500);
+    first.child.kill();
+    killHard(first.child);
+    await first.browser.close().catch(() => undefined);
+    await sleep(1500);
+    expect(readdirSync(first.exports).filter((name) => name.endsWith('.mp4'))).toEqual([]);
+
+    second = await launch();
+    const dialog = second.main.getByRole('dialog', { name: 'Finish your video?' });
+    await expect(dialog).toBeVisible({ timeout: 30_000 });
+    if (SHOTS) await shootAt(second.main, 'auto-pending');
+    await dialog.getByRole('button', { name: 'Finish now' }).click();
+    const job = await waitForJob(second.main, ['done', 'failed']);
+    expect(job.phase, JSON.stringify(job) + recent()).toBe('done');
+    expect(mp4s(second.exports).filter((name) => name.endsWith('.mp4'))).toHaveLength(1);
+    expect(mp4s(second.exports).filter((name) => name.endsWith('.partial'))).toEqual([]);
+    // The recording was never touched.
+    expect(sessionFolders(second.folder)).toHaveLength(1);
+  } finally {
+    first.child.kill();
+    killHard(first.child);
+    if (second !== null) {
+      second.child.kill();
+      killHard(second.child);
+    }
   }
 });

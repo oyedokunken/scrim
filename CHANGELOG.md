@@ -21,6 +21,7 @@ All notable changes to Scrim are documented here.
 - Settings in two equal columns with green buttons, and an About card with the version, release date, last updated time and the computer name and system (shown only on that screen, never sent or logged)
 - In-app update check from GitHub Releases: a Check for updates button, an optional check at start (off by default), a New update available pill, and an update window with the notes, size and a download progress bar. Nothing is downloaded or installed until you press Update now and then the restart. No check runs while recording, editing or exporting
 - Shared session format in `@scrim/core` with a bubble keyframe list, window bounds, display ids and the edit list
+- Stop now writes the finished MP4 to your recordings folder by itself. The finished page opens at once with a live preview, the video renders in the background with the percent and time left on the page and in the status bar, and a toast says where it was saved. Renders run one at a time, so you can start a new recording meanwhile. Cancel keeps the recording, a failed render shows the reason with Try again and Details, and a render that Scrim did not live to finish is offered again on the next launch
 
 ### Added
 
