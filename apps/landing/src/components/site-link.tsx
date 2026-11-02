@@ -1,3 +1,4 @@
+import { ArrowUpRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 /** True for an address on another site, such as https://github.com/... */
@@ -27,6 +28,7 @@ export function SiteLink({ href, className, children }: SiteLinkProps) {
   return (
     <a href={href} className={className} target="_blank" rel="noopener noreferrer">
       {children}
+      <ArrowUpRight aria-hidden="true" size={16} />
       <span className="visually-hidden"> (opens in a new tab)</span>
     </a>
   );

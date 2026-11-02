@@ -18,10 +18,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const landing = resolve(here, '..');
 const outDir = resolve(landing, '../../docs/media');
 const PORT = 3199;
-const URL = `http://localhost:${String(PORT)}/`;
+// Set HERO_URL to use a server that is already running, for example a production build on another port.
+const URL = process.env.HERO_URL ?? `http://localhost:${String(PORT)}/`;
 const FPS = 30;
-const DURATION_MS = 30_000;
-const FRAMES = (DURATION_MS / 1000) * FPS + 1;
 const GIF_LIMIT_BYTES = 8 * 1024 * 1024;
 const ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg';
 
@@ -55,11 +54,18 @@ async function capture(frameDir) {
     });
     const page = await context.newPage();
     await page.goto(URL);
-    await page.addStyleTag({ content: '[class*="controls"] { display: none !important; }' });
+    // Hide the play, sound and zoom buttons over the video and the time flag of the timeline.
+    await page.addStyleTag({
+      content:
+        '[data-testid="hero-demo"] > [class*="_controls"], [class*="_flag"] { display: none !important; }',
+    });
     const stage = page.getByTestId('hero-demo');
     await stage.scrollIntoViewIfNeeded();
     const slider = page.getByRole('slider', { name: 'Video timeline' });
     await page.evaluate(() => document.fonts.ready);
+    // The timeline knows how long the video is: its range goes from 0 to the full length.
+    const DURATION_MS = Number(await slider.getAttribute('max'));
+    const FRAMES = (DURATION_MS / 1000) * FPS + 1;
     for (let frame = 0; frame < FRAMES; frame += 1) {
       const timeMs = Math.min(DURATION_MS, Math.round((frame * 1000) / FPS / 10) * 10);
       await slider.fill(String(timeMs));
@@ -70,6 +76,7 @@ async function capture(frameDir) {
         console.log(`frame ${String(frame)} of ${String(FRAMES)}`);
       }
     }
+    return FRAMES;
   } finally {
     await browser.close();
   }
@@ -78,14 +85,17 @@ async function capture(frameDir) {
 async function main() {
   mkdirSync(outDir, { recursive: true });
   const frameDir = mkdtempSync(join(tmpdir(), 'scrim-hero-'));
-  const server = spawn('pnpm', ['exec', 'next', 'start', '-p', String(PORT)], {
-    cwd: landing,
-    stdio: 'ignore',
-    shell: true,
-  });
+  const server =
+    process.env.HERO_URL === undefined
+      ? spawn('pnpm', ['exec', 'next', 'start', '-p', String(PORT)], {
+          cwd: landing,
+          stdio: 'ignore',
+          shell: true,
+        })
+      : null;
   try {
     await waitForServer();
-    await capture(frameDir);
+    const FRAMES = await capture(frameDir);
     if (readdirSync(frameDir).length < FRAMES) {
       throw new Error('Not every frame was captured.');
     }
@@ -122,8 +132,8 @@ async function main() {
     }
     console.log(`Wrote ${join(outDir, 'scrim-hero.mp4')} and scrim-hero.gif`);
   } finally {
-    server.kill();
-    if (process.platform === 'win32' && server.pid !== undefined) {
+    server?.kill();
+    if (process.platform === 'win32' && server?.pid !== undefined) {
       try {
         execFileSync('taskkill', ['/pid', String(server.pid), '/t', '/f'], { stdio: 'ignore' });
       } catch {

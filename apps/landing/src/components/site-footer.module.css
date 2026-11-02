@@ -70,13 +70,19 @@
 }
 
 .columns a {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   padding-block: 0.125rem;
   text-decoration: none;
 }
 
 .columns a:hover {
   text-decoration: underline;
+}
+
+.columns a svg {
+  flex: none;
 }
 
 .legal {

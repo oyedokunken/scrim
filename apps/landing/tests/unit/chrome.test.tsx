@@ -163,7 +163,7 @@ describe('SiteFooter', () => {
       'https://github.com/oyedokunken/scrim/blob/main/SECURITY.md',
     ];
     for (const href of externalFooterLinks) {
-      const linkHtml = html.slice(html.indexOf(href) - 100, html.indexOf(href) + 300);
+      const linkHtml = html.slice(html.indexOf(href) - 100, html.indexOf(href) + 700);
       expect(linkHtml).toContain('lucide-arrow-up-right');
     }
   });

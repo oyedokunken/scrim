@@ -30,7 +30,7 @@ export function SiteHeader() {
         </nav>
         <HeaderDownload className={styles.download} />
         <MobileMenu items={siteConfig.nav}>
-          <MaltLink className={styles.menuMalt} />
+          <MaltLink className={styles.menuMalt} icon="heart" />
         </MobileMenu>
       </div>
     </header>

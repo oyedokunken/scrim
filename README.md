@@ -1,50 +1,47 @@
-<h1 align="center">
+<p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/scrim-logo-dark.svg" />
     <img src="docs/assets/scrim-logo.svg" alt="Scrim" height="64" />
   </picture>
-</h1>
+</p>
 
 <p align="center">
-  <strong>Built with</strong><br />
+  <strong>Record anything on your screen effortlessly</strong>
+</p>
+
+<p align="center">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" />
   <img alt="Electron" src="https://img.shields.io/badge/Electron-47848F?style=flat-square&logo=electron&logoColor=white" />
   <img alt="React" src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" />
   <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" />
   <img alt="Node.js" src="https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white" />
+</p>
+
+<p align="center">
   <img alt="pnpm" src="https://img.shields.io/badge/pnpm-F69220?style=flat-square&logo=pnpm&logoColor=white" />
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white" />
   <img alt="Prisma" src="https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white" />
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
   <img alt="Vercel" src="https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white" />
+</p>
+
+<p align="center">
   <img alt="FFmpeg" src="https://img.shields.io/badge/FFmpeg-007808?style=flat-square&logo=ffmpeg&logoColor=white" />
   <img alt="Playwright" src="https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" />
   <img alt="Vitest" src="https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white" />
 </p>
 
 <p align="center">
-  A free, open source screen recorder and screenshot tool.<br />
-  <a href="https://scrim.app">scrim.app</a> · <a href="https://github.com/oyedokunken/scrim/issues">Issues</a> · <a href="LICENSE">MIT license</a>
+  <a href="docs/media/scrim-hero.mp4">
+    <img src="docs/media/scrim-hero.gif" alt="A video of Scrim: the logo, then recording with the cursor highlighted and an automatic zoom, then editing, export and the library." width="800" />
+  </a>
 </p>
 
 ---
 
-Scrim is a free, open source screen recorder and screenshot tool. It highlights the cursor, ripples every click, zooms in where you work, adds your face in a bubble, and exports an MP4 that plays everywhere. Windows comes first, with macOS and Linux installers following.
+Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux. It highlights the cursor, ripples every click, zooms in where you work, adds your face in a bubble, and exports an MP4 that plays everywhere. Get it at [www.scrim.app](https://www.scrim.app).
 
-Scrim keeps recordings on your computer. Nothing is uploaded, there is no account, and exports have no watermark. The website collects only the name and email needed to count downloads and provide optional release notices.
-
-## Technologies
-
-| Area         | What it uses                                                                     |
-| ------------ | -------------------------------------------------------------------------------- |
-| Desktop app  | Electron, React, Vite (electron-vite), TypeScript, sandboxed renderer, typed IPC |
-| Capture      | Chromium screen capture, `MediaRecorder`, a global mouse hook (uiohook-napi)     |
-| Media        | FFmpeg (LGPL build, bundled), H.264 and AAC in an MP4                            |
-| Shared logic | `@scrim/core` (zoom planner, camera, session format) and `@scrim/tokens`         |
-| Website      | Next.js, React Hook Form, zod, Prisma 7, PostgreSQL, Nodemailer                  |
-| Quality      | Vitest, fast-check, Playwright, axe, Lighthouse CI, ESLint, Prettier, knip       |
-| Workspace    | pnpm workspaces and a catalog of exact pins, Turborepo, Husky, commitlint        |
-| Hosting      | Vercel for the website, GitHub Releases for the installers                       |
+Scrim keeps recordings on your computer. Nothing is uploaded, there is no account, and exports have no watermark. The website collects only the name and email needed to count downloads and send optional release notices.
 
 ## Features
 
@@ -171,6 +168,6 @@ Scrim is available under the [MIT License](LICENSE).
 
 ## Links
 
-- Website: https://scrim.app
+- Website: https://www.scrim.app
 - Source: https://github.com/oyedokunken/scrim
 - Issues: https://github.com/oyedokunken/scrim/issues

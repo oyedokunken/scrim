@@ -1,7 +1,7 @@
 'use client';
 
 import { cursorAt, identityPose, sampleCamera } from '@scrim/core/zoom';
-import { Pause, Play, RotateCcw, Zap } from 'lucide-react';
+import { Pause, Play, RotateCcw, Volume2, VolumeX, Zap } from 'lucide-react';
 import {
   useCallback,
   useEffect,
@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { splitWords } from '@/lib/demo/words';
 import {
+  CARD_SCENES,
   DEMO_START_MS,
   MASTER_DURATION_MS,
   SEGMENTS,
@@ -20,9 +21,13 @@ import {
   formatTime,
   frameVars,
   percentOf,
-  segmentAt,
+  sceneAt,
+  showLogo,
+  type Scene,
 } from '@/lib/demo/master';
 import { DemoPlayer, browserClock } from '@/lib/demo/player';
+import { soundCuesFor } from '@/lib/demo/sound-cues';
+import { createSoundController, type SoundController } from '@/lib/demo/sound-controller';
 import { poseToTransform } from '@/lib/demo/pose-to-transform';
 import {
   DEMO_CLICKS,
@@ -41,6 +46,7 @@ import { LogoMark } from '../logo';
 import { OsIcon } from '../os-icons';
 import styles from './hero-demo.module.css';
 import { MockWindow } from './mock-window';
+import { SceneScreen } from './scene-screens';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
@@ -66,8 +72,24 @@ const vars = (values: Vars) => values as CSSProperties;
 /** How many fading dots follow the cursor, and how far apart in time they are. */
 const TRAIL_LENGTH = 5;
 const TRAIL_STEP_MS = 55;
+// The headline always breaks in the same place, on a phone and on a desktop: two lines, split
+// after "your", and each line stays on one line.
+const HEADLINE_BREAK = 4;
 const WORDS = splitWords(siteConfig.tagline);
+const HEADLINE_LINES = [WORDS.slice(0, HEADLINE_BREAK), WORDS.slice(HEADLINE_BREAK)] as const;
 const PLATFORMS = ['windows', 'macos', 'linux'] as const;
+const CUES = soundCuesFor({ segments: SEGMENTS, clicks: DEMO_CLICKS, zoomSpans: DEMO_ZOOM_SPANS });
+/**
+ * Makes the sound controller. The audio code is fetched only when the visitor turns sound on, and
+ * the audio context is made then, because browsers block audio until a click.
+ */
+const makeSound = () =>
+  createSoundController(CUES, async () => {
+    const { createBrowserSoundEngine } = await import('@/lib/demo/sound');
+    return createBrowserSoundEngine();
+  });
+/** The scenes that are an app screen on a card of their own, in the order they play. */
+const SCENE_CARDS = CARD_SCENES.filter((scene) => scene !== 'platforms' && scene !== 'address');
 
 // The first frame, drawn by the server: the logo card with the mark alone, and the demo (hidden
 // under the card) at its starting point, so the page never shows an empty box.
@@ -119,6 +141,10 @@ export function HeroDemo() {
   const player = useRef<DemoPlayer | null>(null);
   const autoZoomRef = useRef(true);
   const spoken = useRef('');
+  const sceneRef = useRef<Scene>('opening');
+  const sound = useRef<SoundController | null>(null);
+  const lastTime = useRef(0);
+  const runningRef = useRef(false);
 
   const reducedMotion = usePrefersReducedMotion();
   // Auto means "play when the hero is on screen, unless the visitor prefers reduced motion".
@@ -128,6 +154,10 @@ export function HeroDemo() {
   const [tabVisible, setTabVisible] = useState(true);
   const [scrubbing, setScrubbing] = useState(false);
   const [ended, setEnded] = useState(false);
+  // The scene decides whether the logo exists at all. The clock writes the rest straight to the DOM.
+  // Sound is off until the visitor turns it on, and the choice is kept in memory only.
+  const [soundOn, setSoundOn] = useState(false);
+  const [currentScene, setCurrentScene] = useState<Scene>('opening');
   const [settledStill, setSettledStill] = useState(false);
   const stillMode = reducedMotion && mode === 'auto';
   // Adjusted during render, not in an effect: reduced motion ends the video once, and a replay is still possible.
@@ -139,6 +169,21 @@ export function HeroDemo() {
   const wantsToPlay = mode === 'playing' || (mode === 'auto' && !reducedMotion);
   const running = wantsToPlay && inView && tabVisible && !scrubbing && !ended;
   const showsPause = wantsToPlay && !ended;
+
+  // The music plays only while the video does: it stops for a pause, a hidden tab, a video that is
+  // off screen or a scrub, and starts again at the right bar when the video plays.
+  useEffect(() => {
+    runningRef.current = running;
+    const controller = sound.current;
+    if (controller === null || !controller.on) {
+      return;
+    }
+    if (running) {
+      controller.resume(lastTime.current);
+    } else {
+      controller.pause();
+    }
+  }, [running]);
 
   const draw = useCallback((timeMs: number) => {
     const element = root.current;
@@ -218,8 +263,24 @@ export function HeroDemo() {
     element.dataset.scale = pose.scale.toFixed(2);
     element.dataset.time = String(Math.round(timeMs));
     element.dataset.demoTime = String(Math.round(demoMs));
-    element.dataset.stage = segmentAt(timeMs).id;
+    sound.current?.step(lastTime.current, timeMs);
+    lastTime.current = timeMs;
+
+    const nextScene = sceneAt(timeMs);
+    element.dataset.scene = nextScene;
+    if (nextScene !== sceneRef.current) {
+      sceneRef.current = nextScene;
+      setCurrentScene(nextScene);
+    }
   }, []);
+
+  // Close the audio context when the video leaves the page.
+  useEffect(
+    () => () => {
+      sound.current?.disable();
+    },
+    [],
+  );
 
   useEffect(() => {
     const instance = new DemoPlayer({
@@ -300,7 +361,7 @@ export function HeroDemo() {
         data-scale="1.00"
         data-time="0"
         data-demo-time="0"
-        data-stage="intro"
+        data-scene="opening"
       >
         <div
           className={styles.viewport}
@@ -384,22 +445,43 @@ export function HeroDemo() {
         {/* The cards are drawn from the same clock as the demo. They hide the demo while they show. */}
         <div className={styles.cards} aria-hidden="true" data-testid="hero-cards">
           <div className={styles.card} data-card="brand" style={{ opacity: 'var(--brand)' }}>
-            <div className={styles.lockup}>
-              <LogoMark size={96} className={styles.mark} />
-              <span className={styles.wordmark}>Scrim</span>
-            </div>
+            {showLogo(currentScene) ? (
+              <div className={styles.lockup} data-testid="hero-logo">
+                <LogoMark size={96} className={styles.mark} />
+                <span className={styles.wordmark}>Scrim</span>
+              </div>
+            ) : null}
             <p className={styles.words}>
-              {WORDS.map((word, index) => (
-                <span key={`${word}-${String(index)}`} style={vars({ '--i': String(index) })}>
-                  {word}
+              {HEADLINE_LINES.map((line, lineIndex) => (
+                <span key={line.join(' ')} className={styles.headlineLine}>
+                  {line.map((word, wordIndex) => {
+                    const index = lineIndex === 0 ? wordIndex : HEADLINE_BREAK + wordIndex;
+                    return (
+                      <span key={`${word}-${String(index)}`} style={vars({ '--i': String(index) })}>
+                        {word}
+                        {wordIndex < line.length - 1 ? ' ' : ''}
+                      </span>
+                    );
+                  })}
+                  {lineIndex === 0 ? ' ' : ''}
                 </span>
               ))}
             </p>
           </div>
+          {SCENE_CARDS.map((card) => (
+            <div
+              key={card}
+              className={`${styles.card} ${styles.screenCard}`}
+              data-card={card}
+              style={{ opacity: `var(--on-${card})` }}
+            >
+              <SceneScreen scene={card} />
+            </div>
+          ))}
           <div
             className={styles.card}
             data-card="platforms"
-            style={{ opacity: 'var(--platforms)' }}
+            style={{ opacity: 'var(--on-platforms)' }}
           >
             <ul className={styles.logos}>
               {PLATFORMS.map((os, index) => (
@@ -410,15 +492,51 @@ export function HeroDemo() {
             </ul>
             <p className={styles.line}>{siteConfig.heroPlatformLine}</p>
           </div>
-          <div className={styles.card} data-card="final" style={{ opacity: 'var(--final)' }}>
-            <LogoMark size={56} className={styles.markSmall} />
+          <div
+            className={`${styles.card} ${styles.lightCard}`}
+            data-card="address"
+            style={{ opacity: 'var(--on-address)' }}
+          >
             <p className={styles.address}>{siteConfig.heroAddress}</p>
           </div>
         </div>
 
         {/* The one play control and the auto zoom switch, over the bottom right of the video. */}
         <div className={styles.controls}>
-          <button type="button" className={styles.control} onClick={onPlayControl}>
+          <button
+            type="button"
+            aria-pressed={soundOn}
+            aria-label="Sound"
+            data-tip={soundOn ? 'Turn sound off' : 'Turn sound on'}
+            className={`${styles.control} ${styles.soundToggle}`}
+            onClick={() => {
+              sound.current ??= makeSound();
+              const controller = sound.current;
+              if (controller.on) {
+                controller.disable();
+                setSoundOn(false);
+                return;
+              }
+              void controller.enable(lastTime.current).then(() => {
+                if (!runningRef.current) {
+                  controller.pause();
+                }
+                setSoundOn(controller.on);
+              });
+            }}
+          >
+            {soundOn ? (
+              <Volume2 aria-hidden="true" size={18} />
+            ) : (
+              <VolumeX aria-hidden="true" size={18} />
+            )}
+          </button>
+          <button
+            type="button"
+            className={styles.control}
+            data-tip={label === 'Replay' ? 'Play the video again' : `${label} the video`}
+            onClick={onPlayControl}
+          >
             <Icon aria-hidden="true" size={18} />
             <span>{label}</span>
           </button>
@@ -427,6 +545,7 @@ export function HeroDemo() {
             role="switch"
             aria-checked={autoZoom}
             aria-label="Auto zoom"
+            data-tip={autoZoom ? 'Turn auto zoom off' : 'Turn auto zoom on'}
             className={styles.control}
             onClick={() => {
               setAutoZoom((current) => !current);
@@ -544,6 +663,23 @@ export function HeroDemo() {
             </span>
           ))}
         </div>
+        <nav className={styles.chapters} aria-label="Chapters">
+          {SEGMENTS.map((segment) => (
+            <button
+              key={segment.id}
+              type="button"
+              className={styles.chapter}
+              aria-current={currentScene === segment.id ? 'true' : undefined}
+              onClick={() => {
+                // Start the chapter a hair in, so its card is already showing when the video resumes.
+                player.current?.seek(segment.start + 60);
+                setEnded(false);
+              }}
+            >
+              {segment.label}
+            </button>
+          ))}
+        </nav>
       </div>
     </div>
   );
