@@ -1472,6 +1472,9 @@ input[type='checkbox'] {
 }
 
 .set-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 15px;
   font-weight: 600;
 }
@@ -1584,10 +1587,28 @@ input[type='checkbox'] {
   opacity: 1;
 }
 
+/* The three attribution buttons stay on one row, each as wide as the others. */
 .set-links {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
+}
+
+.set-links > .ui-button,
+.set-links > .built-by {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.set-links .ui-button {
+  width: 100%;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.set-links .built-by-panel {
+  right: 0;
+  left: auto;
 }
 
 /* A tooltip host around a name that is cut short keeps the cut: the host takes the row width. */

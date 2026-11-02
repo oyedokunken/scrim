@@ -22,7 +22,6 @@ function setup(overrides: Partial<Handlers> = {}) {
       version: '1.0.0',
       license: 'MIT',
       releaseDate: null,
-      lastUpdated: null,
     }),
     'updates:state': () => ({ state: { phase: 'idle' }, blocked: null }),
     'updates:check': () => ({ state: { phase: 'none' }, blocked: null }),

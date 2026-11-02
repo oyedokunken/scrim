@@ -11,8 +11,6 @@ export const aboutSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .nullable(),
-    /** When the installed program file last changed, as an ISO time. Null when it cannot be read. */
-    lastUpdated: z.string().max(40).nullable(),
   })
   .strict();
 export type About = z.infer<typeof aboutSchema>;

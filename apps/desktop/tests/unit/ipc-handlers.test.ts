@@ -106,7 +106,6 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
           version: '1.0.0',
           license: 'MIT',
           releaseDate: null,
-          lastUpdated: null,
         }),
       ),
       system: vi.fn(() => ({ computerName: 'PC', operatingSystem: 'Windows' })),

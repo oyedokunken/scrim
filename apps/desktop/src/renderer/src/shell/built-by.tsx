@@ -1,4 +1,4 @@
-import { ExternalLink, Globe } from 'lucide-react';
+import { ExternalLink, Globe, User } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { Glyph, GITHUB, LINKEDIN } from './brand-glyphs';
 import './built-by.css';
@@ -91,7 +91,15 @@ function IconLink({
  * tooltip. It opens on hover, on click and on keyboard focus, and closes on Escape, on a click
  * outside it and when focus leaves it. Escape returns focus to the handle.
  */
-export function BuiltBy({ onOpenLink }: { onOpenLink: (url: string) => void }) {
+export function BuiltBy({
+  onOpenLink,
+  variant = 'credit',
+}: {
+  onOpenLink: (url: string) => void;
+  /** The credit line with the handle, or a button that reads The developer. */
+  variant?: 'credit' | 'button';
+}) {
+  const asButton = variant === 'button';
   const [hovered, setHovered] = useState(false);
   const [pinned, setPinned] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -152,18 +160,18 @@ export function BuiltBy({ onOpenLink }: { onOpenLink: (url: string) => void }) {
   return (
     <span
       ref={root}
-      className="built-by"
+      className={asButton ? 'built-by built-by-as-button' : 'built-by'}
       onPointerEnter={enter}
       onPointerLeave={leave}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
       }}
     >
-      Built by{' '}
+      {asButton ? null : <>Built by </>}
       <button
         ref={button}
         type="button"
-        className="built-by-handle"
+        className={asButton ? 'ui-button ui-button-secondary built-by-trigger' : 'built-by-handle'}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => {
@@ -176,7 +184,16 @@ export function BuiltBy({ onOpenLink }: { onOpenLink: (url: string) => void }) {
           }
         }}
       >
-        @oyedokunken
+        {asButton ? (
+          <>
+            <span className="ui-button-icon" aria-hidden="true">
+              <User size={16} strokeWidth={1.75} />
+            </span>
+            The developer
+          </>
+        ) : (
+          '@oyedokunken'
+        )}
       </button>
       <div
         id={panelId}

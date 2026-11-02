@@ -96,6 +96,61 @@ for (const size of SIZES) {
       await expectNoViolations(page);
     });
 
+    test('the Attributions card keeps three buttons on one row and opens the developer card', async ({
+      page,
+    }) => {
+      await page.setViewportSize(size);
+      await enterApp(page);
+      await go(page, 'Settings');
+      const card = page.getByRole('region', { name: 'Attributions' });
+      await card.scrollIntoViewIfNeeded();
+      await expect(card.getByRole('heading', { name: 'Attributions' })).toBeVisible();
+      await expect(card.getByRole('heading', { name: 'FFmpeg' })).toBeVisible();
+      const row = card.locator('.set-links > *');
+      await expect(row).toHaveCount(3);
+      const tops = await row.evaluateAll((all) =>
+        all.map((element) => Math.round(element.getBoundingClientRect().top)),
+      );
+      expect(new Set(tops).size).toBe(1);
+      const labels = await card.locator('.set-links button').allTextContents();
+      expect(labels.map((text) => text.trim())).toEqual(['Source code', 'FFmpeg', 'The developer']);
+      const oneLine = await card
+        .locator('.set-links button')
+        .evaluateAll((all) => all.every((element) => element.scrollWidth <= element.clientWidth));
+      expect(oneLine).toBe(true);
+      await card.getByRole('button', { name: 'The developer' }).click();
+      for (const name of ['Website', 'GitHub', 'LinkedIn']) {
+        await expect(card.getByRole('link', { name: new RegExp(name) })).toBeVisible();
+      }
+      await shoot(page, `attributions-${tag}`);
+      await expectNoViolations(page);
+    });
+
+    test('settings cards in the same row have equal heights and each title has an icon', async ({
+      page,
+    }) => {
+      await page.setViewportSize(size);
+      await enterApp(page);
+      await go(page, 'Settings');
+      const report = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll('.set-section')];
+        const rows = new Map<number, number[]>();
+        for (const card of cards) {
+          const box = card.getBoundingClientRect();
+          const key = Math.round(box.top);
+          rows.set(key, [...(rows.get(key) ?? []), Math.round(box.height)]);
+        }
+        return {
+          rowsAreEqual: [...rows.values()].every((heights) => new Set(heights).size === 1),
+          iconless: cards
+            .filter((card) => card.querySelector('.set-title svg') === null)
+            .map((card) => card.getAttribute('aria-label')),
+        };
+      });
+      expect(report.rowsAreEqual).toBe(true);
+      expect(report.iconless).toEqual([]);
+    });
+
     test('the Settings page drops the removed texts and has no accessibility violations', async ({
       page,
     }) => {
@@ -110,6 +165,7 @@ for (const size of SIZES) {
         await expect(page.getByText(text)).toHaveCount(0);
       }
       await expect(page.getByText('Discover a new version of Scrim')).toBeVisible();
+      await expect(page.getByText('Last updated')).toHaveCount(0);
       await shoot(page, `settings-${tag}`);
       await expectNoViolations(page);
     });

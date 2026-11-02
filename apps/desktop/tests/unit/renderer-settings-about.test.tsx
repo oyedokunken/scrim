@@ -2,38 +2,76 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { formatDay, formatMoment } from '../../src/renderer/src/format';
 import { AboutCard } from '../../src/renderer/src/settings/about-card';
+import { AttributionsCard } from '../../src/renderer/src/settings/attributions-card';
 
 describe('the about card', () => {
-  it('shows the short line, the facts and the privacy note', () => {
-    const html = renderToStaticMarkup(<AboutCard onOpenLink={() => undefined} />);
+  it('shows the sentence and the four facts, with an icon beside the title', () => {
+    const html = renderToStaticMarkup(<AboutCard />);
     expect(html).toContain(
-      'A free, open source screen recorder and screenshot tool for Windows, macOS and Linux.',
+      'Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux.',
     );
     for (const label of [
       'App name',
       'Version',
       'License',
       'Release date',
-      'Last updated',
       'Computer name',
       'Operating system',
     ]) {
       expect(html).toContain(label);
     }
+    expect(html).toContain('lucide-info');
+  });
+
+  it('has no Last updated row and none of the removed notes', () => {
+    const html = renderToStaticMarkup(<AboutCard />);
+    expect(html).not.toContain('Last updated');
     expect(html).not.toContain('It is never sent anywhere');
     expect(html).not.toContain('Shown only here');
-    expect(html).toContain('Source code');
-    expect(html).toContain('About the FFmpeg license');
-    expect(html).toContain('@oyedokunken');
-    expect(html).toContain('LGPL version 3');
   });
 
-  it('does not repeat the app name in every sentence', () => {
-    const html = renderToStaticMarkup(<AboutCard onOpenLink={() => undefined} />);
-    const text = html.replace(/<[^>]+>/g, ' ');
-    expect(text.match(/Scrim/g) ?? []).toHaveLength(0);
+  it('keeps the credits for the Attributions card', () => {
+    const html = renderToStaticMarkup(<AboutCard />);
+    for (const text of ['FFmpeg', 'LGPL', 'Source code', '@oyedokunken', 'The developer']) {
+      expect(html).not.toContain(text);
+    }
+  });
+});
+
+describe('the attributions card', () => {
+  const html = renderToStaticMarkup(<AttributionsCard onOpenLink={() => undefined} />);
+
+  it('has an icon beside its title, the FFmpeg heading and the notice', () => {
+    expect(html).toMatch(/<h2[^>]*><svg[^>]*lucide-scroll-text[^>]*>.*Attributions<\/h2>/s);
+    expect(html).toContain('>FFmpeg</h3>');
+    expect(html).toContain('Built under the LGPL version 3 and used unchanged.');
   });
 
+  it('holds exactly one row of three buttons: Source code, FFmpeg and The developer', () => {
+    const row = /<div class="set-links">(.*)<\/div><\/section>/s.exec(html)?.[1] ?? '';
+    const labels = [...row.matchAll(/<button[^>]*>(.*?)<\/button>/gs)].map((match) =>
+      match[1]?.replace(/<[^>]+>/g, '').trim(),
+    );
+    expect(labels).toEqual(['Source code', 'FFmpeg', 'The developer']);
+    expect(html).not.toContain('Built by');
+    expect(html).not.toContain('About the FFmpeg license');
+  });
+
+  it('opens the same three link popover from The developer', () => {
+    for (const name of ['Website', 'GitHub', 'LinkedIn']) expect(html).toContain(`${name} (opens`);
+  });
+});
+
+describe('the credit line on the welcome screen', () => {
+  it('still reads Built by with the handle', async () => {
+    const { BuiltBy } = await import('../../src/renderer/src/shell/built-by');
+    const credit = renderToStaticMarkup(<BuiltBy onOpenLink={() => undefined} />);
+    expect(credit).toContain('Built by');
+    expect(credit).toContain('@oyedokunken');
+  });
+});
+
+describe('the date formats', () => {
   it('formats dates for the reader and passes odd text through', () => {
     expect(formatDay('2026-10-30', 'en-US')).toBe('October 30, 2026');
     expect(formatDay('soon')).toBe('soon');

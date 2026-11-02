@@ -1,3 +1,4 @@
+import { RefreshCw } from 'lucide-react';
 import { Button, Switch } from '../../ui';
 import type { UpdateSnapshot } from '../../../shared/updates-contract';
 import { blockText } from './update-modal';
@@ -55,7 +56,10 @@ export function UpdatesCard({
 
   return (
     <section className="set-section" aria-label="Updates">
-      <h2 className="set-title">Updates</h2>
+      <h2 className="set-title">
+        <RefreshCw size={18} strokeWidth={1.75} aria-hidden="true" />
+        Updates
+      </h2>
       <p className="ui-help">Discover a new version of Scrim</p>
       {found ? (
         <button type="button" className="update-pill" onClick={onShowUpdate}>
