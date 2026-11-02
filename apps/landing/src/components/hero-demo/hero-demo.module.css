@@ -204,13 +204,12 @@
 
 .words {
   position: absolute;
-  top: 44%;
+  top: 50%;
   left: 50%;
   width: 92cqw;
-  /* Centre the two lines on the card. */
-  translate: 0 -50%;
   margin: 0;
-  transform: translateX(-50%);
+  /* Centred on the card, both ways. */
+  transform: translate(-50%, -50%);
   /* Fluid, so the longer line ("Record anything on your") fits inside a 320px screen. */
   font-size: clamp(0.75rem, min(5.2cqw, 8cqh), 3.75rem);
   font-weight: 800;

@@ -276,6 +276,21 @@ test.describe('the headline in the hero video', () => {
         // One line of text, so its height is about one line, never two.
         expect(text.height).toBeLessThan(((box?.height ?? 0) || 1) * 1.6);
       }
+      // The two lines together sit in the middle of the video, both ways.
+      const block = await page
+        .getByTestId('hero-cards')
+        .locator('[data-card="brand"] p')
+        .boundingBox();
+      expect(
+        Math.abs(
+          (block?.x ?? 0) + (block?.width ?? 0) / 2 - ((stage?.x ?? 0) + (stage?.width ?? 0) / 2),
+        ),
+      ).toBeLessThan(3);
+      expect(
+        Math.abs(
+          (block?.y ?? 0) + (block?.height ?? 0) / 2 - ((stage?.y ?? 0) + (stage?.height ?? 0) / 2),
+        ),
+      ).toBeLessThan(3);
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       ).toBe(true);
