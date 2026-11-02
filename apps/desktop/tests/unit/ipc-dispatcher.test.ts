@@ -84,6 +84,14 @@ function setup(overrides: Partial<Handlers> = {}) {
       error: { code: 'unknown', message: 'm', nextStep: 'n' },
     }),
     'editor:save-edits': () => ({ ok: true, value: undefined }),
+    'backgrounds:list': () => [],
+    'backgrounds:add': () => ({
+      ok: false as const,
+      reason: 'cancelled' as const,
+      message: 'No image was chosen.',
+    }),
+    'backgrounds:read': () => null,
+    'backgrounds:remove': () => false,
     'review:open': () => ({
       ok: false,
       error: { code: 'unknown', message: 'm', nextStep: 'n' },

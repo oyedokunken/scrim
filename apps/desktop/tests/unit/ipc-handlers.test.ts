@@ -39,6 +39,19 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       readHead: vi.fn(() => Promise.resolve(Buffer.from([]))),
       thumbnail: vi.fn(() => 'data:image/png;base64,AA=='),
     },
+    backgrounds: {
+      list: vi.fn(() => Promise.resolve([])),
+      add: vi.fn(() =>
+        Promise.resolve({
+          ok: false as const,
+          reason: 'cancelled' as const,
+          message: 'No image was chosen.',
+        }),
+      ),
+      read: vi.fn(() => Promise.resolve(null)),
+      remove: vi.fn(() => Promise.resolve(false)),
+      pathOf: vi.fn(() => undefined),
+    },
     library: {
       list: vi.fn(() => Promise.resolve([])),
       thumbnail: vi.fn(() => Promise.resolve(null)),

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { pathSchema } from './recording-contract';
+import { lookSchema } from './settings';
 
 const exportErrorSchema = z
   .object({
@@ -91,7 +92,14 @@ export const exportContract = {
    * before. `new` saves another video beside it. Anything still rendering for it is stopped first.
    */
   'export:rerender': {
-    input: z.object({ folder: pathSchema, mode: z.enum(['replace', 'new']) }).strict(),
+    input: z
+      .object({
+        folder: pathSchema,
+        mode: z.enum(['replace', 'new']),
+        /** The cursor, zoom and background for this render, from the edit pane. */
+        look: lookSchema.optional(),
+      })
+      .strict(),
     output: exportJobSchema.nullable(),
   },
   /** Recordings whose video was still being made when Scrim last closed. */

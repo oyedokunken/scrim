@@ -1,15 +1,16 @@
-import { smoothnessToEaseMs } from '@scrim/core/render';
+import { DEFAULT_BACKGROUND_ID, smoothnessToEaseMs } from '@scrim/core/render';
 import type { RenderStyle } from '@scrim/core/render';
+import { customBackgroundOf } from './backgrounds-contract';
 import type { Settings } from './settings';
 
-const PADDING_SHARE: Record<Settings['backgroundPadding'], number> = {
+export const PADDING_SHARE: Record<Settings['backgroundPadding'], number> = {
   none: 0,
   small: 0.03,
   medium: 0.06,
   large: 0.1,
 };
 
-const RADIUS_SHARE: Record<Settings['backgroundCorners'], number> = {
+export const RADIUS_SHARE: Record<Settings['backgroundCorners'], number> = {
   square: 0,
   soft: 0.025,
   round: 0.05,
@@ -19,7 +20,18 @@ const RADIUS_SHARE: Record<Settings['backgroundCorners'], number> = {
  * The look the person chose in Settings, as the render model wants it. The editor preview and the
  * export both use it, so what is shown is what is saved.
  */
-export function renderStyleFromSettings(settings: Settings): RenderStyle {
+export function renderStyleFromSettings(
+  settings: Settings,
+  /** Where one of the person's own images is, or undefined when it is gone. Only the export knows paths. */
+  imageOf?: (imageId: string) => string | undefined,
+): RenderStyle {
+  const custom = customBackgroundOf(settings.backgroundId);
+  const imagePath = custom === null ? undefined : imageOf?.(custom);
+  // A picture that was removed falls back to the default preset instead of a black frame.
+  const backgroundId =
+    custom !== null && imagePath === undefined && imageOf !== undefined
+      ? DEFAULT_BACKGROUND_ID
+      : settings.backgroundId;
   return {
     cursor: { style: settings.cursorStyle },
     zoom: {
@@ -29,10 +41,13 @@ export function renderStyleFromSettings(settings: Settings): RenderStyle {
       easeMs: smoothnessToEaseMs(settings.smoothness),
     },
     background:
-      settings.backgroundId === 'none'
+      backgroundId === 'none'
         ? { spec: { kind: 'none' } }
         : {
-            spec: { kind: 'preset', id: settings.backgroundId },
+            spec:
+              custom !== null && imagePath !== undefined
+                ? { kind: 'image', path: imagePath }
+                : { kind: 'preset', id: backgroundId },
             paddingShare: PADDING_SHARE[settings.backgroundPadding],
             radiusShare: RADIUS_SHARE[settings.backgroundCorners],
           },

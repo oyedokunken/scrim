@@ -540,8 +540,36 @@
 }
 
 .bg-none,
-.bg-image {
+.bg-image,
+.bg-user {
   background: var(--scrim-white);
+}
+
+.bg-user {
+  overflow: hidden;
+}
+
+.bg-swatch-image,
+.bg-frame-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bg-frame-image {
+  position: absolute;
+  inset: 0;
+}
+
+.bg-frame > .bg-recording {
+  position: relative;
+}
+
+.panel-error {
+  margin: 0;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
 }
 
 .bg-butter {
@@ -579,6 +607,7 @@
 }
 
 .bg-frame {
+  position: relative;
   display: grid;
   place-items: center;
   width: min(86%, 640px);
@@ -638,4 +667,72 @@
   .meter-fill {
     transition: none;
   }
+}
+
+/* The edit pane for a finished recording: the live picture on the left, the three panels on the right. */
+.edit-pane {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+}
+
+.edit-head {
+  display: grid;
+  gap: 4px;
+}
+
+.edit-body {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (width <= 900px) {
+  .edit-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.edit-preview,
+.edit-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.edit-panel {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+  min-width: 0;
+  padding: 16px;
+  background: var(--scrim-white);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+}
+
+.edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+/* The live picture keeps its own shape and centres, so a wide window shows no black bars beside it. */
+.edit-preview .review-video {
+  width: auto;
+  max-width: 100%;
+  margin-inline: auto;
+  background: transparent;
+}
+
+/* Save and Cancel stay in view however tall the panel is. */
+.edit-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: 12px 0;
+  background: var(--scrim-butter);
 }

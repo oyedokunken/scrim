@@ -5,6 +5,7 @@ import { cursorPaintCss, renderStyleFromSettings } from '../../../shared/render-
 import type { Settings } from '../../../shared/settings';
 import { paintFrame } from '../editor/draw-frame';
 import type { EditorProject } from '../editor/editor-api';
+import { useBackgroundElement } from '../panels/use-backgrounds';
 
 /** How far the camera may drift from the screen before it is pulled back, in seconds. */
 const DRIFT_S = 0.12;
@@ -30,7 +31,8 @@ export function createLiveModel({ project, settings }: LivePreviewSource): Rende
       preset: 'source',
       fps: 30,
       keepAudio: settings.keepSound,
-      style: renderStyleFromSettings(settings),
+      // The page names the person's own picture by its id and draws it itself, so the id stands in for a path.
+      style: renderStyleFromSettings(settings, (id) => id),
     },
   });
 }
@@ -46,6 +48,8 @@ export interface LivePaneProps {
   onLoaded: () => void;
   /** True while the player is playing, so the camera follows. */
   playing: boolean;
+  /** The text on the picture. Null leaves it off. */
+  label?: string | null;
 }
 
 /**
@@ -61,6 +65,7 @@ export function LivePane({
   onEnded,
   onLoaded,
   playing,
+  label = 'Preview. Your video is being made.',
 }: LivePaneProps) {
   const model = useMemo(() => createLiveModel(source), [source]);
   const paint = useMemo(() => cursorPaintCss(source.settings.haloColor), [source.settings]);
@@ -68,6 +73,7 @@ export function LivePane({
   const cameraEl = useRef<HTMLVideoElement | null>(null);
   const canvasEl = useRef<HTMLCanvasElement>(null);
   const cameraUrl = source.project.media.camera;
+  const backgroundImage = useBackgroundElement(source.settings.backgroundId);
 
   const { output } = model.layout;
   const canvasWidth = Math.min(output.width, MAX_CANVAS_WIDTH);
@@ -86,14 +92,22 @@ export function LivePane({
     }
     const k = canvas.width / output.width;
     ctx.setTransform(k, 0, 0, k, 0, 0);
-    paintFrame(ctx, 'after', 0.5, model, frame, { screen, camera }, paint);
+    paintFrame(
+      ctx,
+      'after',
+      0.5,
+      model,
+      frame,
+      { screen, camera, background: backgroundImage },
+      paint,
+    );
     const shown =
       frame.bubble !== null &&
       frame.cameraTimeMs !== null &&
       camera !== null &&
       camera.videoWidth > 0;
     canvas.dataset['bubble'] = shown ? 'true' : 'false';
-  }, [model, paint, cameraUrl, output.width]);
+  }, [model, paint, cameraUrl, output.width, backgroundImage]);
 
   // Draw on every frame while playing, and again whenever the picture changes while paused.
   useEffect(() => {
@@ -140,9 +154,11 @@ export function LivePane({
           height={canvasHeight}
           aria-label="Preview of the finished video"
         />
-        <p className="review-live-label" data-testid="live-preview-label">
-          Preview. Your video is being made.
-        </p>
+        {label === null ? null : (
+          <p className="review-live-label" data-testid="live-preview-label">
+            {label}
+          </p>
+        )}
       </div>
       <video
         ref={(element) => {

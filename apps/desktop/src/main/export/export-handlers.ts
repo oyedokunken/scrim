@@ -1,3 +1,4 @@
+import type { Look } from '../../shared/settings';
 import { basename, dirname } from 'node:path';
 import type { ExportJobView, PendingRender } from '../../shared/export-contract';
 import type { Handlers } from '../ipc/dispatcher';
@@ -9,7 +10,7 @@ export interface ExportLike {
   cancel: (jobId: string) => void;
   retrySafer: (jobId: string) => ExportJob | undefined;
   retry: (jobId: string) => ExportJob | undefined;
-  rerender: (folder: string, mode: 'replace' | 'new') => Promise<ExportJob>;
+  rerender: (folder: string, mode: 'replace' | 'new', look?: Look) => Promise<ExportJob>;
   /** Recordings whose video was unfinished when Scrim last closed, and the calls that settle them. */
   pending: () => Promise<PendingRender[]>;
   resumePending: (folder: string) => ExportJob | undefined;
@@ -109,9 +110,9 @@ export function createExportHandlers(deps: {
       const job = exporter.retry(jobId);
       return job === undefined ? null : toBridgeJob(job);
     },
-    'export:rerender': async ({ folder, mode }) => {
+    'export:rerender': async ({ folder, mode, look }) => {
       if (!deps.isKnownFolder(folder)) return null;
-      return toBridgeJob(await exporter.rerender(folder, mode));
+      return toBridgeJob(await exporter.rerender(folder, mode, look));
     },
     'export:pending': () => exporter.pending(),
     'export:resume-pending': ({ folder }) => {
