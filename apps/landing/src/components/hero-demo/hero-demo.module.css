@@ -179,8 +179,8 @@
   align-items: center;
   /* Only transforms move here, so the animation never changes the layout. The sideways shift
      keeps the mark centred until the wordmark has grown out beside it. */
-  transform: translateX(calc((1 - var(--wordmark)) * 20cqh)) translateY(calc(var(--lift) * -16cqh))
-    scale(calc(1 - var(--lift) * 0.45));
+  transform: translateX(calc((1 - var(--wordmark)) * 20cqh));
+  opacity: var(--logo);
 }
 
 .mark {
@@ -203,24 +203,31 @@
 }
 
 .words {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0 0.28em;
   position: absolute;
-  top: 50%;
+  top: 44%;
   left: 50%;
-  width: 80cqw;
+  width: 92cqw;
+  /* Centre the two lines on the card. */
+  translate: 0 -50%;
   margin: 0;
   transform: translateX(-50%);
-  font-size: 8cqh;
+  /* Fluid, so the longer line ("Record anything on your") fits inside a 320px screen. */
+  font-size: clamp(0.75rem, min(5.2cqw, 8cqh), 3.75rem);
   font-weight: 800;
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  text-align: center;
 }
 
-.words span {
+/* Two block lines that never wrap, so the break is the same on every screen. */
+.headlineLine {
+  display: flex;
+  justify-content: center;
+  gap: 0.34em;
+  white-space: nowrap;
+}
+
+.headlineLine > span {
   display: inline-block;
   opacity: clamp(0, calc(var(--words) * 6 - var(--i)), 1);
   transform: translateY(calc((1 - clamp(0, calc(var(--words) * 6 - var(--i)), 1)) * 2cqh));
@@ -247,12 +254,6 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   opacity: var(--logos);
-}
-
-.markSmall {
-  width: 11cqh;
-  height: 11cqh;
-  opacity: var(--address);
 }
 
 .address {

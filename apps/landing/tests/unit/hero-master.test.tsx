@@ -14,20 +14,22 @@ import {
   frameAt,
   frameVars,
   percentOf,
+  sceneAt,
   segmentAt,
+  showLogo,
 } from '@/lib/demo/master';
 import { DEMO_DURATION_MS } from '@/lib/demo/script';
 import { splitWords } from '@/lib/demo/words';
 import { siteConfig } from '@/site.config';
 
 describe('the master timeline', () => {
-  it('has five segments that touch and cover the whole video', () => {
+  it('has five scenes that touch and cover the whole video', () => {
     expect(SEGMENTS.map((segment) => segment.id)).toEqual([
-      'intro',
-      'tagline',
+      'opening',
+      'headline',
       'demo',
       'platforms',
-      'final',
+      'closing',
     ]);
     expect(SEGMENTS[0]?.start).toBe(0);
     for (let index = 1; index < SEGMENTS.length; index += 1) {
@@ -45,14 +47,35 @@ describe('the master timeline', () => {
   });
 
   it('finds the segment for a time and keeps times inside the video', () => {
-    expect(segmentAt(0).id).toBe('intro');
+    expect(segmentAt(0).id).toBe('opening');
     expect(segmentAt(DEMO_START_MS).id).toBe('demo');
     expect(segmentAt(PLATFORMS_START_MS - 1).id).toBe('demo');
     expect(segmentAt(PLATFORMS_START_MS).id).toBe('platforms');
-    expect(segmentAt(MASTER_DURATION_MS).id).toBe('final');
-    expect(segmentAt(-50).id).toBe('intro');
+    expect(segmentAt(MASTER_DURATION_MS).id).toBe('closing');
+    expect(segmentAt(-50).id).toBe('opening');
     expect(clampTime(-1)).toBe(0);
     expect(clampTime(MASTER_DURATION_MS + 9)).toBe(MASTER_DURATION_MS);
+  });
+
+  it('shows the logo only on the first slide, at every sampled time', () => {
+    const opening = SEGMENTS.find((segment) => segment.id === 'opening');
+    expect(opening?.start).toBe(0);
+    for (let time = -500; time <= MASTER_DURATION_MS + 500; time += 25) {
+      const inOpening = time >= 0 && time < (opening?.end ?? 0);
+      expect(showLogo(sceneAt(time)), `at ${String(time)} ms`).toBe(inOpening || time < 0);
+    }
+    expect(showLogo('opening')).toBe(true);
+    for (const other of ['headline', 'demo', 'platforms', 'closing'] as const) {
+      expect(showLogo(other)).toBe(false);
+    }
+  });
+
+  it('has faded the logo out before the first slide ends, and keeps it off the headline slide', () => {
+    const opening = SEGMENTS.find((segment) => segment.id === 'opening');
+    expect(frameAt((opening?.end ?? 0) - 1).logo).toBeLessThan(0.01);
+    expect(frameAt(0).logo).toBe(1);
+    expect(sceneAt(opening?.end ?? 0)).toBe('headline');
+    expect(frameAt(opening?.end ?? 0).words).toBe(0);
   });
 
   it('maps master time to demo time and holds the ends', () => {
@@ -77,8 +100,8 @@ describe('the master timeline', () => {
   it('shows the wordmark before the tagline and the tagline before the demo', () => {
     expect(frameAt(1500).wordmark).toBe(1);
     expect(frameAt(1500).words).toBe(0);
-    expect(frameAt(DEMO_START_MS - 100).words).toBe(1);
-    expect(frameAt(DEMO_START_MS - 100).brand).toBe(1);
+    expect(frameAt(DEMO_START_MS - 600).words).toBe(1);
+    expect(frameAt(DEMO_START_MS - 600).brand).toBe(1);
     expect(frameAt(DEMO_START_MS + 1000).brand).toBe(0);
   });
 
@@ -123,10 +146,23 @@ describe('the hero video on the server', () => {
   const html = renderToStaticMarkup(<HeroDemo />);
 
   it('draws the logo card first, with the mark and the wordmark', () => {
-    expect(html).toContain('data-stage="intro"');
+    expect(html).toContain('data-scene="opening"');
+    expect(html).toContain('data-testid="hero-logo"');
     expect(html).toContain('data-card="brand"');
     expect(html).toContain('>Scrim<');
     expect(html).toContain(siteConfig.tagline.split(' ')[0]);
+  });
+
+  it('sets the headline on two lines that read as one sentence', () => {
+    const block = /<p class="[^"]*words[^"]*">(.*?)<\/p>/.exec(html)?.[1] ?? '';
+    const lines = block
+      .replace(/<span class="[^"]*headlineLine[^"]*">/g, '|')
+      .replace(/<[^>]+>/g, '')
+      .split('|')
+      .slice(1)
+      .map((line) => line.replace(/\s+/g, ' ').trim());
+    expect(lines).toEqual(['Record anything on your', 'screen effortlessly']);
+    expect(siteConfig.tagline).toBe('Record anything on your screen effortlessly');
   });
 
   it('has the platform and address cards from the config', () => {

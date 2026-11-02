@@ -20,7 +20,9 @@ import {
   formatTime,
   frameVars,
   percentOf,
-  segmentAt,
+  sceneAt,
+  showLogo,
+  type Scene,
 } from '@/lib/demo/master';
 import { DemoPlayer, browserClock } from '@/lib/demo/player';
 import { poseToTransform } from '@/lib/demo/pose-to-transform';
@@ -66,7 +68,11 @@ const vars = (values: Vars) => values as CSSProperties;
 /** How many fading dots follow the cursor, and how far apart in time they are. */
 const TRAIL_LENGTH = 5;
 const TRAIL_STEP_MS = 55;
+// The headline always breaks in the same place, on a phone and on a desktop: two lines, split
+// after "your", and each line stays on one line.
+const HEADLINE_BREAK = 4;
 const WORDS = splitWords(siteConfig.tagline);
+const HEADLINE_LINES = [WORDS.slice(0, HEADLINE_BREAK), WORDS.slice(HEADLINE_BREAK)] as const;
 const PLATFORMS = ['windows', 'macos', 'linux'] as const;
 
 // The first frame, drawn by the server: the logo card with the mark alone, and the demo (hidden
@@ -119,6 +125,7 @@ export function HeroDemo() {
   const player = useRef<DemoPlayer | null>(null);
   const autoZoomRef = useRef(true);
   const spoken = useRef('');
+  const sceneRef = useRef<Scene>('opening');
 
   const reducedMotion = usePrefersReducedMotion();
   // Auto means "play when the hero is on screen, unless the visitor prefers reduced motion".
@@ -128,6 +135,8 @@ export function HeroDemo() {
   const [tabVisible, setTabVisible] = useState(true);
   const [scrubbing, setScrubbing] = useState(false);
   const [ended, setEnded] = useState(false);
+  // The scene decides whether the logo exists at all. The clock writes the rest straight to the DOM.
+  const [currentScene, setCurrentScene] = useState<Scene>('opening');
   const [settledStill, setSettledStill] = useState(false);
   const stillMode = reducedMotion && mode === 'auto';
   // Adjusted during render, not in an effect: reduced motion ends the video once, and a replay is still possible.
@@ -218,7 +227,12 @@ export function HeroDemo() {
     element.dataset.scale = pose.scale.toFixed(2);
     element.dataset.time = String(Math.round(timeMs));
     element.dataset.demoTime = String(Math.round(demoMs));
-    element.dataset.stage = segmentAt(timeMs).id;
+    const nextScene = sceneAt(timeMs);
+    element.dataset.scene = nextScene;
+    if (nextScene !== sceneRef.current) {
+      sceneRef.current = nextScene;
+      setCurrentScene(nextScene);
+    }
   }, []);
 
   useEffect(() => {
@@ -300,7 +314,7 @@ export function HeroDemo() {
         data-scale="1.00"
         data-time="0"
         data-demo-time="0"
-        data-stage="intro"
+        data-scene="opening"
       >
         <div
           className={styles.viewport}
@@ -384,14 +398,25 @@ export function HeroDemo() {
         {/* The cards are drawn from the same clock as the demo. They hide the demo while they show. */}
         <div className={styles.cards} aria-hidden="true" data-testid="hero-cards">
           <div className={styles.card} data-card="brand" style={{ opacity: 'var(--brand)' }}>
-            <div className={styles.lockup}>
-              <LogoMark size={96} className={styles.mark} />
-              <span className={styles.wordmark}>Scrim</span>
-            </div>
+            {showLogo(currentScene) ? (
+              <div className={styles.lockup} data-testid="hero-logo">
+                <LogoMark size={96} className={styles.mark} />
+                <span className={styles.wordmark}>Scrim</span>
+              </div>
+            ) : null}
             <p className={styles.words}>
-              {WORDS.map((word, index) => (
-                <span key={`${word}-${String(index)}`} style={vars({ '--i': String(index) })}>
-                  {word}
+              {HEADLINE_LINES.map((line, lineIndex) => (
+                <span key={line.join(' ')} className={styles.headlineLine}>
+                  {line.map((word, wordIndex) => {
+                    const index = lineIndex === 0 ? wordIndex : HEADLINE_BREAK + wordIndex;
+                    return (
+                      <span key={`${word}-${String(index)}`} style={vars({ '--i': String(index) })}>
+                        {word}
+                        {wordIndex < line.length - 1 ? ' ' : ''}
+                      </span>
+                    );
+                  })}
+                  {lineIndex === 0 ? ' ' : ''}
                 </span>
               ))}
             </p>
@@ -411,7 +436,6 @@ export function HeroDemo() {
             <p className={styles.line}>{siteConfig.heroPlatformLine}</p>
           </div>
           <div className={styles.card} data-card="final" style={{ opacity: 'var(--final)' }}>
-            <LogoMark size={56} className={styles.markSmall} />
             <p className={styles.address}>{siteConfig.heroAddress}</p>
           </div>
         </div>

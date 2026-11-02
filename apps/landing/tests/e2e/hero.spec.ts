@@ -37,7 +37,7 @@ test.describe('the hero video', () => {
   }) => {
     const view = demo(page);
     const brand = page.getByTestId('hero-cards').locator('[data-card="brand"]');
-    await expect(view).toHaveAttribute('data-stage', 'intro');
+    await expect(view).toHaveAttribute('data-scene', 'opening');
     await expect(brand).toHaveCSS('background-color', 'rgb(0, 78, 82)');
     await expect(brand.getByText('Scrim', { exact: true })).toBeVisible();
     await expect(view).toHaveAttribute('data-playing', 'true');
@@ -101,19 +101,19 @@ test.describe('the hero video', () => {
     await clickTimelineAt(page, 0.5);
     await expect.poll(() => time(view)).toBeGreaterThan(14_000);
     expect(await time(view)).toBeLessThan(16_000);
-    await expect(view).toHaveAttribute('data-stage', 'demo');
+    await expect(view).toHaveAttribute('data-scene', 'demo');
 
     await clickTimelineAt(page, 0.03);
-    await expect(view).toHaveAttribute('data-stage', 'intro');
+    await expect(view).toHaveAttribute('data-scene', 'opening');
 
     await clickTimelineAt(page, 0.12);
-    await expect(view).toHaveAttribute('data-stage', 'tagline');
+    await expect(view).toHaveAttribute('data-scene', 'headline');
 
     await clickTimelineAt(page, 0.82);
-    await expect(view).toHaveAttribute('data-stage', 'platforms');
+    await expect(view).toHaveAttribute('data-scene', 'platforms');
 
     await clickTimelineAt(page, 0.94);
-    await expect(view).toHaveAttribute('data-stage', 'final');
+    await expect(view).toHaveAttribute('data-scene', 'closing');
   });
 
   test('dragging the timeline scrubs the video and every layer follows the same time', async ({
@@ -155,24 +155,29 @@ test.describe('the hero video', () => {
     await expect.poll(() => scale(view)).toBeGreaterThan(1.5);
   });
 
-  test('plays all five parts in order, then offers Replay in the same button', async ({ page }) => {
+  test('plays all five scenes in order, then offers Replay in the same button', async ({
+    page,
+  }) => {
     test.setTimeout(120_000);
     const view = demo(page);
     const cards = page.getByTestId('hero-cards');
-    await expect(view).toHaveAttribute('data-stage', 'tagline', { timeout: 8000 });
-    await expect(cards.getByText('Record anything on your screen effortlessly')).toBeVisible();
-    await expect(view).toHaveAttribute('data-stage', 'demo', { timeout: 8000 });
+    await expect(view).toHaveAttribute('data-scene', 'headline', { timeout: 8000 });
+    await expect(page.getByTestId('hero-logo')).toHaveCount(0);
+    await expect(cards.getByText('Record anything on your screen effortlessly')).toBeVisible({
+      timeout: 8000,
+    });
+    await expect(view).toHaveAttribute('data-scene', 'demo', { timeout: 8000 });
     await expect.poll(() => scale(view), { timeout: 15_000 }).toBeGreaterThan(1.5);
-    await expect(view).toHaveAttribute('data-stage', 'platforms', { timeout: 25_000 });
+    await expect(view).toHaveAttribute('data-scene', 'platforms', { timeout: 25_000 });
     await expect(cards.getByText('Available for all platforms')).toBeVisible();
-    await expect(view).toHaveAttribute('data-stage', 'final', { timeout: 8000 });
+    await expect(view).toHaveAttribute('data-scene', 'closing', { timeout: 8000 });
     await expect(cards.getByText(/scrim\.app$/)).toBeVisible();
     await expect(playButton(page)).toHaveAccessibleName('Replay', { timeout: 8000 });
     await expect(view).toHaveAttribute('data-playing', 'false');
     expect(await time(view)).toBe(DURATION);
 
     await playButton(page).click();
-    await expect(view).toHaveAttribute('data-stage', 'intro');
+    await expect(view).toHaveAttribute('data-scene', 'opening');
     await expect(playButton(page)).toHaveAccessibleName('Pause');
     await expect(view).toHaveAttribute('data-playing', 'true');
   });
@@ -219,6 +224,65 @@ test.describe('the hero video', () => {
   });
 });
 
+test.describe('the logo', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
+  // Each point sits well inside its scene. Only the first slide carries the logo.
+  const SCENES = [
+    ['opening', 0.03, 1],
+    ['headline', 0.12, 0],
+    ['demo', 0.5, 0],
+    ['platforms', 0.82, 0],
+    ['closing', 0.94, 0],
+  ] as const;
+
+  for (const [scene, at, logos] of SCENES) {
+    test(`is ${logos === 1 ? 'shown' : 'absent'} in the ${scene} scene`, async ({ page }) => {
+      const view = demo(page);
+      await pause(page);
+      await clickTimelineAt(page, at);
+      await expect(view).toHaveAttribute('data-scene', scene);
+      await expect(page.getByTestId('hero-logo')).toHaveCount(logos);
+    });
+  }
+});
+
+test.describe('the headline in the hero video', () => {
+  for (const width of [320, 375, 768, 1440]) {
+    test(`sits on two lines that fit at ${String(width)} px wide`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      await pause(page);
+      await clickTimelineAt(page, 0.12);
+      await expect(demo(page)).toHaveAttribute('data-scene', 'headline');
+      const lines = page.getByTestId('hero-cards').locator('[data-card="brand"] p > span');
+      await expect(lines).toHaveCount(2);
+      await expect(lines.nth(0)).toHaveText('Record anything on your');
+      await expect(lines.nth(1)).toHaveText('screen effortlessly');
+      const stage = await demo(page).boundingBox();
+      for (const index of [0, 1]) {
+        const box = await lines.nth(index).boundingBox();
+        expect(box?.height ?? 0).toBeLessThan(((box?.width ?? 0) / 8) * 1.2 + 80);
+        const text = await lines.nth(index).evaluate((element) => {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          const rect = range.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, height: rect.height };
+        });
+        expect(text.left).toBeGreaterThanOrEqual((stage?.x ?? 0) - 1);
+        expect(text.right).toBeLessThanOrEqual((stage?.x ?? 0) + (stage?.width ?? 0) + 1);
+        // One line of text, so its height is about one line, never two.
+        expect(text.height).toBeLessThan(((box?.height ?? 0) || 1) * 1.6);
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    });
+  }
+});
+
 test.describe('a hero that has not reached the screen yet', () => {
   test('stays on the logo card until it is scrolled into view', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 500 });
@@ -227,7 +291,7 @@ test.describe('a hero that has not reached the screen yet', () => {
       document.querySelector('#features')?.scrollIntoView();
     });
     await page.waitForTimeout(2800);
-    await expect(demo(page)).toHaveAttribute('data-stage', 'intro');
+    await expect(demo(page)).toHaveAttribute('data-scene', 'opening');
     await expect(demo(page)).toHaveAttribute('data-playing', 'false');
     await expect.poll(() => time(demo(page))).toBeLessThan(500);
   });
@@ -248,7 +312,7 @@ test.describe('the recording look of the demo', () => {
     page,
   }) => {
     await page.goto('/');
-    for (const label of ['Intro', 'Tagline', 'Demo', 'Platforms', 'Address']) {
+    for (const label of ['Logo', 'Headline', 'Demo', 'Platforms', 'Address']) {
       await expect(page.locator(`[data-segment]`).filter({ hasText: label })).toHaveCount(1);
     }
     for (const label of ['0:00', '0:05', '0:10', '0:15', '0:20', '0:25', '0:30']) {
@@ -302,7 +366,9 @@ test.describe('without JavaScript', () => {
     const box = await view.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThan(100);
     await expect(view.locator('svg text', { hasText: 'Team tasks' }).first()).toBeAttached();
-    const button = page.locator('section[aria-labelledby="hero-title"] a[data-download-trigger]');
+    const button = page
+      .locator('section[aria-labelledby="hero-title"] a[data-download-trigger]')
+      .first();
     await expect(button).toHaveAttribute('href', 'https://github.com/oyedokunken/scrim/releases');
     await expect(button).toContainText('Download');
   });
@@ -314,7 +380,7 @@ test.describe('with reduced motion', () => {
   test('shows the final frame and a static timeline, with no autoplay', async ({ page }) => {
     await page.goto('/');
     const view = demo(page);
-    await expect(view).toHaveAttribute('data-stage', 'final');
+    await expect(view).toHaveAttribute('data-scene', 'closing');
     await expect(view).toHaveAttribute('data-playing', 'false');
     await expect(page.getByTestId('hero-cards').getByText(/scrim\.app$/)).toBeVisible();
     await expect(playButton(page)).toHaveAccessibleName('Replay');
