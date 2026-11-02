@@ -104,9 +104,7 @@ for (const size of SIZES) {
       await expectNoViolations(page);
     });
 
-    test('the Attributions card keeps three buttons on one row and opens the developer card', async ({
-      page,
-    }) => {
+    test('the Attributions card keeps three buttons on one row ', async ({ page }) => {
       await page.setViewportSize(size);
       await enterApp(page);
       await go(page, 'Settings');
@@ -126,10 +124,6 @@ for (const size of SIZES) {
         .locator('.set-links button')
         .evaluateAll((all) => all.every((element) => element.scrollWidth <= element.clientWidth));
       expect(oneLine).toBe(true);
-      await card.getByRole('button', { name: 'The developer' }).click();
-      for (const name of ['Website', 'GitHub', 'LinkedIn']) {
-        await expect(card.getByRole('link', { name: new RegExp(name) })).toBeVisible();
-      }
       await shoot(page, `attributions-${tag}`);
       await expectNoViolations(page);
     });

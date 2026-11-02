@@ -18,6 +18,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import { Button, ConfirmDialog, Segmented, Switch, Tooltip, useToast } from '../../ui';
 import type { ShareSource } from '../../../shared/share-contract';
+import { BackBar } from '../editor/back-bar';
 import { ShareDialog } from '../share/share-dialog';
 import {
   EMPTY_DOC,
@@ -529,14 +530,23 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
 
   if (loadFailed) {
     return (
-      <p className="ui-help" role="alert">
-        Scrim could not open this screenshot. It may have been moved or deleted.
-      </p>
+      <div>
+        <BackBar onBack={onClose} />
+        <p className="ui-help" role="alert">
+          Scrim could not open this screenshot. It may have been moved or deleted.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="shot-editor">
+      <BackBar
+        onBack={() => {
+          if (dirty) setConfirmCancel(true);
+          else onClose();
+        }}
+      />
       <div className="shot-toolbar" role="toolbar" aria-label="Editing tools">
         <div className="shot-tools">
           {TOOLS.map(({ tool: id, label, key, Icon }) => (

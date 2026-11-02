@@ -4,14 +4,17 @@ import { expect, test, enterApp } from './fixtures';
 const VIEWS = [
   'Record',
   'Screenshot',
+  'Library',
   'Cursor',
   'Zoom',
   'Camera',
   'Audio',
   'Background',
-  'Library',
   'Settings',
 ] as const;
+
+/** Only these pages change how a recording looks, so only they keep a right sidebar. */
+const WITH_SIDEBAR = ['Cursor', 'Zoom', 'Camera', 'Audio', 'Background'];
 
 const SIZES = [
   { width: 1100, height: 700 },
@@ -98,9 +101,7 @@ test.describe('the interface rules, on every page', () => {
         await page.getByRole('button', { name: view, exact: true }).click();
         await expect(page.getByRole('heading', { name: view, level: 1 })).toBeVisible();
         // Record, Screenshot, Library and Settings use the whole width and have no sidebar.
-        await expect(page.locator('.shell-panel')).toHaveCount(
-          ['Record', 'Screenshot', 'Library', 'Settings'].includes(view) ? 0 : 1,
-        );
+        await expect(page.locator('.shell-panel')).toHaveCount(WITH_SIDEBAR.includes(view) ? 1 : 0);
         const report = await inspect(page);
         expect(report.sideways, `${view}: sideways overflow`).toEqual([]);
         expect(report.pokingOut, `${view}: sticks out past its area`).toEqual([]);
@@ -115,7 +116,7 @@ test.describe('the interface rules, on every page', () => {
 
 test.describe('long device names', () => {
   for (const size of SIZES) {
-    test(`stay inside the Record panel at ${String(size.width)} by ${String(size.height)}`, async ({
+    test(`stay inside the Record controls at ${String(size.width)} by ${String(size.height)}`, async ({
       page,
     }) => {
       await page.setViewportSize(size);
@@ -160,6 +161,7 @@ test.describe('long device names', () => {
         return panel !== null && panel.scrollWidth > panel.clientWidth;
       });
       expect(scrollbar).toBe(false);
+      await expect(page.locator('.shell-panel')).toHaveCount(0);
     });
   }
 });

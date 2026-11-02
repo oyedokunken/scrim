@@ -1,4 +1,4 @@
-import { Archive, FolderOpen, Hand, Keyboard, LifeBuoy, Video } from 'lucide-react';
+import { Archive, FolderOpen, Hand, Keyboard, Video } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Settings, SettingsPatch } from '../../../shared/settings';
 import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../../shared/shortcut-keys';
@@ -8,6 +8,7 @@ import type { UpdatesApi } from '../updates/use-updates';
 import { UpdatesCard } from '../updates/updates-card';
 import { AboutCard } from './about-card';
 import { AttributionsCard } from './attributions-card';
+import { MachineCard } from './machine-card';
 import { ShortcutRow } from './shortcut-row';
 
 function Section({
@@ -265,24 +266,7 @@ export function SettingsView({
         </Section>
       )}
 
-      <Section title="Help" icon={<LifeBuoy size={18} strokeWidth={1.75} aria-hidden="true" />}>
-        <div>
-          <Button
-            icon={<FolderOpen size={16} strokeWidth={1.75} />}
-            onClick={() => {
-              void window.scrim.invoke('logs:open-folder').catch(() => {
-                showError({
-                  title: 'Scrim could not open the logs folder',
-                  message: 'Try again.',
-                  code: 'logs-open-failed',
-                });
-              });
-            }}
-          >
-            Open logs folder
-          </Button>
-        </div>
-      </Section>
+      <MachineCard />
 
       <UpdatesCard
         snapshot={updates.snapshot}

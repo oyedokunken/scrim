@@ -26,7 +26,7 @@ summary and a `::warning::` annotation).
   a published "Code signing policy" on the home page with roles, the certificate attribution and a
   privacy statement, and verifiable builds from CI.
 - Scrim meets the licence (MIT) and the CI build conditions. It still needs a code signing policy
-  page and a first release in the signed form.
+  page and a release in the signed form.
 - Not verified: the application form steps and turnaround time (the terms page links to the form
   but does not describe it), whether a public repository is a hard rule (Scrim is public anyway),
   and any signing quotas.
@@ -35,7 +35,7 @@ summary and a `::warning::` annotation).
   upload as a workflow artifact, and returns the signed file.
 - Limits of this path: it signs the finished installer. The exe inside the installer is not signed,
   because it is built before the installer. SmartScreen and the updater look at the installer, so
-  this is acceptable for a first release. Signing the inner files too needs a second SignPath
+  this is acceptable for early releases. Signing the inner files too needs a second SignPath
   request on `win-unpacked` before the installer is built, which can be added later. Signing after
   the build also changes the installer bytes, so `latest.yml` (the update feed, if the updater is
   enabled) must be regenerated with the new hash and size, or updates fail the hash check.

@@ -894,6 +894,34 @@ input[type='checkbox'] {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.review-panes.stacked > .review-pane {
+  grid-area: 1 / 1;
+}
+
+.review-pane.covered {
+  visibility: hidden;
+}
+
+/* The live picture and its label. The label sits on the picture so it cannot be missed. */
+.review-live {
+  position: relative;
+}
+
+.review-live .review-video {
+  display: block;
+}
+
+.review-live-label {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--scrim-white);
+  background: color-mix(in srgb, var(--scrim-black) 72%, transparent);
+  border-radius: 999px;
+}
+
 .review-panes.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1623,21 +1651,11 @@ input[type='checkbox'] {
   gap: 8px;
 }
 
-.set-links > .ui-button,
-.set-links > .built-by {
+.set-links .ui-button {
   flex: 1 1 0;
   min-width: 0;
-}
-
-.set-links .ui-button {
-  width: 100%;
   padding: 0 12px;
   white-space: nowrap;
-}
-
-.set-links .built-by-panel {
-  right: 0;
-  left: auto;
 }
 
 /* A tooltip host around a name that is cut short keeps the cut: the host takes the row width. */
@@ -1649,6 +1667,26 @@ input[type='checkbox'] {
 }
 
 /* Export progress and result inside the saved card. */
+.saved-export-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.saved-export-main {
+  display: grid;
+  flex: 1 1 0;
+  gap: 6px;
+  min-width: 0;
+}
+
+.saved-export-cancel {
+  flex: none;
+  white-space: nowrap;
+}
+
 .saved-export {
   display: grid;
   gap: 6px;
@@ -1664,21 +1702,72 @@ input[type='checkbox'] {
   color: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
 }
 
-.saved-progress {
+/* The export bar: the track and fill look of the video seek bar, with the percentage inside. */
+.export-bar {
+  position: relative;
   display: block;
-  height: 6px;
+  width: 100%;
+  height: 28px;
   overflow: hidden;
   background: var(--ui-track);
-  border-radius: 999px;
+  border-radius: 8px;
 }
 
-.saved-progress-fill {
-  display: block;
-  width: calc(var(--fraction, 0) * 100%);
-  height: 100%;
+.export-bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--scrim-black);
+}
+
+/* The fill is a full size layer clipped to the done part, so its white number lines up with the black one. */
+.export-bar-fill {
+  position: absolute;
+  inset: 0;
   background: var(--scrim-green);
-  border-radius: 999px;
-  transition: width 200ms ease-out;
+  clip-path: inset(0 calc((1 - var(--fraction, 0)) * 100%) 0 0);
+  transition: clip-path 200ms ease-out;
+}
+
+.export-bar-text.on-fill {
+  color: var(--scrim-white);
+}
+
+.export-bar.waiting .export-bar-text {
+  opacity: 0.72;
+}
+
+.export-done-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.export-done-name {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.export-done-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.export-done-facts dt {
+  color: var(--scrim-text-secondary);
+}
+
+.export-done-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 /* The menu button is at least 44 pixels square and never shrinks, so a long name cannot cover it. */
@@ -1738,4 +1827,9 @@ input[type='checkbox'] {
 
 .share-secondary {
   justify-self: start;
+}
+
+.editor-back-bar {
+  display: flex;
+  justify-content: flex-start;
 }

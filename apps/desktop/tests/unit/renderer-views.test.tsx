@@ -147,6 +147,19 @@ describe('the Record view', () => {
     );
   });
 
+  it('puts the bottom row with the options and the start button under the stage, not beside a review', () => {
+    const options = <p>camera and microphone</p>;
+    const start = render({ options });
+    expect(start).toContain('class="option-row"');
+    expect(start.indexOf('option-row')).toBeGreaterThan(start.indexOf('</section>'));
+    expect(start.indexOf('Start recording')).toBeGreaterThan(
+      start.indexOf('camera and microphone'),
+    );
+    const reviewing = render({ review, options });
+    expect(reviewing).not.toContain('option-row');
+    expect(reviewing).not.toContain('camera and microphone');
+  });
+
   it('does not print the folder path on screen', () => {
     expect(render({ review })).not.toContain('Recordings');
   });

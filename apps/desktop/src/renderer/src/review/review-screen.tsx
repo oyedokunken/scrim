@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, ConfirmDialog, Segmented } from '../../ui';
+import { editorApi } from '../shell/editor-bridge';
 import { formatBytes, formatMoment, formatTimer } from '../format';
 import type { ExportJobView, Finished } from '../hooks';
 import { ShareDialog } from '../share/share-dialog';
+import { ExportDoneDialog } from './export-done-dialog';
+import { ExportProgress, toPercent } from './export-progress';
+import type { LivePreviewSource } from './live-preview';
 import { ReviewPlayer, type ReviewMode } from './review-player';
 
 type Review = Extract<
@@ -39,22 +43,29 @@ function etaText(etaMs: number | null): string {
     : `, about ${String(Math.round(seconds / 60))} minutes left`;
 }
 
-function ProgressBar({ fraction, label }: { fraction: number | null; label: string }) {
-  const bar = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    bar.current?.style.setProperty('--fraction', String(fraction ?? 0));
-  }, [fraction]);
+interface ProgressRowProps {
+  /** What is happening, with the percent and the time left. */
+  text: string;
+  label: string;
+  fraction: number | null;
+  onCancel: () => void;
+}
+
+/**
+ * The progress and the Cancel button on one row. The text and the bar take the room that is left
+ * and Cancel keeps its own size at the end, so the two never wrap onto separate lines.
+ */
+function ProgressRow({ text, label, fraction, onCancel }: ProgressRowProps) {
   return (
-    <span
-      className="saved-progress"
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      {...(fraction === null ? {} : { 'aria-valuenow': Math.round(fraction * 100) })}
-    >
-      <span ref={bar} className="saved-progress-fill" />
-    </span>
+    <div className="saved-export-row" role="status">
+      <div className="saved-export-main">
+        <p className="saved-export-line">{text}</p>
+        <ExportProgress fraction={fraction} label={label} />
+      </div>
+      <Button variant="danger" className="saved-export-cancel" onClick={onCancel}>
+        Cancel
+      </Button>
+    </div>
   );
 }
 
@@ -81,6 +92,11 @@ export function ReviewScreen({
   const [mode, setMode] = useState<ReviewMode>('before');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [live, setLive] = useState<LivePreviewSource | null>(null);
+  // A person who has not picked a view yet is moved to After while the video is made.
+  const [picked, setPicked] = useState(false);
+  const [doneClosed, setDoneClosed] = useState(false);
 
   const mine = job !== null && job.recording === folderName(finished.folder);
   const preview = mine && job.preview ? job : null;
@@ -92,7 +108,12 @@ export function ReviewScreen({
     void window.scrim.invoke('review:open', { folder: finished.folder }).then(
       (result) => {
         if (result.ok) {
-          setReview(result.value);
+          // Opening again hands out a new address for the same recording. Keeping the first one
+          // stops the picture that is playing from reloading and starting over.
+          setReview((current) => ({
+            ...result.value,
+            before: current?.before ?? result.value.before,
+          }));
           setLoadError(null);
         } else {
           setLoadError(result.error.message);
@@ -110,13 +131,29 @@ export function ReviewScreen({
     load();
   }, [load, previewPhase]);
 
+  // The raw tracks and the saved look, so the finished picture can be drawn live while it renders.
+  useEffect(() => {
+    let alive = true;
+    void Promise.all([editorApi.open(finished.folder), window.scrim.invoke('settings:get')]).then(
+      ([opened, settings]) => {
+        if (alive && opened.ok) setLive({ project: opened.project, settings });
+      },
+      () => undefined,
+    );
+    return () => {
+      alive = false;
+    };
+  }, [finished.folder]);
+
   const exportDone = exporting?.phase === 'done';
   const fellBack = exporting?.result?.fellBack === true;
-  useEffect(() => {
-    if (exportDone) onExported({ fellBack });
-  }, [exportDone, fellBack, onExported]);
+  const doneResult = exportDone ? exporting.result : null;
 
   const afterReady = review?.after != null;
+  // The live picture stands in until the file exists, and through the moment between the two.
+  const liveWanted =
+    live !== null && (previewWorking || (preview?.phase === 'done' && !afterReady));
+  if (!picked && liveWanted && mode === 'before') setMode('after');
 
   const retry = (): void => {
     if (preview !== null) onRetryJob(preview.id);
@@ -132,7 +169,10 @@ export function ReviewScreen({
         <Segmented
           label="View"
           value={mode}
-          onChange={setMode}
+          onChange={(next) => {
+            setPicked(true);
+            setMode(next);
+          }}
           options={[
             { value: 'before', label: 'Before' },
             {
@@ -151,7 +191,7 @@ export function ReviewScreen({
         </p>
       )}
 
-      {review === null ? null : mode === 'after' && !afterReady ? (
+      {review === null ? null : mode === 'after' && !afterReady && !liveWanted ? (
         <div className="review-wait" role="status">
           {previewWorking ? (
             <>
@@ -162,7 +202,7 @@ export function ReviewScreen({
                   : `, ${String(Math.round(preview.progress.fraction * 100))}%`}
                 {preview.progress === null ? '' : etaText(preview.progress.etaMs)}
               </p>
-              <ProgressBar
+              <ExportProgress
                 fraction={preview.progress?.fraction ?? null}
                 label="Making your video"
               />
@@ -201,7 +241,28 @@ export function ReviewScreen({
           )}
         </div>
       ) : (
-        <ReviewPlayer mode={mode} before={review.before} after={review.after} />
+        <>
+          <ReviewPlayer
+            mode={mode}
+            before={review.before}
+            after={review.after}
+            live={liveWanted || review.after !== null ? (live ?? undefined) : undefined}
+          />
+          {previewWorking && mode === 'after' && review.after === null ? (
+            <ProgressRow
+              text={`${preview.phase === 'queued' ? 'Waiting to make your video' : 'Making your video'}${
+                preview.progress === null
+                  ? ''
+                  : `, ${String(Math.round(preview.progress.fraction * 100))}%`
+              }${preview.progress === null ? '' : etaText(preview.progress.etaMs)}`}
+              label="Making your video"
+              fraction={preview.progress?.fraction ?? null}
+              onCancel={() => {
+                onCancelJob(preview.id);
+              }}
+            />
+          ) : null}
+        </>
       )}
 
       {review === null ? null : (
@@ -252,23 +313,18 @@ export function ReviewScreen({
           </div>
 
           {exportWorking ? (
-            <div className="saved-export" role="status">
-              <p className="saved-export-line">
-                Exporting your video
-                {exporting.progress === null
+            <ProgressRow
+              text={`Exporting your video${
+                exporting.progress === null
                   ? ''
-                  : `, ${String(Math.round(exporting.progress.fraction * 100))}%`}
-                {exporting.progress === null ? '' : etaText(exporting.progress.etaMs)}
-              </p>
-              <ProgressBar fraction={exporting.progress?.fraction ?? null} label="Exporting" />
-              <Button
-                onClick={() => {
-                  onCancelJob(exporting.id);
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
+                  : `, ${String(Math.round(exporting.progress.fraction * 100))}%`
+              }${exporting.progress === null ? '' : etaText(exporting.progress.etaMs)}`}
+              label="Exporting"
+              fraction={exporting.progress?.fraction ?? null}
+              onCancel={() => {
+                setConfirmCancel(true);
+              }}
+            />
           ) : null}
           {exporting?.phase === 'failed' && exporting.error !== null ? (
             <div className="saved-export error" role="alert">
@@ -291,7 +347,9 @@ export function ReviewScreen({
 
           <div className="review-actions" role="group" aria-label="What to do next">
             <Button variant="primary" disabled={exportWorking} onClick={onExport}>
-              Export
+              {exportWorking
+                ? `Exporting ${String(toPercent(exporting.progress?.fraction ?? null))}%`
+                : 'Export'}
             </Button>
             {onOpenEditor === undefined ? null : (
               <Button onClick={onOpenEditor}>Open in editor</Button>
@@ -325,6 +383,42 @@ export function ReviewScreen({
           }}
         />
       ) : null}
+
+      <ExportDoneDialog
+        done={
+          exporting === null || doneResult === null || doneClosed
+            ? null
+            : {
+                jobId: exporting.id,
+                fileName: doneResult.fileName,
+                bytes: doneResult.bytes,
+                durationMs: doneResult.durationMs,
+                fellBack,
+              }
+        }
+        folder={finished.folder}
+        onDone={() => {
+          setDoneClosed(true);
+          onExported({ fellBack });
+        }}
+      />
+
+      <ConfirmDialog
+        open={confirmCancel && exportWorking}
+        title="Cancel the export?"
+        confirmLabel="Cancel export"
+        cancelLabel="Keep exporting"
+        destructive
+        onCancel={() => {
+          setConfirmCancel(false);
+        }}
+        onConfirm={() => {
+          setConfirmCancel(false);
+          if (exporting !== null) onCancelJob(exporting.id);
+        }}
+      >
+        The unfinished file is removed. Your recording is kept.
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmDiscard}

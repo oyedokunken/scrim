@@ -76,9 +76,9 @@ describe('softwareApplicationJsonLd', () => {
     author: { name: 'Oyedokun Kehinde', url: 'https://www.oyedokun.dev/' },
   });
 
-  it('describes a free multimedia app for Windows', () => {
+  it('describes a free multimedia app for three systems', () => {
     expect(data['@type']).toBe('SoftwareApplication');
-    expect(data.operatingSystem).toBe('Windows');
+    expect(data.operatingSystem).toBe('Windows, macOS, Linux');
     expect(data.applicationCategory).toBe('MultimediaApplication');
     expect(data.offers.price).toBe('0');
   });
@@ -160,14 +160,12 @@ describe('SYSTEMS', () => {
       SYSTEMS.find((system) => system.name === name)?.help.join(' ') ?? '';
     expect(help('Windows')).toMatch(/SmartScreen/);
     expect(help('Windows')).toMatch(/More info, then Run anyway/);
-    expect(help('macOS')).toMatch(/no Mac version yet/);
-    expect(help('Linux')).toMatch(/no Linux version yet/);
-  });
-
-  it('has an installer for Windows only in version 1', () => {
-    expect(SYSTEMS.filter((system) => system.available).map((system) => system.name)).toEqual([
-      'Windows',
-    ]);
+    expect(help('macOS')).toMatch(/Open Anyway/);
+    expect(help('macOS')).toMatch(/Screen Recording/);
+    expect(help('Linux')).toMatch(/Wayland/);
+    for (const name of ['macOS', 'Linux']) {
+      expect(help(name)).toMatch(/less testing than Windows/);
+    }
   });
 });
 

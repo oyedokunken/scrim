@@ -10,7 +10,11 @@ import {
   thumbKey,
   visibleItems,
 } from '../../src/renderer/src/library/library-model';
+import { LibraryDetail } from '../../src/renderer/src/library/library-detail';
+import type { LibraryActions } from '../../src/renderer/src/library/use-library';
+import { ErrorProvider } from '../../src/renderer/ui/error-dialog';
 import { Menu } from '../../src/renderer/ui/menu';
+import { ToastProvider } from '../../src/renderer/ui/toast';
 import { libraryContract } from '../../src/shared/library-contract';
 import type { LibraryItem } from '../../src/shared/library-contract';
 
@@ -183,5 +187,47 @@ describe('cardFacts', () => {
       createdMs: Date.parse('2026-10-29T10:00:00'),
     });
     expect(cardFacts(shot, now)).toEqual(['800 by 600', 'Yesterday 10:00']);
+  });
+});
+
+describe('the Library detail page', () => {
+  const actions = {} as unknown as LibraryActions;
+  const render = (entry: LibraryItem) =>
+    renderToStaticMarkup(
+      <ToastProvider>
+        <ErrorProvider>
+          <LibraryDetail
+            item={entry}
+            actions={actions}
+            onBack={vi.fn()}
+            onOpened={vi.fn()}
+            onReload={vi.fn()}
+          />
+        </ErrorProvider>
+      </ToastProvider>,
+    );
+  /** The button names inside the actions group, in order. */
+  const labels = (html: string): (string | undefined)[] => {
+    const group = html.slice(html.indexOf('lib-detail-actions'));
+    const end = group.indexOf('</div>');
+    return [...group.slice(0, end).matchAll(/<\/span>([^<]+)<\/button>/g)].map((m) => m[1]);
+  };
+
+  it('has exactly five buttons for a screenshot: Edit, Copy, Share, Show in folder, Delete', () => {
+    const names = labels(render(item({ kind: 'screenshot', width: 10, height: 10 })));
+    expect(names).toEqual(['Edit', 'Copy', 'Share', 'Show in folder', 'Delete']);
+  });
+
+  it('has exactly four buttons for a recording: Edit, Share, Show in folder, Delete', () => {
+    const html = render(item({}));
+    expect(labels(html)).toEqual(['Edit', 'Share', 'Show in folder', 'Delete']);
+    expect(html).not.toContain('>Open<');
+  });
+
+  it('keeps four buttons but disables Edit for a recording without its working files', () => {
+    const html = render(item({ canEdit: false }));
+    expect(labels(html)).toHaveLength(4);
+    expect(html).toContain('disabled=""');
+    expect(html.indexOf('disabled=""')).toBeLessThan(html.indexOf('Edit</button>'));
   });
 });

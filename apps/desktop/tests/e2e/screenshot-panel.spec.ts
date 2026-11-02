@@ -45,6 +45,9 @@ test.describe('the review screen', () => {
     const review = page.getByRole('region', { name: 'Review your recording' });
     await expect(review).toBeVisible();
     await expect(page.locator('.stage')).toHaveCount(0);
+    // The camera and microphone controls give way to the review, and no sidebar is left behind.
+    await expect(page.locator('.record-controls')).toHaveCount(0);
+    await expect(page.locator('.shell-panel')).toHaveCount(0);
     await expect(review.locator('svg.brand-mark, .brand-mark')).toHaveCount(0);
 
     for (const name of PAGES) {
@@ -60,7 +63,7 @@ test.describe('the review screen', () => {
 });
 
 test.describe('the screenshot page', () => {
-  test('has a settings sidebar but no list of screenshots, shows a capture in the main view and clears it when you leave', async ({
+  test('has a compact save folder row but no sidebar or list, shows a capture in the main view and clears it when you leave', async ({
     app,
     page,
   }) => {
@@ -73,6 +76,7 @@ test.describe('the screenshot page', () => {
       await enterApp(page);
       await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
       await expect(page.getByRole('button', { name: /Save to Pictures/ })).toBeVisible();
+      await expect(page.locator('.shell-panel')).toHaveCount(0);
       await expect(page.getByRole('heading', { name: /Screenshots\s*\d/ })).toHaveCount(0);
 
       await send(app, 'screenshot:taken', { path: shot, width: 160, height: 90 });

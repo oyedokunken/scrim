@@ -209,6 +209,10 @@ export interface LibraryViewProps {
   onRecord: () => void;
   /** True while the Library is the visible page, so it reads the disk again each time it opens. */
   active: boolean;
+  /** The item whose detail page is open when the Library mounts, for coming back from an editor. */
+  initialDetailId?: string | null;
+  /** Called when the open detail page changes, so the page that owns the Library can remember it. */
+  onDetail?: (id: string | null) => void;
 }
 
 const FILTERS = [
@@ -223,7 +227,13 @@ const ORDERS = [
 ] as const;
 
 /** Every recording and screenshot as cards, with filter chips, search, sort, and the actions on each. */
-export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
+export function LibraryView({
+  onOpened,
+  onRecord,
+  active,
+  initialDetailId = null,
+  onDetail,
+}: LibraryViewProps) {
   const toast = useToast();
   const showError = useShowError();
   const now = useClock();
@@ -235,9 +245,12 @@ export function LibraryView({ onOpened, onRecord, active }: LibraryViewProps) {
   const [renameText, setRenameText] = useState('');
   const [deleting, setDeleting] = useState<LibraryItem | null>(null);
   const [dismissing, setDismissing] = useState<Recoverable | null>(null);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(initialDetailId);
   /** The recording whose play badge was pressed, so its detail view starts playing at once. */
   const [playId, setPlayId] = useState<string | null>(null);
+  useEffect(() => {
+    onDetail?.(detailId);
+  }, [detailId, onDetail]);
   const [sharing, setSharing] = useState<ShareSource | null>(null);
   const scrollTop = useRef(0);
 

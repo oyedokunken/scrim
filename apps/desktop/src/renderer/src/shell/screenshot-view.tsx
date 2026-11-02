@@ -21,6 +21,10 @@ export interface ScreenshotViewProps {
   onClearShot?: () => void;
   /** The shown shot changed: the editor saved a new file. The list reads again. */
   onShot?: (shot: ShotInfo) => void;
+  /** Opens straight in the editor, for a screenshot opened from the Library. */
+  startEditing?: boolean;
+  /** Leaves the editor for the page the person came from, instead of showing the result. */
+  onLeaveEditor?: (() => void) | undefined;
 }
 
 /**
@@ -33,8 +37,10 @@ export function ScreenshotView({
   shot = null,
   onClearShot,
   onShot,
+  startEditing = false,
+  onLeaveEditor,
 }: ScreenshotViewProps) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(startEditing);
   const shown = shot;
 
   if (shown !== null && editing) {
@@ -43,10 +49,12 @@ export function ScreenshotView({
         path={shown.path}
         onClose={() => {
           setEditing(false);
+          onLeaveEditor?.();
         }}
         onSaved={(path, size) => {
           setEditing(false);
-          onShot?.({ path, ...size });
+          if (onLeaveEditor) onLeaveEditor();
+          else onShot?.({ path, ...size });
         }}
       />
     );

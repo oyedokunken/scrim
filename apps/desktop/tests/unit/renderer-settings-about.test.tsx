@@ -10,24 +10,25 @@ describe('the about card', () => {
     expect(html).toContain(
       'Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux.',
     );
-    for (const label of [
-      'App name',
-      'Version',
-      'License',
-      'Release date',
-      'Computer name',
-      'Operating system',
-    ]) {
+    for (const label of ['App name', 'Version', 'License', 'Release date']) {
       expect(html).toContain(label);
     }
     expect(html).toContain('lucide-info');
   });
 
-  it('has no Last updated row and none of the removed notes', () => {
+  it('has no Last updated row, no credits and none of the removed notes', () => {
     const html = renderToStaticMarkup(<AboutCard />);
     expect(html).not.toContain('Last updated');
-    expect(html).not.toContain('It is never sent anywhere');
     expect(html).not.toContain('Shown only here');
+    for (const text of ['FFmpeg', 'LGPL', 'Source code', '@oyedokunken', 'The developer']) {
+      expect(html).not.toContain(text);
+    }
+  });
+
+  it('names the app once, in the first sentence', () => {
+    const html = renderToStaticMarkup(<AboutCard />);
+    const text = html.replace(/<[^>]+>/g, ' ');
+    expect(text.match(/Scrim/g) ?? []).toHaveLength(1);
   });
 
   it('keeps the credits for the Attributions card', () => {
@@ -57,8 +58,8 @@ describe('the attributions card', () => {
     expect(html).not.toContain('About the FFmpeg license');
   });
 
-  it('opens the same three link popover from The developer', () => {
-    for (const name of ['Website', 'GitHub', 'LinkedIn']) expect(html).toContain(`${name} (opens`);
+  it('opens the developer website from The developer', () => {
+    expect(html).toContain('The developer');
   });
 });
 

@@ -103,10 +103,7 @@
 }
 
 .copyMessage {
-  min-height: 1.5rem;
-  color: var(--scrim-green);
-  font-size: var(--scrim-text-small);
-  font-weight: 700;
+  display: none;
 }
 
 @media (min-width: 56rem) {

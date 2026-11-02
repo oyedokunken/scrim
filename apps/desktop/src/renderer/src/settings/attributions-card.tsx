@@ -1,9 +1,10 @@
-import { ExternalLink, ScrollText } from 'lucide-react';
+import { ExternalLink, ScrollText, User } from 'lucide-react';
 import { Button } from '../../ui';
 import { GITHUB, Glyph } from '../shell/brand-glyphs';
-import { BuiltBy } from '../shell/built-by';
 
 const SOURCE_URL = 'https://github.com/oyedokunken/scrim';
+/** The owner's website, the one profile page on the external allowlist. */
+const DEVELOPER_URL = 'https://www.oyedokun.dev/';
 const FFMPEG_NOTES_URL =
   'https://github.com/oyedokunken/scrim/blob/main/docs/adr/0007-ffmpeg-bundling.md';
 
@@ -43,7 +44,14 @@ export function AttributionsCard({ onOpenLink }: AttributionsCardProps) {
         >
           FFmpeg
         </Button>
-        <BuiltBy variant="button" onOpenLink={onOpenLink} />
+        <Button
+          icon={<User size={16} strokeWidth={1.75} />}
+          onClick={() => {
+            onOpenLink(DEVELOPER_URL);
+          }}
+        >
+          The developer
+        </Button>
       </div>
     </section>
   );

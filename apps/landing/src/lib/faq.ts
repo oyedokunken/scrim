@@ -23,7 +23,7 @@ export const FAQ: readonly FaqItem[] = [
   {
     question: 'Which systems does it run on?',
     answer:
-      'Windows 10 and 11, 64 bit, today. macOS and Linux versions are planned and are not out yet. Leave your email in the download form and we will write once when one is ready.',
+      'Windows 10 and 11 (64 bit), macOS on Apple Silicon and Intel, and Linux (AppImage and deb). Windows has had the most testing. If something breaks on macOS or Linux, open an issue on GitHub.',
   },
   {
     question: 'How does auto zoom work?',
