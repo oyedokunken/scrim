@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { AppShell } from '../../src/renderer/src/shell/app-shell';
+import { FolderChip } from '../../src/renderer/src/shell/folder-chip';
 import { Header } from '../../src/renderer/src/shell/header';
 import { ScreenshotView } from '../../src/renderer/src/shell/screenshot-view';
 import { Placeholder } from '../../src/renderer/src/shell/placeholder';
@@ -167,6 +168,12 @@ describe('the shell', () => {
     expect(html).toContain('<footer class="status-bar">');
   });
 
+  it('has no side panel on Record, so the page holds its own options', () => {
+    const html = shell('record');
+    expect(html).toContain('shell no-panel');
+    expect(html).not.toContain('<aside');
+  });
+
   it('drops the panel on views that use the whole width', () => {
     const html = shell('record');
     expect(html).toContain('shell no-panel');
@@ -225,12 +232,13 @@ describe('the welcome screen', () => {
 describe('the Record view', () => {
   const view = (busy = false) => renderToStaticMarkup(<RecordView busy={busy} onStart={noop} />);
 
-  it('has the stage holding the big button with the red dot and the shortcut in its corner', () => {
+  it('has the stage with its shortcut, and the red dot button at the end of the bottom row', () => {
     const html = view();
     expect(html).toContain('class="stage"');
     expect(html).toMatch(/stage-shortcut"><span>Shortcut<\/span>.*Ctrl Shift R/s);
     expect(html.indexOf('record-button')).toBeGreaterThan(html.indexOf('class="stage"'));
-    expect(html.indexOf('record-button')).toBeLessThan(html.indexOf('</section>'));
+    expect(html.indexOf('record-button')).toBeGreaterThan(html.indexOf('</section>'));
+    expect(html).toContain('class="option-row"');
     expect(html.match(/ui-keycaps/g)).toHaveLength(1);
     expect(html).toMatch(
       /record-button[^>]*><span class="record-dot" aria-hidden="true"><\/span>Start recording/,
@@ -260,16 +268,14 @@ describe('the Record panel', () => {
         ]}
         mics={[]}
         onChange={noop}
-        onChooseFolder={noop}
       />,
     );
 
-  it('has camera, microphone and the save folder, and nothing about cursor or zoom', () => {
+  it('has camera and microphone, no save folder, and nothing about cursor or zoom', () => {
     const html = panel();
     expect(html).toContain('>Camera<');
     expect(html).toContain('>Microphone<');
-    expect(html).toContain('>Save to<');
-    expect(html).toContain('Videos\\Scrim');
+    expect(html).not.toContain('Save to');
     expect(html).not.toContain('Zoom');
     expect(html).not.toContain('Cursor');
   });
@@ -293,12 +299,46 @@ describe('the Record panel', () => {
     expect(panel()).toContain('No microphone found');
   });
 
-  it('labels every list so a screen reader can name it', () => {
-    expect(panel()).toContain('for="camera-device"');
+  it('names every list for a screen reader without a visible label', () => {
+    const html = panel();
+    expect(html).toContain('aria-label="Camera to use"');
+    expect(html).not.toContain('<label');
+    expect(html).not.toMatch(/>Camera to use</);
+    expect(html).not.toMatch(/>Microphone to use</);
   });
 
-  it('shows a chosen folder', () => {
-    expect(panel({ destinationFolder: 'D:\\Takes' })).toContain('D:\\Takes');
+  it('puts an icon beside each heading and names the switches Use camera and Use microphone', () => {
+    const html = panel();
+    expect(html).toContain('lucide-video');
+    expect(html).toContain('lucide-mic');
+    expect(html).toContain('Use camera');
+    expect(html).toContain('Use microphone');
+    expect(html).not.toContain('Show my face');
+    expect(html).not.toContain('Record my voice');
+  });
+});
+
+describe('the folder chip in the page header', () => {
+  it('shows a folder icon and the path, and is a named button', () => {
+    const html = renderToStaticMarkup(<FolderChip path={'Videos\\Scrim'} onChoose={noop} />);
+    expect(html).toContain('lucide-folder-open');
+    expect(html).toContain('Videos\\Scrim');
+    expect(html).toContain('aria-label="Save to Videos\\Scrim. Change folder"');
+  });
+
+  it('sits on the same row as the page title', () => {
+    const html = renderToStaticMarkup(
+      <AppShell
+        view="record"
+        onView={noop}
+        title="Record"
+        titleAction={<FolderChip path={'Videos\\Scrim'} onChoose={noop} />}
+        status={{ state: 'Ready', folder: 'Videos\\Scrim' }}
+      >
+        <p>main</p>
+      </AppShell>,
+    );
+    expect(html).toMatch(/<div class="page-head"><h1 class="page-title">Record<\/h1><button/);
   });
 });
 
@@ -314,22 +354,16 @@ describe('the placeholder', () => {
 describe('the Screenshot view', () => {
   const html = renderToStaticMarkup(<ScreenshotView busy={false} onTake={noop} />);
 
-  it('uses the same stage with the button inside and Ctrl Shift X in the corner', () => {
+  it('uses the same stage with the button in the bottom row and Ctrl Shift X in the corner', () => {
     expect(html).toContain('class="stage"');
     expect(html).toContain('Take screenshot');
     expect(html).toContain('aria-label="Ctrl Shift X"');
-    expect(html.indexOf('record-button')).toBeLessThan(html.indexOf('</section>'));
+    expect(html.indexOf('record-button')).toBeGreaterThan(html.indexOf('</section>'));
   });
 
-  it('shows the save folder as one compact row under the stage, not a sidebar', () => {
-    const withFolder = renderToStaticMarkup(
-      <ScreenshotView busy={false} onTake={noop} folder={'D:\\Shots'} onChooseFolder={noop} />,
-    );
-    expect(withFolder).toContain('class="save-to"');
-    expect(withFolder).toContain('D:\\Shots');
-    expect(withFolder).toContain('Change folder');
-    expect(withFolder.indexOf('save-to')).toBeGreaterThan(withFolder.indexOf('Take screenshot'));
+  it('has no save folder block: the folder chip sits in the page header', () => {
     expect(html).not.toContain('save-to');
+    expect(html).not.toContain('Change folder');
   });
 });
 
@@ -347,6 +381,8 @@ describe('the app shell title', () => {
       </AppShell>,
     );
     expect(html.match(/<h1/g)).toHaveLength(1);
-    expect(html).toMatch(/<main class="shell-main"><h1 class="page-title">Screenshot<\/h1>/);
+    expect(html).toMatch(
+      /<main class="shell-main"><div class="page-head"><h1 class="page-title">Screenshot<\/h1>/,
+    );
   });
 });

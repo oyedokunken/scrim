@@ -32,29 +32,21 @@ describe('readAbout', () => {
     buildStamp: '2026-10-30',
   };
 
-  it('reports the version it is given and the modified time of the program file', async () => {
-    const about = await readAbout({
-      ...base,
-      modifiedMs: () => Promise.resolve(1_700_000_000_000),
-    });
+  it('reports the version and the build day, and no file timestamp', () => {
+    const about = readAbout(base);
     expect(about).toEqual({
       name: 'Scrim',
       version: '1.2.3',
       license: 'MIT',
       releaseDate: '2026-10-30',
-      lastUpdated: new Date(1_700_000_000_000).toISOString(),
     });
+    expect(Object.keys(about)).not.toContain('lastUpdated');
     expect(aboutSchema.safeParse(about).success).toBe(true);
   });
 
-  it('leaves a value empty when it cannot be read', async () => {
-    const about = await readAbout({
-      ...base,
-      buildStamp: undefined,
-      modifiedMs: () => Promise.reject(new Error('gone')),
-    });
+  it('leaves the release date empty when the build did not record one', () => {
+    const about = readAbout({ ...base, buildStamp: undefined });
     expect(about.releaseDate).toBeNull();
-    expect(about.lastUpdated).toBeNull();
     expect(aboutSchema.safeParse(about).success).toBe(true);
   });
 });

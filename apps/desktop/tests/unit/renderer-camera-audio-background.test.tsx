@@ -24,7 +24,7 @@ describe('the Camera panel', () => {
   const html = renderToStaticMarkup(<CameraPanel value={camera} onChange={noop} />);
 
   it('has the switch, size, shape and the four corner dots, and no range slider', () => {
-    expect(html).toContain('Show camera');
+    expect(html).toContain('Use camera');
     for (const label of ['Small', 'Medium', 'Large', 'Circle', 'Rounded']) {
       expect(html).toContain(`>${label}<`);
     }

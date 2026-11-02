@@ -112,7 +112,9 @@ describe('the Updates card', () => {
     expect(html).toContain('Check for updates');
     expect(html).toContain('Check for updates when the app starts');
     expect(html).toMatch(/aria-checked="false"/);
-    expect(html).toContain('carries nothing about you or your');
+    expect(html).toContain('Discover a new version of Scrim');
+    expect(html).not.toContain('carries nothing about you');
+    expect(html).not.toContain('Nothing is downloaded until');
   });
 
   it('shows the pill when an update exists', () => {

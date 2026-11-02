@@ -1,4 +1,4 @@
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, Laptop } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { SystemInfo } from '../../../shared/about-contract';
 import { Button, useShowError } from '../../ui';
@@ -36,12 +36,14 @@ export function MachineCard() {
   const unknown = 'Not available';
   return (
     <section className="set-section" aria-label="Your machine">
-      <h2 className="set-title">Your machine</h2>
+      <h2 className="set-title">
+        <Laptop size={18} strokeWidth={1.75} aria-hidden="true" />
+        Your machine
+      </h2>
       <dl className="set-facts">
         <Fact label="Computer name" value={system?.computerName ?? unknown} />
         <Fact label="Operating system" value={system?.operatingSystem ?? unknown} />
       </dl>
-      <p className="ui-help">Shown only here. It is never sent anywhere or saved in the logs.</p>
       <div>
         <Button
           icon={<FolderOpen size={16} strokeWidth={1.75} />}
@@ -58,9 +60,6 @@ export function MachineCard() {
           Open logs folder
         </Button>
       </div>
-      <p className="ui-help">
-        Logs stay on this computer. They never hold a file path or a window title.
-      </p>
     </section>
   );
 }

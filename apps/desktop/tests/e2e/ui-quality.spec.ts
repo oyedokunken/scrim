@@ -100,7 +100,7 @@ test.describe('the interface rules, on every page', () => {
       for (const view of VIEWS) {
         await page.getByRole('button', { name: view, exact: true }).click();
         await expect(page.getByRole('heading', { name: view, level: 1 })).toBeVisible();
-        // Record and Screenshot keep their few controls under the main view, not in a sidebar.
+        // Record, Screenshot, Library and Settings use the whole width and have no sidebar.
         await expect(page.locator('.shell-panel')).toHaveCount(WITH_SIDEBAR.includes(view) ? 1 : 0);
         const report = await inspect(page);
         expect(report.sideways, `${view}: sideways overflow`).toEqual([]);
@@ -157,7 +157,7 @@ test.describe('long device names', () => {
       expect(report.sideways).toEqual([]);
       expect(report.pokingOut).toEqual([]);
       const scrollbar = await page.evaluate(() => {
-        const panel = document.querySelector('.record-controls');
+        const panel = document.querySelector('.shell-main');
         return panel !== null && panel.scrollWidth > panel.clientWidth;
       });
       expect(scrollbar).toBe(false);

@@ -156,13 +156,17 @@ test.describe('the settings', () => {
     ).toBeVisible();
     await expect(about.getByText(/^1./)).toBeVisible();
     await expect(about.getByText('MIT', { exact: true })).toBeVisible();
-    await expect(about.getByText(/LGPL version 3/)).toBeVisible();
-    await expect(about.getByRole('button', { name: 'Source code' })).toBeVisible();
-    await expect(about.getByRole('button', { name: 'FFmpeg' })).toBeVisible();
-    await expect(about.locator('.built-by-link')).toContainText('@oyedokunken');
+    await expect(about.getByText(/never sent anywhere/)).toHaveCount(0);
+    await expect(about.getByText('Last updated')).toHaveCount(0);
+    await expect(about.getByText('Release date')).toBeVisible();
+    const attributions = page.getByRole('region', { name: 'Attributions' });
+    await expect(attributions.getByText(/LGPL version 3/)).toBeVisible();
+    await expect(attributions.getByRole('button', { name: 'Source code' })).toBeVisible();
+    await expect(attributions.getByRole('button', { name: 'FFmpeg' })).toBeVisible();
+    await expect(attributions.getByRole('button', { name: 'The developer' })).toBeVisible();
     const machine = page.getByRole('region', { name: 'Your machine' });
     await expect(machine.getByText('Computer name')).toBeVisible();
-    await expect(machine.getByText(/never sent anywhere/)).toBeVisible();
+    await expect(machine.getByText(/never sent anywhere/)).toHaveCount(0);
     await expect(machine.getByRole('button', { name: 'Open logs folder' })).toBeVisible();
     await expect(about.getByText('Computer name')).toHaveCount(0);
     const sideways = await page.evaluate(

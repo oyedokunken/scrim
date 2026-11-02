@@ -1,4 +1,4 @@
-import { FolderOpen } from 'lucide-react';
+import { Archive, FolderOpen, Hand, Keyboard, Video } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Settings, SettingsPatch } from '../../../shared/settings';
 import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../../shared/shortcut-keys';
@@ -7,13 +7,27 @@ import type { FolderKind } from '../hooks';
 import type { UpdatesApi } from '../updates/use-updates';
 import { UpdatesCard } from '../updates/updates-card';
 import { AboutCard } from './about-card';
+import { AttributionsCard } from './attributions-card';
 import { MachineCard } from './machine-card';
 import { ShortcutRow } from './shortcut-row';
 
-function Section({ title, help, children }: { title: string; help?: string; children: ReactNode }) {
+function Section({
+  title,
+  help,
+  icon,
+  children,
+}: {
+  title: string;
+  help?: string;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <section className="set-section" aria-label={title}>
-      <h2 className="set-title">{title}</h2>
+      <h2 className="set-title">
+        {icon}
+        {title}
+      </h2>
       {help === undefined ? null : <p className="ui-help">{help}</p>}
       {children}
     </section>
@@ -144,6 +158,7 @@ export function SettingsView({
     <div className="settings">
       <Section
         title="Shortcuts"
+        icon={<Keyboard size={18} strokeWidth={1.75} aria-hidden="true" />}
         help="These work in any program. Press Change, then the keys you want."
       >
         {SHORTCUT_IDS.map((id) => (
@@ -168,7 +183,11 @@ export function SettingsView({
         ))}
       </Section>
 
-      <Section title="Folders" help="Where your finished videos and your screenshots are saved.">
+      <Section
+        title="Folders"
+        icon={<FolderOpen size={18} strokeWidth={1.75} aria-hidden="true" />}
+        help="Where your finished videos and your screenshots are saved."
+      >
         <FolderRow
           label="Recordings"
           path={settings.destinationFolder}
@@ -189,7 +208,7 @@ export function SettingsView({
         />
       </Section>
 
-      <Section title="Recording">
+      <Section title="Recording" icon={<Video size={18} strokeWidth={1.75} aria-hidden="true" />}>
         <Switch
           label="Count down 3, 2, 1 before recording"
           checked={settings.countdownOn}
@@ -213,7 +232,10 @@ export function SettingsView({
         />
       </Section>
 
-      <Section title="Welcome screen">
+      <Section
+        title="Welcome screen"
+        icon={<Hand size={18} strokeWidth={1.75} aria-hidden="true" />}
+      >
         <Switch
           label="Show the welcome screen when Scrim starts"
           checked={settings.showWelcome}
@@ -229,6 +251,7 @@ export function SettingsView({
       {legacy === 0 ? null : (
         <Section
           title="Old working files"
+          icon={<Archive size={18} strokeWidth={1.75} aria-hidden="true" />}
           help={`${String(legacy)} working ${legacy === 1 ? 'folder' : 'folders'} from an earlier version ${legacy === 1 ? 'sits' : 'sit'} in your recordings folder. Moving them keeps that folder to finished videos only. Nothing is deleted.`}
         >
           <div>
@@ -255,7 +278,8 @@ export function SettingsView({
         onShowUpdate={onShowUpdate}
       />
 
-      <AboutCard onOpenLink={onOpenLink} />
+      <AboutCard />
+      <AttributionsCard onOpenLink={onOpenLink} />
 
       <ConfirmDialog
         open={confirmMove}

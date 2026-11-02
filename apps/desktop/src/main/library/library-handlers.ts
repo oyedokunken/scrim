@@ -10,6 +10,8 @@ type LibraryHandlers = Pick<
   | 'library:lookup'
   | 'library:preview'
   | 'library:play'
+  | 'library:media'
+  | 'library:make-video'
   | 'library:open-file'
   | 'library:reveal'
   | 'library:delete'
@@ -30,6 +32,8 @@ export function createLibraryHandlers(deps: {
     'library:lookup': ({ path }) => library.lookup(path),
     'library:preview': ({ id }) => library.preview(id),
     'library:play': ({ id }) => library.play(id),
+    'library:media': ({ id }) => library.media(id),
+    'library:make-video': ({ id }) => library.makeVideo(id),
     'library:open-file': ({ id }) => library.openFile(id),
     'library:rename': ({ id, name }) => library.rename(id, name),
     'library:reveal': ({ id }) => {

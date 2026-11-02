@@ -75,14 +75,8 @@ test.describe('the screenshot page', () => {
       }, pictures.root);
       await enterApp(page);
       await page.getByRole('button', { name: 'Screenshot', exact: true }).click();
+      await expect(page.getByRole('button', { name: /Save to Pictures/ })).toBeVisible();
       await expect(page.locator('.shell-panel')).toHaveCount(0);
-      const row = page.locator('.save-to');
-      await expect(row.getByText('Save to')).toBeVisible();
-      await expect(row.getByRole('button', { name: 'Change folder' })).toBeVisible();
-      const box = await row.boundingBox();
-      const main = await page.locator('.shell-main').boundingBox();
-      expect(box?.height ?? 999).toBeLessThan(80);
-      expect(box?.width ?? 0).toBeLessThanOrEqual(main?.width ?? 0);
       await expect(page.getByRole('heading', { name: /Screenshots\s*\d/ })).toHaveCount(0);
 
       await send(app, 'screenshot:taken', { path: shot, width: 160, height: 90 });

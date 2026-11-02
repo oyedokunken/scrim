@@ -33,7 +33,7 @@ test.describe('the Camera page', () => {
     page,
   }) => {
     await open(page, 'Camera');
-    await page.getByRole('switch', { name: 'Show camera' }).click();
+    await page.getByRole('switch', { name: 'Use camera' }).click();
     const bubble = page.locator('.bubble');
     await expect(bubble).toBeVisible();
     await expect(bubble).toHaveClass(/bubble-bottom-right/);
@@ -60,13 +60,13 @@ test.describe('the Camera page', () => {
   test('keeps its controls in the right panel', async ({ page }) => {
     await open(page, 'Camera');
     const panel = page.getByRole('complementary');
-    await expect(panel.getByRole('switch', { name: 'Show camera' })).toBeVisible();
+    await expect(panel.getByRole('switch', { name: 'Use camera' })).toBeVisible();
     await noSidewaysScroll(page);
   });
 
   test('the choices are saved', async ({ page }) => {
     await open(page, 'Camera');
-    await page.getByRole('switch', { name: 'Show camera' }).click();
+    await page.getByRole('switch', { name: 'Use camera' }).click();
     await page.getByRole('radio', { name: 'Small' }).click();
     await page.getByRole('radio', { name: 'Top right' }).click();
     await page.waitForTimeout(400);

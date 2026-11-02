@@ -17,25 +17,18 @@ export interface AboutDeps {
   license: string;
   /** The raw build stamp, or undefined. */
   buildStamp: unknown;
-  /** The modified time of the installed program file, or null when it cannot be read. */
-  modifiedMs: () => Promise<number | null>;
 }
 
 /**
- * "Last updated" is the modified time of the program file. An installer or an update replaces that
- * file, so it moves when the installed version changes.
+ * There is no "last updated" time: the modified time of a packaged program file is not reliable
+ * (an installer can stamp it with 1 January 1980), so only the build day is reported.
  */
-export async function readAbout(deps: AboutDeps): Promise<About> {
-  const modified = await deps.modifiedMs().catch(() => null);
+export function readAbout(deps: AboutDeps): About {
   return {
     name: deps.name,
     version: deps.version,
     license: deps.license,
     releaseDate: releaseDateOf(deps.buildStamp),
-    lastUpdated:
-      modified !== null && Number.isFinite(modified) && modified > 0
-        ? new Date(modified).toISOString()
-        : null,
   };
 }
 

@@ -1,3 +1,4 @@
+import { RefreshCw } from 'lucide-react';
 import { Button, Switch } from '../../ui';
 import type { UpdateSnapshot } from '../../../shared/updates-contract';
 import { blockText } from './update-modal';
@@ -55,12 +56,11 @@ export function UpdatesCard({
 
   return (
     <section className="set-section" aria-label="Updates">
-      <h2 className="set-title">Updates</h2>
-      <p className="ui-help">
-        Looks for a newer version only when you ask, or when the app starts if you turn that on. The
-        request goes to GitHub for the release details and carries nothing about you or your
-        recordings. Nothing is downloaded until you press Update now.
-      </p>
+      <h2 className="set-title">
+        <RefreshCw size={18} strokeWidth={1.75} aria-hidden="true" />
+        Updates
+      </h2>
+      <p className="ui-help">Discover a new version of Scrim</p>
       {found ? (
         <button type="button" className="update-pill" onClick={onShowUpdate}>
           New update available

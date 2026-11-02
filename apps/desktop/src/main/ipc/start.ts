@@ -76,7 +76,7 @@ function createAppUpdates(options: {
       : undefined;
   let unsupported = '';
   if (!app.isPackaged && testFeedUrl === undefined) {
-    unsupported = 'Updates work in the installed app, not in a development run.';
+    unsupported = 'Updates are not available in this copy of the app.';
   } else if (
     process.platform === 'linux' &&
     process.env['APPIMAGE'] === undefined &&
@@ -252,6 +252,13 @@ export async function startIpc(options: {
     extraScreenshotsFolder: screenshotFallbackFolder,
     extraVideosFolder: exportFallbackFolder,
     share,
+    issueMedia: (file, label) => options.media.issue(file, label),
+    // The same render as the review screen's Export: one MP4 in the videos folder, no preview.
+    startRender: (folder) => {
+      if (!isKnownFolder(folder)) return false;
+      options.exporter.start({ folder, collision: 'number' });
+      return true;
+    },
   });
 
   registerIpc({
@@ -428,13 +435,15 @@ export async function startIpc(options: {
       updates,
       about: {
         about: () =>
-          readAbout({
-            name: APP_NAME,
-            version: app.getVersion(),
-            license: 'MIT',
-            buildStamp: typeof __SCRIM_BUILD_DATE__ === 'string' ? __SCRIM_BUILD_DATE__ : undefined,
-            modifiedMs: () => stat(process.execPath).then((info) => info.mtimeMs),
-          }),
+          Promise.resolve(
+            readAbout({
+              name: APP_NAME,
+              version: app.getVersion(),
+              license: 'MIT',
+              buildStamp:
+                typeof __SCRIM_BUILD_DATE__ === 'string' ? __SCRIM_BUILD_DATE__ : undefined,
+            }),
+          ),
         system: () =>
           readSystemInfo({
             platform: process.platform,

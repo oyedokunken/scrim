@@ -147,14 +147,16 @@ describe('the Record view', () => {
     );
   });
 
-  it('shows the controls under the start screen and never beside a review', () => {
-    const controls = <p>camera and microphone</p>;
-    const start = render({ controls });
-    expect(start).toContain('class="record-controls"');
-    expect(start).toContain('camera and microphone');
-    expect(start.indexOf('record-controls')).toBeGreaterThan(start.indexOf('Start recording'));
-    const reviewing = render({ review, controls });
-    expect(reviewing).not.toContain('record-controls');
+  it('puts the bottom row with the options and the start button under the stage, not beside a review', () => {
+    const options = <p>camera and microphone</p>;
+    const start = render({ options });
+    expect(start).toContain('class="option-row"');
+    expect(start.indexOf('option-row')).toBeGreaterThan(start.indexOf('</section>'));
+    expect(start.indexOf('Start recording')).toBeGreaterThan(
+      start.indexOf('camera and microphone'),
+    );
+    const reviewing = render({ review, options });
+    expect(reviewing).not.toContain('option-row');
     expect(reviewing).not.toContain('camera and microphone');
   });
 

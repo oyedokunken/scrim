@@ -213,23 +213,21 @@ describe('the Library detail page', () => {
     return [...group.slice(0, end).matchAll(/<\/span>([^<]+)<\/button>/g)].map((m) => m[1]);
   };
 
-  it('puts Edit first for a screenshot, then Open and Show in folder', () => {
+  it('has exactly five buttons for a screenshot: Edit, Copy, Share, Show in folder, Delete', () => {
     const names = labels(render(item({ kind: 'screenshot', width: 10, height: 10 })));
-    expect(names).toEqual(['Edit', 'Open', 'Show in folder', 'Copy', 'Share', 'Delete']);
+    expect(names).toEqual(['Edit', 'Copy', 'Share', 'Show in folder', 'Delete']);
   });
 
-  it('puts Edit first for a recording that can still be edited', () => {
-    expect(labels(render(item({})))).toEqual([
-      'Edit',
-      'Open',
-      'Show in folder',
-      'Copy file',
-      'Share',
-      'Delete',
-    ]);
+  it('has exactly four buttons for a recording: Edit, Share, Show in folder, Delete', () => {
+    const html = render(item({}));
+    expect(labels(html)).toEqual(['Edit', 'Share', 'Show in folder', 'Delete']);
+    expect(html).not.toContain('>Open<');
   });
 
-  it('offers no Edit for a recording without its working files', () => {
-    expect(labels(render(item({ canEdit: false })))).not.toContain('Edit');
+  it('keeps four buttons but disables Edit for a recording without its working files', () => {
+    const html = render(item({ canEdit: false }));
+    expect(labels(html)).toHaveLength(4);
+    expect(html).toContain('disabled=""');
+    expect(html.indexOf('disabled=""')).toBeLessThan(html.indexOf('Edit</button>'));
   });
 });

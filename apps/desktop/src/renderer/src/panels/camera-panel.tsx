@@ -72,7 +72,7 @@ export function CameraPanel({ value, onChange, disabledNote }: CameraPanelProps)
     <>
       <PanelSection title="Camera" help="Your face in a small bubble over the recording.">
         <Switch
-          label="Show camera"
+          label="Use camera"
           checked={value.on}
           disabled={locked}
           {...(disabledNote === undefined ? {} : { note: disabledNote })}

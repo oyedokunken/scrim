@@ -167,14 +167,14 @@ describe('nothing happens while the app is busy', () => {
   it('shows no update tools on an install that cannot update itself', async () => {
     const controller = createUpdateController({
       updater: null,
-      unsupported: 'Updates work in the installed app.',
+      unsupported: 'Updates are not available in this copy of the app.',
       busy: () => null,
       log: () => undefined,
       onChange: () => undefined,
     });
     expect((await controller.check()).state).toEqual({
       phase: 'unsupported',
-      message: 'Updates work in the installed app.',
+      message: 'Updates are not available in this copy of the app.',
     });
     expect((await controller.download()).state.phase).toBe('unsupported');
     expect(() => {

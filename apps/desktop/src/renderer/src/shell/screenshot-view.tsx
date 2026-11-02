@@ -25,9 +25,6 @@ export interface ScreenshotViewProps {
   startEditing?: boolean;
   /** Leaves the editor for the page the person came from, instead of showing the result. */
   onLeaveEditor?: (() => void) | undefined;
-  /** The folder screenshots are saved to, or null for the default. */
-  folder?: string | null;
-  onChooseFolder?: (() => void) | undefined;
 }
 
 /**
@@ -42,8 +39,6 @@ export function ScreenshotView({
   onShot,
   startEditing = false,
   onLeaveEditor,
-  folder = null,
-  onChooseFolder,
 }: ScreenshotViewProps) {
   const [editing, setEditing] = useState(startEditing);
   const shown = shot;
@@ -88,21 +83,12 @@ export function ScreenshotView({
         label="Take a screenshot"
         text="Capture a region, a window or the whole screen"
         shortcut={SHORTCUTS.screenshot.keys}
-        action={
-          <Button variant="primary" className="record-button" disabled={busy} onClick={onTake}>
-            {busy ? 'Opening...' : 'Take screenshot'}
-          </Button>
-        }
       />
-      {onChooseFolder === undefined ? null : (
-        <div className="save-to">
-          <span className="save-to-label">Save to</span>
-          <p className="folder" title={folder ?? undefined}>
-            {folder ?? 'Pictures\\Scrim'}
-          </p>
-          <Button onClick={onChooseFolder}>Change folder</Button>
-        </div>
-      )}
+      <div className="option-row">
+        <Button variant="primary" className="record-button" disabled={busy} onClick={onTake}>
+          {busy ? 'Opening...' : 'Take screenshot'}
+        </Button>
+      </div>
     </div>
   );
 }

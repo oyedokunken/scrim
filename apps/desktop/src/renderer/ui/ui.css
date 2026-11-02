@@ -252,6 +252,9 @@
 }
 
 .ui-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   font-size: 15px;
   font-weight: 600;
@@ -601,6 +604,12 @@
   background-clip: padding-box;
   border: 3px solid transparent;
   border-radius: 999px;
+}
+
+/* On the two page scrollers the bar shows only while the pointer is over them and the content overflows. */
+.shell-main:not(:hover)::-webkit-scrollbar-thumb,
+.shell-panel:not(:hover)::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb:hover {

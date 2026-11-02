@@ -4,6 +4,7 @@ import {
   FolderOpen,
   Image,
   Pencil,
+  Play,
   Search,
   Share2,
   Trash2,
@@ -44,6 +45,7 @@ interface CardProps {
   item: LibraryItem;
   now: number;
   onOpen: () => void;
+  onPlay: () => void;
   onOpenFile: () => void;
   onRename: () => void;
   onReveal: () => void;
@@ -56,6 +58,7 @@ function Card({
   item,
   now,
   onOpen,
+  onPlay,
   onOpenFile,
   onRename,
   onReveal,
@@ -143,24 +146,36 @@ function Card({
 
   return (
     <li className="lib-card">
-      <button
-        type="button"
-        className="lib-open"
-        onClick={onOpen}
-        aria-label={`Open ${item.name}`}
-        draggable={item.isFile}
-        onDragStart={(event) => {
-          event.preventDefault();
-          if (item.isFile) {
-            void window.scrim.invoke('share:drag', { source: { kind: 'library', id: item.id } });
-          }
-        }}
-      >
-        {isNew(item, now) ? <span className="lib-new">NEW</span> : null}
-        <span className="thumb lib-thumb">
-          {url === null ? icon(24) : <img src={url} alt="" draggable={false} />}
-        </span>
-      </button>
+      <div className="lib-thumb-wrap">
+        <button
+          type="button"
+          className="lib-open"
+          onClick={onOpen}
+          aria-label={`Open ${item.name}${isNew(item, now) ? ', new' : ''}`}
+          draggable={item.isFile}
+          onDragStart={(event) => {
+            event.preventDefault();
+            if (item.isFile) {
+              void window.scrim.invoke('share:drag', { source: { kind: 'library', id: item.id } });
+            }
+          }}
+        >
+          {isNew(item, now) ? <span className="lib-new">NEW</span> : null}
+          <span className="thumb lib-thumb">
+            {url === null ? icon(24) : <img src={url} alt="" draggable={false} />}
+          </span>
+        </button>
+        {item.kind === 'recording' ? (
+          <button
+            type="button"
+            className="lib-play"
+            aria-label={`Play ${item.name}`}
+            onClick={onPlay}
+          >
+            <Play size={18} strokeWidth={0} fill="currentColor" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
       <div className="lib-meta">
         <div className="lib-text">
           <Tooltip label={fullFileName(item)}>
@@ -231,13 +246,16 @@ export function LibraryView({
   const [deleting, setDeleting] = useState<LibraryItem | null>(null);
   const [dismissing, setDismissing] = useState<Recoverable | null>(null);
   const [detailId, setDetailId] = useState<string | null>(initialDetailId);
+  /** The recording whose play badge was pressed, so its detail view starts playing at once. */
+  const [playId, setPlayId] = useState<string | null>(null);
   useEffect(() => {
     onDetail?.(detailId);
   }, [detailId, onDetail]);
   const [sharing, setSharing] = useState<ShareSource | null>(null);
   const scrollTop = useRef(0);
 
-  const openDetail = (id: string): void => {
+  const openDetail = (id: string, play = false): void => {
+    setPlayId(play ? id : null);
     const scroller = document.querySelector('.shell-main');
     scrollTop.current = scroller?.scrollTop ?? 0;
     try {
@@ -335,6 +353,7 @@ export function LibraryView({
     return (
       <LibraryDetail
         item={detailItem}
+        autoPlay={playId === detailItem.id}
         actions={library}
         onBack={closeDetail}
         onOpened={onOpened}
@@ -431,6 +450,9 @@ export function LibraryView({
               now={now}
               onOpen={() => {
                 openDetail(item.id);
+              }}
+              onPlay={() => {
+                openDetail(item.id, true);
               }}
               onOpenFile={() => {
                 void library.openFile(item.id).then((ok) => {
