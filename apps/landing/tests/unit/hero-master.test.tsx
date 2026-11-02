@@ -205,9 +205,11 @@ describe('the hero video on the server', () => {
     expect(html).toContain(siteConfig.heroAddress);
   });
 
-  it('has the play control, the auto zoom switch, the chapter buttons and the timeline', () => {
-    // The play control, the auto zoom switch and one button for each chapter.
-    expect(html.match(/<button/g)).toHaveLength(2 + SEGMENTS.length);
+  it('has the play control, the sound toggle, the auto zoom switch, the chapter buttons and the timeline', () => {
+    // The play control, the sound toggle, the auto zoom switch and one button for each chapter.
+    expect(html.match(/<button/g)).toHaveLength(3 + SEGMENTS.length);
+    expect(html).toContain('aria-label="Sound"');
+    expect(html).toContain('aria-pressed="false"');
     expect(html).toContain('aria-label="Chapters"');
     expect(html.match(/aria-current="true"/g)).toHaveLength(1);
     expect(html).toContain('>Pause<');

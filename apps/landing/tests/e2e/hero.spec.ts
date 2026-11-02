@@ -71,8 +71,8 @@ test.describe('the hero video', () => {
     const hero = page.locator('section[aria-labelledby="hero-title"]');
     // The hero holds the download link, the source link, the play control, the switch and the
     // timeline. There is no Play demo button, no caption and no second label.
-    // The one control inside the video is Play and Pause. Under it sit one button for each chapter.
-    await expect(hero.getByRole('button')).toHaveCount(1 + SEGMENTS.length);
+    // Inside the video: Play and Pause, and the sound toggle. Under it sit one button for each chapter.
+    await expect(hero.getByRole('button')).toHaveCount(2 + SEGMENTS.length);
     await expect(
       hero.getByRole('navigation', { name: 'Chapters' }).getByRole('button'),
     ).toHaveCount(SEGMENTS.length);
@@ -228,6 +228,96 @@ test.describe('the hero video', () => {
       expect(size?.height ?? 0).toBeGreaterThanOrEqual(44);
       expect(size?.width ?? 0).toBeGreaterThanOrEqual(44);
     }
+  });
+});
+
+test.describe('sound', () => {
+  // Counts the audio contexts the page makes, so a test can prove none exists before the toggle.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const w = window as unknown as {
+        __audio: { made: number; closed: number };
+        AudioContext: typeof AudioContext;
+      };
+      w.__audio = { made: 0, closed: 0 };
+      const Real = w.AudioContext;
+      w.AudioContext = class extends Real {
+        constructor() {
+          super();
+          w.__audio.made += 1;
+        }
+        override close() {
+          w.__audio.closed += 1;
+          return super.close();
+        }
+      };
+    });
+    await page.goto('/');
+  });
+
+  const audio = (page: Page) =>
+    page.evaluate(
+      () => (window as unknown as { __audio: { made: number; closed: number } }).__audio,
+    );
+  const toggle = (page: Page) => page.getByRole('button', { name: 'Sound' });
+
+  test('is off by default and makes no audio context while the video plays', async ({ page }) => {
+    await expect(toggle(page)).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(() => time(demo(page))).toBeGreaterThan(1500);
+    expect(await audio(page)).toEqual({ made: 0, closed: 0 });
+  });
+
+  test('turns on with a click, makes one audio context, and closes it when turned off', async ({
+    page,
+  }) => {
+    const box = await toggle(page).boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+    await toggle(page).click();
+    await expect(toggle(page)).toHaveAttribute('aria-pressed', 'true');
+    expect((await audio(page)).made).toBe(1);
+    await toggle(page).click();
+    await expect(toggle(page)).toHaveAttribute('aria-pressed', 'false');
+    expect(await audio(page)).toEqual({ made: 1, closed: 1 });
+  });
+
+  test('keeps the choice in memory only, with no storage and no cookie', async ({ page }) => {
+    await toggle(page).click();
+    await expect(toggle(page)).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0);
+    expect(await page.context().cookies()).toEqual([]);
+  });
+});
+
+test.describe('the chapter buttons', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
+
+  test('jump to their chapter and mark the playing one with aria-current', async ({ page }) => {
+    const nav = page.getByRole('navigation', { name: 'Chapters' });
+    await expect(nav.getByRole('button')).toHaveCount(SEGMENTS.length);
+    await pause(page);
+    for (const entry of SEGMENTS) {
+      await nav.getByRole('button', { name: entry.label, exact: true }).click();
+      await expect(demo(page)).toHaveAttribute('data-scene', entry.id);
+      await expect(nav.getByRole('button', { name: entry.label, exact: true })).toHaveAttribute(
+        'aria-current',
+        'true',
+      );
+      await expect(nav.locator('[aria-current="true"]')).toHaveCount(1);
+    }
+  });
+
+  test('can be used from the keyboard alone', async ({ page }) => {
+    await pause(page);
+    const edit = page.getByRole('navigation', { name: 'Chapters' }).getByRole('button', {
+      name: 'Edit',
+      exact: true,
+    });
+    await edit.focus();
+    await page.keyboard.press('Enter');
+    await expect(demo(page)).toHaveAttribute('data-scene', 'edit');
   });
 });
 

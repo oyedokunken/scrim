@@ -614,3 +614,14 @@
   outline: 2px solid var(--scrim-green);
   outline-offset: 2px;
 }
+
+/* The sound toggle is a round, icon only button with the same 44px target as the others. */
+.soundToggle {
+  justify-content: center;
+  min-width: 2.75rem;
+  padding: 0.5rem;
+}
+
+.soundToggle[aria-pressed='true'] {
+  background: var(--scrim-green);
+}

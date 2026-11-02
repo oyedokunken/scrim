@@ -1,7 +1,7 @@
 'use client';
 
 import { cursorAt, identityPose, sampleCamera } from '@scrim/core/zoom';
-import { Pause, Play, RotateCcw, Zap } from 'lucide-react';
+import { Pause, Play, RotateCcw, Volume2, VolumeX, Zap } from 'lucide-react';
 import {
   useCallback,
   useEffect,
@@ -26,6 +26,8 @@ import {
   type Scene,
 } from '@/lib/demo/master';
 import { DemoPlayer, browserClock } from '@/lib/demo/player';
+import { soundCuesFor } from '@/lib/demo/sound-cues';
+import { createSoundController, type SoundController } from '@/lib/demo/sound-controller';
 import { poseToTransform } from '@/lib/demo/pose-to-transform';
 import {
   DEMO_CLICKS,
@@ -76,6 +78,16 @@ const HEADLINE_BREAK = 4;
 const WORDS = splitWords(siteConfig.tagline);
 const HEADLINE_LINES = [WORDS.slice(0, HEADLINE_BREAK), WORDS.slice(HEADLINE_BREAK)] as const;
 const PLATFORMS = ['windows', 'macos', 'linux'] as const;
+const CUES = soundCuesFor({ segments: SEGMENTS, clicks: DEMO_CLICKS, zoomSpans: DEMO_ZOOM_SPANS });
+/**
+ * Makes the sound controller. The audio code is fetched only when the visitor turns sound on, and
+ * the audio context is made then, because browsers block audio until a click.
+ */
+const makeSound = () =>
+  createSoundController(CUES, async () => {
+    const { createBrowserSoundEngine } = await import('@/lib/demo/sound');
+    return createBrowserSoundEngine();
+  });
 /** The scenes that are an app screen on a card of their own, in the order they play. */
 const SCENE_CARDS = CARD_SCENES.filter((scene) => scene !== 'closing');
 
@@ -130,6 +142,8 @@ export function HeroDemo() {
   const autoZoomRef = useRef(true);
   const spoken = useRef('');
   const sceneRef = useRef<Scene>('opening');
+  const sound = useRef<SoundController | null>(null);
+  const lastTime = useRef(0);
 
   const reducedMotion = usePrefersReducedMotion();
   // Auto means "play when the hero is on screen, unless the visitor prefers reduced motion".
@@ -140,6 +154,8 @@ export function HeroDemo() {
   const [scrubbing, setScrubbing] = useState(false);
   const [ended, setEnded] = useState(false);
   // The scene decides whether the logo exists at all. The clock writes the rest straight to the DOM.
+  // Sound is off until the visitor turns it on, and the choice is kept in memory only.
+  const [soundOn, setSoundOn] = useState(false);
   const [currentScene, setCurrentScene] = useState<Scene>('opening');
   const [settledStill, setSettledStill] = useState(false);
   const stillMode = reducedMotion && mode === 'auto';
@@ -231,6 +247,9 @@ export function HeroDemo() {
     element.dataset.scale = pose.scale.toFixed(2);
     element.dataset.time = String(Math.round(timeMs));
     element.dataset.demoTime = String(Math.round(demoMs));
+    sound.current?.step(lastTime.current, timeMs);
+    lastTime.current = timeMs;
+
     const nextScene = sceneAt(timeMs);
     element.dataset.scene = nextScene;
     if (nextScene !== sceneRef.current) {
@@ -238,6 +257,14 @@ export function HeroDemo() {
       setCurrentScene(nextScene);
     }
   }, []);
+
+  // Close the audio context when the video leaves the page.
+  useEffect(
+    () => () => {
+      sound.current?.disable();
+    },
+    [],
+  );
 
   useEffect(() => {
     const instance = new DemoPlayer({
@@ -453,6 +480,30 @@ export function HeroDemo() {
           <button type="button" className={styles.control} onClick={onPlayControl}>
             <Icon aria-hidden="true" size={18} />
             <span>{label}</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={soundOn}
+            aria-label="Sound"
+            className={`${styles.control} ${styles.soundToggle}`}
+            onClick={() => {
+              sound.current ??= makeSound();
+              const controller = sound.current;
+              if (controller.on) {
+                controller.disable();
+                setSoundOn(false);
+                return;
+              }
+              void controller.enable().then(() => {
+                setSoundOn(controller.on);
+              });
+            }}
+          >
+            {soundOn ? (
+              <Volume2 aria-hidden="true" size={18} />
+            ) : (
+              <VolumeX aria-hidden="true" size={18} />
+            )}
           </button>
           <button
             type="button"
