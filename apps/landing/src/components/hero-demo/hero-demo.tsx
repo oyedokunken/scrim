@@ -487,14 +487,11 @@ export function HeroDemo() {
 
         {/* The one play control and the auto zoom switch, over the bottom right of the video. */}
         <div className={styles.controls}>
-          <button type="button" className={styles.control} onClick={onPlayControl}>
-            <Icon aria-hidden="true" size={18} />
-            <span>{label}</span>
-          </button>
           <button
             type="button"
             aria-pressed={soundOn}
             aria-label="Sound"
+            data-tip={soundOn ? 'Turn sound off' : 'Turn sound on'}
             className={`${styles.control} ${styles.soundToggle}`}
             onClick={() => {
               sound.current ??= makeSound();
@@ -517,9 +514,19 @@ export function HeroDemo() {
           </button>
           <button
             type="button"
+            className={styles.control}
+            data-tip={label === 'Replay' ? 'Play the video again' : `${label} the video`}
+            onClick={onPlayControl}
+          >
+            <Icon aria-hidden="true" size={18} />
+            <span>{label}</span>
+          </button>
+          <button
+            type="button"
             role="switch"
             aria-checked={autoZoom}
             aria-label="Auto zoom"
+            data-tip={autoZoom ? 'Turn auto zoom off' : 'Turn auto zoom on'}
             className={styles.control}
             onClick={() => {
               setAutoZoom((current) => !current);
