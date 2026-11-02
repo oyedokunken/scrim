@@ -184,7 +184,9 @@ describe('the library listing', () => {
 
   it('does not put a path in any item', async () => {
     const { library } = setup({ shots: [file('Shot.png', 1)] });
-    expect(JSON.stringify(await library.list())).not.toContain(SHOTS);
+    // The folder is shown in the details, but the full path of a file never is.
+    const listing = JSON.stringify(await library.list());
+    expect(listing).not.toContain(JSON.stringify(join(SHOTS, 'Shot.png')).slice(1, -1));
   });
 });
 

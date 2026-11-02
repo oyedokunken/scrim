@@ -6,7 +6,7 @@ import { getServerEnv } from './env';
 const holder = globalThis as unknown as { scrimPrisma?: PrismaClient };
 
 /**
- * One database client per process. It connects through the pooled `DATABASE_URL`. In development
+ * One database client per process. It connects through the pooled `DATABASE_URL`. When running `next dev`
  * the client is kept on `globalThis`, so hot reloads do not open a new pool every time.
  */
 export function getDb(): PrismaClient {

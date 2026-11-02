@@ -26,6 +26,7 @@ export default async function HomePage() {
     siteUrl: SITE_URL,
     licenseUrl: siteConfig.licenseUrl,
     author: siteConfig.author,
+    release: release === null ? null : { version: release.version, url: release.url },
   });
 
   return (

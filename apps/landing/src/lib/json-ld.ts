@@ -29,6 +29,8 @@ export interface SoftwareApplicationInput {
   siteUrl: string;
   licenseUrl: string;
   author: { name: string; url: string };
+  /** The latest published release, when there is one. */
+  release?: { version: string; url: string } | null;
 }
 
 /** Structured data that tells search engines what Scrim is. */
@@ -39,8 +41,11 @@ export function softwareApplicationJsonLd(input: SoftwareApplicationInput) {
     name: input.name,
     description: input.description,
     url: input.siteUrl,
-    operatingSystem: 'Windows',
+    operatingSystem: 'Windows, macOS, Linux',
     applicationCategory: 'MultimediaApplication',
+    ...(input.release == null
+      ? {}
+      : { softwareVersion: input.release.version, downloadUrl: input.release.url }),
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     license: input.licenseUrl,
     author: { '@type': 'Person', name: input.author.name, url: input.author.url },

@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button, ConfirmDialog, Segmented } from '../../ui';
 import { editorApi } from '../shell/editor-bridge';
 import { formatBytes, formatTimer } from '../format';
 import type { ExportJobView, Finished } from '../hooks';
 import { ShareDialog } from '../share/share-dialog';
+import { ExportDoneDialog } from './export-done-dialog';
+import { ExportProgress, toPercent } from './export-progress';
 import type { LivePreviewSource } from './live-preview';
 import { ReviewPlayer, type ReviewMode } from './review-player';
 
@@ -41,25 +43,6 @@ function etaText(etaMs: number | null): string {
     : `, about ${String(Math.round(seconds / 60))} minutes left`;
 }
 
-function ProgressBar({ fraction, label }: { fraction: number | null; label: string }) {
-  const bar = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    bar.current?.style.setProperty('--fraction', String(fraction ?? 0));
-  }, [fraction]);
-  return (
-    <span
-      className="saved-progress"
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      {...(fraction === null ? {} : { 'aria-valuenow': Math.round(fraction * 100) })}
-    >
-      <span ref={bar} className="saved-progress-fill" />
-    </span>
-  );
-}
-
 interface ProgressRowProps {
   /** What is happening, with the percent and the time left. */
   text: string;
@@ -77,7 +60,7 @@ function ProgressRow({ text, label, fraction, onCancel }: ProgressRowProps) {
     <div className="saved-export-row" role="status">
       <div className="saved-export-main">
         <p className="saved-export-line">{text}</p>
-        <ProgressBar fraction={fraction} label={label} />
+        <ExportProgress fraction={fraction} label={label} />
       </div>
       <Button variant="danger" className="saved-export-cancel" onClick={onCancel}>
         Cancel
@@ -113,6 +96,7 @@ export function ReviewScreen({
   const [live, setLive] = useState<LivePreviewSource | null>(null);
   // A person who has not picked a view yet is moved to After while the video is made.
   const [picked, setPicked] = useState(false);
+  const [doneClosed, setDoneClosed] = useState(false);
 
   const mine = job !== null && job.recording === folderName(finished.folder);
   const preview = mine && job.preview ? job : null;
@@ -163,9 +147,7 @@ export function ReviewScreen({
 
   const exportDone = exporting?.phase === 'done';
   const fellBack = exporting?.result?.fellBack === true;
-  useEffect(() => {
-    if (exportDone) onExported({ fellBack });
-  }, [exportDone, fellBack, onExported]);
+  const doneResult = exportDone ? exporting.result : null;
 
   const afterReady = review?.after != null;
   // The live picture stands in until the file exists, and through the moment between the two.
@@ -220,7 +202,7 @@ export function ReviewScreen({
                   : `, ${String(Math.round(preview.progress.fraction * 100))}%`}
                 {preview.progress === null ? '' : etaText(preview.progress.etaMs)}
               </p>
-              <ProgressBar
+              <ExportProgress
                 fraction={preview.progress?.fraction ?? null}
                 label="Making your video"
               />
@@ -365,7 +347,9 @@ export function ReviewScreen({
 
           <div className="review-actions" role="group" aria-label="What to do next">
             <Button variant="primary" disabled={exportWorking} onClick={onExport}>
-              Export
+              {exportWorking
+                ? `Exporting ${String(toPercent(exporting.progress?.fraction ?? null))}%`
+                : 'Export'}
             </Button>
             {onOpenEditor === undefined ? null : (
               <Button onClick={onOpenEditor}>Open in editor</Button>
@@ -399,6 +383,25 @@ export function ReviewScreen({
           }}
         />
       ) : null}
+
+      <ExportDoneDialog
+        done={
+          exporting === null || doneResult === null || doneClosed
+            ? null
+            : {
+                jobId: exporting.id,
+                fileName: doneResult.fileName,
+                bytes: doneResult.bytes,
+                durationMs: doneResult.durationMs,
+                fellBack,
+              }
+        }
+        folder={finished.folder}
+        onDone={() => {
+          setDoneClosed(true);
+          onExported({ fellBack });
+        }}
+      />
 
       <ConfirmDialog
         open={confirmCancel && exportWorking}

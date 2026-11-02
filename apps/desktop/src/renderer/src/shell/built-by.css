@@ -1,18 +1,14 @@
-/* The "Built by" card, in the same style as the website footer's: a white rounded card that opens
-   upward from the handle, round icon buttons that are green and turn black on hover, and a green
-   tooltip with an arrow. */
+/* The "Built by" credit: a plain green link with a small external arrow. */
 .built-by {
-  position: relative;
   display: inline-block;
 }
 
-.built-by-handle {
-  display: inline;
+.built-by-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 0 2px;
-  border: 0;
-  background: none;
   color: var(--scrim-green);
-  font: inherit;
   font-weight: 800;
   text-decoration: underline;
   text-decoration-thickness: 2px;
@@ -20,143 +16,12 @@
   cursor: pointer;
 }
 
-.built-by-handle:hover,
-.built-by-handle[aria-expanded='true'] {
+.built-by-link:hover {
   color: var(--scrim-black);
 }
 
-.built-by-handle:focus-visible {
+.built-by-link:focus-visible {
   outline: 2px solid var(--scrim-green);
   outline-offset: 2px;
   border-radius: 4px;
-}
-
-/* Opens upward, because the credit sits at the foot of the window. A touch of padding above the
-   card keeps the pointer inside the hover area while it moves from the handle to the card. */
-.built-by-panel {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 0;
-  z-index: 20;
-  width: max-content;
-  padding: 12px;
-  border-radius: var(--scrim-radius-lg);
-  background: var(--scrim-white);
-  box-shadow: 0 20px 40px -12px color-mix(in srgb, var(--scrim-black) 70%, transparent);
-  color: var(--scrim-black);
-}
-
-.built-by-panel[hidden] {
-  display: none;
-}
-
-/* The bridge between the handle and the card, so the hover does not break on the gap. */
-.built-by-panel::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  height: 14px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .built-by-panel:not([hidden]) {
-    animation: built-by-pop 0.18s ease-out;
-  }
-}
-
-@keyframes built-by-pop {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-.built-by-icons {
-  display: flex;
-  flex-flow: row nowrap;
-  justify-content: center;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.built-by-link {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  /* The icon is green by default and turns black on hover. */
-  background: var(--scrim-fill-quiet-on-white);
-  color: var(--scrim-green);
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.built-by-link:hover,
-.built-by-link:focus-visible {
-  background: color-mix(in srgb, var(--scrim-black) 14%, var(--scrim-white));
-  color: var(--scrim-black);
-}
-
-.built-by-link:focus-visible {
-  outline: 2px solid var(--scrim-green);
-  outline-offset: 2px;
-}
-
-/* Green with white text, with the arrow of a speech bubble pointing at the icon. */
-.built-by-tip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: var(--scrim-green);
-  color: var(--scrim-white);
-  font-size: 13px;
-  font-weight: 800;
-  line-height: 1.2;
-  white-space: nowrap;
-  box-shadow: 0 8px 16px -8px color-mix(in srgb, var(--scrim-black) 60%, transparent);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translate(-50%, 4px);
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease,
-    visibility 0s linear 0.15s;
-}
-
-.built-by-tip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  border: 5px solid transparent;
-  border-top-color: var(--scrim-green);
-  transform: translateX(-50%);
-}
-
-.built-by-tip[data-visible='true'] {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, 0);
-  transition-delay: 0s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .built-by-tip {
-    transition: none;
-  }
 }

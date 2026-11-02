@@ -108,7 +108,6 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
   });
 
   const os = orNothing(useWatch({ control, name: 'os' }));
-  const comingSoon = os !== undefined && os !== 'windows';
   const detectedOs = platform !== null && platform.os !== 'unsupported' ? platform.os : null;
   const detectedArch = platform?.arch ?? 'unknown';
 
@@ -181,9 +180,6 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
         os: data.os,
         firstName: data.name.split(/\s+/)[0] ?? data.name,
       });
-      if (result.comingSoon === true) {
-        return;
-      }
       if (result.direct) {
         startDownload(result.url, result.filename);
       } else {
@@ -227,26 +223,22 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
             className={styles.form}
           >
             <h2 id={titleId} className={styles.title} ref={heading} tabIndex={-1}>
-              {comingSoon
-                ? `Scrim for ${systemName(os)} is coming soon`
-                : os === undefined
-                  ? 'Before you download'
-                  : `Scrim for ${systemName(os)} is available`}
+              {os === undefined ? 'Before you download' : `Download Scrim for ${systemName(os)}`}
             </h2>
             <p id={introId} className={styles.intro}>
-              {comingSoon
-                ? 'There is no installer for this system yet. Leave your name and email and we will write once, when it is ready.'
-                : 'We track the number of downloads, so let’s get to know you.'}
+              We track the number of downloads, so let’s get to know you.
             </p>
 
             <div className={styles.row}>
               <div className={styles.field}>
-                <label htmlFor={`${titleId}-name`}>Your name</label>
+                <label htmlFor={`${titleId}-name`} className={styles.visuallyHidden}>
+                  Your name
+                </label>
                 <input
                   id={`${titleId}-name`}
                   type="text"
                   autoComplete="name"
-                  placeholder="Ada Lovelace"
+                  placeholder="Your Name"
                   aria-invalid={errors.name === undefined ? undefined : true}
                   aria-describedby={describedBy('name')}
                   {...register('name')}
@@ -259,7 +251,9 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
               </div>
 
               <div className={styles.field}>
-                <label htmlFor={`${titleId}-email`}>Your email</label>
+                <label htmlFor={`${titleId}-email`} className={styles.visuallyHidden}>
+                  Your email
+                </label>
                 <input
                   id={`${titleId}-email`}
                   type="email"
@@ -294,19 +288,12 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                   {errors.os.message}
                 </p>
               )}
-              <p className={styles.hint}>
-                {platform?.os === 'unsupported'
-                  ? 'Scrim is for desktop computers. Windows has an installer today. macOS and Linux are coming soon.'
-                  : 'Windows has an installer today. macOS and Linux are coming soon.'}
-              </p>
             </fieldset>
 
-            {comingSoon ? null : (
-              <label className={styles.check}>
-                <input type="checkbox" {...register('updatesOptIn')} />
-                <span>Email me when a new version is out</span>
-              </label>
-            )}
+            <label className={styles.check}>
+              <input type="checkbox" {...register('updatesOptIn')} />
+              <span>Email me when a new version is out</span>
+            </label>
 
             {/* A trap for bots. People never see it, so only a bot fills it in. */}
             <div className={styles.trap} aria-hidden="true">
@@ -332,15 +319,7 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
               ) : (
                 <OsIcon os={os} size={20} />
               )}
-              {isSubmitting
-                ? comingSoon
-                  ? 'Saving your email...'
-                  : 'Starting your download...'
-                : comingSoon
-                  ? 'Download'
-                  : os === undefined
-                    ? 'Start download'
-                    : `Download for ${systemName(os)}`}
+              {isSubmitting ? 'Starting your download...' : 'Download'}
             </button>
 
             <p className={styles.privacy}>
@@ -358,16 +337,11 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
               <Check size={32} strokeWidth={3} />
             </span>
             <h2 id={titleId} className={styles.title} ref={heading} tabIndex={-1}>
-              {view.result.comingSoon === true
-                ? 'You are on the list.'
-                : 'Your download is starting.'}
+              {view.result.direct
+                ? 'Your download is starting.'
+                : 'Get Scrim from the Releases page.'}
             </h2>
-            {view.result.comingSoon === true ? (
-              <p className={styles.intro}>
-                Thanks, {view.firstName}. Scrim for {systemName(view.os)} is not ready yet. We will
-                write to you once, when it is.
-              </p>
-            ) : view.result.direct ? (
+            {view.result.direct ? (
               <p className={styles.intro}>
                 Thanks, {view.firstName}. {view.result.filename}
                 {view.result.version === '' ? '' : ` (version ${view.result.version})`} should begin
@@ -375,19 +349,18 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
               </p>
             ) : (
               <p className={styles.intro}>
-                Thanks, {view.firstName}. The installer for {systemName(view.os)} is published on
-                the Releases page, and we are opening it for you.
+                Thanks, {view.firstName}. We could not find a file for {systemName(view.os)} to
+                download directly, so we are opening the Releases page, where every installer is
+                published.
               </p>
             )}
-            {view.result.comingSoon === true ? null : (
-              <a
-                className={styles.again}
-                href={view.result.url}
-                {...(view.result.direct ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
-              >
-                {view.result.direct ? 'Nothing happened? Download again' : 'Open the Releases page'}
-              </a>
-            )}
+            <a
+              className={styles.again}
+              href={view.result.url}
+              {...(view.result.direct ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+            >
+              {view.result.direct ? 'Nothing happened? Download again' : 'Open the Releases page'}
+            </a>
             <MaltLink className={styles.support} label="Show your Support" icon="heart" />
             <button type="button" className={styles.submit} onClick={onClose}>
               Close
