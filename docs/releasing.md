@@ -201,3 +201,55 @@ server with a fake updater, and the real `electron-updater` is only exercised in
 pointed at a local feed. A signed, packaged update from a real GitHub release, and the Mac and Linux
 update paths, have not been run. Do that with a throwaway release (deleted afterwards) on a real machine before
 announcing a release that relies on it.
+
+## Keeping the database awake
+
+Supabase pauses a Free project that has too little database activity over 7 days. Checked against
+the Supabase "Project Pausing" page on 2026-11-02: a few requests a day to the database are
+typically enough to avoid it, a warning email arrives before a pause, a paused Free project can be
+restored from the dashboard for up to one year, and paid projects are never paused. The page speaks
+of requests to the database. It does not say in so many words that a Data API (REST) call counts,
+so this workflow relies on that reading. If the owner ever gets a pause warning with the workflow
+running green, treat the reading as wrong and move to a paid plan or another host.
+
+### How it works
+
+`.github/workflows/keepalive.yml` runs twice a day (03:23 and 15:23 UTC) and sends three requests
+each time to the Supabase REST API: `GET /rest/v1/Person?select=id&limit=1`. It uses the public anon
+(publishable) key and never the service role key. Row level security is on for `Person` and
+`Download` with no policies, so the anon key reads zero rows. The answer is an empty list, and the
+request still reaches the database. Never add a policy to those tables, because the anon key would
+then read names and emails.
+
+### Secrets
+
+Add two repository secrets under GitHub, Settings, Secrets and variables, Actions:
+
+- `SUPABASE_URL`: the Project URL, from the Supabase dashboard, Project Settings, API.
+- `SUPABASE_ANON_KEY`: the anon or publishable key, from the same page.
+
+### Run it once by hand
+
+Actions tab, Supabase keep-alive, Run workflow. It should finish green and end with "Supabase
+answered three times."
+
+### Reading a failure
+
+- 401: the key is wrong. Copy the anon or publishable key again.
+- 404: the table name is wrong, or the Data API is turned off for the project.
+- A 5xx or a timeout: the project may be paused. In the Supabase dashboard open the project and press
+  Resume project.
+
+A failed run makes GitHub email the person who last edited the schedule, if Actions failure
+notifications are on in their GitHub notification settings.
+
+### Limits
+
+- Scheduled workflows run only from the default branch, so the workflow does nothing until it is
+  merged into `main`.
+- A scheduled run can start late when GitHub is busy.
+- In a public repository GitHub disables scheduled workflows after 60 days with no repository
+  activity (checked against the GitHub Actions events documentation on 2026-11-02). Any push counts
+  as activity, and a disabled schedule can be switched on again in the Actions tab.
+- Free plan rules can change. The permanent fixes are a paid plan, or a database host that does not
+  pause.
