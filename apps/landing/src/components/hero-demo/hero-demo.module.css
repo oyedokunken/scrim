@@ -580,24 +580,48 @@
   padding: 0;
 }
 
-/* Chapter buttons under the timeline. Each is a 44px target and the current one is filled. */
+/* The chapter bar under the timeline. One segmented control with a small radius, exactly as wide
+   as the video. The cells share the width, so it never overflows, and it wraps into rows on a
+   narrow screen. Each cell is a 44px target and the current one is filled green. */
 .chapters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--scrim-space-2);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  box-sizing: border-box;
+  width: 100%;
   margin-top: var(--scrim-space-3);
+  overflow: hidden;
+  border: 1px solid var(--scrim-border-on-white);
+  border-radius: 6px;
+  background: var(--scrim-border-on-white);
+}
+
+@media (min-width: 30rem) {
+  .chapters {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 56rem) {
+  .chapters {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
 }
 
 .chapter {
+  min-width: 0;
   min-height: 2.75rem;
-  padding: 0 var(--scrim-space-3);
+  padding: 0 var(--scrim-space-1);
+  overflow: hidden;
   border: 0;
-  border-radius: var(--scrim-radius-pill);
-  background: var(--scrim-fill-quiet-on-white);
-  color: var(--scrim-black);
+  border-radius: 0;
+  background: var(--scrim-white);
+  color: var(--scrim-green);
   font: inherit;
-  font-size: var(--scrim-text-small);
+  font-size: 0.8125rem;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -611,8 +635,9 @@
 }
 
 .chapter:focus-visible {
+  position: relative;
   outline: 2px solid var(--scrim-green);
-  outline-offset: 2px;
+  outline-offset: -3px;
 }
 
 /* The sound toggle is a round, icon only button with the same 44px target as the others. */

@@ -309,6 +309,42 @@ test.describe('the chapter buttons', () => {
     }
   });
 
+  for (const width of [320, 375, 768, 1024, 1440]) {
+    test(`form one bar as wide as the video, with a small radius, at ${String(width)} px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const video = await demo(page).boundingBox();
+      const nav = page.getByRole('navigation', { name: 'Chapters' });
+      const bar = await nav.boundingBox();
+      // Same left and right edges as the video, to the pixel.
+      expect(bar?.x).toBeCloseTo(video?.x ?? -1, 0);
+      expect((bar?.x ?? 0) + (bar?.width ?? 0)).toBeCloseTo(
+        (video?.x ?? 0) + (video?.width ?? 0),
+        0,
+      );
+      const radius = await nav.evaluate((element) =>
+        parseFloat(getComputedStyle(element).borderTopLeftRadius),
+      );
+      expect(radius).toBeGreaterThanOrEqual(4);
+      expect(radius).toBeLessThanOrEqual(8);
+      for (const box of await nav.getByRole('button').evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const rect = button.getBoundingClientRect();
+          return { left: rect.left, right: rect.right, height: rect.height };
+        }),
+      )) {
+        expect(box.height).toBeGreaterThanOrEqual(44);
+        expect(box.left).toBeGreaterThanOrEqual((video?.x ?? 0) - 1);
+        expect(box.right).toBeLessThanOrEqual((video?.x ?? 0) + (video?.width ?? 0) + 1);
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    });
+  }
+
   test('can be used from the keyboard alone', async ({ page }) => {
     await pause(page);
     const edit = page.getByRole('navigation', { name: 'Chapters' }).getByRole('button', {
