@@ -1,0 +1,6 @@
+.screen {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-butter);
+  color: var(--scrim-black);
+}

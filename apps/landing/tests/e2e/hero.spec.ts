@@ -1,4 +1,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { MASTER_DURATION_MS, SEGMENTS, type Scene } from '@/lib/demo/master';
+
+const segment = (id: Scene) => SEGMENTS.find((entry) => entry.id === id) ?? SEGMENTS[0];
+/** A point well inside a chapter, as a share of the whole video, for clicking the timeline. */
+const shareOf = (id: Scene) =>
+  ((segment(id)?.start ?? 0) + 0.7 * ((segment(id)?.end ?? 0) - (segment(id)?.start ?? 0))) /
+  MASTER_DURATION_MS;
 
 const demo = (page: Page) => page.getByTestId('hero-demo');
 /** The one play control. Its name is Pause while playing, Play while paused and Replay at the end. */
@@ -9,8 +16,7 @@ const number = async (locator: Locator, name: string) =>
 const time = (locator: Locator) => number(locator, 'data-time');
 const scale = (locator: Locator) => number(locator, 'data-scale');
 
-/** The whole video is 30 seconds long. */
-const DURATION = 30_000;
+const DURATION = MASTER_DURATION_MS;
 
 /** Clicks the timeline at a share of its width, like a visitor would. */
 async function clickTimelineAt(page: Page, share: number) {
@@ -65,7 +71,11 @@ test.describe('the hero video', () => {
     const hero = page.locator('section[aria-labelledby="hero-title"]');
     // The hero holds the download link, the source link, the play control, the switch and the
     // timeline. There is no Play demo button, no caption and no second label.
-    await expect(hero.getByRole('button')).toHaveCount(1);
+    // The one control inside the video is Play and Pause. Under it sit one button for each chapter.
+    await expect(hero.getByRole('button')).toHaveCount(1 + SEGMENTS.length);
+    await expect(
+      hero.getByRole('navigation', { name: 'Chapters' }).getByRole('button'),
+    ).toHaveCount(SEGMENTS.length);
     await expect(hero.getByText('Play demo')).toHaveCount(0);
     await expect(hero.getByText(/Auto zoom is (on|off)/)).toHaveCount(0);
     await expect(hero.getByText('Timeline', { exact: true })).toHaveCount(0);
@@ -98,22 +108,15 @@ test.describe('the hero video', () => {
     const view = demo(page);
     await pause(page);
 
-    await clickTimelineAt(page, 0.5);
-    await expect.poll(() => time(view)).toBeGreaterThan(14_000);
-    expect(await time(view)).toBeLessThan(16_000);
-    await expect(view).toHaveAttribute('data-scene', 'demo');
+    await clickTimelineAt(page, shareOf('recording'));
+    await expect.poll(() => time(view)).toBeGreaterThan(segment('recording')?.start ?? 0);
+    expect(await time(view)).toBeLessThan(segment('recording')?.end ?? 0);
+    await expect(view).toHaveAttribute('data-scene', 'recording');
 
-    await clickTimelineAt(page, 0.03);
-    await expect(view).toHaveAttribute('data-scene', 'opening');
-
-    await clickTimelineAt(page, 0.12);
-    await expect(view).toHaveAttribute('data-scene', 'headline');
-
-    await clickTimelineAt(page, 0.82);
-    await expect(view).toHaveAttribute('data-scene', 'platforms');
-
-    await clickTimelineAt(page, 0.94);
-    await expect(view).toHaveAttribute('data-scene', 'closing');
+    for (const entry of SEGMENTS) {
+      await clickTimelineAt(page, shareOf(entry.id));
+      await expect(view).toHaveAttribute('data-scene', entry.id);
+    }
   });
 
   test('dragging the timeline scrubs the video and every layer follows the same time', async ({
@@ -130,10 +133,12 @@ test.describe('the hero video', () => {
     await expect(view).toHaveAttribute('data-playing', 'false');
     await page.mouse.move((box?.x ?? 0) + (box?.width ?? 0) * 0.5, y, { steps: 8 });
     await page.mouse.up();
-    await expect.poll(() => time(view)).toBeGreaterThan(14_000);
+    await expect.poll(() => time(view)).toBeGreaterThan(MASTER_DURATION_MS * 0.4);
     // The demo time is the master time minus where the demo starts.
     const master = await time(view);
-    expect(await number(view, 'data-demo-time')).toBe(Math.max(0, master - 5200));
+    expect(await number(view, 'data-demo-time')).toBe(
+      Math.max(0, master - (segment('recording')?.start ?? 0)),
+    );
     await expect(page.getByTestId('hero-cards').locator('[data-card="brand"]')).toHaveCSS(
       'opacity',
       '0',
@@ -155,22 +160,24 @@ test.describe('the hero video', () => {
     await expect.poll(() => scale(view)).toBeGreaterThan(1.5);
   });
 
-  test('plays all five scenes in order, then offers Replay in the same button', async ({
+  test('plays all nine chapters in order, then offers Replay in the same button', async ({
     page,
   }) => {
     test.setTimeout(120_000);
     const view = demo(page);
     const cards = page.getByTestId('hero-cards');
-    await expect(view).toHaveAttribute('data-scene', 'headline', { timeout: 8000 });
-    await expect(page.getByTestId('hero-logo')).toHaveCount(0);
-    await expect(cards.getByText('Record anything on your screen effortlessly')).toBeVisible({
-      timeout: 8000,
-    });
-    await expect(view).toHaveAttribute('data-scene', 'demo', { timeout: 8000 });
-    await expect.poll(() => scale(view), { timeout: 15_000 }).toBeGreaterThan(1.5);
-    await expect(view).toHaveAttribute('data-scene', 'platforms', { timeout: 25_000 });
-    await expect(cards.getByText('Available for all platforms')).toBeVisible();
-    await expect(view).toHaveAttribute('data-scene', 'closing', { timeout: 8000 });
+    for (const entry of SEGMENTS.slice(1)) {
+      await expect(view).toHaveAttribute('data-scene', entry.id, { timeout: 30_000 });
+      if (entry.id === 'headline') {
+        await expect(page.getByTestId('hero-logo')).toHaveCount(0);
+        await expect(cards.getByText('Record anything on your screen effortlessly')).toBeVisible({
+          timeout: 8000,
+        });
+      }
+      if (entry.id === 'recording') {
+        await expect.poll(() => scale(view), { timeout: 20_000 }).toBeGreaterThan(1.5);
+      }
+    }
     await expect(cards.getByText(/scrim\.app$/)).toBeVisible();
     await expect(playButton(page)).toHaveAccessibleName('Replay', { timeout: 8000 });
     await expect(view).toHaveAttribute('data-playing', 'false');
@@ -230,13 +237,9 @@ test.describe('the logo', () => {
   });
 
   // Each point sits well inside its scene. Only the first slide carries the logo.
-  const SCENES = [
-    ['opening', 0.03, 1],
-    ['headline', 0.12, 0],
-    ['demo', 0.5, 0],
-    ['platforms', 0.82, 0],
-    ['closing', 0.94, 0],
-  ] as const;
+  const SCENES = SEGMENTS.map(
+    (entry) => [entry.id, shareOf(entry.id), entry.id === 'opening' ? 1 : 0] as const,
+  );
 
   for (const [scene, at, logos] of SCENES) {
     test(`is ${logos === 1 ? 'shown' : 'absent'} in the ${scene} scene`, async ({ page }) => {
@@ -255,7 +258,7 @@ test.describe('the headline in the hero video', () => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/');
       await pause(page);
-      await clickTimelineAt(page, 0.12);
+      await clickTimelineAt(page, shareOf('headline'));
       await expect(demo(page)).toHaveAttribute('data-scene', 'headline');
       const lines = page.getByTestId('hero-cards').locator('[data-card="brand"] p > span');
       await expect(lines).toHaveCount(2);
@@ -327,16 +330,18 @@ test.describe('the recording look of the demo', () => {
     page,
   }) => {
     await page.goto('/');
-    for (const label of ['Logo', 'Headline', 'Demo', 'Platforms', 'Address']) {
-      await expect(page.locator(`[data-segment]`).filter({ hasText: label })).toHaveCount(1);
+    for (const entry of SEGMENTS) {
+      await expect(
+        page.locator(`[data-segment]`).filter({ hasText: new RegExp(`^${entry.label}$`) }),
+      ).toHaveCount(1);
     }
-    for (const label of ['0:00', '0:05', '0:10', '0:15', '0:20', '0:25', '0:30']) {
+    for (let second = 0; second <= Math.floor(MASTER_DURATION_MS / 5000) * 5; second += 5) {
+      const label = `0:${String(second).padStart(2, '0')}`;
       await expect(page.getByText(label, { exact: true }).first()).toBeAttached();
     }
     await pause(page);
-    await clickTimelineAt(page, 0.5);
-    await expect(page.getByText('0:15', { exact: true }).first()).toBeAttached();
-    await expect(timeline(page)).toHaveAttribute('aria-valuetext', /^Demo, 0:1\d of 0:30$/);
+    await clickTimelineAt(page, shareOf('edit'));
+    await expect(timeline(page)).toHaveAttribute('aria-valuetext', /^Edit, 0:\d\d of 0:\d\d$/);
   });
 });
 

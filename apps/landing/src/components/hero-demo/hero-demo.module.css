@@ -573,3 +573,44 @@
     display: none;
   }
 }
+
+/* A card that holds an app screen. It fills the video instead of centring its content. */
+.screenCard {
+  display: block;
+  padding: 0;
+}
+
+/* Chapter buttons under the timeline. Each is a 44px target and the current one is filled. */
+.chapters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--scrim-space-2);
+  margin-top: var(--scrim-space-3);
+}
+
+.chapter {
+  min-height: 2.75rem;
+  padding: 0 var(--scrim-space-3);
+  border: 0;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-fill-quiet-on-white);
+  color: var(--scrim-black);
+  font: inherit;
+  font-size: var(--scrim-text-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chapter:hover {
+  background: var(--scrim-green-tint);
+}
+
+.chapter[aria-current='true'] {
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+}
+
+.chapter:focus-visible {
+  outline: 2px solid var(--scrim-green);
+  outline-offset: 2px;
+}

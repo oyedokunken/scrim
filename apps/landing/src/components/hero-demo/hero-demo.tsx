@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { splitWords } from '@/lib/demo/words';
 import {
+  CARD_SCENES,
   DEMO_START_MS,
   MASTER_DURATION_MS,
   SEGMENTS,
@@ -43,6 +44,7 @@ import { LogoMark } from '../logo';
 import { OsIcon } from '../os-icons';
 import styles from './hero-demo.module.css';
 import { MockWindow } from './mock-window';
+import { SceneScreen } from './scene-screens';
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
@@ -74,6 +76,8 @@ const HEADLINE_BREAK = 4;
 const WORDS = splitWords(siteConfig.tagline);
 const HEADLINE_LINES = [WORDS.slice(0, HEADLINE_BREAK), WORDS.slice(HEADLINE_BREAK)] as const;
 const PLATFORMS = ['windows', 'macos', 'linux'] as const;
+/** The scenes that are an app screen on a card of their own, in the order they play. */
+const SCENE_CARDS = CARD_SCENES.filter((scene) => scene !== 'closing');
 
 // The first frame, drawn by the server: the logo card with the mark alone, and the demo (hidden
 // under the card) at its starting point, so the page never shows an empty box.
@@ -421,22 +425,26 @@ export function HeroDemo() {
               ))}
             </p>
           </div>
-          <div
-            className={styles.card}
-            data-card="platforms"
-            style={{ opacity: 'var(--platforms)' }}
-          >
+          {SCENE_CARDS.map((card) => (
+            <div
+              key={card}
+              className={`${styles.card} ${styles.screenCard}`}
+              data-card={card}
+              style={{ opacity: `var(--on-${card})` }}
+            >
+              <SceneScreen scene={card} />
+            </div>
+          ))}
+          <div className={styles.card} data-card="closing" style={{ opacity: 'var(--on-closing)' }}>
+            <p className={styles.address}>{siteConfig.heroAddress}</p>
             <ul className={styles.logos}>
               {PLATFORMS.map((os, index) => (
                 <li key={os} style={vars({ '--i': String(index) })}>
-                  <OsIcon os={os} size={44} />
+                  <OsIcon os={os} size={32} />
                 </li>
               ))}
             </ul>
             <p className={styles.line}>{siteConfig.heroPlatformLine}</p>
-          </div>
-          <div className={styles.card} data-card="final" style={{ opacity: 'var(--final)' }}>
-            <p className={styles.address}>{siteConfig.heroAddress}</p>
           </div>
         </div>
 
@@ -568,6 +576,23 @@ export function HeroDemo() {
             </span>
           ))}
         </div>
+        <nav className={styles.chapters} aria-label="Chapters">
+          {SEGMENTS.map((segment) => (
+            <button
+              key={segment.id}
+              type="button"
+              className={styles.chapter}
+              aria-current={currentScene === segment.id ? 'true' : undefined}
+              onClick={() => {
+                // Start the chapter a hair in, so its card is already showing when the video resumes.
+                player.current?.seek(segment.start + 60);
+                setEnded(false);
+              }}
+            >
+              {segment.label}
+            </button>
+          ))}
+        </nav>
       </div>
     </div>
   );
