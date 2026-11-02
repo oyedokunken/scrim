@@ -87,7 +87,7 @@ The landing page is a single Next.js project in `apps/landing`. It has these sec
 
 ## Project status
 
-The website is live. The Windows desktop app is in its first release (v1), due 30 October 2026. macOS and Linux installers follow.
+The website is live. Scrim runs on Windows, macOS and Linux, and the installers are published on the [Releases page](https://github.com/oyedokunken/scrim/releases). Windows has had the most testing.
 
 macOS and Linux: the packaging, FFmpeg pins, entitlements and release workflow are written, but only partly run. The Linux installers were built and their bundled FFmpeg was run in a Linux container. Nothing has run on a real Mac or a real Linux desktop yet. [docs/releasing.md](docs/releasing.md) lists exactly what is verified and gives a test checklist for each system.
 
@@ -140,7 +140,7 @@ pnpm install
 Useful commands:
 
 ```bash
-pnpm dev                # desktop app in development
+pnpm dev                # desktop app in dev mode
 pnpm dev:landing        # website
 pnpm db:generate        # Prisma client
 pnpm check              # lint, typecheck, test, build

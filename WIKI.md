@@ -16,7 +16,7 @@ The project is being built incrementally:
 4. Recording effects and editing
 5. Shortcuts, screenshots and release automation
 
-The website is live and the Windows desktop app is heading for its first release. Capture, recovery, screenshots, the overlay, the recording pill and the camera bubble are built. Export and editing are in progress.
+The website is live and the desktop app runs on Windows, macOS and Linux, with Windows tested the most. Capture, recovery, screenshots, the overlay, the recording pill, the camera bubble, editing and export are built.
 
 ## Repository structure
 
