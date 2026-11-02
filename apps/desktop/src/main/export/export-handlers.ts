@@ -112,7 +112,11 @@ export function createExportHandlers(deps: {
     },
     'export:rerender': async ({ folder, mode, look }) => {
       if (!deps.isKnownFolder(folder)) return null;
-      return toBridgeJob(await exporter.rerender(folder, mode, look));
+      return toBridgeJob(
+        await (look === undefined
+          ? exporter.rerender(folder, mode)
+          : exporter.rerender(folder, mode, look)),
+      );
     },
     'export:pending': () => exporter.pending(),
     'export:resume-pending': ({ folder }) => {
