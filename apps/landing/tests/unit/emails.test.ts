@@ -362,3 +362,45 @@ describe('sendOwnerNote', () => {
     expect(sent[0]?.attachments).toEqual([]);
   });
 });
+
+describe.each(SYSTEMS)('the emails for $name', (system) => {
+  const file = `Scrim-1.0.0-${system.os}.bin`;
+  const url = `https://github.com/oyedokunken/scrim/releases/download/v1.0.0/${file}`;
+  const download = renderDownloadEmail({
+    ...input,
+    osName: system.name,
+    filename: file,
+    url,
+    help: system.help,
+  });
+  const owner = renderOwnerEmail({
+    name: 'Ada Lovelace',
+    email: 'ada@example.com',
+    osName: system.name,
+    chip: '',
+    version: '1.0.0',
+    filename: file,
+    direct: true,
+    updatesOptIn: false,
+    when: '2026-11-02 09:30 UTC',
+    siteUrl: 'https://scrim.app',
+  });
+  const BANNED =
+    /coming soon|not out yet|isn.t out|first release|will be available|in development/i;
+
+  it('carries the file link, the version and the first run help', () => {
+    for (const part of [download.html, download.text]) {
+      expect(part).toContain(url);
+      expect(part).toContain('1.0.0');
+    }
+    for (const paragraph of system.help) {
+      expect(download.text).toContain(paragraph);
+    }
+  });
+
+  it('uses no unreleased wording, in HTML or plain text', () => {
+    for (const part of [download.html, download.text, download.subject, owner.html, owner.text]) {
+      expect(part).not.toMatch(BANNED);
+    }
+  });
+});

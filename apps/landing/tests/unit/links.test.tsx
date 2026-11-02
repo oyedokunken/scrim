@@ -32,15 +32,22 @@ describe('SiteLink', () => {
     expect(html).toContain('(opens in a new tab)');
   });
 
+  it('adds an external link arrow to outbound links', () => {
+    const html = renderToStaticMarkup(<SiteLink href="https://github.com/x">Source</SiteLink>);
+    expect(html).toContain('lucide-arrow-up-right');
+  });
+
   it('keeps a page on this site in the same tab', () => {
     const html = renderToStaticMarkup(<SiteLink href="/privacy">Privacy</SiteLink>);
     expect(html).not.toContain('target=');
     expect(html).not.toContain('opens in a new tab');
+    expect(html).not.toContain('lucide-arrow-up-right');
   });
 
   it('leaves a mail link alone', () => {
     const html = renderToStaticMarkup(<SiteLink href="mailto:a@b.co">Mail</SiteLink>);
     expect(html).not.toContain('target=');
+    expect(html).not.toContain('lucide-arrow-up-right');
   });
 
   it('passes the class and the children through', () => {
@@ -78,6 +85,7 @@ describe('every outbound link in the site config opens in a new tab', () => {
     const html = renderToStaticMarkup(<SiteLink href={href}>x</SiteLink>);
     expect(html).toContain('target="_blank"');
     expect(html).toContain('noopener noreferrer');
+    expect(html).toContain('lucide-arrow-up-right');
   });
 });
 
