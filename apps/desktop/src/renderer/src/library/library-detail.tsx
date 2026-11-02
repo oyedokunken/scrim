@@ -1,14 +1,4 @@
-import {
-  ArrowLeft,
-  Copy,
-  ExternalLink,
-  FolderOpen,
-  Image,
-  Pencil,
-  Share2,
-  Trash2,
-  Video,
-} from 'lucide-react';
+import { ArrowLeft, Copy, FolderOpen, Image, Pencil, Share2, Trash2, Video } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, ConfirmDialog, useShowError, useToast } from '../../ui';
 import type { LibraryItem } from '../../../shared/library-contract';
@@ -64,12 +54,6 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
     });
   };
 
-  const openFile = (): void => {
-    void actions.openFile(item.id).then((ok) => {
-      if (!ok) missing();
-    });
-  };
-
   const copyImage = (): void => {
     void actions.copyImage(item.id).then((ok) => {
       if (ok) toast('Copied to the clipboard');
@@ -82,32 +66,6 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
         });
       }
     });
-  };
-
-  const copyFile = (): void => {
-    void window.scrim
-      .invoke('share:run', { source: { kind: 'library', id: item.id }, action: 'copy-file' })
-      .then(
-        (result) => {
-          if (result.ok) toast(result.message);
-          else {
-            showError({
-              title: 'Scrim could not copy the file',
-              message: result.message,
-              code: `share-${result.reason}`,
-              retry: copyFile,
-            });
-          }
-        },
-        () => {
-          showError({
-            title: 'Scrim could not copy the file',
-            message: 'Try again.',
-            code: 'copy-failed',
-            retry: copyFile,
-          });
-        },
-      );
   };
 
   const facts: (readonly [string, string])[] = [
@@ -171,29 +129,37 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
               </div>
             ))}
           </dl>
-          <div className="lib-detail-actions" role="group" aria-label="Actions">
-            {item.isFile ? (
-              <Button
-                variant="primary"
-                icon={<ExternalLink size={16} strokeWidth={1.75} />}
-                onClick={openFile}
-              >
-                Open
+          <div
+            className={`lib-detail-actions ${item.kind === 'screenshot' ? 'five' : 'four'}`}
+            role="group"
+            aria-label="Actions"
+          >
+            <Button
+              icon={<Pencil size={16} strokeWidth={1.75} />}
+              disabled={item.kind === 'recording' && !item.canEdit}
+              onClick={() => {
+                void actions.open(item.id).then((opened) => {
+                  if (opened.kind === 'editor' || opened.kind === 'screenshot') onOpened(opened);
+                  else if (opened.kind === 'missing') missing();
+                });
+              }}
+            >
+              Edit
+            </Button>
+            {item.kind === 'screenshot' ? (
+              <Button icon={<Copy size={16} strokeWidth={1.75} />} onClick={copyImage}>
+                Copy
               </Button>
             ) : null}
-            {item.canEdit ? (
-              <Button
-                icon={<Pencil size={16} strokeWidth={1.75} />}
-                onClick={() => {
-                  void actions.open(item.id).then((opened) => {
-                    if (opened.kind === 'editor') onOpened(opened);
-                    else if (opened.kind === 'missing') missing();
-                  });
-                }}
-              >
-                Open in editor
-              </Button>
-            ) : null}
+            <Button
+              icon={<Share2 size={16} strokeWidth={1.75} />}
+              disabled={!item.isFile}
+              onClick={() => {
+                setSharing(true);
+              }}
+            >
+              Share
+            </Button>
             <Button
               icon={<FolderOpen size={16} strokeWidth={1.75} />}
               onClick={() => {
@@ -202,25 +168,6 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
             >
               Show in folder
             </Button>
-            {item.kind === 'screenshot' ? (
-              <Button icon={<Copy size={16} strokeWidth={1.75} />} onClick={copyImage}>
-                Copy
-              </Button>
-            ) : item.isFile ? (
-              <Button icon={<Copy size={16} strokeWidth={1.75} />} onClick={copyFile}>
-                Copy file
-              </Button>
-            ) : null}
-            {item.isFile ? (
-              <Button
-                icon={<Share2 size={16} strokeWidth={1.75} />}
-                onClick={() => {
-                  setSharing(true);
-                }}
-              >
-                Share
-              </Button>
-            ) : null}
             <Button
               variant="danger"
               icon={<Trash2 size={16} strokeWidth={1.75} />}

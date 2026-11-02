@@ -137,9 +137,18 @@ test.describe('the library', () => {
       await expect(detail).toBeVisible();
       await expect(detail.getByText('Login screen.png').first()).toBeVisible();
       await expect(detail.getByText('160 by 90')).toBeVisible();
-      for (const name of ['Open', 'Show in folder', 'Copy', 'Delete']) {
-        await expect(detail.getByRole('button', { name, exact: true })).toBeVisible();
-      }
+      const names = await detail
+        .getByRole('group', { name: 'Actions' })
+        .getByRole('button')
+        .allTextContents();
+      expect(names.map((name) => name.trim())).toEqual([
+        'Edit',
+        'Copy',
+        'Share',
+        'Show in folder',
+        'Delete',
+      ]);
+      await expect(detail.getByRole('button', { name: 'Open', exact: true })).toHaveCount(0);
       await page.getByRole('button', { name: 'Back', exact: true }).click();
       await expect(cards(page)).toHaveCount(2);
       await expect(page.getByRole('radio', { name: 'Screenshots' })).toBeChecked();
@@ -153,6 +162,73 @@ test.describe('the library', () => {
       disk.cleanup();
     }
   });
+
+  for (const size of [
+    { width: 1100, height: 700 },
+    { width: 1920, height: 1080 },
+  ] as const) {
+    test(`detail actions: five for a screenshot, four in two rows for a recording, one line each at ${String(size.width)}`, async ({
+      app,
+      page,
+    }) => {
+      const disk = await arrange(app, true);
+      try {
+        await page.setViewportSize(size);
+        await openLibrary(page);
+        const lines = async (): Promise<{ count: number; singleLine: boolean; rows: number[] }> =>
+          page.evaluate(() => {
+            const buttons = [...document.querySelectorAll('.lib-detail-actions .ui-button')];
+            const boxes = buttons.map((button) => button.getBoundingClientRect());
+            return {
+              count: buttons.length,
+              singleLine: buttons.every((button) => {
+                const style = getComputedStyle(button);
+                return (
+                  button.getBoundingClientRect().height <
+                    parseFloat(style.lineHeight || '20') * 2 + 8 &&
+                  button.scrollWidth <= button.clientWidth + 1
+                );
+              }),
+              rows: [...new Set(boxes.map((box) => Math.round(box.top)))],
+            };
+          });
+
+        await page.getByRole('button', { name: 'Open Login screen' }).click();
+        const shot = await lines();
+        expect(shot.count).toBe(5);
+        expect(shot.singleLine).toBe(true);
+        await page.getByRole('button', { name: 'Back', exact: true }).click();
+
+        await page.getByRole('button', { name: 'Open Take 1' }).click({ position: { x: 8, y: 8 } });
+        const recording = await lines();
+        expect(recording.count).toBe(4);
+        expect(recording.singleLine).toBe(true);
+        expect(recording.rows).toHaveLength(2);
+        const detail = page.getByRole('region', { name: /Details for Take 1/ });
+        const names = await detail
+          .getByRole('group', { name: 'Actions' })
+          .getByRole('button')
+          .allTextContents();
+        expect(names.map((name) => name.trim())).toEqual([
+          'Edit',
+          'Share',
+          'Show in folder',
+          'Delete',
+        ]);
+        // Equal widths in each row.
+        const widths = await detail
+          .getByRole('group', { name: 'Actions' })
+          .getByRole('button')
+          .evaluateAll((all) =>
+            all.map((button) => Math.round(button.getBoundingClientRect().width)),
+          );
+        expect(widths[0]).toBe(widths[1]);
+        expect(widths[2]).toBe(widths[3]);
+      } finally {
+        disk.cleanup();
+      }
+    });
+  }
 
   test('marks every recording with a centered 44 pixel play badge and no screenshot', async ({
     app,

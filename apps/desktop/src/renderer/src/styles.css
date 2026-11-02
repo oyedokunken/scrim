@@ -1234,10 +1234,21 @@ input[type='checkbox'] {
   overflow-wrap: anywhere;
 }
 
+/* Two equal columns. The fifth button of a screenshot takes the whole last row. */
 .lib-detail-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.lib-detail-actions.five > :last-child {
+  grid-column: 1 / -1;
+}
+
+.lib-detail-actions .ui-button {
+  min-width: 0;
+  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .lib-thumb-wrap {
