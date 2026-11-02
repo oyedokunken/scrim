@@ -182,7 +182,7 @@ if (!app.requestSingleInstanceLock()) {
     logger.info('app.start', { version: app.getVersion(), platform: process.platform });
     const recording = registerRecording({ appOrigin: target.origin });
     // Every finished recording, a recovered one too, becomes one MP4 in the recordings folder.
-    const exporter = registerExport({
+    const exporter = await registerExport({
       settings: () => settings?.get() ?? DEFAULT_SETTINGS,
       log: (message) => {
         logger.info('export', { message });

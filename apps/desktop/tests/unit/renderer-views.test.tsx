@@ -110,14 +110,12 @@ const finished: Finished = {
 const review = {
   finished,
   job: null,
-  onExport: noop,
   onCancelJob: noop,
   onRetryJob: noop,
   onRetrySafer: noop,
   onShowInFolder: noop,
   onRecordAgain: noop,
   onDiscarded: noop,
-  onExported: noop,
   onProblem: noop,
 };
 

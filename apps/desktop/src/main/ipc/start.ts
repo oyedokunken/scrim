@@ -194,6 +194,14 @@ export async function startIpc(options: {
     loadSource: loadExportSource,
     isKnownFolder,
     previewDir: previewFolder,
+    // While a newer render is going, the old file is out of date, so the page draws the live look.
+    finalVideo: (folder) =>
+      options.exporter.service.busyFor(folder)
+        ? undefined
+        : options.exporter.service.outputFor(folder),
+    stopRendering: (folder) => {
+      options.exporter.service.cancelFor(folder);
+    },
     outputFolder: () => settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
     fileSize: async (file) => {
       try {
@@ -273,6 +281,13 @@ export async function startIpc(options: {
           options.exporter.cancel(jobId);
         },
         retrySafer: (jobId) => options.exporter.retrySafer(jobId),
+        retry: (jobId) => options.exporter.retry(jobId),
+        rerender: (folder, mode) => options.exporter.rerender(folder, mode),
+        pending: () => options.exporter.pending(),
+        resumePending: (folder) => options.exporter.resumePending(folder),
+        dismissPending: (folder) => {
+          options.exporter.dismissPending(folder);
+        },
         latest: () => options.exporter.service.latest(),
         reveal: (jobId, what) => options.exporter.reveal(jobId, what),
       },

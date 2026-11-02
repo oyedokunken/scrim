@@ -11,6 +11,8 @@ export interface ShownError {
   nextStep?: string | undefined;
   /** Behind a Details button, for someone who reports the problem. */
   code?: string | undefined;
+  /** More words behind the Details button, such as the last lines a tool printed. */
+  details?: string | undefined;
   /** Runs the action again. Adds a Try again button. */
   retry?: (() => void) | undefined;
   /** Other buttons for what the person can do about it, such as opening a settings page. */
@@ -54,9 +56,12 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
           {details && error?.code !== undefined ? (
             <p className="ui-help ui-error-code">Error code: {error.code}</p>
           ) : null}
+          {details && error?.details !== undefined ? (
+            <pre className="ui-help ui-error-details">{error.details}</pre>
+          ) : null}
         </div>
         <div className="ui-confirm-actions">
-          {error?.code === undefined ? null : (
+          {error?.code === undefined && error?.details === undefined ? null : (
             <Button
               aria-expanded={details}
               onClick={() => {

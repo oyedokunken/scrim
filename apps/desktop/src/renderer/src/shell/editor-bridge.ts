@@ -1,6 +1,14 @@
 import type { EditorApi, ExportControls, ExportView } from '../editor/editor-api';
 import type { ExportJobView } from '../hooks';
 
+/** Recordings whose edits were saved since the page last asked, so leaving the editor can render again. */
+const edited = new Set<string>();
+
+/** True once, when edits to this recording were saved since the last call. */
+export function takeEdited(folder: string): boolean {
+  return edited.delete(folder);
+}
+
 function words(error: { message: string; nextStep: string }): string {
   return `${error.message} ${error.nextStep}`;
 }
@@ -71,6 +79,7 @@ export const editorApi: EditorApi = {
   async saveEdits(folder, edits) {
     try {
       const result = await window.scrim.invoke('editor:save-edits', { folder, edits });
+      if (result.ok) edited.add(folder);
       return result.ok ? { ok: true } : { ok: false, message: words(result.error) };
     } catch {
       return { ok: false, message: 'Scrim could not save your edits. Try again.' };

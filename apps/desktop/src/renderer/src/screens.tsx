@@ -24,20 +24,24 @@ import { UpdateModal } from './updates/update-modal';
 import { hasUpdateToShow, useUpdates } from './updates/use-updates';
 import { LibraryView } from './library/library-view';
 import type { OpenedItem } from './library/use-library';
-import { editorApi } from './shell/editor-bridge';
+import { editorApi, takeEdited } from './shell/editor-bridge';
+import { RerenderChoice } from './shell/rerender-choice';
+import { etaWords } from './review/review-screen';
 import { ScreenshotView, type ShotInfo } from './shell/screenshot-view';
 import { railView, showsSavedCard, VIEW_LABELS, type ViewId } from './shell/views';
 import { PermissionCheck } from './shell/permission-check';
 import { Welcome } from './shell/welcome';
 import { Camera } from 'lucide-react';
-import { Button, useShowError, type ShownError } from '../ui';
+import { Button, ConfirmDialog, useShowError, useToast, type ShownError } from '../ui';
 import {
   useAppVersion,
   useDevices,
+  usePendingRenders,
   useRecordingOutcome,
   useRecordingSnapshot,
   useScreenshotTaken,
   useExportJob,
+  useExportStatus,
   useSettings,
 } from './hooks';
 
@@ -104,6 +108,33 @@ export function MainScreen() {
   const exportJob = useExportJob();
   const devices = useDevices();
   const showError = useShowError();
+  const toast = useToast();
+  const renders = usePendingRenders();
+
+  // A video that finishes or fails is told about wherever the person is in the app.
+  useExportStatus((job) => {
+    if (job.preview) return;
+    if (job.phase === 'done' && job.result !== null) {
+      const { fellBack, savedIn } = job.result;
+      toast(fellBack ? "Saved in Scrim's own folder" : `Saved to ${savedIn}`, {
+        label: 'Show in folder',
+        run: () => {
+          void window.scrim.invoke('export:reveal', { jobId: job.id, what: 'output' });
+        },
+      });
+    } else if (job.phase === 'failed' && job.error !== null) {
+      showError({
+        title: 'Scrim could not make your video',
+        message: job.error.message,
+        nextStep: job.error.nextStep,
+        code: job.error.code,
+        details: job.error.stderrTail,
+        retry: () => {
+          void window.scrim.invoke('export:retry', { jobId: job.id });
+        },
+      });
+    }
+  });
   const controls = useRecordingControls(showError);
   const version = useAppVersion();
   const [starting, setStarting] = useState(false);
@@ -123,13 +154,24 @@ export function MainScreen() {
     setView(next);
   }, []);
   /** Goes back from an editor to where it was opened from, or to the Library when nowhere is known. */
+  /** The recording whose saved edits wait for the choice between Replace and Save as new. */
+  const [asking, setAsking] = useState<string | null>(null);
   const leaveEditor = useCallback(() => {
     const target = openedFrom ?? 'library';
+    // Saved edits make the video again. The page of the recording that was just made replaces its video
+    // at once. A recording from the Library asks first, because its video may be one the person shared.
+    if (editorFolder !== null && takeEdited(editorFolder)) {
+      if (finished?.folder === editorFolder) {
+        void window.scrim.invoke('export:rerender', { folder: editorFolder, mode: 'replace' });
+      } else {
+        setAsking(editorFolder);
+      }
+    }
     setShot(null);
     setOpenedFrom(null);
     if (target !== 'library') setLibraryDetail(null);
     setView(target);
-  }, [openedFrom]);
+  }, [openedFrom, editorFolder, finished]);
   const [entered, setEntered] = useState(false);
   // Set by Show welcome again in the settings, which shows the welcome screen once even when it is switched off.
   const [welcomeNow, setWelcomeNow] = useState(false);
@@ -364,11 +406,11 @@ export function MainScreen() {
   const state = live
     ? `${snapshot.phase === 'paused' ? 'Paused' : 'Recording'} ${formatTimer(snapshot.elapsedMs)}`
     : exporting
-      ? `Making video ${
+      ? `Making video${
           exportJob.progress === null
             ? ''
-            : `${String(Math.round(exportJob.progress.fraction * 100))}%`
-        }`.trim()
+            : ` ${String(Math.round(exportJob.progress.fraction * 100))}%${etaWords(exportJob.progress.etaMs)}`
+        }`
       : 'Ready';
 
   const startButton = (
@@ -428,14 +470,11 @@ export function MainScreen() {
             : {
                 finished,
                 job: exportJob,
-                onExport: () => {
-                  void window.scrim.invoke('export:start', { folder: finished.folder });
-                },
                 onCancelJob: (jobId: string) => {
                   void window.scrim.invoke('export:cancel', { jobId });
                 },
                 onRetryJob: (jobId: string) => {
-                  void window.scrim.invoke('export:retry-safer', { jobId });
+                  void window.scrim.invoke('export:retry', { jobId });
                 },
                 onRetrySafer: (jobId: string) => {
                   void window.scrim.invoke('export:retry-safer', { jobId });
@@ -448,12 +487,6 @@ export function MainScreen() {
                 },
                 onRecordAgain: dismiss,
                 onDiscarded: dismiss,
-                // The done dialog told the person where the file is (and any fall back to the app's
-                // own folder). Closing it clears the main view and opens Library.
-                onExported: () => {
-                  dismiss();
-                  changeView('library');
-                },
                 onProblem: (message: string, nextStep: string) => {
                   showError({ title: 'Scrim could not discard this recording', message, nextStep });
                 },
@@ -639,6 +672,47 @@ export function MainScreen() {
       >
         {main}
       </AppShell>
+      <ConfirmDialog
+        open={!live && renders.pending.length > 0}
+        title="Finish your video?"
+        confirmLabel="Finish now"
+        cancelLabel="Not now"
+        onCancel={() => {
+          for (const item of renders.pending) {
+            void window.scrim.invoke('export:dismiss-pending', { folder: item.folder });
+          }
+          renders.settle();
+        }}
+        onConfirm={() => {
+          for (const item of renders.pending) {
+            void window.scrim.invoke('export:resume-pending', { folder: item.folder });
+          }
+          renders.settle();
+        }}
+      >
+        {renders.pending.length === 1
+          ? `Scrim closed before the video for ${renders.pending[0]?.name ?? 'your recording'} was finished. Your recording is safe. Finish the video now?`
+          : `Scrim closed before ${String(renders.pending.length)} videos were finished. Your recordings are safe. Finish them now?`}
+      </ConfirmDialog>
+      <RerenderChoice
+        open={asking !== null}
+        name={asking === null ? '' : (asking.split(/[\\/]/).pop() ?? '').replace(/\.scrim$/i, '')}
+        onKeep={() => {
+          setAsking(null);
+        }}
+        onReplace={() => {
+          if (asking !== null) {
+            void window.scrim.invoke('export:rerender', { folder: asking, mode: 'replace' });
+          }
+          setAsking(null);
+        }}
+        onSaveNew={() => {
+          if (asking !== null) {
+            void window.scrim.invoke('export:rerender', { folder: asking, mode: 'new' });
+          }
+          setAsking(null);
+        }}
+      />
       <UpdateModal
         open={updateOpen}
         snapshot={updates.snapshot}

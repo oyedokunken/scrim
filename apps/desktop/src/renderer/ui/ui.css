@@ -572,6 +572,49 @@
   box-shadow: var(--ui-shadow-medium);
 }
 
+.ui-toast {
+  flex-wrap: wrap;
+}
+
+.ui-toast > span {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ui-toast-action {
+  flex: none;
+  padding: 4px 10px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--scrim-black);
+  cursor: pointer;
+  background: var(--scrim-butter);
+  border: 0;
+  border-radius: var(--ui-radius-sm, 6px);
+}
+
+.ui-toast-action:hover {
+  background: color-mix(in srgb, var(--scrim-butter) 85%, var(--scrim-black));
+}
+
+.ui-toast-action:focus-visible {
+  outline: 2px solid var(--scrim-butter);
+  outline-offset: 2px;
+}
+
+.ui-error-details {
+  max-height: 160px;
+  padding: 8px;
+  margin: 8px 0 0;
+  overflow: auto;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  background: color-mix(in srgb, var(--scrim-black) 6%, var(--scrim-white));
+  border-radius: var(--ui-radius-sm, 6px);
+}
+
 .ui-toast .icon-button {
   width: 28px;
   height: 28px;

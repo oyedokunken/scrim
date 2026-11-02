@@ -29,6 +29,11 @@ function setup(known = true) {
     start: vi.fn(() => job()),
     cancel: vi.fn(),
     retrySafer: vi.fn(() => job({ safer: true })),
+    retry: vi.fn(() => job()),
+    rerender: vi.fn(() => Promise.resolve(job())),
+    pending: vi.fn(() => Promise.resolve([{ folder: FOLDER, name: 'Take 1' }])),
+    resumePending: vi.fn(() => job()),
+    dismissPending: vi.fn(),
     latest: vi.fn(() => undefined),
     reveal: vi.fn(() => Promise.resolve(true)),
   };
@@ -56,7 +61,9 @@ describe('toBridgeJob', () => {
     expect(view.result?.fileName).toBe('Take 1.mp4');
     const text = JSON.stringify(view);
     expect(text).not.toContain('Projects');
-    expect(text).not.toContain('Videos');
+    // The finished file's folder is shown on purpose. The working folder is not.
+    expect(text).not.toContain('Projects');
+    expect(view.result?.savedIn).toBe(join('Videos', 'Scrim'));
     expect(exportJobSchema.safeParse(view).success).toBe(true);
     expect(events['export:status'].safeParse(view).success).toBe(true);
   });
@@ -116,6 +123,61 @@ describe('the export handlers', () => {
     expect(handlers['export:latest'](undefined)).toBeNull();
     expect(await handlers['export:reveal']({ jobId: 'job-1', what: 'output' })).toBe(true);
     expect(exporter.reveal).toHaveBeenCalledWith('job-1', 'output');
+  });
+});
+
+describe('the Replace, retry and unfinished render calls', () => {
+  it('render again with the choice that was made, only for a folder Scrim made', async () => {
+    const { handlers, exporter } = setup();
+    expect(await handlers['export:rerender']({ folder: FOLDER, mode: 'new' })).toMatchObject({
+      id: 'job-1',
+    });
+    expect(exporter.rerender).toHaveBeenCalledWith(FOLDER, 'new');
+    const strict = setup(false);
+    expect(
+      await strict.handlers['export:rerender']({ folder: 'C:\\x', mode: 'replace' }),
+    ).toBeNull();
+    expect(strict.exporter.rerender).not.toHaveBeenCalled();
+  });
+
+  it('retry the same render, or say there is nothing to retry', () => {
+    const { handlers, exporter } = setup();
+    expect(handlers['export:retry']({ jobId: 'job-1' })).toMatchObject({ id: 'job-1' });
+    vi.mocked(exporter.retry).mockReturnValueOnce(undefined);
+    expect(handlers['export:retry']({ jobId: 'gone' })).toBeNull();
+  });
+
+  it('list, finish and dismiss the renders Scrim did not live to finish', async () => {
+    const { handlers, exporter } = setup();
+    expect(await handlers['export:pending'](undefined)).toEqual([
+      { folder: FOLDER, name: 'Take 1' },
+    ]);
+    expect(handlers['export:resume-pending']({ folder: FOLDER })).toMatchObject({ id: 'job-1' });
+    expect(exporter.resumePending).toHaveBeenCalledWith(FOLDER);
+    void handlers['export:dismiss-pending']({ folder: FOLDER });
+    expect(exporter.dismissPending).toHaveBeenCalledWith(FOLDER);
+    const strict = setup(false);
+    expect(strict.handlers['export:resume-pending']({ folder: 'C:\\x' })).toBeNull();
+    expect(strict.exporter.resumePending).not.toHaveBeenCalled();
+  });
+
+  it('tell the page where the finished video went', () => {
+    const view = toBridgeJob(
+      job({
+        phase: 'done',
+        result: {
+          ok: true,
+          path: join('Videos', 'Scrim', 'Take 1.mp4'),
+          durationMs: 1,
+          bytes: 1,
+          encoder: 'x',
+          elapsedMs: 1,
+          note: null,
+          fellBack: false,
+        },
+      }),
+    );
+    expect(view.result?.savedIn).toBe(join('Videos', 'Scrim'));
   });
 });
 
