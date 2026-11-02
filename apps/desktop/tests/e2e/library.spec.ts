@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { axeViolations } from './axe';
 import { expect, test, enterApp } from './fixtures';
 import { picturesFixture } from './png-fixture';
 
@@ -83,6 +84,13 @@ async function openLibrary(page: Page): Promise<void> {
 }
 
 const cards = (page: Page) => page.locator('.lib-card');
+
+/** Axe must find nothing on the page. Set SCRIM_UI_SHOTS to a folder to also save a picture of Scrim's page. */
+async function checkPage(page: Page, name: string): Promise<void> {
+  const folder = process.env['SCRIM_UI_SHOTS'];
+  if (folder !== undefined) await page.screenshot({ path: `${folder}/${name}.png` });
+  expect(await axeViolations(page)).toEqual([]);
+}
 
 test.describe('the library', () => {
   test('lists recordings and screenshots, filters, searches and sorts them', async ({
@@ -195,6 +203,7 @@ test.describe('the library', () => {
 
         await page.getByRole('button', { name: 'Open Login screen' }).click();
         const shot = await lines();
+        await checkPage(page, `library-detail-actions-${String(size.width)}`);
         expect(shot.count).toBe(5);
         expect(shot.singleLine).toBe(true);
         await page.getByRole('button', { name: 'Back', exact: true }).click();
@@ -230,6 +239,90 @@ test.describe('the library', () => {
     });
   }
 
+  test('shows the exported video in a player with its real size, folder and a 12 hour date', async ({
+    app,
+    page,
+  }) => {
+    const disk = await arrange(app, true);
+    try {
+      const mp4 = join(disk.root, 'videos', 'Scrim', 'Take 1.mp4');
+      execFileSync(
+        process.env['SCRIM_FFMPEG'] ?? 'ffmpeg',
+        [
+          '-v',
+          'error',
+          '-f',
+          'lavfi',
+          '-i',
+          'testsrc2=size=640x360:rate=30',
+          '-t',
+          '20',
+          '-pix_fmt',
+          'yuv420p',
+          '-y',
+          mp4,
+        ],
+        { stdio: 'ignore' },
+      );
+      await page.setViewportSize({ width: 1100, height: 700 });
+      await openLibrary(page);
+      // Pressing the play badge opens the detail and starts the video.
+      await page.getByRole('button', { name: 'Play Take 1' }).click();
+      const detail = page.getByRole('region', { name: /Details for Take 1/ });
+      const video = detail.locator('video');
+      await expect(video).toBeVisible();
+      await expect
+        .poll(() => video.evaluate((element: HTMLVideoElement) => element.videoWidth))
+        .toBe(640);
+      await expect
+        .poll(() => video.evaluate((element: HTMLVideoElement) => element.paused))
+        .toBe(false);
+      await expect(detail.getByText('Not exported yet')).toHaveCount(0);
+      await expect(detail.getByRole('button', { name: 'Make video' })).toHaveCount(0);
+      const facts = await detail.locator('.lib-detail-facts').innerText();
+      expect(facts).toContain(join(disk.root, 'videos', 'Scrim'));
+      expect(facts).not.toContain('Projects');
+      expect(facts).toMatch(/Size\s*\d[\d.]* (KB|MB)/);
+      expect(facts).toMatch(/Created\s*[A-Z][a-z]+ \d{1,2}, \d{4} at \d{1,2}:\d{2} (AM|PM)/);
+      await checkPage(page, 'library-detail-video');
+    } finally {
+      disk.cleanup();
+    }
+  });
+
+  test('offers Make video for a recording without an MP4 and keeps the working files', async ({
+    app,
+    page,
+  }) => {
+    const disk = await arrange(app, true);
+    try {
+      await openLibrary(page);
+      await page.getByRole('button', { name: 'Open Take 1' }).click({ position: { x: 8, y: 8 } });
+      const detail = page.getByRole('region', { name: /Details for Take 1/ });
+      await expect(detail.getByText('Not exported yet')).toBeVisible();
+      await expect(detail.getByRole('button', { name: 'Make video' })).toBeVisible();
+      await expect(detail.locator('video')).toHaveCount(0);
+      expect(existsSync(join(disk.root, 'local', 'Scrim', 'Projects', 'Take 1.scrim'))).toBe(true);
+    } finally {
+      disk.cleanup();
+    }
+  });
+
+  test('shows a screenshot at full size, not a stretched thumbnail', async ({ app, page }) => {
+    const disk = await arrange(app, true);
+    try {
+      await openLibrary(page);
+      await page.getByRole('button', { name: 'Open Login screen' }).click();
+      const image = page.getByRole('img', { name: 'Screenshot Login screen' });
+      await expect(image).toBeVisible();
+      const natural = await image.evaluate((element: HTMLImageElement) => element.naturalWidth);
+      expect(natural).toBe(160);
+      await checkPage(page, 'library-detail-shot');
+    } finally {
+      disk.cleanup();
+    }
+  });
+
   test('marks every recording with a centered 44 pixel play badge and no screenshot', async ({
     app,
     page,
@@ -238,6 +331,7 @@ test.describe('the library', () => {
     try {
       await openLibrary(page);
       await expect(page.getByRole('button', { name: /^Play / })).toHaveCount(2);
+      await checkPage(page, `library-grid-${String(page.viewportSize()?.width)}`);
       for (const card of await cards(page).all()) {
         const isShot = (await card.getByRole('img', { name: 'Screenshot' }).count()) > 0;
         await expect(card.getByRole('button', { name: /^Play / })).toHaveCount(isShot ? 0 : 1);

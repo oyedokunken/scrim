@@ -252,6 +252,13 @@ export async function startIpc(options: {
     extraScreenshotsFolder: screenshotFallbackFolder,
     extraVideosFolder: exportFallbackFolder,
     share,
+    issueMedia: (file, label) => options.media.issue(file, label),
+    // The same render as the review screen's Export: one MP4 in the videos folder, no preview.
+    startRender: (folder) => {
+      if (!isKnownFolder(folder)) return false;
+      options.exporter.start({ folder, collision: 'number' });
+      return true;
+    },
   });
 
   registerIpc({

@@ -1,8 +1,19 @@
-import { ArrowLeft, Copy, FolderOpen, Image, Pencil, Share2, Trash2, Video } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+  ArrowLeft,
+  Clapperboard,
+  Copy,
+  FolderOpen,
+  Image,
+  Pencil,
+  Share2,
+  Trash2,
+  Video,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button, ConfirmDialog, useShowError, useToast } from '../../ui';
 import type { LibraryItem } from '../../../shared/library-contract';
-import { formatBytes, formatTimer } from '../format';
+import { formatBytes, formatMoment, formatTimer } from '../format';
+import { useExportJob } from '../hooks';
 import { fullFileName } from './library-model';
 import { ShareDialog } from '../share/share-dialog';
 import type { OpenedItem } from './use-library';
@@ -22,19 +33,33 @@ export interface LibraryDetailProps {
 }
 
 /** Everything about one library item: a preview, its details, and what to do with it. */
-export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: LibraryDetailProps) {
+export function LibraryDetail({
+  item,
+  autoPlay = false,
+  actions,
+  onBack,
+  onOpened,
+  onReload,
+}: LibraryDetailProps) {
   const toast = useToast();
   const showError = useShowError();
+  const job = useExportJob();
   const [preview, setPreview] = useState<{ id: string; url: string | null } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [sharing, setSharing] = useState(false);
+  /** True from pressing Make video until that render ends. */
+  const [making, setMaking] = useState(false);
+  const wasWorking = useRef(false);
 
+  // A screenshot shows its full picture and a recording its real video. An item with no MP4 has neither.
   useEffect(() => {
     let alive = true;
     const load =
       item.kind === 'screenshot'
         ? window.scrim.invoke('library:preview', { id: item.id })
-        : window.scrim.invoke('library:thumbnail', { id: item.id });
+        : item.hasVideo
+          ? window.scrim.invoke('library:media', { id: item.id })
+          : Promise.resolve(null);
     void load
       .catch(() => null)
       .then((url) => {
@@ -43,7 +68,47 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
     return () => {
       alive = false;
     };
-  }, [item.id, item.kind]);
+  }, [item.id, item.kind, item.hasVideo]);
+
+  // When the render that Make video started ends, the Library is read again so the MP4 shows up.
+  const phase = job !== null && !job.preview ? job.phase : null;
+  const working = phase === 'queued' || phase === 'running';
+  useEffect(() => {
+    if (!making) return;
+    if (working) {
+      wasWorking.current = true;
+      return;
+    }
+    if (!wasWorking.current) return;
+    wasWorking.current = false;
+    setMaking(false);
+    if (phase === 'done') {
+      onReload();
+    } else if (phase === 'failed') {
+      showError({
+        title: 'Scrim could not make the video',
+        message: job?.error?.message ?? 'Something went wrong while making the video.',
+        ...(job?.error?.nextStep === undefined ? {} : { nextStep: job.error.nextStep }),
+        code: 'make-video-failed',
+      });
+    }
+  }, [making, working, phase, job, onReload, showError]);
+
+  const makeVideo = (): void => {
+    setMaking(true);
+    void window.scrim.invoke('library:make-video', { id: item.id }).then(
+      (queued) => {
+        if (!queued) {
+          setMaking(false);
+          missing();
+        }
+      },
+      () => {
+        setMaking(false);
+        missing();
+      },
+    );
+  };
 
   const url = preview?.id === item.id ? preview.url : null;
   const missing = (): void => {
@@ -76,7 +141,7 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
     ...(item.width === null || item.height === null
       ? []
       : [['Dimensions', `${String(item.width)} by ${String(item.height)}`] as const]),
-    ['Created', new Date(item.createdMs).toLocaleString()],
+    ['Created', formatMoment(item.createdMs)],
     ['Folder', item.folder],
   ];
 
@@ -97,16 +162,24 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
             item.kind === 'screenshot' ? (
               <Image size={40} strokeWidth={1.5} aria-hidden="true" />
             ) : (
-              <Video size={40} strokeWidth={1.5} aria-hidden="true" />
+              <div className="lib-detail-novideo">
+                <Video size={40} strokeWidth={1.5} aria-hidden="true" />
+                {item.hasVideo ? null : <p className="ui-help">The video is not made yet.</p>}
+              </div>
             )
+          ) : item.kind === 'recording' ? (
+            <video
+              key={url}
+              src={url}
+              controls
+              preload="metadata"
+              autoPlay={autoPlay}
+              aria-label={`Video ${item.name}`}
+            />
           ) : (
             <img
               src={url}
-              alt={
-                item.kind === 'screenshot'
-                  ? `Screenshot ${item.name}`
-                  : `First frame of ${item.name}`
-              }
+              alt={`Screenshot ${item.name}`}
               draggable={item.isFile}
               onDragStart={(event) => {
                 event.preventDefault();
@@ -178,6 +251,25 @@ export function LibraryDetail({ item, actions, onBack, onOpened, onReload }: Lib
               Delete
             </Button>
           </div>
+          {item.kind === 'recording' && !item.hasVideo && item.canEdit ? (
+            <div className="lib-detail-make">
+              <Button
+                variant="primary"
+                icon={<Clapperboard size={16} strokeWidth={1.75} />}
+                disabled={making}
+                onClick={makeVideo}
+              >
+                {making ? 'Making video' : 'Make video'}
+              </Button>
+              <p className="ui-help" role="status">
+                {making
+                  ? working && job?.progress != null
+                    ? `Making your video, ${String(Math.round(job.progress.fraction * 100))}%`
+                    : 'Making your video'
+                  : 'This recording has no video file yet. Your working files are kept as they are.'}
+              </p>
+            </div>
+          ) : null}
         </div>
       </div>
 

@@ -151,7 +151,7 @@ function Card({
           type="button"
           className="lib-open"
           onClick={onOpen}
-          aria-label={`Open ${item.name}`}
+          aria-label={`Open ${item.name}${isNew(item, now) ? ', new' : ''}`}
           draggable={item.isFile}
           onDragStart={(event) => {
             event.preventDefault();

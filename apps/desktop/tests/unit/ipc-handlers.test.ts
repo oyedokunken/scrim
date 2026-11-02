@@ -47,6 +47,8 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       lookup: vi.fn(() => Promise.resolve(null)),
       preview: vi.fn(() => Promise.resolve(null)),
       play: vi.fn(() => Promise.resolve(true)),
+      media: vi.fn(() => Promise.resolve(null)),
+      makeVideo: vi.fn(() => false),
       openFile: vi.fn(() => Promise.resolve(true)),
       fileOf: vi.fn(() => undefined),
       reveal: vi.fn(),

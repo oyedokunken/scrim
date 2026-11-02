@@ -49,6 +49,8 @@ export function createRealLibrary(options: {
   extraScreenshotsFolder?: () => string;
   extraVideosFolder?: () => string;
   share: ((path: string) => Promise<void>) | null;
+  issueMedia: (file: string, label: string) => string | undefined;
+  startRender: (folder: string) => boolean;
 }): Library {
   const paths = resolveFfmpegPaths({
     isPackaged: app.isPackaged,
@@ -142,6 +144,8 @@ export function createRealLibrary(options: {
       shell.showItemInFolder(path);
     },
     share: options.share ?? (() => Promise.reject(new Error('sharing is not available'))),
+    issueMedia: options.issueMedia,
+    startRender: options.startRender,
     imageSize: async (path) => {
       try {
         const handle = await open(path, 'r');

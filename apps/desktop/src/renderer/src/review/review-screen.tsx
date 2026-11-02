@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, ConfirmDialog, Segmented } from '../../ui';
-import { formatBytes, formatTimer } from '../format';
+import { formatBytes, formatMoment, formatTimer } from '../format';
 import type { ExportJobView, Finished } from '../hooks';
 import { ShareDialog } from '../share/share-dialog';
 import { ReviewPlayer, type ReviewMode } from './review-player';
@@ -237,7 +237,7 @@ export function ReviewScreen({
               </div>
               <div>
                 <dt>Recorded</dt>
-                <dd>{new Date(review.createdAt).toLocaleString()}</dd>
+                <dd>{formatMoment(review.createdAt)}</dd>
               </div>
               <div className="review-fact-wide">
                 <dt>Export goes to</dt>

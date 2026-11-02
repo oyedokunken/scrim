@@ -395,3 +395,82 @@ describe('lookup, preview and play', () => {
     expect(library.fileOf('../../etc/passwd')).toBeUndefined();
   });
 });
+
+describe('playing and making the video of a recording', () => {
+  const projects = [dir('Take 1.scrim', 1)];
+
+  it('hands the page an address for the exported video, and nothing for the rest', async () => {
+    const { deps, library } = setup(
+      { projects, videos: [file('Take 1.mp4', 5)], shots: [file('Shot.png', 5)] },
+      projectText('Take 1'),
+    );
+    deps.issueMedia = vi.fn(() => 'scrim-media://p/token/video');
+    vi.mocked(deps.exists).mockResolvedValue(true);
+    const items = await library.list();
+    const video = items.find((item) => item.kind === 'recording')?.id ?? '';
+    const shot = items.find((item) => item.kind === 'screenshot')?.id ?? '';
+    expect(await library.media(video)).toBe('scrim-media://p/token/video');
+    expect(deps.issueMedia).toHaveBeenCalledWith(join(VIDEOS, 'Take 1.mp4'), 'video');
+    expect(await library.media(shot)).toBeNull();
+  });
+
+  it('has no address for a recording without an MP4, or when the file is gone', async () => {
+    const none = setup({ projects }, projectText('Take 1'));
+    none.deps.issueMedia = vi.fn(() => 'scrim-media://p/x');
+    const noneItems = await none.library.list();
+    expect(await none.library.media(noneItems[0]?.id ?? '')).toBeNull();
+    const gone = setup({ projects, videos: [file('Take 1.mp4', 5)] }, projectText('Take 1'));
+    gone.deps.issueMedia = vi.fn(() => 'scrim-media://p/x');
+    const goneItems = await gone.library.list();
+    expect(await gone.library.media(goneItems[0]?.id ?? '')).toBeNull();
+  });
+
+  it('renders the working folder of a recording that has no MP4, and keeps the working files', async () => {
+    const { deps, library } = setup({ projects }, projectText('Take 1'));
+    deps.startRender = vi.fn(() => true);
+    const [item] = await library.list();
+    expect(item?.hasVideo).toBe(false);
+    expect(library.makeVideo(item?.id ?? '')).toBe(true);
+    expect(deps.startRender).toHaveBeenCalledWith(join(PROJECTS, 'Take 1.scrim'));
+    expect(deps.trash).not.toHaveBeenCalled();
+  });
+
+  it('does not render a recording that already has its MP4, a screenshot, or an MP4 with no working folder', async () => {
+    const { deps, library } = setup(
+      {
+        projects,
+        videos: [file('Take 1.mp4', 5), file('Loose.mp4', 4)],
+        shots: [file('Shot.png', 3)],
+      },
+      projectText('Take 1'),
+    );
+    deps.startRender = vi.fn(() => true);
+    for (const item of await library.list()) expect(library.makeVideo(item.id)).toBe(false);
+    expect(deps.startRender).not.toHaveBeenCalled();
+  });
+
+  it('keeps the id of a recording when its MP4 appears, so an open detail stays open', async () => {
+    const before = setup({ projects }, projectText('Take 1'));
+    const after = setup({ projects, videos: [file('Take 1.mp4', 5)] }, projectText('Take 1'));
+    expect((await before.library.list())[0]?.id).toBe((await after.library.list())[0]?.id);
+  });
+
+  it('shows the real size and folder of the MP4 once it exists', async () => {
+    const { library } = setup(
+      { projects, videos: [file('Take 1.mp4', 5, 2048)] },
+      projectText('Take 1'),
+    );
+    const [item] = await library.list();
+    expect(item?.bytes).toBe(2048);
+    expect(item?.folder).toBe(VIDEOS);
+  });
+
+  it('routes both calls through the handlers', async () => {
+    const { deps, library } = setup({ projects }, projectText('Take 1'));
+    deps.startRender = vi.fn(() => true);
+    const handlers = createLibraryHandlers({ library, canShare: () => false });
+    const [item] = await library.list();
+    expect(await handlers['library:make-video']({ id: item?.id ?? '' })).toBe(true);
+    expect(await handlers['library:media']({ id: item?.id ?? '' })).toBeNull();
+  });
+});

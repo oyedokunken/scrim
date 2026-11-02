@@ -40,6 +40,10 @@ export interface LibraryDeps {
   share: (path: string) => Promise<void>;
   /** Image size from the file header, or null. */
   imageSize: (path: string) => Promise<{ width: number; height: number } | null>;
+  /** An address the page can play for a file, or undefined when the file is outside the allowed folders. */
+  issueMedia?: (file: string, label: string) => string | undefined;
+  /** Queues the render of a working folder into the videos folder. False when it could not be queued. */
+  startRender?: (folder: string) => boolean;
 }
 
 interface Entry {
@@ -256,7 +260,12 @@ export function createLibrary(deps: LibraryDeps) {
   /** The same file gets the same id in every listing, so a dialog opened before a refresh still works. */
   const toItem = (entry: Entry): LibraryItem => {
     const id = createHash('sha1')
-      .update(`${entry.kind}|${entry.file ?? ''}|${entry.project ?? ''}`)
+      // A recording with a working folder keeps its id when its MP4 appears, so an open detail stays open.
+      .update(
+        entry.project === null
+          ? `${entry.kind}|${entry.file ?? ''}|`
+          : `${entry.kind}||${entry.project}`,
+      )
       .digest('hex')
       .slice(0, 24);
     known.set(id, entry);
@@ -322,6 +331,24 @@ export function createLibrary(deps: LibraryDeps) {
       const entry = need(id);
       if (entry.kind !== 'screenshot' || entry.file === null) return null;
       return deps.readImage(entry.file);
+    },
+
+    /** An address the detail view plays, for a recording that has its MP4. Null for anything else. */
+    async media(id: string): Promise<string | null> {
+      const entry = need(id);
+      if (entry.kind !== 'recording' || entry.file === null) return null;
+      if (!(await deps.exists(entry.file))) return null;
+      return deps.issueMedia?.(entry.file, 'video') ?? null;
+    },
+
+    /**
+     * Renders the MP4 of a recording that has only its working files. The working files stay where
+     * they are. False when the recording has no working folder or the render could not be queued.
+     */
+    makeVideo(id: string): boolean {
+      const entry = need(id);
+      if (entry.kind !== 'recording' || entry.file !== null || entry.project === null) return false;
+      return deps.startRender?.(entry.project) ?? false;
     },
 
     /** Plays the exported video in the system player. */

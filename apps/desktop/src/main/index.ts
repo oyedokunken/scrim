@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { APP_ID, APP_NAME } from '../shared/app-id';
 import { devDockIconPath } from './app-icon';
 import { handleAppRequest } from './app-protocol';
-import { previewFolder } from './export/register';
+import { exportFallbackFolder, previewFolder } from './export/register';
 import { handleMediaRequest } from './media/media-protocol';
 import { MEDIA_SCHEME, MediaRegistry } from './media/media-registry';
 import { projectsRoot } from './recording/projects-folder';
@@ -165,6 +165,9 @@ if (!app.requestSingleInstanceLock()) {
           userData: app.getPath('userData'),
         }),
         previewFolder(),
+        // The finished videos, so the Library can play them. Only files the Library names are served.
+        settings?.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+        exportFallbackFolder(),
       ],
       process.platform === 'win32',
     );

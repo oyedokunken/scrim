@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { AboutCard, formatDay, formatMoment } from '../../src/renderer/src/settings/about-card';
+import { formatDay, formatMoment } from '../../src/renderer/src/format';
+import { AboutCard } from '../../src/renderer/src/settings/about-card';
 
 describe('the about card', () => {
   it('shows the short line, the facts and the privacy note', () => {
@@ -37,5 +38,13 @@ describe('the about card', () => {
     expect(formatDay('soon')).toBe('soon');
     expect(formatMoment('not a time')).toBe('not a time');
     expect(formatMoment('2026-10-30T10:00:00.000Z', 'en-US')).toContain('2026');
+  });
+
+  it('writes a moment with a 12 hour clock and no seconds', () => {
+    const text = formatMoment(new Date(2026, 9, 31, 0, 59, 52).getTime(), 'en-US');
+    expect(text).toBe('October 31, 2026 at 12:59 AM');
+    expect(formatMoment(new Date(2026, 9, 31, 13, 5).getTime(), 'en-US')).toBe(
+      'October 31, 2026 at 1:05 PM',
+    );
   });
 });

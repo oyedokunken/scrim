@@ -2,31 +2,13 @@ import { ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { About, SystemInfo } from '../../../shared/about-contract';
 import { Button } from '../../ui';
+import { formatDay, formatMoment } from '../format';
 import { GITHUB, Glyph } from '../shell/brand-glyphs';
 import { BuiltBy } from '../shell/built-by';
 
 const SOURCE_URL = 'https://github.com/oyedokunken/scrim';
 const FFMPEG_NOTES_URL =
   'https://github.com/oyedokunken/scrim/blob/main/docs/adr/0007-ffmpeg-bundling.md';
-
-const DAY_FORMAT: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-
-/** "2026-10-28" as "October 28, 2026" in the person's language. Anything else is shown as it came. */
-export function formatDay(day: string, locale?: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
-  if (match === null) return day;
-  const [, year, month, date] = match;
-  const when = new Date(Number(year), Number(month) - 1, Number(date));
-  return Number.isNaN(when.getTime()) ? day : when.toLocaleDateString(locale, DAY_FORMAT);
-}
-
-/** An ISO time as a local date and time, or the text unchanged when it cannot be read. */
-export function formatMoment(iso: string, locale?: string): string {
-  const when = new Date(iso);
-  return Number.isNaN(when.getTime())
-    ? iso
-    : when.toLocaleString(locale, { ...DAY_FORMAT, hour: 'numeric', minute: '2-digit' });
-}
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
