@@ -12,6 +12,7 @@ import { RecorderHost } from './recorder-host';
 import { openRecorderWindow } from './recorder-window';
 import { RecordingService } from './recording-service';
 import { currentPlatform } from '../platform/platform';
+import { portalCapture } from './portal-instance';
 import { createSessionIndex } from './session-store';
 import type { Outcome, ResolvedSource, SourceSpec } from './types';
 import { makeError } from './messages';
@@ -53,6 +54,18 @@ function resolveSource(spec: SourceSpec): Promise<Outcome<ResolvedSource>> {
   const display =
     displays.find((candidate) => String(candidate.id) === requested) ?? screen.getPrimaryDisplay();
   if (spec.kind === 'window') {
+    // On a portal session the source was chosen in the portal, and asking for the list again
+    // would open the picker a second time.
+    if (currentPlatform().capture.mode === 'portal' && portalCapture().picked() !== undefined) {
+      return Promise.resolve({
+        ok: true,
+        value: {
+          kind: 'window',
+          origin: { x: display.bounds.x, y: display.bounds.y },
+          scaleFactor: display.scaleFactor,
+        },
+      });
+    }
     return Promise.resolve(
       desktopCapturer
         .getSources({ types: ['window'], thumbnailSize: { width: 0, height: 0 } })
@@ -97,8 +110,12 @@ export function createRecordingService(options: CreateServiceOptions): Recording
       console.error(message);
     });
   let target: SourceSpec | undefined;
-  installDisplayMediaHandler(session.defaultSession, () =>
-    target === undefined ? undefined : toCaptureTarget(target),
+  installDisplayMediaHandler(
+    session.defaultSession,
+    () => (target === undefined ? undefined : toCaptureTarget(target)),
+    currentPlatform().capture.mode === 'portal'
+      ? () => portalCapture().picked()?.source
+      : undefined,
   );
 
   const requireHook = createRequire(__filename);

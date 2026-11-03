@@ -16,6 +16,7 @@ import { exportFallbackFolder, previewFolder } from './export/register';
 import { handleMediaRequest } from './media/media-protocol';
 import { MEDIA_SCHEME, MediaRegistry } from './media/media-registry';
 import { currentPlatform } from './platform/platform';
+import { portalCapture } from './recording/portal-instance';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
 import { screenshotFolderOf } from './ipc/handlers';
@@ -56,6 +57,13 @@ if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 // there is no lookup. It must be set before the app is ready. The optional update check will need
 // its own session if it has to use the system proxy (see docs/adr/0006-no-proxy-lookup.md).
 app.commandLine.appendSwitch('no-proxy-server');
+
+// On a Wayland session these let Electron run natively and capture the screen through the
+// PipeWire portal. There are none on any other system. They must be set before the app is ready.
+for (const [name, value] of platform.startupSwitches) {
+  if (value === undefined) app.commandLine.appendSwitch(name);
+  else app.commandLine.appendSwitch(name, value);
+}
 
 // Sandbox every renderer, including any window or frame created later. Must run before ready.
 app.enableSandbox();
@@ -291,7 +299,11 @@ if (!app.requestSingleInstanceLock()) {
       if (event.type === 'state') {
         const { snapshot } = event;
         if (snapshot.phase === 'recording') bubble.start();
-        else if (!isLivePhase(snapshot.phase)) bubble.stop();
+        else if (!isLivePhase(snapshot.phase)) {
+          bubble.stop();
+          // The source chosen in the system portal belongs to that one recording.
+          portalCapture().release();
+        }
         if (!isLivePhase(snapshot.phase)) {
           pillMedia.end();
         } else if (snapshot.phase === 'recording' || snapshot.phase === 'paused') {

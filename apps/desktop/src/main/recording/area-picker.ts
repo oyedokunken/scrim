@@ -1,5 +1,14 @@
 import { BrowserWindow, screen } from 'electron';
-import { createAreaFlow, type AreaOutcome, type AreaRequest, type DisplayInfo } from './area-flow';
+import { currentPlatform } from '../platform/platform';
+import {
+  createAreaFlow,
+  type AreaDeps,
+  type AreaOutcome,
+  type AreaRequest,
+  type DisplayInfo,
+} from './area-flow';
+import { portalCapture } from './portal-instance';
+import { createStillAreaRunner, stillDisplay } from './still-area';
 import { createOverlayOpener } from './area-window';
 import { hideOwnWindows } from './hide-own-windows';
 import type { RecordingService } from './recording-service';
@@ -42,9 +51,14 @@ export function createAreaPicker(options: {
     ((message: string): void => {
       console.error(message);
     });
-  const takeScreenshot = createScreenshotTaker();
+  const platform = currentPlatform();
+  const portal = platform.capture.mode === 'portal';
+  // On a portal session the picture is the still the person already picked, never a new capture.
+  const takeScreenshot = createScreenshotTaker(
+    portal ? { stillOf: () => portalCapture().picked()?.source.thumbnail } : {},
+  );
   const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-  return createAreaFlow({
+  const deps: AreaDeps = {
     displays: currentDisplays,
     pointerDisplayId: () => String(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).id),
     openOverlay: createOverlayOpener({ appOrigin: options.appOrigin, log }),
@@ -84,5 +98,81 @@ export function createAreaPicker(options: {
       : { showPreview: options.preview.show, hidePreview: options.preview.hide }),
     wait,
     log,
+    captureDelayMs: platform.capture.settleMs,
+  };
+  const overlayFlow = createAreaFlow(deps);
+  if (platform.capture.areaChooser !== 'still-frame') return overlayFlow;
+
+  // Wayland: the portal picks, then Scrim's own window shows a still frame to draw the box on.
+  let active: { cancel: () => void } | undefined;
+  const runner = createStillAreaRunner({
+    pick: () => {
+      const largest = screen.getAllDisplays().reduce(
+        (size, display) => ({
+          width: Math.max(size.width, Math.round(display.bounds.width * display.scaleFactor)),
+          height: Math.max(size.height, Math.round(display.bounds.height * display.scaleFactor)),
+        }),
+        { width: 1, height: 1 },
+      );
+      return portalCapture().pick(largest);
+    },
+    ...(options.beforeOpen === undefined ? {} : { beforeOpen: options.beforeOpen }),
+    chooseOnStill: (picked, request) => {
+      const real =
+        currentDisplays().find((display) => display.id === picked.source.display_id) ??
+        currentDisplays().find((display) => display.id === String(screen.getPrimaryDisplay().id)) ??
+        currentDisplays()[0];
+      if (real === undefined) {
+        return Promise.resolve<AreaOutcome>({ ok: false, reason: 'failed', step: 'no-displays' });
+      }
+      const display = stillDisplay(picked, real);
+      const flow = createAreaFlow({
+        ...deps,
+        displays: () => [display],
+        openOverlay: createOverlayOpener({
+          appOrigin: options.appOrigin,
+          log,
+          still: { png: picked.still, size: { width: picked.width, height: picked.height } },
+        }),
+        listWindows: () => Promise.resolve([]),
+      });
+      active = flow;
+      return flow.run(request).finally(() => {
+        active = undefined;
+      });
+    },
+    useWindow: async (picked, request) => {
+      const source = { kind: 'window' as const, sourceId: picked.source.id };
+      if (request.mode === 'screenshot') {
+        const taken = await takeScreenshot(source, {
+          folder: request.folder,
+          copyToClipboard: request.copyToClipboard ?? true,
+        });
+        return taken.ok
+          ? { ok: true, mode: 'screenshot', result: taken.value }
+          : { ok: false, reason: 'rejected', error: taken.error };
+      }
+      const started = await options.service.start({
+        source,
+        camera: request.camera,
+        mic: request.mic,
+        destination: request.destination,
+        name: request.name,
+        style: request.style,
+      });
+      return started.ok
+        ? { ok: true, mode: 'record', folder: started.value.folder }
+        : { ok: false, reason: 'rejected', error: started.error };
+    },
+    release: () => {
+      portalCapture().release();
+    },
+    log,
   });
+  return {
+    run: (request) => runner.run(request),
+    cancel: () => {
+      active?.cancel();
+    },
+  };
 }
