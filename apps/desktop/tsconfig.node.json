@@ -26,6 +26,7 @@
     "src/recorder/bubble/protocol.ts",
     "src/recorder/bubble/preload/**/*",
     "src/recorder/pill/format.ts",
+    "src/recorder/pill/media-view.ts",
     "src/recorder/pill/protocol.ts",
     "src/recorder/pill/preload/**/*",
     "tests/unit/**/*",

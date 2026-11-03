@@ -134,6 +134,18 @@ export class RecorderController {
           for (const recorder of this.recorders.values()) recorder.resume();
           this.deps.sendEvent({ type: 'resumed', rendererNow: this.deps.now() });
           break;
+        case 'set-enabled': {
+          const changed = this.recorders.get(command.kind)?.setEnabled(command.enabled) ?? false;
+          this.deps.sendEvent({
+            type: 'enabled',
+            kind: command.kind,
+            enabled: command.enabled,
+            ok: changed,
+            ...(changed ? {} : { reason: 'device-missing' as const }),
+            rendererNow: this.deps.now(),
+          });
+          break;
+        }
         case 'stop':
           await this.stop();
           break;

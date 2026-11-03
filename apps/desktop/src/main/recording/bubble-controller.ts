@@ -13,6 +13,9 @@ import {
   type Rect,
 } from '../../recorder/bubble/geometry';
 
+/** Why the camera could not be shown again. The same words the pill uses for its errors. */
+export type CameraFailure = 'device-busy' | 'device-removed' | 'permission-denied' | 'unknown';
+
 /** The window half of the bubble. The controller never touches Electron. */
 export interface BubbleWindow {
   open: (input: {
@@ -26,6 +29,12 @@ export interface BubbleWindow {
   close: () => void;
   /** Puts the window so the round picture's top left is at `circle`, with the dot on `side`. */
   place: (circle: Point, side: DotSide) => void;
+  /** Shows or hides the whole window without closing it, so the camera stays open. */
+  setVisible: (visible: boolean) => void;
+  /** Tells the page what the pill's buttons say, so it can still the dot or stop the picture. */
+  media: (state: { micMuted: boolean; cameraOn: boolean }) => void;
+  /** The page could not show the camera again after it was turned back on. */
+  onCameraFailed: (callback: (reason: CameraFailure) => void) => void;
   /** The person took hold of the picture. */
   onDragStart: (callback: () => void) => void;
   /** The person let go, with the picture's top left where it is now. */
@@ -81,6 +90,8 @@ export function createBubbleController(deps: BubbleDeps) {
   let dragging = false;
   let watch: unknown;
   let animation: unknown;
+  /** False while the camera is switched off on the pill. The window is hidden and stays put. */
+  let shown = true;
 
   const positions = (): Record<Corner, Point> => {
     const { workArea, bottomInset } = deps.area(previewing ? previewDisplay : undefined);
@@ -121,7 +132,7 @@ export function createBubbleController(deps: BubbleDeps) {
 
   const watchCursor = (): void => {
     // Before the countdown the cursor is busy with the overlay, so the picture stays put.
-    if (!open || previewing) return;
+    if (!open || previewing || !shown) return;
     const target = dodgeCorner({
       current: corner,
       positions: positions(),
@@ -147,6 +158,7 @@ export function createBubbleController(deps: BubbleDeps) {
 
   const stop = (): void => {
     open = false;
+    shown = true;
     previewing = false;
     previewDisplay = undefined;
     dragging = false;
@@ -226,6 +238,23 @@ export function createBubbleController(deps: BubbleDeps) {
       note();
       watch = deps.timers.setInterval(watchCursor, WATCH_MS);
     },
+    /**
+     * The pill's buttons changed. The page is told, and the window is hidden while the camera is
+     * off and shown again when it is back. The camera stays open the whole time.
+     */
+    setMedia(state: { micMuted: boolean; cameraOn: boolean }): void {
+      if (!open) return;
+      deps.window.media(state);
+      if (state.cameraOn !== shown) {
+        shown = state.cameraOn;
+        deps.window.setVisible(shown);
+      }
+    },
+    /** The camera could not be shown again. The callback is told why. */
+    onCameraFailed(callback: (reason: CameraFailure) => void): void {
+      deps.window.onCameraFailed(callback);
+    },
+    isShown: (): boolean => shown,
     /** Closes the bubble. Safe to call again. */
     stop,
     isOpen: (): boolean => open,

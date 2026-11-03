@@ -24,6 +24,12 @@ export type RecorderCommand =
   | { type: 'start' }
   | { type: 'pause' }
   | { type: 'resume' }
+  /**
+   * Mutes or unmutes the microphone, or hides or shows the camera, by switching the live track on
+   * or off. The recorder keeps running and the file stays in step: a muted microphone records
+   * silence and a disabled camera records black frames.
+   */
+  | { type: 'set-enabled'; kind: 'camera' | 'mic'; enabled: boolean }
   | { type: 'stop' };
 
 /** Channel names. The same strings are used by main, the recorder preload and the page. */
@@ -72,6 +78,15 @@ export type RecorderEvent =
     }
   | { type: 'paused'; rendererNow: number }
   | { type: 'resumed'; rendererNow: number }
+  /** The answer to `set-enabled`. `ok` is false when the track is gone, with the reason. */
+  | {
+      type: 'enabled';
+      kind: 'camera' | 'mic';
+      enabled: boolean;
+      ok: boolean;
+      reason?: TrackFailureReason | undefined;
+      rendererNow: number;
+    }
   | { type: 'track-ended'; kind: TrackKind; rendererNow: number }
   | { type: 'track-error'; kind: TrackKind; message: string; rendererNow: number }
   | {
