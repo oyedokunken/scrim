@@ -996,6 +996,48 @@ input[type='checkbox'] {
   gap: 4px;
 }
 
+.review-volume {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.review-volume-slider {
+  flex: 0 0 84px;
+  width: 84px;
+}
+
+/* Fullscreen: the picture takes the screen and the same controls stay under it. */
+.review-player:fullscreen {
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 16px;
+  background: var(--scrim-butter);
+}
+
+.review-player:fullscreen .review-panes,
+.review-player:fullscreen .review-pane,
+.review-player:fullscreen .review-live {
+  min-height: 0;
+  height: 100%;
+}
+
+.review-player:fullscreen .review-panes,
+.review-player:fullscreen .review-pane {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.review-player:fullscreen .review-pane > .review-caption {
+  display: none;
+}
+
+.review-player:fullscreen .review-video {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+}
+
 .review-wait {
   display: grid;
   gap: 12px;
@@ -1267,6 +1309,11 @@ input[type='checkbox'] {
 
 .lib-detail-preview video {
   background: var(--scrim-black);
+}
+
+.lib-detail-preview .review-player {
+  width: 100%;
+  padding: 12px;
 }
 
 .lib-detail-novideo {

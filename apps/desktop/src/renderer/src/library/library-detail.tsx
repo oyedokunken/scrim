@@ -16,6 +16,7 @@ import { formatBytes, formatMoment, formatTimer } from '../format';
 import { useExportJob } from '../hooks';
 import { fullFileName } from './library-model';
 import { RecordingEditPane } from '../edit/recording-edit-pane';
+import { ReviewPlayer } from '../review/review-player';
 import { ShareDialog } from '../share/share-dialog';
 import type { OpenedItem } from './use-library';
 import type { LibraryActions } from './use-library';
@@ -188,13 +189,12 @@ export function LibraryDetail({
               </div>
             )
           ) : item.kind === 'recording' ? (
-            <video
+            <ReviewPlayer
               key={url}
-              src={url}
-              controls
-              preload="metadata"
-              autoPlay={autoPlay}
-              aria-label={`Video ${item.name}`}
+              mode="before"
+              before={url}
+              after={null}
+              plain={{ label: `Video ${item.name}`, autoPlay }}
             />
           ) : (
             <img

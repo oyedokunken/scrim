@@ -13,6 +13,7 @@ The baseline lives in a few small modules, each locked by tests:
 - `src/main/harden.ts` applies the session and web contents guards. The web contents guards run from `web-contents-created`, so every window gets them.
 - `src/main/external-urls.ts` and `src/main/external-opener.ts` are the only way a link leaves the app.
 - `apps/desktop/build/fuses.mts` holds the Electron fuses, verified against the packaged binary in CI.
+- The permission handler and check allow exactly three permissions, and only for the app's own origin: `media` (camera and microphone), `display-capture`, and `fullscreen`, which lets the shared video player enter fullscreen. Every other permission is refused. A table driven test in `tests/unit/hardening.test.ts` pins the list.
 
 Any change to these needs an ADR.
 
