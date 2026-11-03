@@ -44,7 +44,7 @@ export function MachineCard() {
         <Fact label="Computer name" value={system?.computerName ?? unknown} />
         <Fact label="Operating system" value={system?.operatingSystem ?? unknown} />
       </dl>
-      <div>
+      <div className="set-actions">
         <Button
           icon={<FolderOpen size={16} strokeWidth={1.75} />}
           onClick={() => {

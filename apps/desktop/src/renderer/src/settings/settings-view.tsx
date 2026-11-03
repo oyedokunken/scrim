@@ -243,7 +243,7 @@ export function SettingsView({
             update({ showWelcome });
           }}
         />
-        <div>
+        <div className="set-actions">
           <Button onClick={onShowWelcome}>Show welcome again</Button>
         </div>
       </Section>
