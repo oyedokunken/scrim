@@ -129,6 +129,64 @@ jobs:
       - name: End to end tests on X11 under xvfb (Electron gets --no-sandbox from CI)
         run: xvfb-run --auto-servernum pnpm test:e2e
 
+      # Everything below is NEW and has never run: it was written on a Windows machine. Read the
+      # logs of the first run, and fix the step, not the check. docs/releasing.md says what a
+      # runner can and cannot prove.
+
+      # NEW. The LGPL FFmpeg from the pin, then its licence, its encoder list and a real software
+      # H.264 plus AAC encode read back with ffprobe (H.264, yuv420p, the right size, AAC).
+      - name: Fetch the pinned FFmpeg and check its licence and software encode
+        run: |
+          node scripts/fetch-ffmpeg.mts
+          node scripts/check-encode.mts
+
+      # NEW. Package both Linux targets, then read the fuses back from the Linux binary.
+      - name: Package the AppImage and the deb
+        run: pnpm exec electron-builder --linux AppImage deb --x64 --publish never --config electron-builder.config.ts
+      - name: Read the fuses back from the Linux binary
+        run: pnpm verify:fuses release/linux-unpacked/scrim
+
+      # NEW. The deb as a package: its fields, its files, and no way to switch the sandbox off.
+      - name: Inspect the deb
+        run: |
+          deb="$(ls release/*.deb)"
+          dpkg-deb -f "${deb}" Package Version Architecture Depends
+          dpkg-deb -f "${deb}" Depends | grep -q 'libx11-6'
+          dpkg-deb -f "${deb}" Depends | grep -q 'libxtst6'
+          dpkg-deb -c "${deb}" > deb-files.txt
+          grep -q 'usr/share/applications/scrim.desktop' deb-files.txt
+          grep -q 'usr/share/icons/hicolor/.*/apps/scrim.png' deb-files.txt
+          grep -q 'opt/Scrim/resources/apparmor-profile' deb-files.txt
+          grep -q 'opt/Scrim/resources/app.asar.unpacked/node_modules/uiohook-napi/prebuilds/linux-x64/uiohook-napi.node' deb-files.txt
+
+      # NEW. Install, check the profile and the desktop entry, start the installed app on a virtual
+      # display WITHOUT --no-sandbox (the AppArmor profile is what lets the sandbox start on
+      # Ubuntu 24.04), then uninstall and check that no Scrim file is left behind.
+      - name: Install the deb, start it with the sandbox on, uninstall it
+        run: |
+          sudo apt-get install -y ./release/*.deb
+          test -x /usr/bin/scrim
+          test -f /etc/apparmor.d/scrim
+          grep -q '^Exec=' /usr/share/applications/scrim.desktop
+          if grep -q 'no-sandbox' /usr/share/applications/scrim.desktop; then exit 1; fi
+          sysctl kernel.apparmor_restrict_unprivileged_userns || true
+          xvfb-run --auto-servernum bash -c 'scrim > "$RUNNER_TEMP/scrim.log" 2>&1 & pid=$!; sleep 20; if kill -0 "$pid" 2>/dev/null; then echo "Scrim is running with the sandbox on."; kill "$pid"; else echo "Scrim exited early."; cat "$RUNNER_TEMP/scrim.log"; exit 1; fi'
+          sudo apt-get remove -y scrim
+          test ! -e /opt/Scrim
+          test ! -e /usr/bin/scrim
+          test ! -e /etc/apparmor.d/scrim
+          test ! -e /usr/share/applications/scrim.desktop
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: scrim-linux-unsigned
+          path: |
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/latest-linux.yml
+          retention-days: 3
+          if-no-files-found: error
+
   macos:
     runs-on: macos-15
     continue-on-error: true
