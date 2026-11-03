@@ -1,4 +1,6 @@
 export { planAudio } from './audio';
+export { isOffAt, offIntervals } from './toggles';
+export type { OffInterval, ToggleEntry, ToggleKind } from './toggles';
 export type { AudioPiece } from './audio';
 export * from './constants';
 export { cursorStateAt, prepareCursor } from './cursor';
