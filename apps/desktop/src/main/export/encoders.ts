@@ -21,6 +21,9 @@ const ENCODER_ORDER: readonly EncoderName[] = [
   'libopenh264',
 ];
 
+/** The first render node of the graphics chip, where VA-API encoding runs on Linux. */
+const VAAPI_DEVICE = '/dev/dri/renderD128';
+
 export type ExportQuality = 'low' | 'medium' | 'high';
 
 const BITS_PER_PIXEL: Record<ExportQuality, number> = { low: 0.045, medium: 0.08, high: 0.13 };
@@ -53,7 +56,20 @@ export function encoderArgs(
     case 'h264_videotoolbox':
       return ['-c:v', encoder, '-b:v', rate, '-g', gop];
     case 'h264_vaapi':
-      return ['-c:v', encoder, '-b:v', rate, '-g', gop];
+      // VA-API needs the device and the pictures uploaded to the graphics chip as nv12. The device
+      // is the first render node. A machine without one fails the probe and the next encoder runs.
+      return [
+        '-vaapi_device',
+        VAAPI_DEVICE,
+        '-vf',
+        'format=nv12,hwupload',
+        '-c:v',
+        encoder,
+        '-b:v',
+        rate,
+        '-g',
+        gop,
+      ];
     case 'h264_mf':
       return ['-c:v', encoder, '-b:v', rate, '-g', gop];
     case 'libopenh264':

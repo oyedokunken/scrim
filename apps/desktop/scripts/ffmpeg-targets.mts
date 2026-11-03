@@ -29,7 +29,15 @@ export const MAC_SOURCE_PIN = {
 export type ReleaseTarget = 'linux-x64' | 'darwin-x64' | 'darwin-arm64';
 
 export type FfmpegSource =
-  | { kind: 'download'; url: string; file: string; sha256: string; buildPage: string }
+  | {
+      kind: 'download';
+      url: string;
+      file: string;
+      sha256: string;
+      buildPage: string;
+      /** Where the FFmpeg source of this exact build can be read, for the LGPL source offer. */
+      sourceUrl: string;
+    }
   | { kind: 'build-from-source'; script: string; sourceUrl: string; sha256: string };
 
 /** The target name for a platform and architecture, or undefined when we do not ship one. */
@@ -48,6 +56,7 @@ export function ffmpegSourceFor(target: ReleaseTarget): FfmpegSource {
       file: LINUX_X64_PIN.file,
       sha256: LINUX_X64_PIN.sha256,
       buildPage: `https://github.com/BtbN/FFmpeg-Builds/releases/tag/${LINUX_X64_PIN.tag}`,
+      sourceUrl: `https://git.ffmpeg.org/gitweb/ffmpeg.git/commit/${LINUX_X64_PIN.sourceCommit}`,
     };
   }
   return {

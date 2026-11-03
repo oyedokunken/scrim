@@ -123,9 +123,11 @@ export async function fetchFfmpegUnix(target: ReleaseTarget, outDir: string): Pr
         `Build:   ${source.buildPage}`,
         `Archive: ${source.file}`,
         `SHA-256: ${source.sha256}`,
+        `Source:  ${source.sourceUrl}`,
         '',
-        'The build is linked statically and contains no GPL licensed code. You can replace',
-        'ffmpeg and ffprobe with your own build.',
+        'The build is linked statically and contains no GPL licensed code. The H.264 encoder is',
+        'libopenh264 (software) or the graphics chip through VA-API, never libx264. You can replace',
+        'ffmpeg and ffprobe with your own build. The full license text is in LICENSE.txt.',
         '',
       ].join('\n'),
     );
