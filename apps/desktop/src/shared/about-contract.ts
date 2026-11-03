@@ -11,6 +11,8 @@ export const aboutSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .nullable(),
+    /** The publisher of the code signature on this build, or null for an unsigned build. */
+    signedBy: z.string().min(1).max(200).nullable(),
   })
   .strict();
 export type About = z.infer<typeof aboutSchema>;

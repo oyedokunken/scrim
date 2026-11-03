@@ -459,6 +459,9 @@ export async function startIpc(options: {
               name: APP_NAME,
               version: app.getVersion(),
               license: 'MIT',
+              platform: process.platform,
+              signedByStamp:
+                typeof __SCRIM_SIGNED_BY__ === 'string' ? __SCRIM_SIGNED_BY__ : undefined,
               buildStamp:
                 typeof __SCRIM_BUILD_DATE__ === 'string' ? __SCRIM_BUILD_DATE__ : undefined,
             }),

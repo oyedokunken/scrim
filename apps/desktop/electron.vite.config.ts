@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'electron-vite';
 import type { Plugin } from 'vite';
 import { buildCsp } from './src/main/csp';
+import { windowsPublisher } from './build/signing.mts';
 
 /** Writes the meta tag from the same builder as the header, so the two cannot drift. */
 function cspMeta(): Plugin {
@@ -63,7 +64,13 @@ function buildDay(): string {
 }
 
 export default defineConfig({
-  main: { define: { __SCRIM_BUILD_DATE__: JSON.stringify(buildDay()) } },
+  main: {
+    define: {
+      __SCRIM_BUILD_DATE__: JSON.stringify(buildDay()),
+      // The publisher of the signed Windows build, or an empty string when it is not signed.
+      __SCRIM_SIGNED_BY__: JSON.stringify(windowsPublisher(process.env)),
+    },
+  },
   preload: {
     build: {
       rollupOptions: {
