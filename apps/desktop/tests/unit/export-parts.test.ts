@@ -65,6 +65,14 @@ describe('encoders', () => {
     );
   });
 
+  it('gives VA-API its device and an nv12 upload, and never libx264', () => {
+    const args = encoderArgs('h264_vaapi', { bitrate: 5_000_000, fps: 30 });
+    expect(args.slice(0, 2)).toEqual(['-vaapi_device', '/dev/dri/renderD128']);
+    expect(args).toContain('format=nv12,hwupload');
+    expect(args).toContain('h264_vaapi');
+    expect(args.join(' ')).not.toContain('libx264');
+  });
+
   it('steps down one size for the safer retry', () => {
     expect(saferPreset('2160p')).toBe('1440p');
     expect(saferPreset('1080p')).toBe('720p');
