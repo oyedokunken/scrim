@@ -44,7 +44,7 @@
   color: var(--scrim-white);
 }
 
-.ui-button-primary:hover:not(:disabled) {
+.ui-button-primary:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--scrim-green-hover);
 }
 
@@ -54,7 +54,7 @@
   border-color: var(--ui-border);
 }
 
-.ui-button-secondary:hover:not(:disabled) {
+.ui-button-secondary:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--ui-track);
 }
 
@@ -63,11 +63,12 @@
   color: var(--scrim-black);
 }
 
-.ui-button-ghost:hover:not(:disabled) {
+.ui-button-ghost:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--ui-track);
 }
 
-.ui-button:disabled {
+.ui-button:disabled,
+.ui-button[aria-disabled='true'] {
   opacity: 0.5;
 }
 
@@ -127,7 +128,8 @@
   box-shadow: 0 1px 2px color-mix(in srgb, var(--scrim-black) 20%, transparent);
 }
 
-.ui-segment:disabled {
+.ui-segment:disabled,
+.ui-segment[aria-disabled='true'] {
   opacity: 0.45;
 }
 
@@ -300,38 +302,38 @@
   cursor: not-allowed;
 }
 
-.ui-segment:hover:not(:disabled, .selected) {
+.ui-segment:hover:not(:disabled, .selected, [aria-disabled='true']) {
   color: var(--scrim-black);
   background: color-mix(in srgb, var(--scrim-black) 6%, transparent);
 }
 
-.ui-switch:hover:not(:disabled) .ui-switch-knob {
+.ui-switch:hover:not(:disabled, [aria-disabled='true']) .ui-switch-knob {
   background: color-mix(in srgb, var(--scrim-black) 35%, var(--scrim-butter));
 }
 
-.ui-switch.on:hover:not(:disabled) .ui-switch-knob {
+.ui-switch.on:hover:not(:disabled, [aria-disabled='true']) .ui-switch-knob {
   background: var(--scrim-green-hover);
 }
 
-.ui-tile:hover:not(:disabled, .selected) {
+.ui-tile:hover:not(:disabled, .selected, [aria-disabled='true']) {
   border-color: var(--scrim-green);
 }
 
-.ui-card-button:hover:not(:disabled) {
+.ui-card-button:hover:not(:disabled, [aria-disabled='true']) {
   transform: translateY(-1px);
 }
 
-.ui-button-primary:hover:not(:disabled) {
+.ui-button-primary:hover:not(:disabled, [aria-disabled='true']) {
   transform: translateY(-1px);
 }
 
-.ui-select:hover:not(:disabled) {
+.ui-select:hover:not(:disabled, [aria-disabled='true']) {
   border-color: var(--scrim-green);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ui-card-button:hover:not(:disabled),
-  .ui-button-primary:hover:not(:disabled) {
+  .ui-card-button:hover:not(:disabled, [aria-disabled='true']),
+  .ui-button-primary:hover:not(:disabled, [aria-disabled='true']) {
     transform: none;
   }
 }
@@ -349,7 +351,8 @@
   .ui-card-button,
   .icon-button,
   .rail-item
-)[disabled] {
+)[disabled],
+.ui-button[aria-disabled='true'] {
   cursor: not-allowed;
 }
 
@@ -364,7 +367,7 @@
   background: color-mix(in srgb, var(--scrim-record) 70%, var(--scrim-black));
 }
 
-.ui-button-danger:hover:not(:disabled) {
+.ui-button-danger:hover:not(:disabled, [aria-disabled='true']) {
   background: color-mix(in srgb, var(--scrim-record) 60%, var(--scrim-black));
   transform: translateY(-1px);
 }
@@ -621,7 +624,7 @@
   color: var(--scrim-butter);
 }
 
-.ui-toast .icon-button:hover:not(:disabled) {
+.ui-toast .icon-button:hover:not(:disabled, [aria-disabled='true']) {
   background: color-mix(in srgb, var(--scrim-butter) 16%, transparent);
 }
 
@@ -663,8 +666,17 @@
 /* Screenshot result and editor */
 .shot-result {
   display: grid;
-  gap: 16px;
-  justify-items: start;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: start;
+  min-height: 0;
+  height: 100%;
+}
+
+@media (width <= 900px) {
+  .shot-result {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .shot-preview {
@@ -685,12 +697,6 @@
   box-shadow: var(--ui-shadow-soft);
   cursor: grab;
   -webkit-user-drag: element;
-}
-
-.shot-result-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .shot-editor {
@@ -901,4 +907,57 @@
   place-items: center;
   flex: none;
   width: 16px;
+}
+
+/* The reason a button is disabled: shown on hover and keyboard focus, anchored above the button. */
+.ui-reason {
+  position: fixed;
+  inset: auto;
+  bottom: anchor(top);
+  justify-self: anchor-center;
+  z-index: 30;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 16px));
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  white-space: normal;
+  pointer-events: none;
+  color: var(--scrim-butter);
+  background: var(--scrim-black);
+  border-radius: 6px;
+  position-try-fallbacks: flip-block;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--ui-ease) 400ms,
+    visibility 0s linear 400ms;
+}
+
+.ui-tooltip-host:has(> button[aria-disabled='true']) > .ui-tooltip {
+  display: none;
+}
+
+button[aria-disabled='true']:not([data-dismissed='true']):hover > .ui-reason,
+button[aria-disabled='true']:not([data-dismissed='true']):focus-visible > .ui-reason {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* A control that is disabled with a reason stays focusable, so it looks and acts disabled here. */
+:where(
+  .ui-switch,
+  .ui-tile,
+  .ui-select,
+  .corner-dot,
+  .bg-swatch,
+  .icon-button,
+  .rail-item
+)[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
 }

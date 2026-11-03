@@ -35,6 +35,7 @@ function DevicePicker({ id, label, devices, value, enabled, noneText, onPick }: 
         label={label}
         value={chosen}
         disabled={!enabled}
+        disabledReason="Turn this on first to choose a device."
         options={devices.map((device) => ({
           value: device.deviceId,
           label: device.label,

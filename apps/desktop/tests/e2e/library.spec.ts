@@ -544,6 +544,80 @@ test.describe('the library', () => {
     }
   });
 
+  test('a rendered video finds its project, even under another name, and Edit is on', async ({
+    app,
+    page,
+  }) => {
+    const disk = await arrange(app, true);
+    try {
+      const videos = join(disk.root, 'videos', 'Scrim');
+      const project = join(disk.root, 'local', 'Scrim', 'Projects', 'Take 1.scrim');
+      const target = join(videos, 'Launch day.mp4');
+      writeFileSync(target, 'not really a video');
+      writeFileSync(
+        join(project, 'export.json'),
+        JSON.stringify({
+          version: 1,
+          exportedAt: '2026-10-28T10:05:00.000Z',
+          file: target,
+          bytes: 18,
+          projectId: '6b6f8f64-8f6e-4a4a-9d3a-111111111111',
+        }),
+      );
+      await openLibrary(page);
+      // One card for the recording and its video, not a recording and a loose file.
+      await expect(cards(page).filter({ hasText: 'Launch day' })).toHaveCount(0);
+      await page.getByRole('button', { name: 'Open Take 1' }).click();
+      const detail = page.getByRole('region', { name: /Details for Take 1/ });
+      await expect(detail.getByText('Launch day.mp4')).toBeVisible();
+      const edit = detail.getByRole('button', { name: 'Edit', exact: true });
+      await expect(edit).not.toHaveAttribute('aria-disabled', 'true');
+      await expect(detail.getByTestId('edit-reason')).toHaveCount(0);
+      await edit.click();
+      await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeVisible();
+      await expect(detail).toHaveCount(0);
+    } finally {
+      disk.cleanup();
+    }
+  });
+
+  test('a video whose project is gone explains why Edit is off, on hover, on focus and under the buttons', async ({
+    app,
+    page,
+  }) => {
+    const disk = await arrange(app, true);
+    try {
+      await openLibrary(page);
+      await page.getByRole('button', { name: 'Open Loose clip' }).click();
+      const detail = page.getByRole('region', { name: /Details for Loose clip/ });
+      const edit = detail.getByRole('button', { name: 'Edit', exact: true });
+      const reason =
+        "The original recording files are no longer on this computer, so this video can't be edited.";
+      await expect(edit).toHaveAttribute('aria-disabled', 'true');
+      await expect(detail.getByTestId('edit-reason')).toHaveText(reason);
+      const tip = edit.locator('.ui-reason');
+      await expect(tip).toBeHidden();
+      await edit.hover();
+      await expect(tip).toBeVisible();
+      await expect(tip).toHaveText(reason);
+      await page.mouse.move(0, 0);
+      await expect(tip).toBeHidden();
+      await edit.focus();
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Shift+Tab');
+      await expect(edit).toBeFocused();
+      await expect(tip).toBeVisible();
+      await expect(edit).toHaveAccessibleDescription(reason);
+      await page.keyboard.press('Escape');
+      await expect(tip).toBeHidden();
+      // Pressing it does nothing: no editor opens.
+      await edit.click({ force: true });
+      await expect(page.getByRole('region', { name: /Details for Loose clip/ })).toBeVisible();
+    } finally {
+      disk.cleanup();
+    }
+  });
+
   test('shows an empty state with a way to record', async ({ app, page }) => {
     const disk = await arrange(app, false);
     try {

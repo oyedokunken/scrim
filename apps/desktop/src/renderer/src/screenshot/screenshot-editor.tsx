@@ -645,37 +645,40 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
         </Tooltip>
         <div className="shot-tools">
           <Tooltip label="Undo" keys={['Ctrl', 'Z']}>
-            <button
-              type="button"
+            <Button
+              bare
               className="icon-button"
               aria-label="Undo"
               disabled={!canUndo(history)}
+              disabledReason="There is nothing to undo yet."
               onClick={doUndo}
             >
               <Undo2 size={20} strokeWidth={1.75} aria-hidden="true" />
-            </button>
+            </Button>
           </Tooltip>
           <Tooltip label="Redo" keys={['Ctrl', 'Shift', 'Z']}>
-            <button
-              type="button"
+            <Button
+              bare
               className="icon-button"
               aria-label="Redo"
               disabled={!canRedo(history)}
+              disabledReason="There is nothing to redo."
               onClick={doRedo}
             >
               <Redo2 size={20} strokeWidth={1.75} aria-hidden="true" />
-            </button>
+            </Button>
           </Tooltip>
           <Tooltip label="Delete the selected mark" keys={['Del']}>
-            <button
-              type="button"
+            <Button
+              bare
               className="icon-button"
               aria-label="Delete selected"
               disabled={selected === null}
+              disabledReason="Select a mark first, then delete it."
               onClick={deleteSelected}
             >
               <Trash2 size={20} strokeWidth={1.75} aria-hidden="true" />
-            </button>
+            </Button>
           </Tooltip>
         </div>
       </div>
@@ -783,7 +786,14 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
         >
           Cancel
         </Button>
-        <Button variant="primary" disabled={saving || !image} onClick={onDone}>
+        <Button
+          variant="primary"
+          disabled={saving || !image}
+          disabledReason={
+            saving ? 'Scrim is saving the screenshot.' : 'The screenshot is still opening.'
+          }
+          onClick={onDone}
+        >
           Done
         </Button>
       </div>

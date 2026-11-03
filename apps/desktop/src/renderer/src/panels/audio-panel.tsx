@@ -34,6 +34,7 @@ export function AudioPanel({ value, onChange }: AudioPanelProps) {
       <PanelSection title="Microphone volume">
         <Segmented
           label="Microphone volume"
+          disabledReason="Turn on Keep sound first."
           options={VOLUME_OPTIONS.map((option) => ({ ...option, disabled: !value.keepSound }))}
           value={value.volume}
           onChange={(volume) => {

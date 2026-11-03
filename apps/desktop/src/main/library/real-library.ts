@@ -1,5 +1,5 @@
 import { app, nativeImage, shell } from 'electron';
-import { mkdir, open, readdir, readFile, rename, stat } from 'node:fs/promises';
+import { mkdir, open, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { pngSize } from '../ipc/image-handlers';
 import { probeFile, resolveFfmpegPaths, runProcess } from '../recording/ffmpeg';
@@ -58,6 +58,7 @@ export function createRealLibrary(options: {
     platform: process.platform,
     env: process.env,
   });
+  const tags = new Map<string, string | null>();
   const thumbs = (): string => join(app.getPath('userData'), 'thumbs');
 
   return createLibrary({
@@ -146,6 +147,20 @@ export function createRealLibrary(options: {
     share: options.share ?? (() => Promise.reject(new Error('sharing is not available'))),
     issueMedia: options.issueMedia,
     startRender: options.startRender,
+    readProjectTag: async (path, modifiedMs) => {
+      const key = `${path}|${String(modifiedMs)}`;
+      const cached = tags.get(key);
+      if (cached !== undefined) return cached;
+      const result = await runProcess(
+        paths.ffprobe,
+        ['-v', 'error', '-show_entries', 'format_tags=comment', '-of', 'default=nw=1:nk=1', path],
+        { timeoutMs: 20_000 },
+      );
+      const value = result.code === 0 ? result.stdout.trim() : '';
+      tags.set(key, value === '' ? null : value);
+      return value === '' ? null : value;
+    },
+    writeText: (path, text) => writeFile(path, text),
     imageSize: async (path) => {
       try {
         const handle = await open(path, 'r');

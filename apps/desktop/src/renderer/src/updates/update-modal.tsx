@@ -96,6 +96,7 @@ export function UpdateModal({ open, snapshot, onClose, onDownload, onInstall }: 
                 data-autofocus
                 variant="primary"
                 disabled={snapshot.blocked !== null}
+                disabledReason={blocked}
                 onClick={onInstall}
               >
                 Restart and install
@@ -105,6 +106,7 @@ export function UpdateModal({ open, snapshot, onClose, onDownload, onInstall }: 
                 data-autofocus
                 variant="primary"
                 disabled={state.phase === 'downloading' || snapshot.blocked !== null}
+                disabledReason={blocked === '' ? 'The update is already downloading.' : blocked}
                 onClick={onDownload}
               >
                 {state.phase === 'error' ? 'Try again' : 'Update now'}

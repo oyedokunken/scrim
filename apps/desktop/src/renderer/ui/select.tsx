@@ -1,5 +1,6 @@
 import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { Button } from './button';
 import { Tooltip } from './tooltip';
 import { arrowDirection, nextEnabledIndex, typeaheadIndex } from './keyboard';
 
@@ -18,6 +19,8 @@ export interface SelectProps {
   options: readonly SelectOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  /** Why the select is disabled, shown on hover and keyboard focus. */
+  disabledReason?: string | undefined;
   id?: string;
 }
 
@@ -28,7 +31,15 @@ const TYPE_RESET_MS = 600;
  * list is placed under the button with CSS anchor positioning and flips upward near the window
  * bottom. Anchor names are set through the CSSOM, because the packaged CSP forbids style attributes.
  */
-export function Select({ label, value, options, onChange, disabled = false, id }: SelectProps) {
+export function Select({
+  label,
+  value,
+  options,
+  onChange,
+  disabled = false,
+  disabledReason,
+  id,
+}: SelectProps) {
   const generated = useId();
   const listId = `${generated}-list`;
   const anchor = `--ui-select-${generated.replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -139,10 +150,10 @@ export function Select({ label, value, options, onChange, disabled = false, id }
   return (
     <div className="ui-select-wrap">
       <Tooltip label={selected?.label ?? label}>
-        <button
+        <Button
+          bare
           ref={button}
           id={id}
-          type="button"
           role="combobox"
           className="ui-select"
           aria-label={label}
@@ -150,7 +161,8 @@ export function Select({ label, value, options, onChange, disabled = false, id }
           aria-expanded={open}
           aria-controls={listId}
           disabled={disabled}
-          popoverTarget={listId}
+          disabledReason={disabledReason}
+          popoverTarget={disabled && disabledReason !== undefined ? undefined : listId}
           popoverTargetAction="toggle"
           onKeyDown={onButtonKey}
         >
@@ -159,7 +171,7 @@ export function Select({ label, value, options, onChange, disabled = false, id }
             {selected?.tag ? <span className="ui-select-tag">{selected.tag}</span> : null}
           </span>
           <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" />
-        </button>
+        </Button>
       </Tooltip>
       <div
         ref={list}

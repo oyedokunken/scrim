@@ -1,4 +1,4 @@
-import { PanelSection, Segmented, Switch } from '../../ui';
+import { Button, PanelSection, Segmented, Switch } from '../../ui';
 
 export type BubbleCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 type BubbleSize = 'S' | 'M' | 'L';
@@ -40,20 +40,22 @@ interface CornerPickerProps {
   value: BubbleCorner;
   onChange: (corner: BubbleCorner) => void;
   disabled?: boolean;
+  disabledReason?: string | undefined;
 }
 
 /** A small frame with a dot in each corner. The chosen corner is filled. */
-function CornerPicker({ value, onChange, disabled = false }: CornerPickerProps) {
+function CornerPicker({ value, onChange, disabled = false, disabledReason }: CornerPickerProps) {
   return (
     <div className="corner-picker" role="radiogroup" aria-label="Bubble position">
       {CORNERS.map((corner) => (
-        <button
+        <Button
+          bare
           key={corner.value}
-          type="button"
           role="radio"
           aria-checked={value === corner.value}
           aria-label={corner.label}
           disabled={disabled}
+          disabledReason={disabledReason}
           className={`corner-dot corner-${corner.value}${value === corner.value ? ' selected' : ''}`}
           onClick={() => {
             onChange(corner.value);
@@ -68,6 +70,7 @@ function CornerPicker({ value, onChange, disabled = false }: CornerPickerProps) 
 export function CameraPanel({ value, onChange, disabledNote }: CameraPanelProps) {
   const locked = disabledNote !== undefined;
   const off = !value.on || locked;
+  const offReason = locked ? disabledNote : 'Turn on Use camera first.';
   return (
     <>
       <PanelSection title="Camera" help="Your face in a small bubble over the recording.">
@@ -75,6 +78,7 @@ export function CameraPanel({ value, onChange, disabledNote }: CameraPanelProps)
           label="Use camera"
           checked={value.on}
           disabled={locked}
+          disabledReason={disabledNote}
           {...(disabledNote === undefined ? {} : { note: disabledNote })}
           onChange={(on) => {
             onChange({ ...value, on });
@@ -84,6 +88,7 @@ export function CameraPanel({ value, onChange, disabledNote }: CameraPanelProps)
       <PanelSection title="Size">
         <Segmented
           label="Bubble size"
+          disabledReason={offReason}
           options={SIZE_OPTIONS.map((option) => ({ ...option, disabled: off }))}
           value={value.size}
           onChange={(size) => {
@@ -94,6 +99,7 @@ export function CameraPanel({ value, onChange, disabledNote }: CameraPanelProps)
       <PanelSection title="Shape">
         <Segmented
           label="Bubble shape"
+          disabledReason={offReason}
           options={SHAPE_OPTIONS.map((option) => ({ ...option, disabled: off }))}
           value={value.shape}
           onChange={(shape) => {
@@ -105,6 +111,7 @@ export function CameraPanel({ value, onChange, disabledNote }: CameraPanelProps)
         <CornerPicker
           value={value.corner}
           disabled={off}
+          disabledReason={offReason}
           onChange={(corner) => {
             onChange({ ...value, corner });
           }}

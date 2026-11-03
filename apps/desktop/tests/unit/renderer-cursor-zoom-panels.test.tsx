@@ -74,7 +74,7 @@ describe('the Zoom page', () => {
     const html = renderToStaticMarkup(
       <ZoomPanel value={{ ...zoom, on: false }} onChange={vi.fn()} />,
     );
-    expect(html.match(/disabled=""/g)?.length ?? 0).toBeGreaterThanOrEqual(8);
+    expect(html.match(/aria-disabled="true"/g)?.length ?? 0).toBeGreaterThanOrEqual(8);
   });
 
   it('shows the chosen timing in the preview', () => {

@@ -10,7 +10,7 @@ import {
   thumbKey,
   visibleItems,
 } from '../../src/renderer/src/library/library-model';
-import { LibraryDetail } from '../../src/renderer/src/library/library-detail';
+import { LibraryDetail, NO_PROJECT_REASON } from '../../src/renderer/src/library/library-detail';
 import type { LibraryActions } from '../../src/renderer/src/library/use-library';
 import { ErrorProvider } from '../../src/renderer/ui/error-dialog';
 import { Menu } from '../../src/renderer/ui/menu';
@@ -210,7 +210,9 @@ describe('the Library detail page', () => {
   const labels = (html: string): (string | undefined)[] => {
     const group = html.slice(html.indexOf('lib-detail-actions'));
     const end = group.indexOf('</div>');
-    return [...group.slice(0, end).matchAll(/<\/span>([^<]+)<\/button>/g)].map((m) => m[1]);
+    return [
+      ...group.slice(0, end).matchAll(/<\/span>([^<]+)(?:<span[^>]*>[^<]*<\/span>)?<\/button>/g),
+    ].map((m) => m[1]);
   };
 
   it('has exactly five buttons for a screenshot: Edit, Copy, Share, Show in folder, Delete', () => {
@@ -227,7 +229,10 @@ describe('the Library detail page', () => {
   it('keeps four buttons but disables Edit for a recording without its working files', () => {
     const html = render(item({ canEdit: false }));
     expect(labels(html)).toHaveLength(4);
-    expect(html).toContain('disabled=""');
-    expect(html.indexOf('disabled=""')).toBeLessThan(html.indexOf('Edit</button>'));
+    expect(html).toContain('aria-disabled="true"');
+    expect(html.indexOf('aria-disabled="true"')).toBeLessThan(html.indexOf('Edit<'));
+    // The reason is in the button's description and in a line under the buttons.
+    expect(html).toContain('aria-describedby=');
+    expect(html.split(NO_PROJECT_REASON.replace("'", '&#x27;')).length - 1).toBe(2);
   });
 });

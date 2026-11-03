@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { exportRecording } from '../../src/main/export/exporter';
@@ -92,6 +92,26 @@ describe.skipIf(tools === undefined)('exportRecording', () => {
     expect(Number(info.format.duration)).toBeLessThan(4.2);
     // The working folder was only read.
     expect(readdirSync(fixture.folder)).not.toContain('Test.mp4');
+    // The video names its project, in its own tag and in the project's export record.
+    const session = JSON.parse(readFileSync(join(fixture.folder, 'session.json'), 'utf8')) as {
+      id: string;
+    };
+    const tags = execFileSync(tools.ffprobe, [
+      '-v',
+      'error',
+      '-show_entries',
+      'format_tags=comment',
+      '-of',
+      'default=nw=1:nk=1',
+      outcome.path,
+    ])
+      .toString()
+      .trim();
+    expect(tags).toBe(`scrim-project:${session.id}`);
+    const record = JSON.parse(readFileSync(join(fixture.folder, 'export.json'), 'utf8')) as {
+      projectId: string;
+    };
+    expect(record.projectId).toBe(session.id);
   }, 45_000);
 
   it('leaves the folder untouched and reports a clear error when the source is gone', async () => {

@@ -59,6 +59,7 @@ export function PermissionCheck({ probe = probeDevice, onDone, initial }: Permis
               </div>
               <Button
                 disabled={state === 'checking'}
+                disabledReason="Scrim is checking now."
                 onClick={() => {
                   void check(kind);
                 }}

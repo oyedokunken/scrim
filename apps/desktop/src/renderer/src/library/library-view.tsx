@@ -539,7 +539,12 @@ export function LibraryView({
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={renameText.trim() === ''}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={renameText.trim() === ''}
+              disabledReason="Type a name first."
+            >
               Rename
             </Button>
           </div>

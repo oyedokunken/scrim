@@ -476,3 +476,74 @@ describe('playing and making the video of a recording', () => {
     expect(await handlers['library:media']({ id: item?.id ?? '' })).toBeNull();
   });
 });
+
+describe('finding the project of a video', () => {
+  const ID = '6b6f8f64-8f6e-4a4a-9d3a-111111111111';
+  const folder = join(PROJECTS, 'Take 1.scrim');
+  const record = (target: string) =>
+    JSON.stringify({
+      version: 1,
+      exportedAt: '2026-10-28T10:05:00.000Z',
+      file: target,
+      bytes: 1,
+      projectId: ID,
+    });
+
+  it('follows the export record to a video with another name', async () => {
+    const { library } = setup(
+      { projects: [dir('Take 1.scrim', 1)], videos: [file('Pricing page.mp4', 5000, 4000)] },
+      {
+        ...projectText('Take 1'),
+        [join(folder, 'export.json')]: record(join(VIDEOS, 'Pricing page.mp4')),
+      },
+    );
+    const items = await library.list();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ name: 'Take 1', canEdit: true, hasVideo: true });
+  });
+
+  it('reads the tag in the video when there is no record and no name match', async () => {
+    const { deps, library } = setup(
+      { projects: [dir('Take 1.scrim', 1)], videos: [file('Renamed.mp4', 5000, 4000)] },
+      projectText('Take 1'),
+    );
+    deps.readProjectTag = vi.fn(() => Promise.resolve(`scrim-project:${ID}`));
+    const items = await library.list();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ canEdit: true, hasVideo: true });
+  });
+
+  it('falls back to the file name for a video made before ids were stored', async () => {
+    const { library } = setup(
+      { projects: [dir('Take 1.scrim', 1)], videos: [file('Take 1 2.mp4', 5000, 4000)] },
+      projectText('Take 1'),
+    );
+    const items = await library.list();
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ canEdit: true, hasVideo: true });
+  });
+
+  it('keeps a video whose project is gone not editable', async () => {
+    const { deps, library } = setup({ videos: [file('Lost.mp4', 5000, 4000)] });
+    deps.readProjectTag = vi.fn(() => Promise.resolve(`scrim-project:${ID}`));
+    const items = await library.list();
+    expect(items[0]).toMatchObject({ canEdit: false, hasVideo: true });
+  });
+
+  it('points the record at the new name after a rename', async () => {
+    const { deps, library } = setup(
+      { projects: [dir('Take 1.scrim', 1)], videos: [file('Take 1.mp4', 5000, 4000)] },
+      {
+        ...projectText('Take 1'),
+        [join(folder, 'export.json')]: record(join(VIDEOS, 'Take 1.mp4')),
+      },
+    );
+    deps.writeText = vi.fn(() => Promise.resolve());
+    const [item] = await library.list();
+    expect(await library.rename(item?.id ?? '', 'Launch')).toEqual({ ok: true });
+    expect(deps.writeText).toHaveBeenCalledWith(
+      join(folder, 'export.json'),
+      expect.stringContaining('Launch.mp4'),
+    );
+  });
+});

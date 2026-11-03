@@ -27,6 +27,8 @@ function StrengthArt({ level }: { level: number }) {
   );
 }
 
+const OFF_REASON = 'Turn on Auto zoom first.';
+
 /** Auto zoom switch, strength, hold and motion. No sliders. */
 export function ZoomPanel({ value, onChange }: ZoomPanelProps) {
   const off = !value.on;
@@ -51,6 +53,7 @@ export function ZoomPanel({ value, onChange }: ZoomPanelProps) {
               key={option.id}
               label={`${option.label} ${String(option.level)}x`}
               disabled={off}
+              disabledReason={OFF_REASON}
               selected={strengthOf(value.level) === option.id}
               onSelect={() => {
                 onChange({ ...value, level: option.level });
@@ -64,6 +67,7 @@ export function ZoomPanel({ value, onChange }: ZoomPanelProps) {
       <PanelSection title="Hold after a click" help="How long it stays zoomed in.">
         <Segmented
           label="Hold after a click"
+          disabledReason={OFF_REASON}
           options={ZOOM_HOLDS.map((o) => ({ value: o.value, label: o.label, disabled: off }))}
           value={holdOf(value.holdMs)}
           onChange={(hold) => {
@@ -75,6 +79,7 @@ export function ZoomPanel({ value, onChange }: ZoomPanelProps) {
       <PanelSection title="Motion" help="How quickly it moves in and out.">
         <Segmented
           label="Motion"
+          disabledReason={OFF_REASON}
           options={ZOOM_MOTIONS.map((o) => ({ value: o.value, label: o.label, disabled: off }))}
           value={motionOf(value.smoothness)}
           onChange={(motion) => {

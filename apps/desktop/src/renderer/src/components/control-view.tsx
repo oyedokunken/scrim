@@ -1,4 +1,7 @@
+import { Button } from '../../ui';
 import { formatTimer } from '../format';
+
+const WORKING_REASON = 'Scrim is still starting or saving. Try again in a moment.';
 import type { Snapshot } from '../hooks';
 
 export interface ControlViewProps {
@@ -26,22 +29,24 @@ export function ControlView({ snapshot, busy, onPause, onResume, onStop }: Contr
       <span className="control-time" role="timer" aria-label="Recorded time">
         {formatTimer(snapshot.elapsedMs)}
       </span>
-      <button
-        type="button"
+      <Button
+        bare
         className="button control-button"
         disabled={working}
+        disabledReason={WORKING_REASON}
         onClick={paused ? onResume : onPause}
       >
         {paused ? 'Resume' : 'Pause'}
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        bare
         className="button control-button stop"
         disabled={working}
+        disabledReason={WORKING_REASON}
         onClick={onStop}
       >
         Stop
-      </button>
+      </Button>
     </div>
   );
 }

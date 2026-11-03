@@ -45,15 +45,15 @@ describe('the Camera panel', () => {
       <CameraPanel value={camera} onChange={noop} disabledNote="This recording has no camera." />,
     );
     expect(locked).toContain('This recording has no camera.');
-    expect(locked).toMatch(/role="switch"[^>]*disabled/);
-    expect(locked).toMatch(/disabled=""[^>]*corner-dot/);
+    expect(locked).toMatch(/role="switch"[^>]*aria-disabled="true"/);
+    expect(locked).toMatch(/class="corner-dot [^"]*"[^>]*aria-disabled="true"/);
   });
 
   it('turns the options off when the camera is off', () => {
     const off = renderToStaticMarkup(
       <CameraPanel value={{ ...camera, on: false }} onChange={noop} />,
     );
-    expect(off).toMatch(/role="radio"[^>]*disabled=""[^>]*>Small/);
+    expect(off).toMatch(/role="radio"[^>]*aria-disabled="true"[^>]*>Small/);
   });
 });
 
@@ -77,7 +77,7 @@ describe('the Audio panel', () => {
     const off = renderToStaticMarkup(
       <AudioPanel value={{ keepSound: false, volume: 'normal' }} onChange={noop} />,
     );
-    expect(off).toMatch(/role="radio"[^>]*disabled=""[^>]*>Quieter/);
+    expect(off).toMatch(/role="radio"[^>]*aria-disabled="true"[^>]*>Quieter/);
   });
 });
 

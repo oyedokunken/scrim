@@ -19,6 +19,11 @@ export interface SegmentedProps<T extends string> {
   options: readonly SegmentOption<T>[];
   value: T;
   onChange: (value: T) => void;
+  /**
+   * Why an option is disabled, shown on hover and keyboard focus. With it, a disabled option stays
+   * focusable (the arrow keys stop on it) but cannot be chosen.
+   */
+  disabledReason?: string | undefined;
   /** An extra class for the track, for a page that sizes its choices differently. */
   className?: string;
 }
@@ -30,21 +35,23 @@ export function Segmented<T extends string>({
   value,
   onChange,
   className,
+  disabledReason,
 }: SegmentedProps<T>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const explained = disabledReason !== undefined && disabledReason !== '';
 
   const onKeyDown = (event: KeyboardEvent, index: number): void => {
     const direction = arrowDirection(event.key);
     if (direction === null) return;
     event.preventDefault();
     const target = nextEnabledIndex(
-      options.map((option) => option.disabled === true),
+      options.map((option) => option.disabled === true && !explained),
       index,
       direction,
     );
     const option = options[target];
     if (option) {
-      onChange(option.value);
+      if (option.disabled !== true) onChange(option.value);
       refs.current[target]?.focus();
     }
   };
@@ -58,7 +65,10 @@ export function Segmented<T extends string>({
       {options.map((option, index) => {
         const selected = option.value === value;
         const name = option.hideLabel === true ? option.label : option.hint;
-        const tip = option.hint ?? (option.hideLabel === true ? option.label : undefined);
+        const blocked = option.disabled === true && explained;
+        const tip = blocked
+          ? disabledReason
+          : (option.hint ?? (option.hideLabel === true ? option.label : undefined));
         const control = (
           <button
             key={option.value}
@@ -69,11 +79,12 @@ export function Segmented<T extends string>({
             role="radio"
             aria-checked={selected}
             tabIndex={selected ? 0 : -1}
-            disabled={option.disabled === true}
+            disabled={option.disabled === true && !explained}
+            aria-disabled={option.disabled === true && explained ? true : undefined}
             aria-label={name}
             className={selected ? 'ui-segment selected' : 'ui-segment'}
             onClick={() => {
-              onChange(option.value);
+              if (option.disabled !== true) onChange(option.value);
             }}
             onKeyDown={(event) => {
               onKeyDown(event, index);

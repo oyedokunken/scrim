@@ -1,5 +1,8 @@
 import { BrandMark } from '../brand-mark';
+import { Button } from '../../ui';
 import { formatTimer } from '../format';
+
+const WORKING_REASON = 'Scrim is still starting or saving. Try again in a moment.';
 import type { Snapshot } from '../hooks';
 
 export interface RecordingViewProps {
@@ -35,17 +38,24 @@ export function RecordingView({ snapshot, busy, onPause, onResume, onStop }: Rec
         ))}
       </div>
       <div className="actions row">
-        <button
-          type="button"
+        <Button
+          bare
           className="button secondary"
           disabled={working}
+          disabledReason={WORKING_REASON}
           onClick={paused ? onResume : onPause}
         >
           {paused ? 'Resume' : 'Pause'}
-        </button>
-        <button type="button" className="button primary" disabled={working} onClick={onStop}>
+        </Button>
+        <Button
+          bare
+          className="button primary"
+          disabled={working}
+          disabledReason={WORKING_REASON}
+          onClick={onStop}
+        >
           Stop and save
-        </button>
+        </Button>
       </div>
     </div>
   );

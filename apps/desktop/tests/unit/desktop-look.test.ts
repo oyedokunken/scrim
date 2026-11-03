@@ -97,7 +97,9 @@ describe('hover and focus', () => {
     );
     expect(keycap).not.toContain('cursor');
     expect(ui).not.toContain('.ui-keycap:hover');
-    expect(css).toMatch(/\.button:disabled\s*\{[^}]*not-allowed/s);
+    expect(css).toMatch(
+      /\.button:disabled,\s*\.button\[aria-disabled='true'\]\s*\{[^}]*not-allowed/s,
+    );
   });
 
   it('shows a focus ring for the keyboard only, never after a click', () => {

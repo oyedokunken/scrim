@@ -417,6 +417,9 @@ export function MainScreen() {
     <Button
       variant="primary"
       disabled={starting || live}
+      disabledReason={
+        live ? 'A recording is already running.' : 'Scrim is already starting a recording.'
+      }
       onClick={() => {
         changeView('record');
         void start(settings);
@@ -432,6 +435,11 @@ export function MainScreen() {
       variant="primary"
       icon={<Camera size={16} strokeWidth={2} />}
       disabled={shooting || live}
+      disabledReason={
+        live
+          ? 'Stop the recording before taking a screenshot.'
+          : 'Scrim is already taking a screenshot.'
+      }
       onClick={() => {
         void shoot();
       }}
