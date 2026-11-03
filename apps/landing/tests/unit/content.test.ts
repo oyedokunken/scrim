@@ -5,7 +5,8 @@ import { serializeJsonLd, softwareApplicationJsonLd } from '@/lib/json-ld';
 import { pageMetadata } from '@/lib/page-metadata';
 import { formatPrivacyDate, PRIVACY_LAST_UPDATED, RETENTION_STATEMENT } from '@/lib/privacy';
 import { formatReleaseDate } from '@/lib/release-date';
-import { SYSTEMS } from '@/lib/systems';
+import { SYSTEMS, windowsHelp } from '@/lib/systems';
+import { siteConfig } from '@/site.config';
 
 describe('FAQ', () => {
   it('has twelve questions so two columns hold six each', () => {
@@ -207,5 +208,27 @@ describe('copyText', () => {
     expect(copyMessage('selected')).toMatch(/Ctrl\+C/);
     expect(copyMessage('failed')).toMatch(/Could not copy/);
     expect(copyMessage(null)).toBe('');
+  });
+});
+
+describe('the Windows first run help', () => {
+  it('keeps the full SmartScreen walkthrough for an unsigned installer', () => {
+    const help = windowsHelp(false);
+    expect(help).toHaveLength(2);
+    expect(help.join(' ')).toMatch(/Until the installer is signed/);
+    expect(help.join(' ')).toMatch(/More info, then Run anyway/);
+  });
+
+  it('shrinks to one short line for a signed installer', () => {
+    const help = windowsHelp(true);
+    expect(help).toEqual([
+      'Windows may still ask you to confirm while Scrim builds reputation. Choose More info, then Run anyway.',
+    ]);
+    expect(help.join(' ')).not.toMatch(/Until the installer is signed/);
+  });
+
+  it('starts as unsigned, so the site never claims a signature before the first signed release', () => {
+    expect(siteConfig.windowsSigned).toBe(false);
+    expect(SYSTEMS.find((system) => system.os === 'windows')?.help).toEqual(windowsHelp(false));
   });
 });

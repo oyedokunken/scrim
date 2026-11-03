@@ -153,6 +153,26 @@ Copy `apps/landing/.env.example` to a local environment file and use a developme
 
 The desktop application does not send recordings or recording data to a server. The only request it can make is the update check described above, which goes to GitHub and carries nothing about you. The landing page stores the name, email, selected system, app version, a hashed IP, a truncated user agent and timestamps for download counting and optional update notices. See the [security policy](SECURITY.md) and the privacy page in the landing app for more information.
 
+## Code signing policy
+
+Windows releases of Scrim are signed in GitHub Actions, from the source in this repository, with a
+certificate of the [SignPath Foundation](https://signpath.org). Free code signing is provided by
+[SignPath.io](https://signpath.io). Windows then names the SignPath Foundation as the publisher.
+Signing is switched on release by release; an installer without a valid signature is not published
+once signing is required (see [docs/code-signing.md](docs/code-signing.md)).
+
+Team roles:
+
+- Author and committer: [Oyedokun Kehinde](https://github.com/oyedokunken)
+- Reviewer: [Oyedokun Kehinde](https://github.com/oyedokunken). Changes from other contributors are
+  reviewed in pull requests before they are merged.
+- Approver: [Oyedokun Kehinde](https://github.com/oyedokunken). Every release is approved by hand
+  before it is signed.
+
+Privacy: Scrim does not send recordings or recording data anywhere. The only network request the app
+can make is the update check, which asks GitHub Releases for the newest version, only when you press
+Check for updates or turn the check on at start. See the [privacy policy](https://www.scrim.app/privacy).
+
 ## Developer
 
 - **Name:** Oyedokun Kehinde

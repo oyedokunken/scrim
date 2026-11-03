@@ -1,3 +1,4 @@
+import { siteConfig } from '@/site.config';
 import type { Os } from './platform';
 
 type SupportedOs = Exclude<Os, 'unsupported'>;
@@ -11,16 +12,29 @@ export interface SystemInfo {
   help: readonly string[];
 }
 
+/**
+ * First run help for Windows. An unsigned installer gets the full SmartScreen walkthrough. A signed
+ * one only needs a line, because SmartScreen can still ask for a confirmation while the app builds
+ * reputation with Microsoft.
+ */
+export function windowsHelp(signed: boolean): readonly string[] {
+  return signed
+    ? [
+        'Windows may still ask you to confirm while Scrim builds reputation. Choose More info, then Run anyway.',
+      ]
+    : [
+        'Until the installer is signed, Windows SmartScreen may warn you before it runs.',
+        'Choose More info, then Run anyway.',
+      ];
+}
+
 /** The three systems Scrim is built for. */
 export const SYSTEMS: readonly SystemInfo[] = [
   {
     os: 'windows',
     name: 'Windows',
     summary: 'An installer for 64 bit Windows 10 and 11.',
-    help: [
-      'Until the installer is signed, Windows SmartScreen may warn you before it runs.',
-      'Choose More info, then Run anyway.',
-    ],
+    help: windowsHelp(siteConfig.windowsSigned),
   },
   {
     os: 'macos',

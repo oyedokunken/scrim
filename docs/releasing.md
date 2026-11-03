@@ -253,3 +253,15 @@ notifications are on in their GitHub notification settings.
   as activity, and a disabled schedule can be switched on again in the Actions tab.
 - Free plan rules can change. The permanent fixes are a paid plan, or a database host that does not
   pause.
+
+## Signed releases (Windows)
+
+Windows installers are signed with a SignPath Foundation certificate in the release workflow: the
+workflow builds the unsigned installer, uploads it to SignPath, waits for the maintainer's approval
+there, downloads the signed file, rewrites `latest.yml` from it (signing changes the hash), and checks
+the signature with `Get-AuthenticodeSignature` before it attaches anything to the release. The
+repository variable `REQUIRE_WINDOWS_SIGNING` makes that mandatory: set to `true`, an unsigned or
+unverifiable installer fails the workflow and is never published. The choice of provider, the
+conditions and the first signed release after unsigned ones are in
+[code-signing.md](code-signing.md) and [ADR 0008](adr/0008-windows-code-signing.md). A local
+`pnpm package` is always unsigned and says so.
