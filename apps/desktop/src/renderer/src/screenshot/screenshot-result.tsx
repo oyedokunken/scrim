@@ -17,6 +17,13 @@ function fileName(path: string): string {
   return path.split(/[\\/]/).pop() ?? path;
 }
 
+function folderOf(path: string): string {
+  const cut = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  return cut > 0 ? path.slice(0, cut) : path;
+}
+
+const WAITING = 'The screenshot is still opening.';
+
 /** What you just captured: a preview, and what to do with it. It was already saved and copied. */
 export function ScreenshotResult({ path, width, height, onEdit, onDone }: ScreenshotResultProps) {
   const toast = useToast();
@@ -119,53 +126,69 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
           />
         )}
       </div>
-      <p className="ui-help">
-        Saved as {fileName(path)} and copied to the clipboard. {String(width)} by {String(height)}.
-      </p>
-      <div className="shot-result-actions">
-        <Button variant="primary" icon={<Pencil size={16} strokeWidth={1.75} />} onClick={onEdit}>
-          Edit
-        </Button>
-        <Button
-          icon={<Copy size={16} strokeWidth={1.75} />}
-          disabled={source === null}
-          onClick={copy}
-        >
-          Copy
-        </Button>
-        <Button
-          icon={<Save size={16} strokeWidth={1.75} />}
-          disabled={source === null}
-          onClick={saveAs}
-        >
-          Save as
-        </Button>
-        <Button
-          icon={<FolderOpen size={16} strokeWidth={1.75} />}
-          onClick={() => {
-            void window.scrim.invoke('shell:show-in-folder', { path });
-          }}
-        >
-          Show in folder
-        </Button>
-        <Button
-          icon={<Trash2 size={16} strokeWidth={1.75} />}
-          onClick={() => {
-            setConfirmDelete(true);
-          }}
-        >
-          Delete
-        </Button>
-        <Button
-          icon={<Share2 size={16} strokeWidth={1.75} />}
-          disabled={source === null}
-          onClick={() => {
-            setSharing(true);
-          }}
-        >
-          Share
-        </Button>
-      </div>
+      <aside className="review-side" aria-label="Details and actions">
+        <div className="review-side-scroll">
+          <h3 className="lib-detail-name">{fileName(path)}</h3>
+          <dl className="lib-detail-facts">
+            <div>
+              <dt>Size</dt>
+              <dd>{`${String(width)} by ${String(height)}`}</dd>
+            </div>
+            <div>
+              <dt>Saved in</dt>
+              <dd>{folderOf(path)}</dd>
+            </div>
+          </dl>
+          <p className="ui-help">It was saved and copied to the clipboard.</p>
+        </div>
+        <div className="lib-detail-actions six" role="group" aria-label="What to do next">
+          <Button variant="primary" icon={<Pencil size={16} strokeWidth={1.75} />} onClick={onEdit}>
+            Edit
+          </Button>
+          <Button
+            icon={<Copy size={16} strokeWidth={1.75} />}
+            disabled={source === null}
+            disabledReason={WAITING}
+            onClick={copy}
+          >
+            Copy
+          </Button>
+          <Button
+            icon={<Save size={16} strokeWidth={1.75} />}
+            disabled={source === null}
+            disabledReason={WAITING}
+            onClick={saveAs}
+          >
+            Save as
+          </Button>
+          <Button
+            icon={<FolderOpen size={16} strokeWidth={1.75} />}
+            onClick={() => {
+              void window.scrim.invoke('shell:show-in-folder', { path });
+            }}
+          >
+            Show in folder
+          </Button>
+          <Button
+            icon={<Trash2 size={16} strokeWidth={1.75} />}
+            onClick={() => {
+              setConfirmDelete(true);
+            }}
+          >
+            Delete
+          </Button>
+          <Button
+            icon={<Share2 size={16} strokeWidth={1.75} />}
+            disabled={source === null}
+            disabledReason={WAITING}
+            onClick={() => {
+              setSharing(true);
+            }}
+          >
+            Share
+          </Button>
+        </div>
+      </aside>
 
       <ShareDialog
         source={
