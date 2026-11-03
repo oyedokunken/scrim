@@ -117,7 +117,7 @@ export function planLinuxSigning(input: LinuxSigningPlanInput): LinuxSigningDeci
 }
 
 /** Reads the environment and the public key file into plain facts for planLinuxSigning. */
-export function linuxSigningInputFromEnv(
+function linuxSigningInputFromEnv(
   env: SigningEnv,
   publicKeyText: string | undefined,
   dryRunFlag = false,
@@ -161,7 +161,7 @@ export type RunGpg = (
 ) => GpgResult;
 
 /** Runs the real gpg with its own keyring folder. */
-export const runGpg: RunGpg = (args, options) => {
+const runGpg: RunGpg = (args, options) => {
   const result = spawnSync('gpg', [...args], {
     encoding: 'utf8',
     input: options.input ?? '',
