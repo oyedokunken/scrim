@@ -1,8 +1,9 @@
 import { Pause, Play } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../ui';
 import { formatTimer } from '../format';
-import { LivePane, type LivePreviewSource } from './live-preview';
+import { LivePane, createLiveModel, type LivePreviewSource } from './live-preview';
+import { MicTrack } from './mic-track';
 
 export type ReviewMode = 'before' | 'after' | 'compare';
 
@@ -158,6 +159,11 @@ export function ReviewPlayer({ mode, before, after, live, liveLabel }: ReviewPla
     live !== undefined && mode === 'after' && (after === null || (sawWait && !afterShown));
   const showBefore = !showLive && (mode === 'before' || mode === 'compare' || after === null);
   const showAfter = after !== null && (mode === 'after' || mode === 'compare');
+  // The voice comes from the microphone file whenever the real video is not the one carrying the
+  // sound, so exactly one source is audible: the real After, or the voice, never both.
+  const liveModel = useMemo(() => (live === undefined ? null : createLiveModel(live)), [live]);
+  const micUrl = live?.project.media.mic;
+  const voiceOn = liveModel !== null && micUrl !== undefined && !(showAfter && !showLive);
   const playingNow = useRef(false);
   useEffect(() => {
     playingNow.current = playing;
@@ -289,7 +295,7 @@ export function ReviewPlayer({ mode, before, after, live, liveLabel }: ReviewPla
           <Pane
             label="Before"
             src={before}
-            muted={mode === 'compare'}
+            muted={mode === 'compare' || voiceOn}
             setRef={(element) => {
               beforeEl.current = element;
             }}
@@ -312,6 +318,15 @@ export function ReviewPlayer({ mode, before, after, live, liveLabel }: ReviewPla
           />
         ) : null}
       </div>
+      {liveModel !== null && micUrl !== undefined ? (
+        <MicTrack
+          src={micUrl}
+          model={liveModel}
+          clock={beforeEl}
+          playing={playing}
+          enabled={voiceOn}
+        />
+      ) : null}
       <div className="review-controls">
         <Button
           variant="primary"

@@ -9,8 +9,6 @@ import { useBackgroundElement } from '../panels/use-backgrounds';
 
 /** How far the camera may drift from the screen before it is pulled back, in seconds. */
 const DRIFT_S = 0.12;
-/** The same for the microphone. A little looser, because a voice tolerates it. */
-const MIC_DRIFT_S = 0.2;
 /** The widest the canvas is drawn, in pixels, so a 4K recording does not cost a 4K canvas. */
 const MAX_CANVAS_WIDTH = 1280;
 
@@ -48,7 +46,7 @@ export interface LivePaneProps {
   onTime: () => void;
   onEnded: () => void;
   onLoaded: () => void;
-  /** True while the player is playing, so the camera follows. */
+  /** True while the player is playing, so the camera follows. The voice is played by the player. */
   playing: boolean;
   /** The text on the picture. Null leaves it off. */
   label?: string | null;
@@ -73,10 +71,8 @@ export function LivePane({
   const paint = useMemo(() => cursorPaintCss(source.settings.haloColor), [source.settings]);
   const screenEl = useRef<HTMLVideoElement | null>(null);
   const cameraEl = useRef<HTMLVideoElement | null>(null);
-  const micEl = useRef<HTMLAudioElement | null>(null);
   const canvasEl = useRef<HTMLCanvasElement>(null);
   const cameraUrl = source.project.media.camera;
-  const micUrl = source.project.media.mic;
   const backgroundImage = useBackgroundElement(source.settings.backgroundId);
 
   const { output } = model.layout;
@@ -93,22 +89,6 @@ export function LivePane({
     if (camera !== null && frame.cameraTimeMs !== null) {
       const wanted = frame.cameraTimeMs / 1000;
       if (Math.abs(camera.currentTime - wanted) > DRIFT_S) camera.currentTime = wanted;
-    }
-    // The voice plays from the microphone file, on the stretch of it that this moment falls in.
-    const mic = micEl.current;
-    if (mic !== null) {
-      const at = screen.currentTime * 1000;
-      const piece = model.audio.find(
-        (item) => at >= item.outStartMs && at < item.outStartMs + item.durationMs,
-      );
-      if (piece === undefined || piece.micStartMs === null || !playing) {
-        if (!mic.paused) mic.pause();
-      }
-      if (piece !== undefined && piece.micStartMs !== null) {
-        const wanted = (piece.micStartMs + (at - piece.outStartMs)) / 1000;
-        if (Math.abs(mic.currentTime - wanted) > MIC_DRIFT_S) mic.currentTime = wanted;
-        if (playing && mic.paused) void mic.play().catch(() => undefined);
-      }
     }
     const k = canvas.width / output.width;
     ctx.setTransform(k, 0, 0, k, 0, 0);
@@ -127,7 +107,7 @@ export function LivePane({
       camera !== null &&
       camera.videoWidth > 0;
     canvas.dataset['bubble'] = shown ? 'true' : 'false';
-  }, [model, paint, cameraUrl, output.width, backgroundImage, playing]);
+  }, [model, paint, cameraUrl, output.width, backgroundImage]);
 
   // Draw on every frame while playing, and again whenever the picture changes while paused.
   useEffect(() => {
@@ -195,9 +175,6 @@ export function LivePane({
         onEnded={onEnded}
         onLoadedMetadata={onLoaded}
       />
-      {micUrl === undefined ? null : (
-        <audio ref={micEl} src={micUrl} preload="auto" hidden aria-label="Voice" />
-      )}
       {cameraUrl === undefined ? null : (
         <video ref={cameraEl} src={cameraUrl} muted playsInline preload="auto" hidden />
       )}
