@@ -12,6 +12,24 @@ function Fact({ label, value }: { label: string; value: string }) {
   );
 }
 
+const UNKNOWN = 'Not available';
+
+/** The facts list. Separate from the card so it renders without the bridge. The signing line shows only for a signed build. */
+export function AboutFacts({ about }: { about: About | null }) {
+  return (
+    <dl className="set-facts">
+      <Fact label="App name" value={about?.name ?? UNKNOWN} />
+      <Fact label="Version" value={about?.version ?? UNKNOWN} />
+      <Fact label="License" value={about?.license ?? UNKNOWN} />
+      <Fact
+        label="Release date"
+        value={about?.releaseDate == null ? UNKNOWN : formatDay(about.releaseDate)}
+      />
+      {about?.signedBy != null && <Fact label="Signed by" value={about.signedBy} />}
+    </dl>
+  );
+}
+
 /**
  * The About card: app facts only. Machine details live in the "Your machine" card.
  */
@@ -31,7 +49,6 @@ export function AboutCard() {
     };
   }, []);
 
-  const unknown = 'Not available';
   return (
     <section className="set-section" aria-label="About">
       <h2 className="set-title">
@@ -42,15 +59,7 @@ export function AboutCard() {
         Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and
         Linux.
       </p>
-      <dl className="set-facts">
-        <Fact label="App name" value={about?.name ?? unknown} />
-        <Fact label="Version" value={about?.version ?? unknown} />
-        <Fact label="License" value={about?.license ?? unknown} />
-        <Fact
-          label="Release date"
-          value={about?.releaseDate == null ? unknown : formatDay(about.releaseDate)}
-        />
-      </dl>
+      <AboutFacts about={about} />
     </section>
   );
 }

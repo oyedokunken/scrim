@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { formatDay, formatMoment } from '../../src/renderer/src/format';
-import { AboutCard } from '../../src/renderer/src/settings/about-card';
+import { AboutCard, AboutFacts } from '../../src/renderer/src/settings/about-card';
 import { AttributionsCard } from '../../src/renderer/src/settings/attributions-card';
 
 describe('the about card', () => {
@@ -14,6 +14,22 @@ describe('the about card', () => {
       expect(html).toContain(label);
     }
     expect(html).toContain('lucide-info');
+  });
+
+  it('shows Signed by with the publisher for a signed build and no line for an unsigned one', () => {
+    const about = {
+      name: 'Scrim',
+      version: '1.0.0',
+      license: 'MIT',
+      releaseDate: '2026-10-30',
+      signedBy: 'SignPath Foundation',
+    };
+    const signed = renderToStaticMarkup(<AboutFacts about={about} />);
+    expect(signed).toContain('Signed by');
+    expect(signed).toContain('SignPath Foundation');
+    const unsigned = renderToStaticMarkup(<AboutFacts about={{ ...about, signedBy: null }} />);
+    expect(unsigned).not.toContain('Signed by');
+    expect(renderToStaticMarkup(<AboutCard />)).not.toContain('Signed by');
   });
 
   it('has no Last updated row, no credits and none of the removed notes', () => {

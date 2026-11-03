@@ -11,10 +11,24 @@ export function releaseDateOf(stamp: unknown): string | null {
   return typeof stamp === 'string' && DAY.test(stamp) ? stamp : null;
 }
 
+/**
+ * The publisher name the build was signed under, written into the bundle at build time (see
+ * electron.vite.config.ts). Only a Windows build is signed by this pipeline, and an unsigned
+ * build writes an empty string, so the card shows nothing rather than a claim it cannot back.
+ */
+export function signedByOf(stamp: unknown, platform: string): string | null {
+  if (platform !== 'win32' || typeof stamp !== 'string') return null;
+  const name = stamp.trim();
+  return name === '' || name.length > 200 ? null : name;
+}
+
 export interface AboutDeps {
   name: string;
   version: string;
   license: string;
+  platform: string;
+  /** The raw publisher stamp from the build, or undefined. */
+  signedByStamp: unknown;
   /** The raw build stamp, or undefined. */
   buildStamp: unknown;
 }
@@ -29,6 +43,7 @@ export function readAbout(deps: AboutDeps): About {
     version: deps.version,
     license: deps.license,
     releaseDate: releaseDateOf(deps.buildStamp),
+    signedBy: signedByOf(deps.signedByStamp, deps.platform),
   };
 }
 

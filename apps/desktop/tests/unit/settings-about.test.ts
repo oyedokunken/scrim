@@ -6,6 +6,7 @@ import {
   readAbout,
   readSystemInfo,
   releaseDateOf,
+  signedByOf,
 } from '../../src/main/about/about-info';
 import { createAboutHandlers } from '../../src/main/about/about-handlers';
 import { createDispatcher, type Handlers } from '../../src/main/ipc/dispatcher';
@@ -30,6 +31,8 @@ describe('readAbout', () => {
     version: '1.2.3',
     license: 'MIT',
     buildStamp: '2026-10-30',
+    platform: 'win32',
+    signedByStamp: undefined as unknown,
   };
 
   it('reports the version and the build day, and no file timestamp', () => {
@@ -39,6 +42,7 @@ describe('readAbout', () => {
       version: '1.2.3',
       license: 'MIT',
       releaseDate: '2026-10-30',
+      signedBy: null,
     });
     expect(Object.keys(about)).not.toContain('lastUpdated');
     expect(aboutSchema.safeParse(about).success).toBe(true);
@@ -48,6 +52,31 @@ describe('readAbout', () => {
     const about = readAbout({ ...base, buildStamp: undefined });
     expect(about.releaseDate).toBeNull();
     expect(aboutSchema.safeParse(about).success).toBe(true);
+  });
+});
+
+describe('the signature line', () => {
+  const base = {
+    name: 'Scrim',
+    version: '1.2.3',
+    license: 'MIT',
+    buildStamp: '2026-10-30',
+    platform: 'win32',
+  };
+
+  it('names the publisher of a signed Windows build', () => {
+    const about = readAbout({ ...base, signedByStamp: 'SignPath Foundation' });
+    expect(about.signedBy).toBe('SignPath Foundation');
+    expect(aboutSchema.safeParse(about).success).toBe(true);
+  });
+
+  it('says nothing for an unsigned build, an empty stamp or another system', () => {
+    expect(readAbout({ ...base, signedByStamp: '' }).signedBy).toBeNull();
+    expect(readAbout({ ...base, signedByStamp: '   ' }).signedBy).toBeNull();
+    expect(readAbout({ ...base, signedByStamp: undefined }).signedBy).toBeNull();
+    expect(readAbout({ ...base, signedByStamp: 42 }).signedBy).toBeNull();
+    expect(readAbout({ ...base, platform: 'darwin', signedByStamp: 'X' }).signedBy).toBeNull();
+    expect(signedByOf('x'.repeat(201), 'win32')).toBeNull();
   });
 });
 
