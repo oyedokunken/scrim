@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+/** Where a deb install is sent to get a newer version. It is on the external link allowlist. */
+export const RELEASE_PAGE_URL = 'https://github.com/oyedokunken/scrim/releases/latest';
+
 /** What an update is, as far as the page needs to show it. The notes are plain text, never HTML. */
 const updateInfoSchema = z
   .object({
@@ -32,6 +35,11 @@ const updateStateSchema = z.discriminatedUnion('phase', [
   /** This install cannot update itself, for example a copy run from source or a deb package. */
   z.object({ phase: z.literal('unsupported'), message: z.string().max(300) }).strict(),
   z.object({ phase: z.literal('available'), info: updateInfoSchema }).strict(),
+  /**
+   * A newer version exists but this copy cannot install it (a deb package). The page shows the
+   * release link and the person installs the new package themselves.
+   */
+  z.object({ phase: z.literal('manual'), info: updateInfoSchema }).strict(),
   z
     .object({
       phase: z.literal('downloading'),

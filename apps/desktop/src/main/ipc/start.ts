@@ -15,6 +15,7 @@ import {
   type UpdaterLike,
 } from '../updates/update-controller';
 import { createRealUpdater } from '../updates/real-updater';
+import { updateModeFor } from '../updates/update-mode';
 import type { UpdateSnapshot } from '../../shared/updates-contract';
 import type { EventPayload } from '../../shared/ipc-contract';
 import { findLegacyFolders, moveLegacyFolders } from '../export/legacy';
@@ -61,7 +62,7 @@ const AUTO_CHECK_DELAY_MS = 30_000;
 
 /**
  * The update flow with the real updater. A development run has no installed app to update, and a
- * deb package updates through the package manager, so those get a plain message instead. The end
+ * deb package is only told that a newer version exists (see update-mode.ts). The end
  * to end tests may point a development run at a local feed with two variables that a packaged
  * app never reads.
  */
@@ -75,17 +76,14 @@ function createAppUpdates(options: {
     !app.isPackaged && process.env['SCRIM_E2E'] === '1'
       ? process.env['SCRIM_E2E_UPDATE_URL']
       : undefined;
-  let unsupported = '';
-  if (!app.isPackaged && testFeedUrl === undefined) {
-    unsupported = 'Updates are not available in this copy of the app.';
-  } else if (
-    process.platform === 'linux' &&
-    process.env['APPIMAGE'] === undefined &&
-    testFeedUrl === undefined
-  ) {
-    unsupported =
-      'This copy was installed from a deb package. To update it, install the new deb from the website.';
-  }
+  const mode = updateModeFor({
+    platform: process.platform,
+    isPackaged: app.isPackaged,
+    env: process.env,
+    hasTestFeed: testFeedUrl !== undefined,
+  });
+  let unsupported =
+    mode === 'unsupported' ? 'Updates are not available in this copy of the app.' : '';
   let updater: UpdaterLike | null = null;
   if (unsupported === '') {
     try {
@@ -97,6 +95,7 @@ function createAppUpdates(options: {
   return createUpdateController({
     updater,
     unsupported,
+    manualOnly: mode === 'notice',
     busy: () =>
       isLivePhase(options.recording.snapshot().phase)
         ? 'recording'

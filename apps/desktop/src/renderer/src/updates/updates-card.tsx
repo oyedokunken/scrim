@@ -19,6 +19,8 @@ export function statusText(snapshot: UpdateSnapshot): string {
       return '';
     case 'available':
       return `Version ${state.info.version} is available.`;
+    case 'manual':
+      return `A new version of Scrim is out: ${state.info.version}.`;
     case 'downloading':
       return `Downloading version ${state.info.version}, ${String(state.percent)}%.`;
     case 'ready':
@@ -51,7 +53,10 @@ export function UpdatesCard({
   const working = state.phase === 'checking' || state.phase === 'downloading';
   const canCheck = !working && state.phase !== 'unsupported' && snapshot.blocked === null;
   const found =
-    state.phase === 'available' || state.phase === 'downloading' || state.phase === 'ready';
+    state.phase === 'available' ||
+    state.phase === 'manual' ||
+    state.phase === 'downloading' ||
+    state.phase === 'ready';
   const text = statusText(snapshot);
   const wait = blockText(snapshot.blocked);
 
