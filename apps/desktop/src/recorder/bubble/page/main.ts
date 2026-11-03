@@ -27,6 +27,8 @@ let micStream: MediaStream | undefined;
 let cameraDeviceId: string | undefined;
 /** What the pill last said, so a stream that opens late still starts in the right state. */
 let media = { micMuted: false, cameraOn: true };
+/** True once `init` has tried to open the camera and the microphone. */
+let opened = false;
 
 function reasonOf(
   error: unknown,
@@ -51,6 +53,9 @@ async function openCamera(): Promise<MediaStream> {
  */
 async function applyMedia(next: { micMuted: boolean; cameraOn: boolean }): Promise<void> {
   media = next;
+  // The devices are still opening. `init` applies what was asked once they are open, and opening
+  // the camera a second time now would race the first.
+  if (!opened) return;
   for (const track of micStream?.getAudioTracks() ?? []) track.enabled = !next.micMuted;
   const track = cameraStream?.getVideoTracks()[0];
   if (!next.cameraOn) {
@@ -129,6 +134,9 @@ async function init(command: Extract<BubbleCommand, { type: 'init' }>): Promise<
       // No microphone to follow. The dot stays small and dim.
     }
   }
+  opened = true;
+  // A camera that was switched off while the devices opened is switched off now.
+  if (!media.cameraOn) void applyMedia(media);
 }
 
 window.scrimBubble.onCommand((command) => {
