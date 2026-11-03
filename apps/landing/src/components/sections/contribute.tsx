@@ -1,11 +1,4 @@
-import {
-  ArrowUpRight,
-  BookOpen,
-  CircleDot,
-  GitBranch,
-  Sprout,
-  type LucideIcon,
-} from 'lucide-react';
+import { BookOpen, CircleDot, GitBranch, Sprout, type LucideIcon } from 'lucide-react';
 import { siteConfig } from '@/site.config';
 import { SiteLink } from '../site-link';
 import styles from './contribute.module.css';
@@ -39,7 +32,6 @@ export function Contribute() {
               <SiteLink href={href}>
                 <Icon aria-hidden="true" size={22} className={styles.linkIcon} />
                 <span>{label}</span>
-                <ArrowUpRight aria-hidden="true" size={20} className={styles.linkArrow} />
               </SiteLink>
             </li>
           ))}

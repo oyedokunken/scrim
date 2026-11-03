@@ -50,7 +50,7 @@ const ALSO_INCLUDED: readonly AlsoItem[] = [
   },
   {
     icon: FolderLock,
-    title: 'Your files stay yours',
+    title: 'Local files only',
     text: 'Recordings are saved to the folder you choose. Nothing is uploaded and there is no account.',
   },
   {

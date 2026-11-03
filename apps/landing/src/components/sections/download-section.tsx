@@ -1,5 +1,4 @@
 import { formatReleaseDate, type ReleaseSummary } from '@/lib/release-date';
-import { siteConfig } from '@/site.config';
 import { SiteLink } from '../site-link';
 import styles from './download.module.css';
 import { SystemBlocks } from './system-blocks';
@@ -21,8 +20,8 @@ export function DownloadSection({ release }: DownloadSectionProps) {
           </h2>
           {release === null ? (
             <p className={styles.status}>
-              We could not load the latest release from GitHub. Get the installers from the{' '}
-              <SiteLink href={siteConfig.releasesUrl}>Releases page</SiteLink>.
+              Choose your operating system below and download Scrim. It is free, with no account and
+              no watermark.
             </p>
           ) : (
             <p className={styles.status}>

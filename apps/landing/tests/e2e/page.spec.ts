@@ -138,6 +138,43 @@ test.describe('the disclosures', () => {
     await expect(first).not.toHaveAttribute('open', '');
   });
 
+  test('opening a FAQ answer closes the one that was open, across both columns', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const items = page.locator('#faq details');
+    await items.nth(0).locator('summary').click();
+    await expect(items.nth(0)).toHaveAttribute('open', '');
+    await items.nth(1).locator('summary').click();
+    await expect(items.nth(1)).toHaveAttribute('open', '');
+    await expect(items.nth(0)).not.toHaveAttribute('open', '');
+    // The first answer of the second column closes one from the first column.
+    await items.nth(7).locator('summary').click();
+    await expect(items.nth(7)).toHaveAttribute('open', '');
+    await expect(items.nth(1)).not.toHaveAttribute('open', '');
+    await expect(page.locator('#faq details[open]')).toHaveCount(1);
+  });
+
+  test('Contact shows an email first, icons on every link and one outside arrow', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const links = page.locator('#contact li a');
+    await expect(links).toHaveCount(3);
+    await expect(links.nth(0)).toHaveText('hello@scrim.app');
+    await expect(links.nth(0)).toHaveAttribute('href', 'mailto:oyedokunken@gmail.com');
+    for (const index of [1, 2]) {
+      await expect(links.nth(index)).toHaveAttribute('target', '_blank');
+      await expect(links.nth(index).locator('svg')).toHaveCount(2);
+    }
+    await expect(links.nth(0).locator('svg')).toHaveCount(1);
+  });
+
+  test('the closing call to action has no source link', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('Or read the source')).toHaveCount(0);
+  });
+
   test('the FAQ is two columns of six on wide screens and one column on narrow ones', async ({
     page,
   }) => {
@@ -168,7 +205,7 @@ test.describe('the copy button', () => {
     await button.scrollIntoViewIfNeeded();
     await button.focus();
     await page.keyboard.press('Enter');
-    await expect(page.getByRole('status').filter({ hasText: 'Copied' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
     expect((await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n')).toBe(
       COMMANDS,
     );
@@ -176,7 +213,7 @@ test.describe('the copy button', () => {
 });
 
 test.describe('the copy button with the clipboard blocked', () => {
-  test('selects the commands instead and tells the visitor', async ({ page }) => {
+  test('selects the commands instead', async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'clipboard', {
         value: { writeText: () => Promise.reject(new Error('NotAllowedError')) },
@@ -185,9 +222,9 @@ test.describe('the copy button with the clipboard blocked', () => {
     });
     await page.goto('/');
     await page.getByRole('button', { name: 'Copy commands' }).click();
-    await expect(page.getByRole('status').filter({ hasText: 'Selected' })).toBeVisible();
-    const selected = await page.evaluate(() => window.getSelection()?.toString() ?? '');
-    expect(selected).toBe(COMMANDS);
+    await expect
+      .poll(() => page.evaluate(() => window.getSelection()?.toString() ?? ''))
+      .toBe(COMMANDS);
   });
 });
 
@@ -242,7 +279,7 @@ test.describe('keyboard only', () => {
       }
       if (info.label === 'Copy commands' && !copied) {
         await page.keyboard.press('Enter');
-        await expect(page.getByRole('status').filter({ hasText: 'Copied' })).toBeVisible();
+        await expect(page.getByRole('button', { name: 'Copied' })).toBeVisible();
         if (browserName === 'chromium') {
           expect(
             (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n'),

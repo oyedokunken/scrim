@@ -576,9 +576,7 @@ export function HeroDemo() {
                 left: `${String(percentOf(segment.start))}%`,
                 width: `${String(percentOf(segment.end) - percentOf(segment.start))}%`,
               }}
-            >
-              <span className={styles.segmentName}>{segment.label}</span>
-            </span>
+            ></span>
           ))}
           {DEMO_ZOOM_SPANS.map((span) => (
             <span
@@ -663,23 +661,6 @@ export function HeroDemo() {
             </span>
           ))}
         </div>
-        <nav className={styles.chapters} aria-label="Chapters">
-          {SEGMENTS.map((segment) => (
-            <button
-              key={segment.id}
-              type="button"
-              className={styles.chapter}
-              aria-current={currentScene === segment.id ? 'true' : undefined}
-              onClick={() => {
-                // Start the chapter a hair in, so its card is already showing when the video resumes.
-                player.current?.seek(segment.start + 60);
-                setEnded(false);
-              }}
-            >
-              {segment.label}
-            </button>
-          ))}
-        </nav>
       </div>
     </div>
   );

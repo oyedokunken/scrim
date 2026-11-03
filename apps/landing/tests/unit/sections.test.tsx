@@ -116,8 +116,11 @@ describe('the sections in detail', () => {
     const html = renderToStaticMarkup(<DownloadSection release={null} />);
     expect(html).not.toContain('Every build of Scrim');
     expect(html).not.toContain('Open the Releases page');
+    expect(html).not.toContain('Releases page');
+    expect(html).not.toContain('could not load');
     expect(html).not.toContain('not out yet');
     expect(html).toContain('Download Scrim');
+    expect(html).toContain('Choose your operating system below and download Scrim.');
   });
 
   it('Download shows the version and the date when a release exists', () => {
@@ -148,6 +151,16 @@ describe('the sections in detail', () => {
     expect(html.match(/Need help\?/g)).toHaveLength(3);
     expect(html).not.toContain('First run help');
     expect(html.match(/<svg/g)?.length ?? 0).toBeGreaterThanOrEqual(6);
+  });
+
+  it('the Need help text links "open an issue" once, with one outside arrow', () => {
+    const html = renderToStaticMarkup(<DownloadSection release={null} />);
+    const links = html.match(/<a [^>]*>open an issue.*?<\/a>/g) ?? [];
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link).toContain(`href="${siteConfig.issuesUrl}"`);
+      expect(link.match(/lucide-arrow-up-right/g)).toHaveLength(1);
+    }
   });
 
   it('Faq renders twelve questions in two columns of six, in order', () => {
@@ -187,16 +200,54 @@ describe('the sections in detail', () => {
     ]);
   });
 
-  it('Contact offers the issues and the security policy, no email and no form', () => {
+  it('Contact lists the email first, then the issues and the security policy, each with an icon', () => {
     const html = renderToStaticMarkup(<Contact />);
-    expect(html).not.toContain('hello@scrim.oyedokun.dev');
-    expect(html).not.toContain('mailto:');
-    expect(html).not.toContain('gmail.com');
-    expect(html).toContain(`href="${siteConfig.issuesUrl}"`);
-    expect(html).toContain(`href="${siteConfig.securityUrl}"`);
+    const items = html.match(/<li>.*?<\/li>/g) ?? [];
+    expect(items).toHaveLength(3);
+    // The shown address and the address the mail opens to are different on purpose.
+    expect(items[0]).toContain('>hello@scrim.app<');
+    expect(items[0]).toContain(`href="mailto:${siteConfig.contactInbox}"`);
+    expect(items[0]).not.toContain('target="_blank"');
+    expect(items[1]).toContain(`href="${siteConfig.issuesUrl}"`);
+    expect(items[2]).toContain(`href="${siteConfig.securityUrl}"`);
+    // A leading icon on each, and one outside arrow on the two links that leave the site.
+    expect(items[0]?.match(/<svg/g)).toHaveLength(1);
+    for (const item of [items[1], items[2]]) {
+      expect(item?.match(/<svg/g)).toHaveLength(2);
+      expect(item?.match(/lucide-arrow-up-right/g)).toHaveLength(1);
+    }
     expect(html).not.toContain('<form');
     expect(html).not.toContain('<input');
     expect(html).not.toMatch(/within \d+|24 hours|business days/i);
+  });
+
+  it('no link on the page carries two outside arrows', () => {
+    for (const link of page().match(/<a [^>]*>.*?<\/a>/g) ?? []) {
+      expect(link.match(/lucide-arrow-up-right/g)?.length ?? 0).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('Features calls the privacy card Local files only, in the same format as the others', () => {
+    const html = renderToStaticMarkup(<Features />);
+    expect(html).not.toContain('Your files stay yours');
+    expect(html).toMatch(
+      /<li><svg[^>]*>.*?<\/svg><div><strong>Local files only<\/strong><p>Recordings are saved to the folder you choose\. Nothing is uploaded and there is no account\.<\/p><\/div><\/li>/,
+    );
+  });
+
+  it('the FAQ keeps one answer open at a time', () => {
+    const html = renderToStaticMarkup(<Faq />);
+    const details = html.match(/<details[^>]*>/g) ?? [];
+    expect(details).toHaveLength(12);
+    for (const tag of details) {
+      expect(tag).toContain('name="faq"');
+    }
+  });
+
+  it('the closing call to action has the three systems and no source link', () => {
+    const html = renderToStaticMarkup(<FinalCta />);
+    expect(html).not.toContain('Or read the source');
+    expect(html).not.toContain(`href="${siteConfig.repoUrl}"`);
   });
 
   it('the final call to action is decoration plus real links with logos, and all CSS', () => {
