@@ -189,7 +189,7 @@ describe('the sections in detail', () => {
 
   it('Contact offers the issues and the security policy, no email and no form', () => {
     const html = renderToStaticMarkup(<Contact />);
-    expect(html).not.toContain('hello@scrim.app');
+    expect(html).not.toContain('hello@scrim.oyedokunken.dev');
     expect(html).not.toContain('mailto:');
     expect(html).not.toContain('gmail.com');
     expect(html).toContain(`href="${siteConfig.issuesUrl}"`);
@@ -251,7 +251,7 @@ describe('the privacy page', () => {
   it('says how to ask for access or deletion and how to unsubscribe', () => {
     expect(html).toContain('href="mailto:oyedokunken@gmail.com"');
     expect(html).toContain('unsubscribe link');
-    expect(html).not.toContain('hello@scrim.app');
+    expect(html).not.toContain('hello@scrim.oyedokunken.dev');
   });
 
   it('mentions the note sent to the site owner', () => {

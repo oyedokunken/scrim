@@ -31,9 +31,10 @@ test('the email a downloader gets', async ({ page }, testInfo) => {
     version: '1.0.0',
     url: 'https://github.com/oyedokunken/scrim/releases/download/v1.0.0/Scrim-1.0.0-x64.exe',
     help: windows?.help ?? [],
-    siteUrl: 'https://scrim.app',
-    privacyUrl: 'https://scrim.app/privacy',
-    unsubscribeUrl: 'https://scrim.app/unsubscribe?token=3f2b8c1e-5d4a-4b7e-9a10-2c6f8d9e0a11',
+    siteUrl: 'https://scrim.oyedokunken.dev',
+    privacyUrl: 'https://scrim.oyedokunken.dev/privacy',
+    unsubscribeUrl:
+      'https://scrim.oyedokunken.dev/unsubscribe?token=3f2b8c1e-5d4a-4b7e-9a10-2c6f8d9e0a11',
     supportUrl: 'https://buymeamalt.com/@oyedokunken',
   });
   await page.setViewportSize({ width: 700, height: 900 });
@@ -53,7 +54,7 @@ test('the note the owner gets', async ({ page }, testInfo) => {
     direct: true,
     updatesOptIn: true,
     when: '2026-11-02 09:30 UTC',
-    siteUrl: 'https://scrim.app',
+    siteUrl: 'https://scrim.oyedokunken.dev',
   });
   await page.setViewportSize({ width: 620, height: 700 });
   await page.setContent(email.html);
