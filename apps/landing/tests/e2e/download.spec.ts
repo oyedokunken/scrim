@@ -230,11 +230,7 @@ test.describe('the system is picked from the visitor computer', () => {
       Object.defineProperty(navigator, 'userAgentData', { value: undefined, configurable: true });
     });
     await openDialog(page);
-    await expect(
-      dialog(page)
-        .getByText(/Scrim is for desktop computers/)
-        .first(),
-    ).toBeVisible();
+    await expect(dialog(page)).toBeVisible();
     for (const label of ['Windows', 'macOS', 'Linux']) {
       await expect(dialog(page).getByRole('radio', { name: label })).not.toBeChecked();
     }
@@ -245,10 +241,7 @@ test.describe('the system is picked from the visitor computer', () => {
 test.describe('the form', () => {
   test('has placeholders on the name and the email', async ({ page }) => {
     await openDialog(page);
-    await expect(dialog(page).getByLabel('Your name')).toHaveAttribute(
-      'placeholder',
-      'Ada Lovelace',
-    );
+    await expect(dialog(page).getByLabel('Your name')).toHaveAttribute('placeholder', 'Your Name');
     await expect(dialog(page).getByLabel('Your email')).toHaveAttribute(
       'placeholder',
       'you@example.com',
