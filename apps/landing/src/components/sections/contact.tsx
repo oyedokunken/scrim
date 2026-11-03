@@ -1,7 +1,18 @@
-import { ArrowUpRight } from 'lucide-react';
+import { Bug, Mail, ShieldAlert } from 'lucide-react';
 import { siteConfig } from '@/site.config';
 import { SiteLink } from '../site-link';
 import styles from './contact.module.css';
+
+/** The ways to reach the owner. Each has its own icon, and an outside link gets one arrow from SiteLink. */
+const CHANNELS = [
+  {
+    icon: Mail,
+    label: siteConfig.contactEmailLabel,
+    href: `mailto:${siteConfig.contactInbox}`,
+  },
+  { icon: Bug, label: 'Open an issue on GitHub', href: siteConfig.issuesUrl },
+  { icon: ShieldAlert, label: 'Report a security problem privately', href: siteConfig.securityUrl },
+] as const;
 
 export function Contact() {
   return (
@@ -16,24 +27,20 @@ export function Contact() {
         </h2>
         <p className="lead">
           Questions, bug reports or ideas for Scrim? Open an issue on GitHub so others can follow
-          along.
+          along, or write an email.
         </p>
       </div>
 
       <div className={styles.channels}>
         <ul>
-          <li>
-            <SiteLink href={siteConfig.issuesUrl}>
-              Open an issue on GitHub
-              <ArrowUpRight aria-hidden="true" size={18} />
-            </SiteLink>
-          </li>
-          <li>
-            <SiteLink href={siteConfig.securityUrl}>
-              Report a security problem privately
-              <ArrowUpRight aria-hidden="true" size={18} />
-            </SiteLink>
-          </li>
+          {CHANNELS.map(({ icon: Icon, label, href }) => (
+            <li key={href}>
+              <SiteLink href={href}>
+                <Icon aria-hidden="true" size={20} className={styles.channelIcon} />
+                <span>{label}</span>
+              </SiteLink>
+            </li>
+          ))}
         </ul>
       </div>
     </section>

@@ -27,7 +27,8 @@ export function Faq() {
         {columns.map((items, index) => (
           <div key={index} className={styles.column}>
             {items.map((item) => (
-              <details key={item.question} className={styles.item}>
+              // One shared name makes the browser keep a single answer open at a time.
+              <details key={item.question} name="faq" className={styles.item}>
                 <summary>
                   <span>{item.question}</span>
                   <Plus aria-hidden="true" size={22} strokeWidth={2.25} />

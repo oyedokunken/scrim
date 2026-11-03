@@ -71,11 +71,9 @@ test.describe('the hero video', () => {
     const hero = page.locator('section[aria-labelledby="hero-title"]');
     // The hero holds the download link, the source link, the play control, the switch and the
     // timeline. There is no Play demo button, no caption and no second label.
-    // Inside the video: Play and Pause, and the sound toggle. Under it sit one button for each chapter.
-    await expect(hero.getByRole('button')).toHaveCount(2 + SEGMENTS.length);
-    await expect(
-      hero.getByRole('navigation', { name: 'Chapters' }).getByRole('button'),
-    ).toHaveCount(SEGMENTS.length);
+    // Inside the video: Play and Pause, and the sound toggle. No chapter buttons under it.
+    await expect(hero.getByRole('button')).toHaveCount(2);
+    await expect(hero.getByRole('navigation', { name: 'Chapters' })).toHaveCount(0);
     await expect(hero.getByText('Play demo')).toHaveCount(0);
     await expect(hero.getByText(/Auto zoom is (on|off)/)).toHaveCount(0);
     await expect(hero.getByText('Timeline', { exact: true })).toHaveCount(0);
@@ -343,71 +341,14 @@ test.describe('the video controls', () => {
   });
 });
 
-test.describe('the chapter buttons', () => {
-  test.beforeEach(async ({ page }) => {
+test.describe('the chapter list', () => {
+  test('is not shown under or inside the video', async ({ page }) => {
     await page.goto('/');
-  });
-
-  test('jump to their chapter and mark the playing one with aria-current', async ({ page }) => {
-    const nav = page.getByRole('navigation', { name: 'Chapters' });
-    await expect(nav.getByRole('button')).toHaveCount(SEGMENTS.length);
-    await pause(page);
-    for (const entry of SEGMENTS) {
-      await nav.getByRole('button', { name: entry.label, exact: true }).click();
-      await expect(demo(page)).toHaveAttribute('data-scene', entry.id);
-      await expect(nav.getByRole('button', { name: entry.label, exact: true })).toHaveAttribute(
-        'aria-current',
-        'true',
-      );
-      await expect(nav.locator('[aria-current="true"]')).toHaveCount(1);
+    await expect(page.getByRole('navigation', { name: 'Chapters' })).toHaveCount(0);
+    for (const label of ['Logo', 'Headline', 'Recording', 'Platforms', 'Address']) {
+      await expect(page.getByTestId('hero-demo').getByText(label, { exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: label, exact: true })).toHaveCount(0);
     }
-  });
-
-  for (const width of [320, 375, 768, 1024, 1440]) {
-    test(`form one bar as wide as the video, with a small radius, at ${String(width)} px`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto('/');
-      const video = await demo(page).boundingBox();
-      const nav = page.getByRole('navigation', { name: 'Chapters' });
-      const bar = await nav.boundingBox();
-      // Same left and right edges as the video, to the pixel.
-      expect(bar?.x).toBeCloseTo(video?.x ?? -1, 0);
-      expect((bar?.x ?? 0) + (bar?.width ?? 0)).toBeCloseTo(
-        (video?.x ?? 0) + (video?.width ?? 0),
-        0,
-      );
-      const radius = await nav.evaluate((element) =>
-        parseFloat(getComputedStyle(element).borderTopLeftRadius),
-      );
-      expect(radius).toBeGreaterThanOrEqual(4);
-      expect(radius).toBeLessThanOrEqual(8);
-      for (const box of await nav.getByRole('button').evaluateAll((buttons) =>
-        buttons.map((button) => {
-          const rect = button.getBoundingClientRect();
-          return { left: rect.left, right: rect.right, height: rect.height };
-        }),
-      )) {
-        expect(box.height).toBeGreaterThanOrEqual(44);
-        expect(box.left).toBeGreaterThanOrEqual((video?.x ?? 0) - 1);
-        expect(box.right).toBeLessThanOrEqual((video?.x ?? 0) + (video?.width ?? 0) + 1);
-      }
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBe(true);
-    });
-  }
-
-  test('can be used from the keyboard alone', async ({ page }) => {
-    await pause(page);
-    const edit = page.getByRole('navigation', { name: 'Chapters' }).getByRole('button', {
-      name: 'Edit',
-      exact: true,
-    });
-    await edit.focus();
-    await page.keyboard.press('Enter');
-    await expect(demo(page)).toHaveAttribute('data-scene', 'edit');
   });
 });
 
@@ -605,11 +546,8 @@ test.describe('the recording look of the demo', () => {
     page,
   }) => {
     await page.goto('/');
-    for (const entry of SEGMENTS) {
-      await expect(
-        page.locator(`[data-segment]`).filter({ hasText: new RegExp(`^${entry.label}$`) }),
-      ).toHaveCount(1);
-    }
+    // The segments are marked on the track, with no names on them.
+    await expect(page.locator('[data-segment]')).toHaveCount(SEGMENTS.length);
     for (let second = 0; second <= Math.floor(MASTER_DURATION_MS / 5000) * 5; second += 5) {
       const label = `0:${String(second).padStart(2, '0')}`;
       await expect(page.getByText(label, { exact: true }).first()).toBeAttached();
