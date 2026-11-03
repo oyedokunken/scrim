@@ -26,6 +26,7 @@ import { createPillController } from './recording/pill-controller';
 import { createBubbleController } from './recording/bubble-controller';
 import { BUBBLE_DIAMETERS, cornerFromSetting } from '../recorder/bubble/geometry';
 import { createBubbleWindow } from './recording/bubble-window';
+import { createMediaState, mediaErrorOf, mediaFromSnapshot } from './recording/media-state';
 import { PILL_SIZE } from './recording/pill-position';
 import { createPillWindow } from './recording/pill-window';
 import type { SettingsStore } from './settings/settings-store';
@@ -195,8 +196,25 @@ if (!app.requestSingleInstanceLock()) {
     control.attach(recording);
     // The main window steps aside while recording and the small control takes over, then they swap back.
     const pillFile = join(app.getPath('userData'), 'pill-position.json');
+    // The microphone and camera buttons. Their state lives here, and the pill and the bubble
+    // follow it. `pill` and `bubble` are made below and are only used once a recording runs.
+    const pillMedia = createMediaState({
+      now: () => performance.now(),
+      apply: async (kind, enabled) => {
+        const result = await recording.setTrackEnabled(kind, enabled);
+        return result.ok ? { ok: true } : { ok: false, reason: mediaErrorOf(result.error.detail) };
+      },
+      onChange: (state) => {
+        pill.refresh();
+        bubble.setMedia({
+          micMuted: state.mic.available && !state.mic.active,
+          cameraOn: !state.camera.available || state.camera.active,
+        });
+      },
+    });
     const pill = createPillController({
       service: recording,
+      media: pillMedia,
       window: createPillWindow({
         appOrigin: target.origin,
         recordedArea: () => recording.recordedArea(),
@@ -266,14 +284,30 @@ if (!app.requestSingleInstanceLock()) {
         recording.recordBubble(keyframe);
       },
     });
+    bubble.onCameraFailed((reason) => {
+      void pillMedia.fail('camera', mediaErrorOf(reason));
+    });
     recording.on((event) => {
       pill.onEvent(event);
       recordingWindows.onEvent(event);
       if (event.type === 'state') {
-        if (event.snapshot.phase === 'recording') bubble.start();
-        else if (!isLivePhase(event.snapshot.phase)) bubble.stop();
+        const { snapshot } = event;
+        if (snapshot.phase === 'recording') bubble.start();
+        else if (!isLivePhase(snapshot.phase)) bubble.stop();
+        if (!isLivePhase(snapshot.phase)) {
+          pillMedia.end();
+        } else if (snapshot.phase === 'recording' || snapshot.phase === 'paused') {
+          const asked = recording.recordingDevices();
+          const seen = mediaFromSnapshot(snapshot, {
+            mic: asked?.mic.enabled ?? false,
+            camera: asked?.camera.enabled ?? false,
+          });
+          if (!pillMedia.isLive()) pillMedia.begin(seen.devices);
+          for (const kind of seen.lost) pillMedia.deviceLost(kind);
+        }
       } else if (event.type === 'finished' || event.type === 'error') {
         bubble.stop();
+        pillMedia.end();
       }
     });
     // The main window steps aside while the area is chosen and comes back unless a recording began.

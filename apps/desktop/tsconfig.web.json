@@ -19,6 +19,7 @@
     "src/recorder/bubble/protocol.ts",
     "src/recorder/bubble/page/**/*",
     "src/recorder/pill/format.ts",
+    "src/recorder/pill/media-view.ts",
     "src/recorder/pill/protocol.ts",
     "src/recorder/pill/page/**/*",
     "tests/unit/track-recorder.test.ts",

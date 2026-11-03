@@ -54,6 +54,14 @@ export const recorderEventSchema: z.ZodType<RecorderEvent> = z.discriminatedUnio
   }),
   z.strictObject({ type: z.literal('paused'), rendererNow }),
   z.strictObject({ type: z.literal('resumed'), rendererNow }),
+  z.strictObject({
+    type: z.literal('enabled'),
+    kind: z.enum(['camera', 'mic']),
+    enabled: z.boolean(),
+    ok: z.boolean(),
+    reason: trackFailureReasonSchema.optional(),
+    rendererNow,
+  }),
   z.strictObject({ type: z.literal('track-ended'), kind: trackKindSchema, rendererNow }),
   z.strictObject({
     type: z.literal('track-error'),

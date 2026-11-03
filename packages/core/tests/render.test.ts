@@ -359,6 +359,60 @@ describe('render model', () => {
     ).toEqual([]);
   });
 
+  it('turns the muted stretches into silence and keeps the output length', () => {
+    const toggles = [
+      { kind: 'mic' as const, on: false, t: 3000 },
+      { kind: 'mic' as const, on: true, t: 5000 },
+    ];
+    const model = createRenderModel(input({ session: session({ toggles }) }));
+    const total = model.audio.reduce((sum, piece) => sum + piece.durationMs, 0);
+    expect(total).toBe(model.totalMs);
+    const silent = model.audio.filter((piece) => piece.micStartMs === null);
+    expect(silent).toContainEqual({ outStartMs: 3000, durationMs: 2000, micStartMs: null });
+    // The mic is live right before and right after the muted stretch.
+    expect(model.audio.find((piece) => piece.outStartMs === 2000)?.micStartMs).not.toBeNull();
+    expect(model.audio.find((piece) => piece.outStartMs === 5000)?.micStartMs).not.toBeNull();
+  });
+
+  it('keeps the muted stretch silent after a cut moves it earlier in the output', () => {
+    const toggles = [
+      { kind: 'mic' as const, on: false, t: 3000 },
+      { kind: 'mic' as const, on: true, t: 4000 },
+    ];
+    const model = createRenderModel(
+      input({
+        session: session({ toggles }),
+        edits: { trim: null, cuts: [{ startMs: 1000, endMs: 2000 }] },
+      }),
+    );
+    expect(model.audio).toContainEqual({ outStartMs: 2000, durationMs: 1000, micStartMs: null });
+  });
+
+  it('hides the bubble and the camera picture while the camera is off', () => {
+    const toggles = [
+      { kind: 'camera' as const, on: false, t: 4000 },
+      { kind: 'camera' as const, on: true, t: 6000 },
+    ];
+    const model = createRenderModel(input({ session: session({ toggles }) }));
+    expect(model.describeAt(3999).bubble).not.toBeNull();
+    expect(model.describeAt(3999).cameraTimeMs).not.toBeNull();
+    for (const t of [4000, 5000, 5999]) {
+      expect(model.describeAt(t).bubble).toBeNull();
+      expect(model.describeAt(t).cameraTimeMs).toBeNull();
+    }
+    expect(model.describeAt(6000).bubble).not.toBeNull();
+    expect(model.describeAt(6000).cameraTimeMs).not.toBeNull();
+  });
+
+  it('muting from the start leaves the length alone and silences everything', () => {
+    const plain = createRenderModel(input());
+    const toggled = createRenderModel(
+      input({ session: session({ toggles: [{ kind: 'mic', on: false, t: 0 }] }) }),
+    );
+    expect(toggled.totalMs).toBe(plain.totalMs);
+    expect(toggled.audio.every((piece) => piece.micStartMs === null)).toBe(true);
+  });
+
   it('uses the crop size when recording a region', () => {
     const s = session({
       source: {

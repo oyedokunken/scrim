@@ -111,6 +111,9 @@ const HEARTBEAT_MS = 1000;
 /** Matches the session file's own limit. */
 const BUBBLE_KEYFRAME_LIMIT = 5000;
 
+/** Matches the session file's own limit on logged toggles. */
+const TOGGLE_LIMIT = 2000;
+
 /**
  * How long after `start()` a video recorder's first frame is stamped, in milliseconds, used only
  * when the frame's own capture time cannot be read. Measured with the on screen marker over six
@@ -230,6 +233,37 @@ export class RecordingService {
     if (list.length >= BUBBLE_KEYFRAME_LIMIT) return;
     active.session.bubble = [...list, { ...position, t: this.elapsed(active) }];
     void this.persist(active).catch(() => undefined);
+  }
+
+  /**
+   * Mutes or unmutes the microphone, or hides or shows the camera, while recording or paused. The
+   * track is switched off, not stopped, so the recording carries on in step and the file holds
+   * silence or black frames for that stretch. Each change is logged in the session file on the
+   * recording clock, which leaves paused time out. The failure detail is the reason the page gave.
+   */
+  async setTrackEnabled(kind: 'mic' | 'camera', enabled: boolean): Promise<Outcome<void>> {
+    const active = this.active;
+    if (active === undefined || (this.phase !== 'recording' && this.phase !== 'paused')) {
+      return this.invalid();
+    }
+    if (active.ended.has(kind))
+      return { ok: false, error: makeError('recorder-failed', 'device-missing') };
+    try {
+      const reply = await active.host.setEnabled(kind, enabled);
+      if (!reply.ok) return { ok: false, error: makeError('recorder-failed', reply.reason) };
+      const list = active.session.toggles ?? [];
+      if (list.length < TOGGLE_LIMIT) {
+        const t = Math.max(
+          0,
+          Math.round(toMediaTime(this.deps.now() - active.origin, 0, active.pauses)),
+        );
+        active.session.toggles = [...list, { kind, on: enabled, t }];
+        void this.persist(active).catch(() => undefined);
+      }
+      return { ok: true, value: undefined };
+    } catch (error) {
+      return { ok: false, error: this.classify(error, 'recording') };
+    }
   }
 
   snapshot(): RecordingSnapshot {

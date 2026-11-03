@@ -234,6 +234,51 @@ describe('running', () => {
     expect(last('resumed')?.rendererNow).toBe(900);
   });
 
+  it('switches the microphone and camera tracks off and on without touching the recorders', async () => {
+    const { controller, recorders, last, tracks } = await started(['screen', 'camera', 'mic']);
+    await controller.handle({ type: 'set-enabled', kind: 'mic', enabled: false });
+    expect(tracks.micTrack.enabled).toBe(false);
+    expect(last('enabled')).toMatchObject({ kind: 'mic', enabled: false, ok: true });
+    await controller.handle({ type: 'set-enabled', kind: 'camera', enabled: false });
+    expect(tracks.cameraTrack.enabled).toBe(false);
+    expect(tracks.screenTrack.enabled).toBe(true);
+    expect(recorders.map((recorder) => recorder.state)).toEqual([
+      'recording',
+      'recording',
+      'recording',
+    ]);
+    await controller.handle({ type: 'set-enabled', kind: 'mic', enabled: true });
+    expect(tracks.micTrack.enabled).toBe(true);
+  });
+
+  it('keeps a muted microphone muted across a pause and a resume', async () => {
+    const { controller, recorders, tracks } = await started(['screen', 'mic']);
+    await controller.handle({ type: 'set-enabled', kind: 'mic', enabled: false });
+    await controller.handle({ type: 'pause' });
+    expect(tracks.micTrack.enabled).toBe(false);
+    await controller.handle({ type: 'resume' });
+    expect(tracks.micTrack.enabled).toBe(false);
+    expect(recorders.map((recorder) => recorder.state)).toEqual(['recording', 'recording']);
+  });
+
+  it('can be muted while paused, and stays muted after the resume', async () => {
+    const { controller, tracks } = await started(['screen', 'mic']);
+    await controller.handle({ type: 'pause' });
+    await controller.handle({ type: 'set-enabled', kind: 'mic', enabled: false });
+    await controller.handle({ type: 'resume' });
+    expect(tracks.micTrack.enabled).toBe(false);
+  });
+
+  it('says no when the device is gone or was never opened, and changes nothing', async () => {
+    const { controller, last, tracks } = await started(['screen', 'camera']);
+    await controller.handle({ type: 'set-enabled', kind: 'mic', enabled: false });
+    expect(last('enabled')).toMatchObject({ kind: 'mic', ok: false, reason: 'device-missing' });
+    tracks.cameraTrack.unplug();
+    await controller.handle({ type: 'set-enabled', kind: 'camera', enabled: true });
+    expect(last('enabled')).toMatchObject({ kind: 'camera', ok: false, reason: 'device-missing' });
+    expect(tracks.cameraTrack.enabled).toBe(true);
+  });
+
   it('stops everything, sends the last chunks first, closes the ports and reports totals', async () => {
     const { controller, recorders, ports, last } = await started();
     recorders[0]?.emit(blobOf(8));

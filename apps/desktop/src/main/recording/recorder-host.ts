@@ -224,6 +224,25 @@ export class RecorderHost {
     return event.type === 'resumed' ? event.rendererNow : 0;
   }
 
+  /**
+   * Mutes or unmutes the microphone, or hides or shows the camera. Resolves with whether the page
+   * could do it and, when it could not, why.
+   */
+  async setEnabled(
+    kind: 'camera' | 'mic',
+    enabled: boolean,
+  ): Promise<{ ok: true } | { ok: false; reason: string }> {
+    const reply = this.expect(
+      `the ${kind} switch`,
+      (event) => event.type === 'enabled' && event.kind === kind,
+      this.replyMs,
+    );
+    this.transport.send({ type: 'set-enabled', kind, enabled });
+    const event = await reply;
+    if (event.type !== 'enabled') throw new HostFailure({ code: 'closed' });
+    return event.ok ? { ok: true } : { ok: false, reason: event.reason ?? 'unknown' };
+  }
+
   /** Stops every recorder and waits until the last chunk has been sent. */
   async stop(): Promise<Extract<RecorderEvent, { type: 'stopped' }>['tracks']> {
     const reply = this.expect(

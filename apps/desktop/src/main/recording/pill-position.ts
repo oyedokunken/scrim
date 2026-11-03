@@ -1,7 +1,10 @@
 import { z } from 'zod';
 
-/** The pill, in device independent pixels. A single compact bar. */
-export const PILL_SIZE = { width: 232, height: 40 } as const;
+/**
+ * The pill, in device independent pixels. A single bar: the time, the microphone and camera
+ * buttons, then pause, stop and discard, each a 40 pixel target.
+ */
+export const PILL_SIZE = { width: 344, height: 48 } as const;
 /** The gap to the edges of the display, in device independent pixels. */
 export const PILL_MARGIN = 24;
 

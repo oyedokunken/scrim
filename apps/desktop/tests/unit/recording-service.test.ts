@@ -954,6 +954,69 @@ describe('where the working folder goes', () => {
   });
 });
 
+describe('microphone and camera toggles', () => {
+  const both = { camera: { enabled: true }, mic: { enabled: true } };
+
+  it('logs each change on the recording clock and leaves paused time out', async () => {
+    const { h, folder } = await started({}, both);
+    h.sendChunk('screen', 10);
+    h.clock.time += 1000;
+    expect((await h.service.setTrackEnabled('mic', false)).ok).toBe(true);
+    h.clock.time += 1000;
+    await h.service.pause();
+    h.clock.time += 5000;
+    // A press while paused lands on the instant the pause began.
+    expect((await h.service.setTrackEnabled('mic', true)).ok).toBe(true);
+    await h.service.resume();
+    h.clock.time += 500;
+    expect((await h.service.setTrackEnabled('camera', false)).ok).toBe(true);
+    expect((await h.service.stop()).ok).toBe(true);
+
+    const toggles = (await readSessionFile(folder)).toggles ?? [];
+    expect(toggles.map((entry) => [entry.kind, entry.on])).toEqual([
+      ['mic', false],
+      ['mic', true],
+      ['camera', false],
+    ]);
+    expect(toggles[0]?.t).toBe(1000);
+    expect(toggles[1]?.t).toBe(2000);
+    // Half a second after the resume, with the five paused seconds taken out.
+    expect(toggles[2]?.t).toBe(2500);
+  });
+
+  it('asks the page to switch the live track and keeps no log when it refuses', async () => {
+    const { h, folder } = await started({ refuseEnabled: { camera: 'device-busy' } }, both);
+    h.clock.time += 100;
+    const refused = await h.service.setTrackEnabled('camera', true);
+    expect(refused.ok).toBe(false);
+    expect(!refused.ok && refused.error.detail).toBe('device-busy');
+    expect((await h.service.setTrackEnabled('mic', false)).ok).toBe(true);
+    expect(h.page.sent.filter((command) => command.type === 'set-enabled')).toHaveLength(2);
+    await h.service.stop();
+    const toggles = (await readSessionFile(folder)).toggles ?? [];
+    expect(toggles.map((entry) => entry.kind)).toEqual(['mic']);
+  });
+
+  it('does not toggle a device that was unplugged', async () => {
+    const { h } = await started({}, both);
+    h.page.emit({ type: 'track-ended', kind: 'mic', rendererNow: 1 });
+    const result = await h.service.setTrackEnabled('mic', false);
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error.detail).toBe('device-missing');
+    await h.service.stop();
+  });
+
+  it('refuses when nothing is recording, and writes no toggles for an untouched recording', async () => {
+    const idle = await createHarness();
+    harness = idle;
+    expect(errorCode(await idle.service.setTrackEnabled('mic', false))).toBe('invalid-state');
+    await idle.cleanup();
+    const { h, folder } = await started({}, both);
+    await h.service.stop();
+    expect((await readSessionFile(folder)).toggles).toBeUndefined();
+  });
+});
+
 describe('camera bubble keyframes', () => {
   it('writes each position with its media time into the session file', async () => {
     const { h, folder } = await started({}, { camera: { enabled: true } });

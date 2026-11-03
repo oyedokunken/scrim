@@ -12,7 +12,7 @@ import {
 import { bubbleEventSchema, type BubbleCommand } from '../../recorder/bubble/protocol';
 import { originOf } from '../renderer-target';
 import { createAppWindow } from '../windows/create-window';
-import type { BubbleWindow } from './bubble-controller';
+import type { BubbleWindow, CameraFailure } from './bubble-controller';
 
 /** Where the picture's top left is, from the window's top left. */
 function pictureOf(window: Point, side: DotSide): Point {
@@ -36,6 +36,9 @@ export function createBubbleWindow(options: {
   let ready = false;
   const dragStart: (() => void)[] = [];
   const dragEnd: ((circle: Point) => void)[] = [];
+  const cameraFailed: ((reason: CameraFailure) => void)[] = [];
+  /** The pill's last buttons state, kept so a page that loads late still gets it. */
+  let lastMedia: BubbleCommand | undefined;
   /** Moves made by the app itself, which must not count as the person dragging. */
   let placing = false;
   let placingTimer: ReturnType<typeof setTimeout> | undefined;
@@ -47,9 +50,16 @@ export function createBubbleWindow(options: {
     const target = current();
     if (target === undefined || event.sender !== target.webContents) return;
     const origin = event.senderFrame === null ? '' : originOf(event.senderFrame.url);
-    if (origin !== options.appOrigin || !bubbleEventSchema.safeParse(payload).success) return;
+    if (origin !== options.appOrigin) return;
+    const parsed = bubbleEventSchema.safeParse(payload);
+    if (!parsed.success) return;
+    if (parsed.data.type === 'camera-failed') {
+      for (const callback of cameraFailed) callback(parsed.data.reason);
+      return;
+    }
     ready = true;
     if (pending !== undefined) target.webContents.send(BUBBLE_CHANNELS.command, pending);
+    if (lastMedia !== undefined) target.webContents.send(BUBBLE_CHANNELS.command, lastMedia);
   };
   ipcMain.on(BUBBLE_CHANNELS.event, onEvent);
 
@@ -99,7 +109,9 @@ export function createBubbleWindow(options: {
         for (const callback of dragEnd) callback(circle);
       });
       created.once('ready-to-show', () => {
-        if (!created.isDestroyed()) created.showInactive();
+        // A camera switched off before the page was ready stays hidden.
+        const hidden = lastMedia?.type === 'media' && !lastMedia.cameraOn;
+        if (!created.isDestroyed() && !hidden) created.showInactive();
       });
       created.on('closed', () => {
         if (window === created) window = undefined;
@@ -120,8 +132,25 @@ export function createBubbleWindow(options: {
         );
       });
     },
+    setVisible(visible) {
+      const target = current();
+      if (target === undefined) return;
+      if (visible) {
+        if (!target.isVisible()) target.showInactive();
+      } else target.hide();
+    },
+    media(next) {
+      lastMedia = { type: 'media', ...next };
+      const target = current();
+      if (target !== undefined && ready)
+        target.webContents.send(BUBBLE_CHANNELS.command, lastMedia);
+    },
+    onCameraFailed(callback) {
+      cameraFailed.push(callback);
+    },
     close() {
       pending = undefined;
+      lastMedia = undefined;
       ready = false;
       current()?.destroy();
       window = undefined;

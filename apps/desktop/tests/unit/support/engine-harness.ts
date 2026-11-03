@@ -73,6 +73,8 @@ export interface HarnessOptions {
   origin?: { x: number; y: number };
   /** Whether the page can read frame timestamps. When not, video time zero falls back. */
   frameTimestamps?: boolean;
+  /** Devices the page refuses to switch on or off, with the reason it gives. */
+  refuseEnabled?: Partial<Record<'camera' | 'mic', 'device-busy' | 'device-missing'>>;
 }
 
 const ERR = (code: string): Error => Object.assign(new Error(code), { code });
@@ -249,6 +251,18 @@ export async function createHarness(options: HarnessOptions = {}) {
       case 'resume':
         p.emit({ type: 'resumed', rendererNow: clock.time + rendererClockOffset });
         break;
+      case 'set-enabled': {
+        const refused = options.refuseEnabled?.[command.kind];
+        p.emit({
+          type: 'enabled',
+          kind: command.kind,
+          enabled: command.enabled,
+          ok: refused === undefined,
+          ...(refused === undefined ? {} : { reason: refused }),
+          rendererNow: clock.time + rendererClockOffset,
+        });
+        break;
+      }
       case 'stop':
         p.emit({
           type: 'stopped',
