@@ -19,8 +19,6 @@ export interface BackgroundValue {
 export interface BackgroundPanelProps {
   value: BackgroundValue;
   onChange: (value: BackgroundValue) => void;
-  /** What the thing around the background is called in the help text. */
-  subject?: string;
 }
 
 const PADDING_OPTIONS = [
@@ -44,7 +42,7 @@ export function backgroundClass(id: string): string {
 }
 
 /** A swatch grid of the presets and the person's own images, then padding, corners and shadow. */
-export function BackgroundPanel({ value, onChange, subject = 'recording' }: BackgroundPanelProps) {
+export function BackgroundPanel({ value, onChange }: BackgroundPanelProps) {
   const none = value.id === NO_BACKGROUND;
   const { images, add, remove } = useBackgroundImages();
   const [problem, setProblem] = useState<string | null>(null);
@@ -61,7 +59,7 @@ export function BackgroundPanel({ value, onChange, subject = 'recording' }: Back
 
   return (
     <>
-      <PanelSection title="Background" help={`What shows around your ${subject}.`}>
+      <PanelSection title="Background">
         <div className="swatch-grid" role="radiogroup" aria-label="Background">
           {BACKGROUND_PRESETS.map((preset) => (
             <button
@@ -118,9 +116,6 @@ export function BackgroundPanel({ value, onChange, subject = 'recording' }: Back
             <ImagePlus size={20} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
-        <p className="ui-help">
-          Add a PNG, JPG or WebP picture. Scrim keeps a copy on this computer and never uploads it.
-        </p>
         {problem === null ? null : (
           <p className="panel-error" role="alert">
             {problem}
