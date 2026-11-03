@@ -19,6 +19,8 @@ export interface UpdateModalProps {
   onClose: () => void;
   onDownload: () => void;
   onInstall: () => void;
+  /** Opens the release page. Only a deb install uses it, because it cannot install the update. */
+  onOpenRelease?: () => void;
 }
 
 /**
@@ -26,10 +28,18 @@ export interface UpdateModalProps {
  * then Update now or Later. Update now downloads with a progress bar and then asks for the restart.
  * The notes are plain text.
  */
-export function UpdateModal({ open, snapshot, onClose, onDownload, onInstall }: UpdateModalProps) {
+export function UpdateModal({
+  open,
+  snapshot,
+  onClose,
+  onDownload,
+  onInstall,
+  onOpenRelease,
+}: UpdateModalProps) {
   const state = snapshot.state;
   const info =
     state.phase === 'available' ||
+    state.phase === 'manual' ||
     state.phase === 'downloading' ||
     state.phase === 'ready' ||
     (state.phase === 'error' && state.info !== undefined)
@@ -90,8 +100,20 @@ export function UpdateModal({ open, snapshot, onClose, onDownload, onInstall }: 
             </p>
           )}
 
+          {state.phase === 'manual' ? (
+            <p className="update-ready" role="status">
+              A new version of Scrim is out. This copy was installed from a deb package, so it
+              cannot update itself. Download the new deb from the release page and install it over
+              this one.
+            </p>
+          ) : null}
+
           <div className="update-actions">
-            {state.phase === 'ready' ? (
+            {state.phase === 'manual' ? (
+              <Button data-autofocus variant="primary" onClick={onOpenRelease}>
+                Open the release page
+              </Button>
+            ) : state.phase === 'ready' ? (
               <Button
                 data-autofocus
                 variant="primary"

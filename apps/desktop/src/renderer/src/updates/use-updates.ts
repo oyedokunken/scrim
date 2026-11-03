@@ -55,5 +55,7 @@ export function useUpdates(): UpdatesApi {
 /** True while an update is found, downloading or ready, which is when the rail shows its pill. */
 export function hasUpdateToShow(snapshot: UpdateSnapshot): boolean {
   const phase = snapshot.state.phase;
-  return phase === 'available' || phase === 'downloading' || phase === 'ready';
+  return (
+    phase === 'available' || phase === 'manual' || phase === 'downloading' || phase === 'ready'
+  );
 }
