@@ -265,7 +265,7 @@ describe('the Record view', () => {
 
   it('cannot be started twice', () => {
     const html = view(true);
-    expect(html).toMatch(/disabled=""[^>]*><span class="record-dot"/);
+    expect(html).toMatch(/aria-disabled="true"[^>]*><span class="record-dot"/);
     expect(html).toContain('Starting...');
   });
 });
@@ -296,8 +296,8 @@ describe('the Record panel', () => {
   it('lists the cameras, and turns the list off while the camera is off', () => {
     const html = panel();
     expect(html).toContain('Front camera');
-    expect(html).toMatch(/id="camera-device"[^>]*disabled=""/);
-    expect(panel({ cameraOn: true })).not.toMatch(/id="camera-device"[^>]*disabled=""/);
+    expect(html).toMatch(/id="camera-device"[^>]*aria-disabled="true"/);
+    expect(panel({ cameraOn: true })).not.toMatch(/id="camera-device"[^>]*aria-disabled="true"/);
   });
 
   it('uses the custom select, never a native one, and tags the system default', () => {

@@ -67,6 +67,8 @@ async function inspect(page: Page): Promise<Report> {
     for (const element of interactive) {
       if (!visible(element)) continue;
       if (element instanceof HTMLButtonElement && element.disabled) continue;
+      // A disabled control that explains itself stays focusable and shows the not-allowed cursor.
+      if (element.getAttribute('aria-disabled') === 'true') continue;
       if (getComputedStyle(element).cursor !== 'pointer') notPointer.push(label(element));
       const name = (element.getAttribute('aria-label') ?? element.textContent).trim();
       if (name === '' && element.getAttribute('aria-labelledby') === null) {

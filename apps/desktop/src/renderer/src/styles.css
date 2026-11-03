@@ -882,9 +882,23 @@ input[type='checkbox'] {
 /* The finished page: the video on the left, the details and actions in a sidebar on the right, as
    in the Library detail. Only the sidebar scrolls when the window is short. */
 .record-view:has(> .review) {
-  height: 100%;
   align-content: stretch;
   justify-items: stretch;
+}
+
+/* The page head stays put and the finished page takes the rest of the height, so the page itself
+   never scrolls. */
+.shell-main:has(> .record-view > .review),
+.shell-main:has(> .shot-result) {
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+}
+
+.shell-main:has(> .record-view > .review) > .record-view,
+.shell-main:has(> .shot-result) > .shot-result {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .review-layout {
@@ -900,6 +914,8 @@ input[type='checkbox'] {
   align-content: start;
   min-width: 0;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .review-side {
@@ -992,7 +1008,7 @@ input[type='checkbox'] {
 
 .review-video {
   width: 100%;
-  max-height: 46vh;
+  max-height: 36vh;
   background: var(--scrim-black);
   border-radius: var(--ui-radius-md);
   object-fit: contain;

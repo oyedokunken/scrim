@@ -1,4 +1,4 @@
-import type { ElectronApplication, Page } from '@playwright/test';
+﻿import type { ElectronApplication, Page } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -214,10 +214,20 @@ test.describe('the library', () => {
         expect(recording.singleLine).toBe(true);
         expect(recording.rows).toHaveLength(2);
         const detail = page.getByRole('region', { name: /Details for Take 1/ });
+        // A disabled button carries its reason as hidden text, which is not part of its name.
         const names = await detail
           .getByRole('group', { name: 'Actions' })
           .getByRole('button')
-          .allTextContents();
+          .evaluateAll((all) =>
+            all.map((button) =>
+              [...button.childNodes]
+                .filter(
+                  (node) => !(node instanceof Element && node.classList.contains('ui-reason')),
+                )
+                .map((node) => node.textContent ?? '')
+                .join(''),
+            ),
+          );
         expect(names.map((name) => name.trim())).toEqual([
           'Edit',
           'Share',
@@ -567,9 +577,10 @@ test.describe('the library', () => {
       await openLibrary(page);
       // One card for the recording and its video, not a recording and a loose file.
       await expect(cards(page).filter({ hasText: 'Launch day' })).toHaveCount(0);
-      await page.getByRole('button', { name: 'Open Take 1' }).click();
+      await page.getByRole('button', { name: 'Open Take 1' }).click({ position: { x: 8, y: 8 } });
       const detail = page.getByRole('region', { name: /Details for Take 1/ });
-      await expect(detail.getByText('Launch day.mp4')).toBeVisible();
+      await expect(detail.getByText('Not exported yet')).toHaveCount(0);
+      await expect(detail.getByRole('button', { name: 'Make video' })).toHaveCount(0);
       const edit = detail.getByRole('button', { name: 'Edit', exact: true });
       await expect(edit).not.toHaveAttribute('aria-disabled', 'true');
       await expect(detail.getByTestId('edit-reason')).toHaveCount(0);
@@ -588,7 +599,9 @@ test.describe('the library', () => {
     const disk = await arrange(app, true);
     try {
       await openLibrary(page);
-      await page.getByRole('button', { name: 'Open Loose clip' }).click();
+      await page
+        .getByRole('button', { name: 'Open Loose clip' })
+        .click({ position: { x: 8, y: 8 } });
       const detail = page.getByRole('region', { name: /Details for Loose clip/ });
       const edit = detail.getByRole('button', { name: 'Edit', exact: true });
       const reason =

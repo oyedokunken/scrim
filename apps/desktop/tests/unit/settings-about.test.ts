@@ -205,10 +205,10 @@ describe('the settings layout', () => {
       /\.set-section \.ui-button\s*\{[^}]*color: var\(--scrim-white\);[^}]*background: var\(--scrim-green\)/s,
     );
     expect(css).toMatch(
-      /\.set-section \.ui-button:hover:not\(:disabled\)\s*\{[^}]*background: var\(--scrim-black\)/s,
+      /\.set-section \.ui-button:hover:not\(:disabled, \[aria-disabled=.true.\]\)\s*\{[^}]*background: var\(--scrim-black\)/s,
     );
     expect(css).toMatch(
-      /\.set-section \.ui-button:disabled\s*\{[^}]*background: var\(--scrim-fill-quiet-on-white\)/s,
+      /\.set-section \.ui-button:disabled,\s*\.set-section \.ui-button\[aria-disabled=.true.\]\s*\{[^}]*background: var\(--scrim-fill-quiet-on-white\)/s,
     );
   });
 });
