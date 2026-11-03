@@ -4,9 +4,20 @@ name: release
 # a SHA256SUMS.txt file. See docs/releasing.md for the order of a release and what is verified.
 # Written while GitHub Actions billing was off, so this file has never run. Treat the first run as
 # a test and read its logs.
+#
+# Windows signing: see docs/code-signing.md. The repository variable REQUIRE_WINDOWS_SIGNING, when
+# "true", makes the Windows job fail instead of building an unsigned installer, so nothing
+# unsigned can publish. A manual run with dry_run builds only Windows, runs every signing step
+# except the call to SignPath, and publishes nothing.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Rehearse Windows signing without calling SignPath. Publishes nothing.'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -25,6 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: The tag must match the desktop version
+        if: github.event_name == 'push'
         run: |
           version="$(node -p "require('./apps/desktop/package.json').version")"
           if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
@@ -49,12 +61,34 @@ jobs:
       - run: pnpm install --frozen-lockfile
         working-directory: .
       # Signing turns on only when its secrets exist and only for a tag build in the main
-      # repository. Otherwise the installer is built unsigned and the summary says so.
+      # repository. Otherwise the installer is built unsigned and the summary says so, unless
+      # REQUIRE_WINDOWS_SIGNING is true, which makes this step fail the job.
       - name: Decide how to sign
         id: sign
-        run: node build/signing-cli.mts
-      - name: Package
         env:
+          REQUIRE_WINDOWS_SIGNING: ${{ vars.REQUIRE_WINDOWS_SIGNING }}
+          SCRIM_SIGNING_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          WIN_PUBLISHER_NAME: ${{ secrets.WIN_PUBLISHER_NAME }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_SIGNING_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+        run: node build/signing-cli.mts
+      # Certificate file, Azure or unsigned: electron-builder makes the installer in one go and,
+      # for the first two, signs it. SignPath has its own path below.
+      - name: Package
+        if: steps.sign.outputs.mode != 'signpath'
+        env:
+          REQUIRE_WINDOWS_SIGNING: ${{ vars.REQUIRE_WINDOWS_SIGNING }}
+          SCRIM_SIGNING_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
           WIN_PUBLISHER_NAME: ${{ secrets.WIN_PUBLISHER_NAME }}
@@ -70,18 +104,40 @@ jobs:
           SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
         # --publish never: the publish job below uploads everything, so the build must not try to.
         run: pnpm package --publish never
-      - run: pnpm verify:fuses release/win-unpacked/Scrim.exe
-      # SignPath signs the finished installer, so it needs the installer as a workflow artifact.
-      - name: Upload the unsigned installer for SignPath
+
+      # SignPath path, in two requests. The program inside the installer is built before the
+      # installer, so it is signed first: build the unpacked app, sign its programs, put them back,
+      # build the installer from that signed app, then sign the installer.
+      # The SignPath project needs two artifact configurations whose root is <zip-file>: one for
+      # the staged programs (Scrim.exe, ffmpeg exe files, the win32 mouse hook .node) and one for
+      # the single installer exe. Their slugs are the repository variables
+      # SIGNPATH_APP_ARTIFACT_CONFIGURATION_SLUG and SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG.
+      # Not run yet: needs an approved SignPath project. Treat the first run as a test.
+      - name: Build the unpacked app
         if: steps.sign.outputs.mode == 'signpath'
-        id: unsigned
+        env:
+          REQUIRE_WINDOWS_SIGNING: ${{ vars.REQUIRE_WINDOWS_SIGNING }}
+          SCRIM_SIGNING_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+          WIN_PUBLISHER_NAME: ${{ secrets.WIN_PUBLISHER_NAME }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+        run: pnpm package:dir
+      - run: pnpm verify:fuses release/win-unpacked/Scrim.exe
+      - name: Stage the programs for signing
+        if: steps.sign.outputs.mode == 'signpath'
+        run: node build/signing-targets.mts stage release/win-unpacked signing/app-input
+      - name: Upload the unsigned programs for SignPath
+        if: steps.sign.outputs.mode == 'signpath' && steps.sign.outputs.dry_run != 'true'
+        id: unsigned-app
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: unsigned-windows
-          path: apps/desktop/release/Scrim-Setup-*.exe
+          name: unsigned-windows-app
+          path: apps/desktop/signing/app-input
           if-no-files-found: error
-      - name: Sign the installer with SignPath
-        if: steps.sign.outputs.mode == 'signpath'
+      - name: Sign the programs with SignPath
+        if: steps.sign.outputs.mode == 'signpath' && steps.sign.outputs.dry_run != 'true'
         uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
         with:
           connector-url: https://app.signpath.io/API/v1/${{ secrets.SIGNPATH_ORGANIZATION_ID }}/Integrations/GitHub
@@ -89,37 +145,116 @@ jobs:
           organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
           project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
           signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
-          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_APP_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.unsigned-app.outputs.artifact-id }}
           wait-for-completion: true
-          output-artifact-directory: apps/desktop/signed
+          output-artifact-directory: apps/desktop/signing/app-signed
+      # The service returns a zip or loose files, depending on the artifact configuration. Both work.
+      - name: Put the signed programs back into the app
+        if: steps.sign.outputs.mode == 'signpath'
+        env:
+          DRY_RUN: ${{ steps.sign.outputs.dry_run }}
+        run: |
+          if ($env:DRY_RUN -eq 'true') {
+            # Rehearsal: send the unsigned files through the same step, so its inputs are checked.
+            node build/signing-targets.mts restore signing/app-input release/win-unpacked
+          } else {
+            Get-ChildItem signing/app-signed -Filter *.zip -ErrorAction SilentlyContinue |
+              ForEach-Object { Expand-Archive -LiteralPath $_.FullName -DestinationPath signing/app-signed -Force; Remove-Item $_.FullName }
+            # --expect-changed fails when a returned file is byte for byte the unsigned one.
+            node build/signing-targets.mts restore signing/app-signed release/win-unpacked --expect-changed
+          }
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Check the signed programs
+        if: steps.sign.outputs.mode == 'signpath' && steps.sign.outputs.dry_run != 'true'
+        env:
+          PUBLISHER: ${{ steps.sign.outputs.publisher }}
+        run: |
+          $files = @(node build/signing-targets.mts list release/win-unpacked)
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          node build/verify-signature.mts --publisher "$env:PUBLISHER" @files
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Build the installer from the signed app
+        if: steps.sign.outputs.mode == 'signpath'
+        env:
+          REQUIRE_WINDOWS_SIGNING: ${{ vars.REQUIRE_WINDOWS_SIGNING }}
+          SCRIM_SIGNING_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+          WIN_PUBLISHER_NAME: ${{ secrets.WIN_PUBLISHER_NAME }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+        run: pnpm exec electron-builder --win nsis --prepackaged release/win-unpacked --publish never --config electron-builder.config.ts
+      - name: Upload the unsigned installer for SignPath
+        if: steps.sign.outputs.mode == 'signpath' && steps.sign.outputs.dry_run != 'true'
+        id: unsigned-installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unsigned-windows-installer
+          path: apps/desktop/release/Scrim-Setup-*.exe
+          if-no-files-found: error
+      - name: Sign the installer with SignPath
+        if: steps.sign.outputs.mode == 'signpath' && steps.sign.outputs.dry_run != 'true'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          connector-url: https://app.signpath.io/API/v1/${{ secrets.SIGNPATH_ORGANIZATION_ID }}/Integrations/GitHub
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_INSTALLER_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.unsigned-installer.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: apps/desktop/signing/installer-signed
       - name: Replace the installer with the signed one
+        if: steps.sign.outputs.mode == 'signpath' && steps.sign.outputs.dry_run != 'true'
+        run: |
+          Get-ChildItem signing/installer-signed -Filter *.zip -ErrorAction SilentlyContinue |
+            ForEach-Object { Expand-Archive -LiteralPath $_.FullName -DestinationPath signing/installer-signed -Force; Remove-Item $_.FullName }
+          $signed = @(Get-ChildItem signing/installer-signed -Filter Scrim-Setup-*.exe -Recurse)
+          if ($signed.Count -ne 1) { Write-Error "Expected one signed installer, found $($signed.Count)."; exit 1 }
+          Remove-Item "release/Scrim-Setup-*.exe"
+          Copy-Item $signed[0].FullName release/
+      # Signing changed the installer's bytes, so latest.yml must carry the hash and size of the
+      # file that is published, and the blockmap of the unsigned file is dropped. In a rehearsal the
+      # unsigned installer goes through the same two steps.
+      - name: Write the update file for the final installer
         if: steps.sign.outputs.mode == 'signpath'
         run: |
-          Remove-Item "release/Scrim-Setup-*.exe"
-          Copy-Item "signed/*.exe" release/
-          # The signed file is not the file latest.yml was written for, so write its real hash and size.
-          # The blockmap is for the unsigned file too, so it is dropped: updates download in full.
-          node scripts/refresh-update-info.mts (Get-ChildItem "release/Scrim-Setup-*.exe").FullName release/latest.yml
+          $installer = (Get-ChildItem "release/Scrim-Setup-*.exe").FullName
+          node scripts/refresh-update-info.mts $installer release/latest.yml
+          if ($LASTEXITCODE -ne 0) { exit 1 }
           Remove-Item "release/*.blockmap" -ErrorAction SilentlyContinue
-      # If signing was on, a bad signature fails the release. The installer, and for the built in
-      # providers also the app and FFmpeg, must carry a valid, timestamped signature.
+          node scripts/refresh-update-info.mts --check $installer release/latest.yml
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      # If signing ran, a bad signature fails the release. The installer, and the programs inside
+      # the app, must carry a valid, timestamped signature from the expected publisher.
       - name: Verify the signatures
-        if: steps.sign.outputs.enabled == 'true'
+        if: steps.sign.outputs.enabled == 'true' && steps.sign.outputs.dry_run != 'true'
         env:
-          WIN_PUBLISHER_NAME: ${{ secrets.WIN_PUBLISHER_NAME }}
+          PUBLISHER: ${{ steps.sign.outputs.publisher }}
           SIGN_MODE: ${{ steps.sign.outputs.mode }}
         run: |
           $files = @((Get-ChildItem "release/Scrim-Setup-*.exe").FullName)
-          if ($env:SIGN_MODE -ne 'signpath') {
+          if ($env:SIGN_MODE -eq 'signpath') {
+            $files += @(node build/signing-targets.mts list release/win-unpacked)
+          } else {
             $files += (Resolve-Path "release/win-unpacked/Scrim.exe").Path
             $files += (Resolve-Path "release/win-unpacked/resources/ffmpeg/ffmpeg.exe").Path
           }
-          if ($env:WIN_PUBLISHER_NAME) {
-            node build/verify-signature.mts --publisher "$env:WIN_PUBLISHER_NAME" @files
+          if ($env:PUBLISHER) {
+            node build/verify-signature.mts --publisher "$env:PUBLISHER" @files
           } else {
             node build/verify-signature.mts @files
           }
           if ($LASTEXITCODE -ne 0) { exit 1 }
+      # A second lock besides the decision step: with signing required, nothing that was not
+      # signed and verified in this run may reach the upload below, which the publish job reads.
+      - name: Refuse an unsigned installer
+        if: vars.REQUIRE_WINDOWS_SIGNING == 'true' && steps.sign.outputs.enabled != 'true'
+        run: |
+          Write-Error "Windows signing is required but the installer was not signed."
+          exit 1
       # latest.yml and the blockmap are what the in-app updater reads. Without them there is no update.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -132,6 +267,7 @@ jobs:
 
   macos:
     needs: verify-tag
+    if: github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix:
@@ -182,6 +318,7 @@ jobs:
 
   linux:
     needs: verify-tag
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
@@ -211,6 +348,7 @@ jobs:
 
   publish:
     needs: [windows, macos, linux]
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
