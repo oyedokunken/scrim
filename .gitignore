@@ -76,3 +76,6 @@ spikes/
 
 # written by the update end to end test in a development run
 dev-app-update.yml
+
+# the owner private release checklist, never committed
+RELEASE.md

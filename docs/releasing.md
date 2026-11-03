@@ -1,7 +1,8 @@
 # Releasing Scrim
 
-This page covers all three systems. It says plainly what has been run and what has not. GitHub Actions
-could not run when it was written (billing), so no workflow here has ever run.
+This page covers all three systems. It says plainly what has been run and what has not. The release
+workflow below has not yet run for a real tag, so the macOS and Linux builds it makes have never been
+tested on a real machine.
 
 ## What is verified and what is not
 
@@ -12,7 +13,7 @@ could not run when it was written (billing), so no workflow here has ever run.
 | App launches from the installer  | yes                       | not run                                                 | not run (no desktop session available)                                                   |
 | Capture, input hook, permissions | yes                       | not run                                                 | not run                                                                                  |
 | uiohook prebuilds shipped        | yes                       | yes, `darwin-x64` and `darwin-arm64` are in the package | yes, `linux-x64` is in the package                                                       |
-| Release workflow                 | not run                   | not run                                                 | not run                                                                                  |
+| Release workflow                 | not run for a tag         | not run for a tag                                       | not run for a tag                                                                        |
 | Signing                          | none yet (SignPath later) | none (needs the owner)                                  | not needed                                                                               |
 
 Unit tests cover the platform logic (Wayland and X11 detection, the macOS permission steps, the
@@ -26,6 +27,8 @@ On a `v*` tag, `.github/workflows/release.yml` builds and publishes:
 - macOS: `Scrim-<version>-mac-arm64.dmg` and `Scrim-<version>-mac-x64.dmg`, one per architecture
   because the bundled FFmpeg is per architecture.
 - Linux x64: `Scrim-<version>-linux-x86_64.AppImage` and `Scrim-<version>-linux-amd64.deb`.
+- The update files the in-app updater reads (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) and the
+  `.blockmap` files. Without them there is no update.
 - `SHA256SUMS.txt` for every file above.
 
 File names carry `x64`, `arm64`, `x86_64` or `amd64` because the website picks the installer by
@@ -33,18 +36,39 @@ extension and architecture (`apps/landing/src/lib/asset-match.ts`). Do not renam
 
 ## Order of a release
 
-1. Land everything on `main` and make sure `pnpm check` passes locally.
-2. Set the version in `apps/desktop/package.json` and update `CHANGELOG.md`.
-3. Install the previous release on a clean machine and check that recordings still open.
-4. Tag: `git tag v1.0.0 && git push origin v1.0.0`. The workflow first checks that the tag equals
-   the desktop version and stops if it does not.
-5. The three build jobs run. Each uploads its installers. The `publish` job writes
-   `SHA256SUMS.txt` and creates the GitHub Release with generated notes.
-6. Download each installer from the release page and run the checklist below on that system.
-7. Only then tell people. The website reads the latest release, so it already offers the files.
+1. Land everything on `main` and make sure `pnpm check`, `pnpm knip` and the end to end tests pass.
+2. Set the version in `apps/desktop/package.json` and move the unreleased items of `CHANGELOG.md` under
+   a heading for that version. Semantic versioning: patch for fixes, minor for features that break
+   nothing, major for anything people rely on changing. Never reuse a version, because the updater
+   only offers a higher one.
+3. Build the installer from a clean checkout of that commit (`pnpm package`). The script fetches the
+   pinned FFmpeg and checks its SHA-256. Check the fuses with `pnpm --filter @scrim/desktop
+verify:fuses release/win-unpacked/Scrim.exe`. Install it on a real machine and run the checklist
+   below.
+4. Publish. There are two ways, and the difference matters:
+   - **A draft first.** `gh release create vX.Y.Z --draft --target <commit> ...` with the installer,
+     its `.blockmap`, `latest.yml` and `SHA256SUMS.txt`. A draft is not public and creates no tag.
+     Check it, then `gh release edit vX.Y.Z --draft=false --latest`. GitHub creates the tag then.
+   - **A tag.** `git tag -a vX.Y.Z` and `git push origin vX.Y.Z` starts the workflow. It first checks
+     that the tag equals the desktop version, builds on all three systems, and publishes the release
+     at once with generated notes. There is no draft step, so use it only when all three systems have
+     been tested.
+5. Download each installer from the release page and run the checklist below on that system.
+6. Check the website. It reads the latest release and offers the matching file for each system. A
+   system with no matching file is sent to the Releases page, so confirm that is what you want.
+7. Only then tell people.
 
 The landing page deploys on its own and never builds installers. Run production database migrations
 (`prisma migrate deploy`) before promoting a landing change, not as part of a desktop release.
+
+## A release that went wrong
+
+- Never move or delete a published tag.
+- A wrong file nobody has downloaded can be replaced with `gh release delete-asset` and
+  `gh release upload`. Once people have the installer, do not replace it: the update file stores its
+  SHA-512 and a changed file is refused.
+- `gh release edit <tag> --prerelease` takes a release out of the website and the updater while you fix it.
+- A bug in the installer is fixed by publishing a higher patch version.
 
 ## Checksums
 
