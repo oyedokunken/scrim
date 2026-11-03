@@ -2,9 +2,11 @@
 
 Why sign: an unsigned Windows installer shows a SmartScreen warning and a "Unknown publisher" prompt,
 and the updater has nothing to verify an update against. This page covers the options, what the
-pipeline does today, and what the owner must do. It was written on 2026-10-30 from the vendors' own
-pages. Anything not confirmed is marked "not verified". Rules and prices change, so check each
-page again before paying or applying.
+pipeline does today, and what the owner must do. It was first written on 2026-10-30 from the
+vendors' own pages and rechecked on 2026-11-03. The decision and the verified facts are recorded in
+[ADR 0008](adr/0008-windows-code-signing.md): SignPath Foundation is the chosen provider. Anything
+not confirmed is marked "not verified". Rules and prices change, so check each page again before
+paying or applying.
 
 ## What is signed today
 
@@ -79,6 +81,16 @@ summary and a `::warning::` annotation).
    in a supported country.
 3. Buy a CA certificate with a cloud HSM only if SignPath is refused or the maintainer wants their
    own name as publisher.
+
+## The switch that makes signing mandatory
+
+The repository variable `REQUIRE_WINDOWS_SIGNING` (Settings, Secrets and variables, Actions,
+Variables) controls what an unsigned build means. While it is `false`, a release without signing
+secrets is built and published unsigned, with a warning. When it is `true`, the release workflow fails
+if signing is not configured or does not finish, so an unsigned installer cannot be published. Keep it
+`false` until the SignPath application is approved and a test release was signed, then set it `true`.
+After the first signed release also set `windowsSigned: true` in `apps/landing/src/site.config.ts`,
+so the website's Windows help shrinks to one short line.
 
 ## Steps for the owner, in order
 
