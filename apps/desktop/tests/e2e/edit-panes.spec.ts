@@ -132,7 +132,10 @@ interface Recording {
 }
 
 /** One finished recording in the projects folder, its screen track made with FFmpeg, and an orange picture to pick. */
-async function arrangeRecording(app: ElectronApplication): Promise<Recording> {
+async function arrangeRecording(
+  app: ElectronApplication,
+  options: { mic?: boolean } = {},
+): Promise<Recording> {
   const root = mkdtempSync(join(tmpdir(), 'scrim-edit-'));
   const videos = join(root, 'videos');
   const pictures = join(root, 'pictures');
@@ -167,6 +170,17 @@ async function arrangeRecording(app: ElectronApplication): Promise<Recording> {
     'yuv420p',
     join(folder, 'screen.mp4'),
   ]);
+  if (options.mic === true) {
+    make([
+      '-f',
+      'lavfi',
+      '-i',
+      'sine=frequency=440:duration=4',
+      '-c:a',
+      'libopus',
+      join(folder, 'mic.webm'),
+    ]);
+  }
   writeFileSync(
     join(folder, 'session.json'),
     JSON.stringify({
@@ -193,6 +207,19 @@ async function arrangeRecording(app: ElectronApplication): Promise<Recording> {
           complete: true,
           stoppedAt: 4100,
         },
+        ...(options.mic === true
+          ? [
+              {
+                kind: 'mic',
+                file: 'mic.webm',
+                mimeType: 'audio/webm',
+                startedAt: 100,
+                bytesWritten: 1000,
+                complete: true,
+                stoppedAt: 4100,
+              },
+            ]
+          : []),
       ],
       clock: { rendererOffsetMs: 0, uncertaintyMs: 1 },
       pauses: [],
@@ -405,6 +432,54 @@ test.describe('edit a recording', () => {
           () => (globalThis as unknown as { __violations: string[] }).__violations,
         ),
       ).toEqual([]);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test('the edit page has a Back button, plays the voice and drops the explaining texts', async ({
+    app,
+    page,
+  }) => {
+    test.setTimeout(240_000);
+    const fixture = await arrangeRecording(app, { mic: true });
+    try {
+      await enterApp(page);
+      await page.getByRole('button', { name: 'Library', exact: true }).click();
+      await page.getByRole('button', { name: 'Open Take 1' }).click({ position: { x: 8, y: 8 } });
+      const detail = page.getByRole('region', { name: /Details for Take 1/ });
+      await expect(detail).toBeVisible();
+      await detail.getByRole('button', { name: 'Edit' }).click();
+      const pane = page.getByRole('region', { name: 'Edit Take 1' });
+      await expect(pane).toBeVisible();
+
+      // None of the texts that explain what an edit page or a background is.
+      await expect(pane.getByText(/Change the look and watch it here/)).toHaveCount(0);
+      await expect(pane.getByText(/What shows around your/)).toHaveCount(0);
+      await expect(pane.getByText(/Add a PNG, JPG or WebP picture/)).toHaveCount(0);
+
+      // The voice is part of the preview: a hidden audio element that follows the picture.
+      const voice = page.locator('audio[aria-label="Voice"]');
+      await expect(voice).toHaveCount(1);
+      await pane.getByRole('button', { name: 'Play', exact: true }).click();
+      await expect
+        .poll(async () => voice.evaluate((element: HTMLAudioElement) => !element.paused))
+        .toBe(true);
+      await expect
+        .poll(async () => voice.evaluate((element: HTMLAudioElement) => element.currentTime))
+        .toBeGreaterThan(0.3);
+      expect(await voice.evaluate((element: HTMLAudioElement) => element.muted)).toBe(false);
+      await pane.getByRole('button', { name: 'Pause', exact: true }).click();
+      await expect
+        .poll(async () => voice.evaluate((element: HTMLAudioElement) => element.paused))
+        .toBe(true);
+
+      // A way back, as on the page behind it.
+      const back = page.getByRole('button', { name: 'Back', exact: true });
+      await expect(back).toBeVisible();
+      await back.click();
+      await expect(pane).toHaveCount(0);
+      await expect(detail).toBeVisible();
     } finally {
       fixture.cleanup();
     }

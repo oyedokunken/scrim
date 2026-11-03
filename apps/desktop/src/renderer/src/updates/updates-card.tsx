@@ -15,7 +15,8 @@ export function statusText(snapshot: UpdateSnapshot): string {
     case 'none':
       return 'You have the latest version.';
     case 'unsupported':
-      return state.message;
+      // The person knows whether this is an installed copy, so there is nothing to say.
+      return '';
     case 'available':
       return `Version ${state.info.version} is available.`;
     case 'downloading':

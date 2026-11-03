@@ -1526,8 +1526,8 @@ input[type='checkbox'] {
 }
 
 .set-section {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 20px;
   background: var(--scrim-white);
@@ -1651,8 +1651,14 @@ input[type='checkbox'] {
   opacity: 1;
 }
 
+/* The buttons of a card sit at its bottom edge, so cards in one row line up. */
+.set-actions {
+  margin-top: auto;
+}
+
 /* The three attribution buttons stay on one row, each as wide as the others. */
 .set-links {
+  margin-top: auto;
   display: flex;
   flex-wrap: nowrap;
   gap: 8px;

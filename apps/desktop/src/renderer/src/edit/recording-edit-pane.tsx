@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, ConfirmDialog, Segmented, useShowError, useToast } from '../../ui';
+import { BackBar } from '../editor/back-bar';
 import { RerenderChoice } from '../shell/rerender-choice';
 import type { Look, Settings } from '../../../shared/settings';
 import { editorApi } from '../shell/editor-bridge';
@@ -195,12 +196,9 @@ export function RecordingEditPane({ folder, name, onClose, onSaved }: RecordingE
 
   return (
     <section className="edit-pane" aria-label={`Edit ${name}`}>
+      <BackBar onBack={leave} />
       <header className="edit-head">
         <h2 className="review-title">Edit {name}</h2>
-        <p className="ui-help">
-          Change the look and watch it here. Your recording is not changed: saving makes the video
-          again.
-        </p>
       </header>
       <div className="edit-body">
         <div className="edit-preview">

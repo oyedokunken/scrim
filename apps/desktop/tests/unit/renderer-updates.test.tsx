@@ -134,6 +134,8 @@ describe('the Updates card', () => {
   it('describes each state in one plain sentence', () => {
     expect(statusText(snap({ phase: 'none' }))).toBe('You have the latest version.');
     expect(statusText(snap({ phase: 'idle' }))).toBe('');
+    // Where updates do not work the card says nothing, because the person knows their copy.
+    expect(statusText(snap({ phase: 'unsupported', message: 'Not here.' }))).toBe('');
     expect(statusText(snap({ phase: 'downloading', info: INFO, percent: 7 }))).toContain('7%');
   });
 });

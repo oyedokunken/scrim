@@ -736,7 +736,7 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
         </div>
         {backgroundOpen ? (
           <aside className="shot-bg-panel" aria-label="Background">
-            <BackgroundPanel value={background} onChange={setBackground} subject="screenshot" />
+            <BackgroundPanel value={background} onChange={setBackground} />
           </aside>
         ) : null}
       </div>
