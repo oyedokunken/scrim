@@ -55,7 +55,7 @@ Scrim keeps recordings on your computer. Nothing is uploaded, there is no accoun
 - MP4 export with H.264 and AAC
 - Full display, region and window screenshots, saved and copied to the clipboard
 - Crash safe recording: a recording that is cut short can be recovered
-- Windows today, macOS and Linux coming
+- Windows, macOS and Linux (AppImage and deb, signed with GPG). On Linux, X11 gets every feature, and on Wayland auto zoom and cursor effects are off
 
 ## Use cases
 
@@ -86,7 +86,7 @@ The landing page is a single Next.js project in `apps/landing`. It has these sec
 
 The website is live. Scrim runs on Windows, macOS and Linux, and the installers are published on the [Releases page](https://github.com/oyedokunken/scrim/releases). Windows has had the most testing.
 
-macOS and Linux: the packaging, FFmpeg pins, entitlements and release workflow are written, but only partly run. The Linux installers were built and their bundled FFmpeg was run in a Linux container. Nothing has run on a real Mac or a real Linux desktop yet. [docs/releasing.md](docs/releasing.md) lists exactly what is verified and gives a test checklist for each system.
+macOS and Linux: the packaging, FFmpeg pins, entitlements and release workflow are written, but only partly run. The Linux AppImage and deb are built for 64 bit Intel and signed with GPG (the public key is `docs/scrim-release-key.asc`). On Ubuntu 24.04 the deb installs an AppArmor profile so the sandbox works, and an AppImage needs one extra step that the website explains. Nothing has run on a real Mac or a real Linux desktop yet. [docs/releasing.md](docs/releasing.md) lists exactly what is verified and gives a test checklist for each system.
 
 | Phase | Scope                                         | State                          |
 | ----- | --------------------------------------------- | ------------------------------ |

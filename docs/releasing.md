@@ -14,7 +14,7 @@ tested on a real machine.
 | Capture, input hook, permissions | yes                       | not run                                                 | not run                                                                                  |
 | uiohook prebuilds shipped        | yes                       | yes, `darwin-x64` and `darwin-arm64` are in the package | yes, `linux-x64` is in the package                                                       |
 | Release workflow                 | not run for a tag         | not run for a tag                                       | not run for a tag                                                                        |
-| Signing                          | none yet (SignPath later) | none (needs the owner)                                  | not needed                                                                               |
+| Signing                          | none yet (SignPath later) | none (needs the owner)                                  | GPG signatures in the workflow, not run; needs the owner's key                           |
 
 Unit tests cover the platform logic (Wayland and X11 detection, the macOS permission steps, the
 installer configuration, the FFmpeg pins). They do not prove the app works on a Mac or on Linux.
@@ -29,7 +29,9 @@ On a `v*` tag, `.github/workflows/release.yml` builds and publishes:
 - Linux x64: `Scrim-<version>-linux-x86_64.AppImage` and `Scrim-<version>-linux-amd64.deb`.
 - The update files the in-app updater reads (`latest.yml`, `latest-mac.yml`, `latest-linux.yml`) and the
   `.blockmap` files. Without them there is no update.
-- `SHA256SUMS.txt` for every file above.
+- `SHA256SUMS.txt` for every file above, the Linux signatures included.
+- GPG signatures for the Linux files: `<file>.asc` for the AppImage and the deb, and
+  `SHA256SUMS.txt.asc` (see "Signing the Linux files").
 
 File names carry `x64`, `arm64`, `x86_64` or `amd64` because the website picks the installer by
 extension and architecture (`apps/landing/src/lib/asset-match.ts`). Do not rename them.
@@ -127,7 +129,7 @@ built fine in a Linux container from the `linux-unpacked` folder.
   notarizes only when the last three exist. Without them the disk image is unsigned and users must
   use right click, Open, or System Settings, Privacy and Security, Open Anyway. The hardened runtime
   and entitlements (JIT, microphone, camera) are already set in `build/entitlements.mac.plist`.
-- Linux: nothing to sign.
+- Linux: GPG, with the owner's key. See "Signing the Linux files" below.
 
 ## First signed release
 
@@ -153,6 +155,8 @@ built fine in a Linux container from the `linux-unpacked` folder.
 - Confirm the maintainer string used in the deb (`electron-builder.config.ts`). It uses the GitHub
   no-reply address, not a personal email.
 - A real Mac and a real Linux machine for the checklists below.
+- The Linux signing key and secrets, and the fingerprint on the website (see "Signing the Linux files").
+- Whether the patent position of the H.264 software encoder is acceptable (ADR 0009).
 
 ## Test on a Mac
 
@@ -167,16 +171,85 @@ built fine in a Linux container from the `linux-unpacked` folder.
 7. Export an MP4 and play it in QuickTime. Kill Scrim during a recording and check Recover.
 8. Install the DMG on both an Apple Silicon and an Intel Mac if possible.
 
+## Signing the Linux files
+
+Linux has no central signing authority. Scrim signs its Linux files with the owner's GPG key, so a
+person can check that a download is the one the project published.
+
+What the release workflow does (`.github/workflows/release.yml`, the code is in
+`apps/desktop/build/linux-signing.mts`):
+
+- Signs each `.AppImage` and `.deb` with a detached, armoured signature: `<file>.asc`.
+- Writes `SHA256SUMS.txt` for the files of all three systems, then signs it: `SHA256SUMS.txt.asc`.
+- Imports the private key into a temporary keyring, signs with gpg non interactively (loopback
+  pinentry, the passphrase on standard input), and deletes the keyring afterwards.
+- Verifies every signature with `gpg --verify` against the public key in the repository,
+  `docs/scrim-release-key.asc`, in a second empty keyring. If the secret and the public key file are
+  not a pair, the release stops.
+- An embedded AppImage signature is not made. appimagetool can embed one, but electron-builder does
+  not pass it a key. A signed deb (debsigs) needs a policy file on every user's machine. The
+  detached signature works for everyone.
+
+Owner steps (the agent never creates or holds the key):
+
+1. Make a key for the project, or use one you already have: `gpg --full-generate-key`.
+2. Export the public key into the repository: `gpg --armor --export <fingerprint> >
+docs/scrim-release-key.asc` (this replaces the placeholder), and put the 40 character fingerprint
+   in `linuxSigningFingerprint` in `apps/landing/src/site.config.ts`. Until then the website shows
+   how to read the fingerprint from the key file, and never a made up one.
+3. Add two repository secrets: `LINUX_SIGNING_KEY` (`gpg --armor --export-secret-keys
+<fingerprint>`) and `LINUX_SIGNING_PASSPHRASE`.
+4. Set the repository variable `REQUIRE_LINUX_SIGNING` to `true`. The release then fails when a
+   secret or the public key is missing, while the placeholder key is in place, or when any Linux file
+   has no signature, so nothing unsigned can publish.
+
+Without the variable, a missing secret only warns and the Linux files are published unsigned.
+
+How a person verifies (also on the website, under the Linux download):
+
+```
+gpg --import scrim-release-key.asc
+gpg --verify <file>.asc <file>
+```
+
+Rehearse the decision on your machine: `node apps/desktop/build/linux-signing-cli.mts decide`, and
+`sign --dry-run <folder>` to see which files would be signed. A dry run never calls gpg.
+
 ## Test on Linux
 
-1. Install the deb (`sudo apt install ./Scrim-*-amd64.deb`) and run the AppImage on another machine
-   (`chmod +x` first; it needs FUSE 2, or use `--appimage-extract-and-run`).
-2. On an X11 session: record, check halo, ripples and zoom, export an MP4.
-3. On a Wayland session: the portal asks which screen to share. Recording works. The app says cursor
-   effects and auto zoom are off, and why.
-4. Ubuntu 24.04 blocks unprivileged user namespaces for the sandbox. The deb installs an AppArmor
-   profile for this. If the AppImage fails to start, run it with `--no-sandbox` and report it.
-5. Check the global shortcuts, the tray icon and Recover after killing the process.
+What a GitHub Ubuntu runner can prove (the `linux` job in `e2e-desktop.yml`, all of it new and not
+yet run): the unit tests, packaging of the AppImage and the deb, the fuses read back from the Linux
+binary, the deb's package fields, an install and uninstall that leaves no Scrim file behind, the
+bundled FFmpeg's licence and its software H.264 and AAC encode, and a launch smoke test under
+`xvfb-run`. It cannot prove capture, the Wayland portal, VA-API, the tray or the sandbox on a real
+desktop.
+
+By hand, on an Ubuntu 24.04 virtual machine on the owner's PC. Do it twice, once on an X11 session
+and once on a Wayland session (choose it on the login screen), and once more with the AppImage in
+place of the deb.
+
+1. Install the deb: `sudo apt install ./Scrim-*-amd64.deb`. It must install without errors, and
+   `/etc/apparmor.d/scrim` must exist. Open Scrim from the application menu. The icon is Scrim's.
+2. Record a short clip with the camera and the microphone on. Stop. There is one MP4 in
+   Videos/Scrim, the face is in it, the sound is in it, and no Scrim window (pill, bubble, area
+   overlay) is in the video.
+3. X11: the cursor halo, the click ripples and auto zoom work. Wayland: the app says that auto zoom
+   and cursor effects are off and why, and the system screen sharing portal asks which screen to
+   share.
+4. Take a screenshot (region, window, full display). It is saved and copied.
+5. Open the Library and Settings. Kill Scrim during a recording and check that Recover offers the
+   recording.
+6. Uninstall: `sudo apt remove scrim`. `/opt/Scrim`, `/usr/bin/scrim` and `/etc/apparmor.d/scrim`
+   are gone, and your recordings are still in Videos/Scrim.
+7. The AppImage: `chmod +x`, run it. On Ubuntu 24.04 it stops with a sandbox error until the
+   `kernel.apparmor_restrict_unprivileged_userns` setting from the website help is applied. Apply
+   it, run again, repeat steps 2 to 5. Never run it with `--no-sandbox`: Scrim must work with the
+   sandbox on, and a failure with it on is a bug to report.
+8. Verify the signatures with the two commands above (once the key is published).
+9. On a machine with an Intel or AMD graphics chip, export a recording and read the log: the encoder
+   should be `h264_vaapi`. On a machine without one, `libopenh264`.
+10. A deb install, Settings, Check for updates, with a newer release published: the page shows "A new
+    version of Scrim is out" and a link, and offers no download.
 
 ## Windows Security and Controlled folder access
 
@@ -209,7 +282,8 @@ latest published release, so publishing one is the same as a release, with these
    - `latest-mac.yml`, with the `.zip` and `.dmg` of both architectures (macOS). The Mac updater
      installs from the zip. The two Mac builds each write a `latest-mac.yml`, so the publish job
      joins them with `apps/desktop/scripts/merge-mac-update-info.mts`.
-   - `latest-linux.yml` and the `.AppImage` (Linux). A deb install is not updated in place.
+   - `latest-linux.yml` and the `.AppImage` (Linux). The AppImage updates itself. A deb install is
+     not updated in place: it shows "A new version of Scrim is out" with a link to the release page.
 4. Publish the release as a normal release, not a draft or a pre-release. `electron-updater` ignores
    drafts, and ignores pre-releases unless told otherwise.
 5. Do not edit or replace a file on a published release. The update file stores the SHA-512 of each
