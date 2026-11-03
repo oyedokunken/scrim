@@ -5,6 +5,11 @@ name: release
 # Written while GitHub Actions billing was off, so this file has never run. Treat the first run as
 # a test and read its logs.
 #
+# Linux signing: the AppImage, the deb and SHA256SUMS.txt each get a detached GPG signature (.asc)
+# from the owner's key (secrets LINUX_SIGNING_KEY and LINUX_SIGNING_PASSPHRASE, public key in
+# docs/scrim-release-key.asc). The repository variable REQUIRE_LINUX_SIGNING, when "true", makes the
+# release fail instead of publishing unsigned Linux files. See docs/releasing.md. Never run yet.
+#
 # Windows signing: see docs/code-signing.md. The repository variable REQUIRE_WINDOWS_SIGNING, when
 # "true", makes the Windows job fail instead of building an unsigned installer, so nothing
 # unsigned can publish. A manual run with dry_run builds only Windows, runs every signing step
@@ -333,15 +338,44 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         working-directory: .
+      # The LGPL FFmpeg is fetched by the pin in scripts/ffmpeg-targets.mts. A pin that is not set
+      # makes this step fail with a clear message.
       - run: node scripts/fetch-ffmpeg.mts
       - run: pnpm build
       - run: pnpm exec electron-builder --linux AppImage deb --x64 --publish never --config electron-builder.config.ts
+      # The same fuse check as Windows, on the Linux binary.
+      - run: pnpm verify:fuses release/linux-unpacked/scrim
+      # The release has to say how it was signed. With REQUIRE_LINUX_SIGNING true this step fails
+      # when the key, the passphrase or the public key file is missing.
+      - name: Decide how to sign the Linux files
+        id: linuxsign
+        env:
+          REQUIRE_LINUX_SIGNING: ${{ vars.REQUIRE_LINUX_SIGNING }}
+          LINUX_SIGNING_KEY: ${{ secrets.LINUX_SIGNING_KEY }}
+          LINUX_SIGNING_PASSPHRASE: ${{ secrets.LINUX_SIGNING_PASSPHRASE }}
+        run: node build/linux-signing-cli.mts decide
+      # Detached signatures next to the AppImage and the deb. gpg runs in a temporary keyring that
+      # is deleted afterwards, and each signature is checked against docs/scrim-release-key.asc.
+      - name: Sign the AppImage and the deb
+        if: steps.linuxsign.outputs.enabled == 'true'
+        env:
+          REQUIRE_LINUX_SIGNING: ${{ vars.REQUIRE_LINUX_SIGNING }}
+          LINUX_SIGNING_KEY: ${{ secrets.LINUX_SIGNING_KEY }}
+          LINUX_SIGNING_PASSPHRASE: ${{ secrets.LINUX_SIGNING_PASSPHRASE }}
+        run: node build/linux-signing-cli.mts sign release
+      - name: Refuse unsigned Linux files
+        if: vars.REQUIRE_LINUX_SIGNING == 'true'
+        run: |
+          for file in release/*.AppImage release/*.deb; do
+            test -s "${file}.asc" || { echo "${file} has no signature." >&2; exit 1; }
+          done
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: installer-linux
           path: |
             apps/desktop/release/*.AppImage
             apps/desktop/release/*.deb
+            apps/desktop/release/*.asc
             apps/desktop/release/latest-linux.yml
             apps/desktop/release/*.blockmap
           if-no-files-found: error
@@ -372,12 +406,53 @@ jobs:
           for file in latest.yml latest-mac.yml latest-linux.yml; do
             test -f "dist/${file}" || { echo "${file} is missing, so the in-app updater would find nothing." >&2; exit 1; }
           done
+          # The Linux update file must name the AppImage that is being published, because the AppImage
+          # updates itself from it.
+          names="$(sed -n -E 's/^[[:space:]-]*(url|path):[[:space:]]*//p' dist/latest-linux.yml)"
+          test -n "${names}" || { echo "latest-linux.yml names no file." >&2; exit 1; }
+          for name in ${names}; do
+            test -f "dist/${name}" || { echo "latest-linux.yml names ${name}, which is not in the release." >&2; exit 1; }
+          done
       - name: Write the checksums
         working-directory: dist
         run: |
           sha256sum -- * > SHA256SUMS.txt
           cat SHA256SUMS.txt
           sha256sum --check SHA256SUMS.txt
+      # SHA256SUMS.txt lists the files of all three systems, the Linux signatures included. It is
+      # signed last, so its own signature is the one file it does not list.
+      - name: Decide how to sign the checksums
+        id: linuxsign
+        env:
+          REQUIRE_LINUX_SIGNING: ${{ vars.REQUIRE_LINUX_SIGNING }}
+          LINUX_SIGNING_KEY: ${{ secrets.LINUX_SIGNING_KEY }}
+          LINUX_SIGNING_PASSPHRASE: ${{ secrets.LINUX_SIGNING_PASSPHRASE }}
+        run: node source/apps/desktop/build/linux-signing-cli.mts decide
+      - name: Sign SHA256SUMS.txt
+        if: steps.linuxsign.outputs.enabled == 'true'
+        env:
+          REQUIRE_LINUX_SIGNING: ${{ vars.REQUIRE_LINUX_SIGNING }}
+          LINUX_SIGNING_KEY: ${{ secrets.LINUX_SIGNING_KEY }}
+          LINUX_SIGNING_PASSPHRASE: ${{ secrets.LINUX_SIGNING_PASSPHRASE }}
+        run: node source/apps/desktop/build/linux-signing-cli.mts sign --only=SHA256SUMS.txt dist
+      # The check a user runs, on the files that are about to be published: import the committed
+      # public key into an empty keyring and verify every signature.
+      - name: Verify every Linux signature with the public key from the repository
+        if: steps.linuxsign.outputs.enabled == 'true'
+        run: |
+          export GNUPGHOME="$(mktemp -d)"
+          gpg --batch --import source/docs/scrim-release-key.asc
+          for file in dist/*.AppImage dist/*.deb dist/SHA256SUMS.txt; do
+            gpg --batch --verify "${file}.asc" "${file}"
+          done
+          gpgconf --kill gpg-agent || true
+          rm -rf "$GNUPGHOME"
+      - name: Refuse unsigned Linux files
+        if: vars.REQUIRE_LINUX_SIGNING == 'true'
+        run: |
+          for file in dist/*.AppImage dist/*.deb dist/SHA256SUMS.txt; do
+            test -s "${file}.asc" || { echo "${file} has no signature." >&2; exit 1; }
+          done
       - name: Publish the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
