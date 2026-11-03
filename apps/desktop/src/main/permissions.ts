@@ -1,6 +1,10 @@
 import { originOf } from './renderer-target';
 
-const ALLOWED_PERMISSIONS: ReadonlySet<string> = new Set(['media', 'display-capture']);
+const ALLOWED_PERMISSIONS: ReadonlySet<string> = new Set([
+  'media',
+  'display-capture',
+  'fullscreen',
+]);
 
 /** Whether a URL belongs to the app's own origin. Malformed URLs are never ours. */
 export function isOwnUrl(url: string, appOrigin: string): boolean {
@@ -8,7 +12,10 @@ export function isOwnUrl(url: string, appOrigin: string): boolean {
   return origin !== '' && origin === appOrigin;
 }
 
-/** Allow only camera, microphone and screen capture, and only for our own page. */
+/**
+ * Allow only camera, microphone, screen capture and the video fullscreen request, and only for
+ * our own page. Nothing else is ever granted.
+ */
 export function isPermissionAllowed(
   permission: string,
   requestingUrl: string,

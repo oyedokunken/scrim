@@ -280,6 +280,8 @@ export function LibraryView({
     const onKey = (event: KeyboardEvent): void => {
       if (detailId === null || event.defaultPrevented) return;
       if (document.querySelector('dialog[open]') !== null) return;
+      // Escape leaves fullscreen first, and only a second one goes back.
+      if (document.fullscreenElement !== null) return;
       if (event.key === 'Escape' || (event.altKey && event.key === 'ArrowLeft')) {
         event.preventDefault();
         closeDetail();
