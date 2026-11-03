@@ -3,6 +3,7 @@ import type { Configuration } from 'electron-builder';
 import { APP_ID, APP_NAME } from './src/shared/app-id.ts';
 import { afterPack } from './build/after-pack.ts';
 import { windowsSigningConfig } from './build/signing.mts';
+import { DEB_DEPENDS, DEB_RECOMMENDS } from './build/linux-package.mts';
 
 // electron-builder checks the updater version in package.json, and it cannot read a pnpm catalog
 // entry ("catalog:"). So the version that is installed, which the catalog decides, is handed to it
@@ -78,13 +79,26 @@ const config: Configuration = {
     },
   },
   linux: {
+    // x64 only. The names carry the architecture on purpose: the website's asset matcher reads the
+    // extension and one of x64, x86_64 or amd64. See build/linux-package.mts.
     target: ['AppImage', 'deb'],
+    executableName: 'scrim',
     category: 'AudioVideo',
     icon: 'resources/icons/linux',
     artifactName: '${productName}-${version}-linux-${arch}.${ext}',
     maintainer: 'Oyedokun Kehinde <oyedokunken@users.noreply.github.com>',
     synopsis: 'Free screen recorder with cursor effects and auto zoom',
     desktop: { entry: { StartupWMClass: 'Scrim', Keywords: 'screen;recorder;screencast;' } },
+  },
+  // The deb installs under /opt/Scrim, links /usr/bin/scrim, adds the desktop entry and the icons
+  // from resources/icons/linux, and removes all of it on uninstall. The scripts and the AppArmor
+  // profile are ours (build/linux), so a newer electron-builder cannot change them silently.
+  deb: {
+    depends: [...DEB_DEPENDS],
+    recommends: [...DEB_RECOMMENDS],
+    afterInstall: 'build/linux/after-install.tpl',
+    afterRemove: 'build/linux/after-remove.tpl',
+    appArmorProfile: 'build/linux/apparmor-profile.tpl',
   },
 };
 
