@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { decideSigning, windowsSigningConfig, type SigningEnv } from '../../build/signing.mts';
+import {
+  decideSigning,
+  planSigning,
+  SIGNPATH_PUBLISHER,
+  windowsPublisher,
+  windowsSigningConfig,
+  type SigningEnv,
+} from '../../build/signing.mts';
 import { evaluateSignature, parseSignatureJson } from '../../build/verify-signature.mts';
 
 const release: SigningEnv = {
@@ -135,5 +142,152 @@ describe('evaluateSignature', () => {
       parseSignatureJson('{"status":"NotSigned","subject":null,"timestamp":false}').signerSubject,
     ).toBeNull();
     expect(() => parseSignatureJson('null')).toThrow();
+  });
+});
+
+describe('requiring signing', () => {
+  const requireFlag = { REQUIRE_WINDOWS_SIGNING: 'true' };
+
+  it('fails when signing is required and no secret exists', () => {
+    const decision = decideSigning({ ...release, ...requireFlag });
+    expect(decision.failure).toContain('required');
+    expect(decision.enabled).toBe(false);
+    expect(decision.message).toContain('FAILED');
+  });
+
+  it('fails when signing is required and the secrets are only half set', () => {
+    const half = { ...release, ...requireFlag, SIGNPATH_API_TOKEN: 't' };
+    expect(decideSigning(half).failure).not.toBeNull();
+  });
+
+  it('fails when signing is required but this is not a tag build in the main repository', () => {
+    const fork = { ...release, ...requireFlag, ...signpath, GITHUB_REPOSITORY: 'someone/scrim' };
+    expect(decideSigning(fork).failure).toContain('not a tag build');
+    const branch = { ...release, ...requireFlag, ...signpath, GITHUB_REF: 'refs/heads/main' };
+    expect(decideSigning(branch).failure).not.toBeNull();
+  });
+
+  it('passes when signing is required and a provider is configured', () => {
+    const decision = decideSigning({ ...release, ...requireFlag, ...signpath });
+    expect(decision).toMatchObject({
+      mode: 'signpath',
+      enabled: true,
+      failure: null,
+      required: true,
+    });
+  });
+
+  it('only the value true requires it, and unsigned stays allowed otherwise', () => {
+    for (const value of ['false', '', '1', undefined]) {
+      const decision = decideSigning({ ...release, REQUIRE_WINDOWS_SIGNING: value });
+      expect(decision.failure).toBeNull();
+      expect(decision.required).toBe(false);
+    }
+    expect(decideSigning({ ...release, REQUIRE_WINDOWS_SIGNING: ' TRUE ' }).required).toBe(true);
+  });
+});
+
+describe('planSigning', () => {
+  const none = { pfx: false, azure: false, signpath: false };
+  const input = { required: false, dryRun: false, inCi: true, trusted: true, available: none };
+
+  it('covers every combination of required, trusted and available secrets', () => {
+    for (const required of [false, true]) {
+      for (const trusted of [false, true]) {
+        for (const signpathAvailable of [false, true]) {
+          const decision = planSigning({
+            ...input,
+            required,
+            trusted,
+            available: { ...none, signpath: signpathAvailable },
+          });
+          const signs = trusted && signpathAvailable;
+          expect(decision.enabled).toBe(signs);
+          // An unsigned outcome is a failure exactly when signing is required.
+          expect(decision.failure !== null).toBe(required && !signs);
+        }
+      }
+    }
+  });
+
+  it('prefers a certificate file, then Azure, then SignPath', () => {
+    const all = { pfx: true, azure: true, signpath: true };
+    expect(planSigning({ ...input, available: all }).mode).toBe('pfx');
+    expect(planSigning({ ...input, available: { ...all, pfx: false } }).mode).toBe('azure');
+    const last = { ...all, pfx: false, azure: false };
+    expect(planSigning({ ...input, available: last }).mode).toBe('signpath');
+  });
+
+  it('a developer machine is not CI, so it is never refused for being untrusted', () => {
+    const local = { ...input, inCi: false, trusted: false, available: { ...none, pfx: true } };
+    expect(planSigning(local).mode).toBe('pfx');
+  });
+});
+
+describe('dry run', () => {
+  const rehearsal = {
+    GITHUB_ACTIONS: 'true',
+    GITHUB_REPOSITORY: 'oyedokunken/scrim',
+    GITHUB_EVENT_NAME: 'workflow_dispatch',
+    GITHUB_REF: 'refs/heads/main',
+    SCRIM_SIGNING_DRY_RUN: 'true',
+  };
+
+  it('plans a hand started run in the main repository, marked as dry', () => {
+    const decision = decideSigning({ ...rehearsal, ...signpath });
+    expect(decision).toMatchObject({
+      mode: 'signpath',
+      enabled: true,
+      dryRun: true,
+      failure: null,
+    });
+    expect(decision.message).toContain('dry run');
+  });
+
+  it('is also switched on by the command line flag', () => {
+    const env = { ...rehearsal, SCRIM_SIGNING_DRY_RUN: undefined, ...signpath };
+    expect(decideSigning(env, true).dryRun).toBe(true);
+    expect(decideSigning(env).dryRun).toBe(false);
+  });
+
+  it('still fails when signing is required and the secrets are missing', () => {
+    expect(decideSigning({ ...rehearsal, REQUIRE_WINDOWS_SIGNING: 'true' }).failure).not.toBeNull();
+  });
+
+  it('does not make a fork or a manual run without the dry flag trusted', () => {
+    const fork = { ...rehearsal, ...signpath, GITHUB_REPOSITORY: 'someone/scrim' };
+    expect(decideSigning(fork).enabled).toBe(false);
+    const live = { ...rehearsal, ...signpath, SCRIM_SIGNING_DRY_RUN: 'false' };
+    expect(decideSigning(live).enabled).toBe(false);
+  });
+});
+
+describe('the publisher of a signed build', () => {
+  it('is the SignPath Foundation for SignPath, and the named publisher otherwise', () => {
+    expect(windowsPublisher({ ...release, ...signpath })).toBe('SignPath Foundation');
+    const named = { ...release, ...signpath, WIN_PUBLISHER_NAME: 'Acme Ltd' };
+    expect(windowsPublisher(named)).toBe('Acme Ltd');
+    expect(windowsPublisher({ ...release, ...pfx })).toBe('Example');
+  });
+
+  it('is empty for an unsigned build and for a dry run', () => {
+    expect(windowsPublisher(release)).toBe('');
+    expect(windowsPublisher({})).toBe('');
+    expect(windowsPublisher({ ...release, ...signpath, SCRIM_SIGNING_DRY_RUN: 'true' })).toBe('');
+  });
+
+  it('is what the updater checks: win.signtoolOptions.publisherName for SignPath', () => {
+    const config = windowsSigningConfig({ ...release, ...signpath });
+    expect(config.signtoolOptions?.publisherName).toBe(SIGNPATH_PUBLISHER);
+    expect(config.signtoolOptions?.signingHashAlgorithms).toEqual(['sha256']);
+    expect(config.signtoolOptions?.rfc3161TimeStampServer).toMatch(/^http:\/\/timestamp\./);
+    expect(config.verifyUpdateCodeSignature).toBe(true);
+    expect(config.signExecutable).toBe(false);
+  });
+
+  it('has no publisher and no update signature check when unsigned', () => {
+    const config = windowsSigningConfig(release);
+    expect(config.signtoolOptions).toBeUndefined();
+    expect(config.verifyUpdateCodeSignature).toBe(false);
   });
 });
