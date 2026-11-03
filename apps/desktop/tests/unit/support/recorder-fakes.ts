@@ -52,6 +52,8 @@ export function blobOf(size: number, fill = 1, readDelay?: Promise<void>): BlobL
 export class FakeTrack implements MediaTrackLike {
   onended: (() => void) | null = null;
   stopped = false;
+  enabled = true;
+  readyState: 'live' | 'ended' = 'live';
   constructor(
     readonly label = 'Fake device',
     private readonly settings: { width?: number; height?: number; cursor?: string } = {},
@@ -64,6 +66,7 @@ export class FakeTrack implements MediaTrackLike {
   }
   /** The device went away. */
   unplug(): void {
+    this.readyState = 'ended';
     this.onended?.();
   }
 }

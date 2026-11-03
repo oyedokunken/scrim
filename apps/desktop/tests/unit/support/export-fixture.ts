@@ -32,6 +32,8 @@ export interface FixtureOptions {
   camera?: boolean;
   mic?: boolean;
   pauses?: SessionFile['pauses'];
+  /** The pill buttons pressed while recording, on the recording clock. */
+  toggles?: SessionFile['toggles'];
   /** Where the screen track starts on the main clock, like a real recording that waited to begin. */
   screenStartMs?: number;
 }
@@ -149,6 +151,7 @@ export function makeFixture(tools: { ffmpeg: string }, options: FixtureOptions =
     tracks,
     clock: { rendererOffsetMs: 0, uncertaintyMs: 0 },
     pauses: options.pauses ?? [],
+    ...(options.toggles === undefined ? {} : { toggles: options.toggles }),
     input: { status: 'recorded', file: 'input.ndjson' },
     warnings: [],
     ...(options.camera === true

@@ -97,6 +97,18 @@ const bubbleKeyframeSchema = z.strictObject({
 });
 export type BubbleKeyframe = z.infer<typeof bubbleKeyframeSchema>;
 
+/**
+ * One press of the microphone or camera button on the recording pill. `t` is on the recording
+ * clock, which leaves paused time out, like the bubble positions. A device is on until an entry
+ * says it is off.
+ */
+const toggleSchema = z.strictObject({
+  kind: z.enum(['mic', 'camera']),
+  on: z.boolean(),
+  t: nonNegative,
+});
+export type SessionToggle = z.infer<typeof toggleSchema>;
+
 export const sessionFileSchema = z.strictObject({
   version: z.literal(1),
   id: z.uuid(),
@@ -158,6 +170,8 @@ export const sessionFileSchema = z.strictObject({
   style: styleSchema.optional(),
   /** The camera bubble's positions over time. Absent when the camera was off. */
   bubble: z.array(bubbleKeyframeSchema).max(5000).optional(),
+  /** Microphone and camera switched off or on while recording. Absent when nothing was pressed. */
+  toggles: z.array(toggleSchema).max(2000).optional(),
   heartbeatAt: z.iso.datetime(),
   /** The main clock at the last heartbeat, in milliseconds, so recovery knows how far it got. */
   heartbeatElapsedMs: nonNegative,

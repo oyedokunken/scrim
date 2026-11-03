@@ -24,6 +24,9 @@ export interface BlobLike {
 export interface TrackLike {
   onended: (() => void) | null;
   stop(): void;
+  /** Off means silence for audio and black frames for video. The recorder keeps running. */
+  enabled?: boolean;
+  readyState?: 'live' | 'ended';
 }
 
 /** What a track recorder needs from a frame clock, so audio tracks can go without one. */
@@ -152,6 +155,16 @@ export class TrackRecorder {
     if (this.pausedAt !== null) this.pausedTotal += this.options.now() - this.pausedAt;
     this.pausedAt = null;
     this.recorder.resume();
+  }
+
+  /**
+   * Switches the live track on or off without touching the recorder, so a pause, a resume and the
+   * clock are not affected. Returns false when the device is gone and nothing could change.
+   */
+  setEnabled(enabled: boolean): boolean {
+    if (this.ended || this.stopping || this.track.readyState === 'ended') return false;
+    this.track.enabled = enabled;
+    return true;
   }
 
   /** Stops recording, waits for the last chunk to be posted, and releases the device. */

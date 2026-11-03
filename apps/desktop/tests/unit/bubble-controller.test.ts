@@ -46,6 +46,10 @@ function setup(
     },
     close: () => calls.push('close'),
     place: (circle, side) => placed.push({ circle, side }),
+    setVisible: (visible) => calls.push(`visible ${String(visible)}`),
+    media: (state) =>
+      calls.push(`media mic=${String(state.micMuted)} cam=${String(state.cameraOn)}`),
+    onCameraFailed: () => undefined,
     onDragStart: (callback) => {
       dragStart = callback;
     },
@@ -258,6 +262,47 @@ describe('the camera bubble controller', () => {
       live.controller.start();
       live.controller.endPreview();
       expect(live.controller.isOpen()).toBe(true);
+    });
+  });
+
+  describe('the camera button on the pill', () => {
+    it('hides the window when the camera goes off and shows it when it is back', () => {
+      const t = setup();
+      t.controller.start();
+      t.calls.length = 0;
+      t.controller.setMedia({ micMuted: false, cameraOn: false });
+      expect(t.calls).toEqual(['media mic=false cam=false', 'visible false']);
+      expect(t.controller.isShown()).toBe(false);
+      t.controller.setMedia({ micMuted: true, cameraOn: false });
+      expect(t.calls.at(-1)).toBe('media mic=true cam=false');
+      t.controller.setMedia({ micMuted: true, cameraOn: true });
+      expect(t.calls.slice(-2)).toEqual(['media mic=true cam=true', 'visible true']);
+    });
+
+    it('does not dodge the cursor while hidden and keeps the camera open', () => {
+      const t = setup();
+      t.controller.start();
+      t.controller.setMedia({ micMuted: false, cameraOn: false });
+      t.placed.length = 0;
+      t.setCursor({ x: positions.bl.x + 60, y: positions.bl.y + 60 });
+      t.advance(2000);
+      expect(t.placed).toEqual([]);
+      expect(t.calls).not.toContain('close');
+    });
+
+    it('ignores media changes when no bubble is open', () => {
+      const t = setup({ camera: false });
+      t.controller.start();
+      t.controller.setMedia({ micMuted: true, cameraOn: false });
+      expect(t.calls).toEqual([]);
+    });
+
+    it('shows the window again for the next recording', () => {
+      const t = setup();
+      t.controller.start();
+      t.controller.setMedia({ micMuted: false, cameraOn: false });
+      t.controller.stop();
+      expect(t.controller.isShown()).toBe(true);
     });
   });
 

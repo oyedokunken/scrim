@@ -1,4 +1,4 @@
-import type { PillAction, PillPhase, PillState } from '../../recorder/pill/protocol';
+import type { MediaState, PillAction, PillPhase, PillState } from '../../recorder/pill/protocol';
 import type { FinishedRecording, Outcome, RecordingEvent, RecordingSnapshot } from './types';
 
 /** The part of the recording service the pill talks to. The real service fits it as it is. */
@@ -16,8 +16,16 @@ export interface PillWindow {
   send: (state: PillState) => void;
 }
 
+/** The microphone and camera buttons. Their state lives in main, in `media-state.ts`. */
+export interface PillMedia {
+  get: () => MediaState;
+  setMicMuted: (muted: boolean) => Promise<void>;
+  setCameraEnabled: (enabled: boolean) => Promise<void>;
+}
+
 export interface PillControllerDeps {
   service: PillService;
+  media: PillMedia;
   window: PillWindow;
   /** Moves a session folder to the recycle bin. Only ever called after the person confirmed. */
   trash: (folder: string) => Promise<void>;
@@ -49,7 +57,12 @@ export function createPillController(deps: PillControllerDeps) {
       return;
     }
     window.open();
-    window.send({ phase, elapsedMs: snapshot.elapsedMs, busy: busy || phase === 'saving' });
+    window.send({
+      phase,
+      elapsedMs: snapshot.elapsedMs,
+      busy: busy || phase === 'saving',
+      media: deps.media.get(),
+    });
   };
 
   const run = async (work: () => Promise<void>): Promise<void> => {
@@ -82,6 +95,10 @@ export function createPillController(deps: PillControllerDeps) {
       if (event.type === 'state') push();
       else if (event.type === 'finished' || event.type === 'error') window.close();
     },
+    /** The microphone or camera state changed, so the buttons are redrawn. */
+    refresh(): void {
+      if (pillPhaseOf(service.snapshot().phase) !== undefined) push();
+    },
     /** Shows the pill for the recording in progress, if there is one. */
     open(): void {
       push();
@@ -93,6 +110,14 @@ export function createPillController(deps: PillControllerDeps) {
       switch (action.type) {
         case 'ready':
           push();
+          return;
+        case 'set-mic-muted':
+          // Not run through `run`: pausing or stopping must not make these wait, and the media
+          // state already allows one change per device at a time.
+          await deps.media.setMicMuted(action.muted);
+          return;
+        case 'set-camera-enabled':
+          await deps.media.setCameraEnabled(action.enabled);
           return;
         case 'pause':
           await run(async () => {

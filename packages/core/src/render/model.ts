@@ -40,6 +40,7 @@ import {
   type Layout,
 } from './layout';
 import { buildTimeline, frameCount, frameTime, outputToSource, type Timeline } from './timeline';
+import { isOffAt, offIntervals } from './toggles';
 
 /**
  * Look settings that can be changed after recording. They belong in `edits.json`; until that file
@@ -237,9 +238,15 @@ export function createRenderModel(input: RenderInput): RenderModel {
   let audio: AudioPiece[] = [];
   if (micTrack !== undefined && micOffset !== null && settings.keepAudio !== false) {
     const stop = micTrack.stoppedAt ?? session.heartbeatElapsedMs;
-    audio = planAudio(timeline, micOffset, toMediaTime(stop, micTrack.startedAt, pauses));
+    audio = planAudio(
+      timeline,
+      micOffset,
+      toMediaTime(stop, micTrack.startedAt, pauses),
+      offIntervals(session.toggles, 'mic'),
+    );
   }
 
+  const cameraOff = offIntervals(session.toggles, 'camera');
   const bubble =
     cameraOffset === null ? null : computeBubble(layout.content, style.bubble ?? BUBBLE_DEFAULTS);
 
@@ -251,11 +258,15 @@ export function createRenderModel(input: RenderInput): RenderModel {
     const recordingTimeMs = outputToSource(timeline, outputTimeMs);
     const pose = sampleCamera(keyframes, recordingTimeMs, cameraFrame);
     const cameraTime = cameraOffset === null ? null : recordingTimeMs - cameraOffset;
+    const cameraIsOff = isOffAt(cameraOff, recordingTimeMs);
     return {
       outputTimeMs,
       recordingTimeMs,
       screenTimeMs: Math.max(0, recordingTimeMs - screenOffset),
-      cameraTimeMs: cameraTime !== null && cameraTime >= 0 && bubble !== null ? cameraTime : null,
+      cameraTimeMs:
+        cameraTime !== null && cameraTime >= 0 && bubble !== null && !cameraIsOff
+          ? cameraTime
+          : null,
       pose,
       view: viewRect(pose, cameraFrame),
       cursor:
@@ -263,7 +274,7 @@ export function createRenderModel(input: RenderInput): RenderModel {
       // A capture that already holds the cursor needs no second one drawn over it.
       pointer: session.capture.cursorInCapture ? null : pointerAt(cursorTrack, recordingTimeMs),
       texts: texts.length === 0 ? NO_TEXTS : activeTexts(texts, recordingTimeMs),
-      bubble,
+      bubble: cameraIsOff ? null : bubble,
     };
   };
 

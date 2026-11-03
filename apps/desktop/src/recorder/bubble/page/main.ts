@@ -1,11 +1,11 @@
-import type { BubbleCommand } from '../protocol';
+import type { BubbleCommand, BubbleEvent } from '../protocol';
 
 declare global {
   interface Window {
     /** Exposed by the bubble preload. */
     scrimBubble: {
       onCommand(callback: (command: BubbleCommand) => void): void;
-      send(event: { type: 'ready' }): void;
+      send(event: BubbleEvent): void;
     };
   }
 }
@@ -22,6 +22,60 @@ const dot = element('dot', HTMLDivElement);
 const bubble = element('bubble', HTMLDivElement);
 
 let micContext: AudioContext | undefined;
+let cameraStream: MediaStream | undefined;
+let micStream: MediaStream | undefined;
+let cameraDeviceId: string | undefined;
+/** What the pill last said, so a stream that opens late still starts in the right state. */
+let media = { micMuted: false, cameraOn: true };
+/** True once `init` has tried to open the camera and the microphone. */
+let opened = false;
+
+function reasonOf(
+  error: unknown,
+): 'device-busy' | 'device-removed' | 'permission-denied' | 'unknown' {
+  const name = error instanceof Error ? error.name : '';
+  if (name === 'NotAllowedError' || name === 'SecurityError') return 'permission-denied';
+  if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'device-removed';
+  if (name === 'NotReadableError' || name === 'AbortError') return 'device-busy';
+  return 'unknown';
+}
+
+async function openCamera(): Promise<MediaStream> {
+  return navigator.mediaDevices.getUserMedia({
+    video: cameraDeviceId === undefined ? true : { deviceId: { exact: cameraDeviceId } },
+  });
+}
+
+/**
+ * Applies the pill's buttons. A camera that is off has its track switched off and the picture
+ * paused, so no frames are painted. Switching it back on reopens the camera when the track was
+ * lost in the meantime, and says so when that fails, so main can put the button back.
+ */
+async function applyMedia(next: { micMuted: boolean; cameraOn: boolean }): Promise<void> {
+  media = next;
+  // The devices are still opening. `init` applies what was asked once they are open, and opening
+  // the camera a second time now would race the first.
+  if (!opened) return;
+  for (const track of micStream?.getAudioTracks() ?? []) track.enabled = !next.micMuted;
+  const track = cameraStream?.getVideoTracks()[0];
+  if (!next.cameraOn) {
+    if (track !== undefined) track.enabled = false;
+    video.pause();
+    return;
+  }
+  try {
+    if (track === undefined || track.readyState === 'ended') {
+      for (const old of cameraStream?.getTracks() ?? []) old.stop();
+      cameraStream = await openCamera();
+      video.srcObject = cameraStream;
+    } else {
+      track.enabled = true;
+    }
+    if (media.cameraOn) await video.play();
+  } catch (error) {
+    window.scrimBubble.send({ type: 'camera-failed', reason: reasonOf(error) });
+  }
+}
 
 function setSide(side: 'left' | 'right'): void {
   stage.classList.toggle('left', side === 'left');
@@ -60,14 +114,10 @@ async function init(command: Extract<BubbleCommand, { type: 'init' }>): Promise<
     bubble.style.height = `${String(command.size)}px`;
   }
   bubble.classList.toggle('square', command.shape === 'rounded-square');
+  cameraDeviceId = command.cameraDeviceId;
   try {
-    const camera = await navigator.mediaDevices.getUserMedia({
-      video:
-        command.cameraDeviceId === undefined
-          ? true
-          : { deviceId: { exact: command.cameraDeviceId } },
-    });
-    video.srcObject = camera;
+    cameraStream = await openCamera();
+    video.srcObject = cameraStream;
   } catch {
     // No camera to show. The round picture stays plain, and the recording reports the problem.
   }
@@ -77,15 +127,21 @@ async function init(command: Extract<BubbleCommand, { type: 'init' }>): Promise<
         audio:
           command.mic.deviceId === undefined ? true : { deviceId: { exact: command.mic.deviceId } },
       });
+      micStream = mic;
+      for (const track of mic.getAudioTracks()) track.enabled = !media.micMuted;
       startMicDot(mic);
     } catch {
       // No microphone to follow. The dot stays small and dim.
     }
   }
+  opened = true;
+  // A camera that was switched off while the devices opened is switched off now.
+  if (!media.cameraOn) void applyMedia(media);
 }
 
 window.scrimBubble.onCommand((command) => {
   if (command.type === 'init') void init(command);
+  else if (command.type === 'media') void applyMedia(command);
   else setSide(command.side);
 });
 window.addEventListener('pagehide', () => {

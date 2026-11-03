@@ -60,7 +60,10 @@ function killHard(child: ChildProcess): void {
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function launch(pillAt?: { x: number; y: number }): Promise<Running> {
+async function launch(
+  pillAt?: { x: number; y: number },
+  extraArgs: string[] = [],
+): Promise<Running> {
   const userData = join(work, 'user');
   // Working folders go to the projects folder, which follows LOCALAPPDATA. The chosen folder only
   // receives exports, so a recording must leave it empty.
@@ -82,7 +85,7 @@ async function launch(pillAt?: { x: number; y: number }): Promise<Running> {
     writeFileSync(join(userData, 'pill-position.json'), JSON.stringify(pillAt));
   const child = spawn(
     electronPath,
-    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0'],
+    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0', ...extraArgs],
     {
       env: { ...process.env, SCRIM_E2E: '', LOCALAPPDATA: local },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -172,15 +175,18 @@ async function waitForPhase(main: Page, expected: string): Promise<void> {
   throw new Error(`The recorder never reached "${expected}", last saw "${seen}".\n${recent()}`);
 }
 
-async function startRecording(main: Page, camera = false): Promise<void> {
-  const result = await main.evaluate(async (cameraOn) => {
-    const bridge = (window as unknown as { scrim: Bridge }).scrim;
-    return await bridge.invoke('recording:start', {
-      source: { kind: 'display' },
-      camera: { enabled: cameraOn },
-      mic: { enabled: false },
-    });
-  }, camera);
+async function startRecording(main: Page, camera = false, mic = false): Promise<void> {
+  const result = await main.evaluate(
+    async (devices) => {
+      const bridge = (window as unknown as { scrim: Bridge }).scrim;
+      return await bridge.invoke('recording:start', {
+        source: { kind: 'display' },
+        camera: { enabled: devices.camera },
+        mic: { enabled: devices.mic },
+      });
+    },
+    { camera, mic },
+  );
   expect((result as { ok: boolean }).ok, JSON.stringify(result)).toBe(true);
   await waitForPhase(main, 'recording');
 }
@@ -289,10 +295,10 @@ test('the pill never appears in the recorded video', async () => {
     const folder = join(running.folder, sessionFolders(running.folder)[0] ?? '');
     const video = readdirSync(folder).find((name) => /\.(mp4|webm|mkv)$/.test(name));
     expect(video).toBeDefined();
-    // The recording dot is the one record red thing on the pill. The pill is 232 by 40 device
+    // The recording dot is the one record red thing on the pill. The pill is 344 by 48 device
     // independent pixels, and the dot sits inside it, so count record red pixels over that box.
-    const width = Math.round(232 * scale);
-    const height = Math.round(40 * scale);
+    const width = Math.round(344 * scale);
+    const height = Math.round(48 * scale);
     const frame = spawnSync(
       ffmpeg,
       [
@@ -323,6 +329,141 @@ test('the pill never appears in the recorded video', async () => {
         red += 1;
     }
     expect(red, 'record red pixels where the pill sat').toBeLessThan(5);
+  } finally {
+    running.child.kill();
+    killHard(running.child);
+  }
+});
+
+/** Chromium's fake camera and microphone, so the buttons work the same on any machine. */
+const FAKE_DEVICES = ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'];
+
+/**
+ * Starts a recording with Chromium's fake camera and microphone. With the fake camera, opening
+ * the same device from the recorder and from the bubble window now and then ends the recorder's
+ * camera track straight away. That is the same with or without the pill buttons, so a run that
+ * starts with a lost camera is thrown away and tried again, in a fresh folder.
+ */
+async function launchWithLiveCamera(): Promise<Running> {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const running = await launch(undefined, FAKE_DEVICES);
+    await startRecording(running.main, true, true);
+    await sleep(2000);
+    const lost = await running.main.evaluate(async () => {
+      const bridge = (window as unknown as { scrim: Bridge }).scrim;
+      const snapshot = (await bridge.invoke('recording:snapshot')) as {
+        tracks: { kind: string; ended: boolean }[];
+      };
+      return snapshot.tracks.some((track) => track.ended);
+    });
+    if (!lost) return running;
+    running.child.kill();
+    killHard(running.child);
+    await sleep(1500);
+    try {
+      rmSync(work, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+    } catch {
+      // A leftover temp folder is harmless.
+    }
+    work = mkdtempSync(join(tmpdir(), 'scrim-pill-e2e-'));
+  }
+  throw new Error('The fake camera was lost on every try.');
+}
+
+test('the microphone and camera buttons mute and hide, and every press is logged in the session', async () => {
+  test.setTimeout(150_000);
+  const running = await launchWithLiveCamera();
+  try {
+    const pill = await findPill(running.browser);
+    const mic = pill.locator('#mic');
+    const camera = pill.locator('#camera');
+    await expect(mic).toHaveAttribute('aria-label', 'Mute microphone');
+    await expect(mic).toHaveAttribute('aria-pressed', 'false');
+    await expect(camera).toHaveAttribute('aria-label', 'Turn camera off');
+    // Two 40 pixel targets, icon only, and out of the Tab order.
+    for (const button of [mic, camera]) {
+      const box = await button.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(40);
+      expect(box?.height).toBeGreaterThanOrEqual(40);
+      await expect(button).toHaveAttribute('tabindex', '-1');
+      expect((await button.textContent())?.trim()).toBe('');
+    }
+    await sleep(1500);
+
+    await mic.click();
+    await expect(mic).toHaveAttribute('aria-label', 'Unmute microphone');
+    await expect(mic).toHaveAttribute('aria-pressed', 'true');
+    await camera.click();
+    await expect(camera).toHaveAttribute('aria-label', 'Turn camera on');
+    // The bubble window is hidden while the camera is off.
+    await pill.screenshot({ path: join(work, 'pill-muted.png') });
+    mkdirSync(join(APP_DIR, 'test-results'), { recursive: true });
+    await pill.screenshot({ path: join(APP_DIR, 'test-results', 'pill-toggles-off.png') });
+
+    // Pausing and resuming keeps both off.
+    await pill.locator('#toggle').click();
+    await waitForPhase(running.main, 'paused');
+    await expect(mic).toHaveAttribute('aria-pressed', 'true');
+    await pill.locator('#toggle').click();
+    await waitForPhase(running.main, 'recording');
+    await expect(mic).toHaveAttribute('aria-pressed', 'true');
+    await expect(camera).toHaveAttribute('aria-pressed', 'true');
+
+    // Two presses in a hurry are one change. The pill answers with the state it ends in.
+    await sleep(400);
+    await mic.dblclick();
+    await sleep(600);
+    await expect(mic).toHaveAttribute('aria-pressed', 'false');
+    await sleep(400);
+    await camera.click();
+    await expect(camera).toHaveAttribute('aria-pressed', 'false');
+    await sleep(1200);
+
+    await tolerateClose(() => pill.locator('#stop').click());
+    await waitForPhase(running.main, 'stopped');
+    const folder = join(running.folder, sessionFolders(running.folder)[0] ?? '');
+    const session = JSON.parse(readFileSync(join(folder, 'session.json'), 'utf8')) as {
+      toggles?: { kind: string; on: boolean; t: number }[];
+      cleanClose?: boolean;
+    };
+    expect(session.cleanClose).toBe(true);
+    const toggles = session.toggles ?? [];
+    expect(toggles.slice(0, 2).map((entry) => `${entry.kind}:${String(entry.on)}`)).toEqual([
+      'mic:false',
+      'camera:false',
+    ]);
+    // The double press was one change: the mic has the mute and one unmute, nothing more.
+    expect(toggles.filter((entry) => entry.kind === 'mic')).toHaveLength(2);
+    expect(toggles.at(-1)).toMatchObject({ kind: 'camera', on: true });
+    const times = toggles.map((entry) => entry.t);
+    expect([...times].sort((a, b) => a - b)).toEqual(times);
+    expect(times[0] ?? 0).toBeGreaterThan(1000);
+  } finally {
+    running.child.kill();
+    killHard(running.child);
+  }
+});
+
+test('a device that was off before recording shows a disabled button with the reason', async () => {
+  test.setTimeout(120_000);
+  const running = await launch(undefined, FAKE_DEVICES);
+  try {
+    await startRecording(running.main, false, true);
+    const pill = await findPill(running.browser);
+    const camera = pill.locator('#camera');
+    await expect(camera).toBeDisabled();
+    await expect(camera).toHaveAttribute('title', 'Turned off before you started recording');
+    await expect(pill.locator('#mic')).toBeEnabled();
+    await camera.click({ force: true }).catch(() => undefined);
+    await sleep(500);
+    await expect(camera).toHaveAttribute('aria-pressed', 'true');
+    await tolerateClose(() => pill.locator('#stop').click());
+    await waitForPhase(running.main, 'stopped');
+    const folder = join(running.folder, sessionFolders(running.folder)[0] ?? '');
+    const session = JSON.parse(readFileSync(join(folder, 'session.json'), 'utf8')) as {
+      toggles?: unknown[];
+    };
+    expect(session.toggles ?? []).toEqual([]);
   } finally {
     running.child.kill();
     killHard(running.child);

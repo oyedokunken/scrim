@@ -14,6 +14,7 @@
 :root {
   --black: #000000;
   --white: #ffffff;
+  --butter: #fbf8f4;
   --record: #ff3b30;
 }
 
@@ -111,8 +112,8 @@ body {
 .btn {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -139,6 +140,39 @@ body {
 .btn:disabled {
   cursor: default;
   opacity: 0.4;
+}
+
+/* Microphone and camera: butter on the black pill. Off shows the slashed icon on a quiet fill. */
+.btn.media {
+  color: var(--butter);
+}
+
+.btn.media[aria-pressed='true'] {
+  background: rgba(251, 248, 244, 0.16);
+}
+
+.btn.media[aria-pressed='true']:hover:not(:disabled) {
+  background: rgba(251, 248, 244, 0.28);
+}
+
+/* A device that was off before recording, or that was lost, cannot be used. */
+.btn.media:disabled {
+  opacity: 0.4;
+}
+
+/* A turn on that failed: the button stays usable for another try, with a dashed ring. */
+.btn.media[data-error] {
+  outline: 1.5px dashed rgba(251, 248, 244, 0.6);
+  outline-offset: -4px;
+}
+
+.note {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .btn.text {

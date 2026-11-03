@@ -86,7 +86,10 @@ export function createPillWindow(deps: PillWindowDeps): PillWindow {
         minimizable: false,
         maximizable: false,
         fullscreenable: false,
-        focusable: true,
+        // Never takes focus, so pressing a button leaves the app being recorded in front and
+        // focused. Clicks still reach the buttons. The Keep and Discard question is answered by
+        // clicking, not by a key.
+        focusable: false,
         hasShadow: false,
         webPreferences: {
           preload: join(__dirname, '../preload/pill.js'),

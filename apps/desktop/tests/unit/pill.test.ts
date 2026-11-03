@@ -15,10 +15,11 @@ import type { FinishedRecording, Outcome, RecordingSnapshot } from '../../src/ma
 const area = { x: 0, y: 0, width: 1920, height: 1040 };
 
 describe('pill size and position', () => {
-  it('is compact, about 200 by 40', () => {
-    expect(PILL_SIZE.width).toBeGreaterThanOrEqual(190);
-    expect(PILL_SIZE.width).toBeLessThanOrEqual(240);
-    expect(PILL_SIZE.height).toBeLessThanOrEqual(44);
+  it('stays a compact single bar that fits five 40 pixel buttons and the time', () => {
+    expect(PILL_SIZE.width).toBeGreaterThanOrEqual(5 * 40 + 100);
+    expect(PILL_SIZE.width).toBeLessThanOrEqual(380);
+    expect(PILL_SIZE.height).toBeGreaterThanOrEqual(40);
+    expect(PILL_SIZE.height).toBeLessThanOrEqual(52);
   });
 
   it('starts at the bottom left, 24 pixels from the edges', () => {
@@ -101,6 +102,11 @@ const finished: FinishedRecording = {
   warnings: [],
 };
 
+const media = {
+  mic: { available: true, active: true },
+  camera: { available: true, active: true },
+};
+
 function setup(initial: RecordingSnapshot['phase'] = 'recording') {
   let current = snapshot(initial, 4200);
   const calls: string[] = [];
@@ -125,6 +131,17 @@ function setup(initial: RecordingSnapshot['phase'] = 'recording') {
         return Promise.resolve(stopResult);
       },
       snapshot: () => current,
+    },
+    media: {
+      get: () => media,
+      setMicMuted: (muted) => {
+        calls.push(`mic ${String(muted)}`);
+        return Promise.resolve();
+      },
+      setCameraEnabled: (enabled) => {
+        calls.push(`camera ${String(enabled)}`);
+        return Promise.resolve();
+      },
     },
     window: {
       open: () => calls.push('open'),
@@ -171,7 +188,7 @@ describe('createPillController', () => {
     const { controller, calls, sent } = setup();
     controller.onEvent({ type: 'state', snapshot: snapshot('recording', 4200) });
     expect(calls).toEqual(['open']);
-    expect(sent).toEqual([{ phase: 'recording', elapsedMs: 4200, busy: false }]);
+    expect(sent).toEqual([{ phase: 'recording', elapsedMs: 4200, busy: false, media }]);
   });
 
   it('closes when the recording is no longer live, for any reason', () => {
@@ -190,10 +207,10 @@ describe('createPillController', () => {
     const { controller, calls, sent } = setup();
     await controller.handle({ type: 'pause' });
     expect(calls).toContain('pause');
-    expect(sent.at(-1)).toEqual({ phase: 'paused', elapsedMs: 4200, busy: false });
+    expect(sent.at(-1)).toEqual({ phase: 'paused', elapsedMs: 4200, busy: false, media });
     await controller.handle({ type: 'resume' });
     expect(calls).toContain('resume');
-    expect(sent.at(-1)).toEqual({ phase: 'recording', elapsedMs: 4200, busy: false });
+    expect(sent.at(-1)).toEqual({ phase: 'recording', elapsedMs: 4200, busy: false, media });
     expect(sent.some((state) => state.busy)).toBe(true);
   });
 
@@ -234,9 +251,30 @@ describe('createPillController', () => {
     expect(calls).not.toContain('stop');
   });
 
+  it('passes the microphone and camera actions on, even while pausing or saving', async () => {
+    const { controller, calls } = setup();
+    await Promise.all([
+      controller.handle({ type: 'pause' }),
+      controller.handle({ type: 'set-mic-muted', muted: true }),
+      controller.handle({ type: 'set-camera-enabled', enabled: false }),
+    ]);
+    expect(calls).toContain('mic true');
+    expect(calls).toContain('camera false');
+    expect(calls).toContain('pause');
+  });
+
+  it('redraws the buttons when the media state changes, and only while recording', () => {
+    const { controller, sent, set } = setup();
+    controller.refresh();
+    expect(sent).toHaveLength(1);
+    set('idle');
+    controller.refresh();
+    expect(sent).toHaveLength(1);
+  });
+
   it('answers ready with the current state', async () => {
     const { controller, sent } = setup('paused');
     await controller.handle({ type: 'ready' });
-    expect(sent).toEqual([{ phase: 'paused', elapsedMs: 4200, busy: false }]);
+    expect(sent).toEqual([{ phase: 'paused', elapsedMs: 4200, busy: false, media }]);
   });
 });
