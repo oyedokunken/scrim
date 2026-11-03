@@ -150,7 +150,8 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
     const request = {
       ...data,
       arch: detectedArch === 'arm64' ? 'arm64' : 'x64',
-      format: undefined,
+      // The package choice only means something on Linux.
+      format: data.os === 'linux' ? data.format : undefined,
       // Someone asking about a system with no installer is asking to be told when it is ready.
       updatesOptIn: data.os === 'windows' ? data.updatesOptIn : true,
     };
@@ -289,6 +290,26 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                 </p>
               )}
             </fieldset>
+
+            {os === 'linux' ? (
+              <fieldset className={styles.fieldset}>
+                <legend>Package</legend>
+                <div className={styles.inline}>
+                  <label className={styles.pill}>
+                    <input type="radio" value="appimage" {...register('format')} />
+                    AppImage
+                  </label>
+                  <label className={styles.pill}>
+                    <input type="radio" value="deb" {...register('format')} />
+                    deb package
+                  </label>
+                </div>
+                <p className={styles.hint}>
+                  The AppImage runs on most distributions. The deb is for Ubuntu and Debian, and it
+                  sets up the sandbox permission that Ubuntu 24.04 asks for.
+                </p>
+              </fieldset>
+            ) : null}
 
             <label className={styles.check}>
               <input type="checkbox" {...register('updatesOptIn')} />

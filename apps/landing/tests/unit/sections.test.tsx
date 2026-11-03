@@ -144,7 +144,9 @@ describe('the sections in detail', () => {
       expect(html).toContain(`Download for ${name}`);
     }
     expect(html).not.toMatch(/coming soon|email me when it is ready/i);
-    expect(html.match(/<details/g)).toHaveLength(3);
+    // One help block per system, and a second one under Linux for verifying the download.
+    expect(html.match(/<details/g)).toHaveLength(4);
+    expect(html.match(/Verify the download/g)).toHaveLength(1);
     expect(html.match(/Need help\?/g)).toHaveLength(3);
     expect(html).not.toContain('First run help');
     expect(html.match(/<svg/g)?.length ?? 0).toBeGreaterThanOrEqual(6);

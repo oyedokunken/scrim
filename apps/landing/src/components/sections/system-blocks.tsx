@@ -5,6 +5,7 @@ import { DownloadTrigger } from '../download/download-provider';
 import { OsIcon } from '../os-icons';
 import { usePlatform } from '../use-platform';
 import styles from './download.module.css';
+import { LinuxAppImageSteps, LinuxVerify } from './linux-help';
 
 /**
  * The three systems. Once the visitor's system is known it moves to the front and is marked, but
@@ -40,7 +41,9 @@ export function SystemBlocks() {
               {system.help.map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
+              {system.os === 'linux' ? <LinuxAppImageSteps /> : null}
             </details>
+            {system.os === 'linux' ? <LinuxVerify /> : null}
           </article>
         );
       })}
