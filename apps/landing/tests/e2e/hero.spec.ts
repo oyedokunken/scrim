@@ -423,7 +423,19 @@ test.describe('text in the hero video', () => {
         await clickTimelineAt(page, shareOf(entry.id));
         await expect(demo(page)).toHaveAttribute('data-scene', entry.id);
         const report = await page.getByTestId('hero-cards').evaluate((cards) => {
+          // Computed colours come as rgb() or, for color-mix, as color(srgb r g b / a).
           const parse = (value: string) => {
+            const srgb = /color\(srgb ([^)]+)\)/.exec(value);
+            if (srgb !== null) {
+              const [channels = '', alpha = '1'] = (srgb[1] ?? '').split('/');
+              const parts = channels.trim().split(/\s+/).map(Number);
+              return {
+                r: (parts[0] ?? 0) * 255,
+                g: (parts[1] ?? 0) * 255,
+                b: (parts[2] ?? 0) * 255,
+                a: Number(alpha.trim()),
+              };
+            }
             const match = /rgba?\(([^)]+)\)/.exec(value);
             const parts = (match?.[1] ?? '0,0,0,0')
               .split(/[ ,/]+/)
@@ -454,14 +466,22 @@ test.describe('text in the hero video', () => {
             }
             if (opacity < 0.95) continue;
             const text = parse(getComputedStyle(element).color);
-            let background = { r: 255, g: 255, b: 255, a: 1 };
+            // The real background is every translucent layer composited over white, outermost first.
+            const layers: { r: number; g: number; b: number; a: number }[] = [];
             for (let node: HTMLElement | null = element; node !== null; node = node.parentElement) {
               const candidate = parse(getComputedStyle(node).backgroundColor);
-              if (candidate.a >= 0.95) {
-                background = candidate;
-                break;
-              }
+              if (candidate.a > 0) layers.unshift(candidate);
+              if (candidate.a >= 0.99) break;
             }
+            const background = layers.reduce(
+              (under, layer) => ({
+                r: under.r * (1 - layer.a) + layer.r * layer.a,
+                g: under.g * (1 - layer.a) + layer.g * layer.a,
+                b: under.b * (1 - layer.a) + layer.b * layer.a,
+                a: 1,
+              }),
+              { r: 255, g: 255, b: 255, a: 1 },
+            );
             const light = Math.max(luminance(text), luminance(background));
             const dark = Math.min(luminance(text), luminance(background));
             const ratio = (light + 0.05) / (dark + 0.05);

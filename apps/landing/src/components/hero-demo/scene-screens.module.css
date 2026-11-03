@@ -552,8 +552,9 @@
 
 .ghostButton[data-press='stop'] {
   --on: clamp(0, calc((var(--p-stop) - 0.7) * 30), 1);
-  background: color-mix(in srgb, var(--scrim-green) calc(var(--on) * 100%), var(--scrim-white));
-  color: color-mix(in srgb, var(--scrim-white) calc(var(--on) * 100%), var(--scrim-green));
+  /* A ring grows around the button. The text never changes colour, so it stays readable. */
+  box-shadow: 0 0 0 calc(var(--on) * 0.22em) var(--scrim-green);
+  transform: scale(calc(1 + var(--on) * 0.04));
 }
 
 /* ---------- Edit ---------- */
