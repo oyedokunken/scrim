@@ -39,7 +39,7 @@
 
 ---
 
-Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux. It highlights the cursor, ripples every click, zooms in where you work, adds your face in a bubble, and exports an MP4 that plays everywhere. Get it at [scrim.oyedokunken.dev](https://scrim.oyedokunken.dev).
+Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux. It highlights the cursor, ripples every click, zooms in where you work, adds your face in a bubble, and exports an MP4 that plays everywhere. Get it at [scrim.oyedokun.dev](https://scrim.oyedokun.dev).
 
 Scrim keeps recordings on your computer. Nothing is uploaded, there is no account, and exports have no watermark. The website collects only the name and email needed to count downloads and send optional release notices.
 
@@ -171,7 +171,7 @@ Team roles:
 
 Privacy: Scrim does not send recordings or recording data anywhere. The only network request the app
 can make is the update check, which asks GitHub Releases for the newest version, only when you press
-Check for updates or turn the check on at start. See the [privacy policy](https://scrim.oyedokunken.dev/privacy).
+Check for updates or turn the check on at start. See the [privacy policy](https://scrim.oyedokun.dev/privacy).
 
 ## Developer
 
@@ -188,6 +188,6 @@ Scrim is available under the [MIT License](LICENSE).
 
 ## Links
 
-- Website: https://scrim.oyedokunken.dev
+- Website: https://scrim.oyedokun.dev
 - Source: https://github.com/oyedokunken/scrim
 - Issues: https://github.com/oyedokunken/scrim/issues
