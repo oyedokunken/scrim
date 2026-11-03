@@ -56,3 +56,22 @@ A video that none of these link has no project (the working files were deleted o
 ## Disabled controls explain themselves
 
 Every disabled control gives a plain reason. The shared Button takes disabledReason: while disabled it becomes ria-disabled (still focusable, clicks ignored) and shows the reason on hover and keyboard focus, described through ria-describedby. Escape hides it. Segmented, Tile, Switch and Select take the same prop. A control with no reason keeps the native disabled attribute.
+
+## The platform interface and Linux
+
+Scrim for Linux is an adaptation: the screens, the editor, auto zoom planning, effects, export, the Library, Settings and recovery are the same code on every system. Only what differs per system sits behind `Platform`, in `apps/desktop/src/main/platform/platform.ts`.
+
+- `createPlatform({ platform, env })` is pure and returns one adapter. `currentPlatform()` builds it once from the real process, and `setPlatformOverride` lets tests swap it. The rest of the main process asks the adapter and does not read `process.platform` for these questions.
+- The adapter says where working files, recordings and screenshots live (`folders`), how capture works (`capture.mode`: `enumerate` or `portal`), which area chooser to use (`capture.areaChooser`: `overlay` or `still-frame`), whether the mouse hook can work, whether global shortcuts may fail to register, whether `setContentProtection` hides a window from capture, whether the tray needs an indicator host, whether there is a share sheet, whether the taskbar can carry a recording dot, and the Chromium switches to set before ready.
+- Windows is the reference adapter and behaves exactly as before. macOS gets the generic adapter, which keeps what the existing macOS files do. A real macOS adapter is a new branch in `createPlatform` and nothing else has to change.
+- The page learns what it needs through the `platform:info` channel (`src/shared/platform-info.ts`): file manager name, share sheet, cursor effects and the plain words to show when they are off. Until the answer arrives the page assumes Windows.
+
+Linux behavior:
+
+- Working files: in the app's user data folder (`~/.config/Scrim/Projects`). Recordings go to `Videos/Scrim`, screenshots to `Pictures/Scrim`, from the XDG folders. Paths show with forward slashes, and the file manager is called Files.
+- X11: everything works as on Windows, including the mouse hook for auto zoom and cursor effects, global shortcuts and the overlay area chooser.
+- Wayland: capture goes through the system screen sharing portal (PipeWire). Per the Electron `desktopCapturer` documentation, on Linux with PipeWire `getSources` returns a single source, a request for both types comes back as a window capture, and a cancelled picker denies the request. So the portal shows its own picker, `portal-capture.ts` keeps the one source and its still picture, and `setDisplayMediaRequestHandler` hands that source to the recorder without asking again. The area chooser becomes a still frame chooser: Scrim's own full screen window shows the still and the person drags the box (`still-area.ts`), because Wayland does not let an app cover other apps. `WebRTCPipeWireCapturer` and the Ozone hint are set before ready (`platformSwitches`). The mouse hook reports `unavailable` with reason `wayland`, so auto zoom and cursor effects are off and the Record, Zoom and Cursor pages say why. Manual zoom moments in the editor still work. Global shortcuts may not register, Settings says so, and the tray menu starts and stops.
+- No window can be hidden from capture. `live-windows-policy.ts` decides what to do instead: the camera bubble shows while the person centres themselves, then hides right before capture (the camera is still recorded and drawn at export), the pill stays outside a region or is not shown for full screen and window recordings, and a system notification says how to stop. The chooser and countdown close and the app waits longer (`capture.settleMs`) before the first frame.
+- No share sheet, so Share is hidden. There is no taskbar dot, and the tray icon and tooltip carry the recording state. On GNOME the tray needs AppIndicator support, and when there is no tray the close policy minimizes instead of hiding.
+
+What is covered only by unit tests with fakes: every adapter branch, the portal capture, the still frame logic, the live windows policy and the page gating. What needs a real Ubuntu 24.04 run on X11 and on Wayland is listed in the release notes for 1.2.0.
