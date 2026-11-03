@@ -309,7 +309,10 @@ test('Stop opens the page at once, renders the one MP4 in the background and say
 
     // Back on the page, the real file has replaced the live picture and the page says where it is.
     await page.getByRole('button', { name: 'Record', exact: true }).click();
-    await expect(page.getByTestId('review-saved')).toContainText('Saved to', { timeout: 10_000 });
+    await expect(page.locator('.review-side').getByText('Saved in')).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.locator('.review-side')).not.toContainText('Not made yet');
     await expect(page.locator('video[aria-label="After"]')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId('live-preview')).toHaveCount(0);
     if (SHOTS) await shootAt(page, 'auto-done');

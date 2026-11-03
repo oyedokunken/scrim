@@ -42,3 +42,17 @@ The app can update itself from GitHub Releases with `electron-updater`. It is th
 The pill is a small frameless window that stays on top, never takes focus (`focusable: false`, shown with `showInactive`) and is left out of the video with `setContentProtection(true)`. On Windows that flag sets `WDA_EXCLUDEFROMCAPTURE`, which hides the window from capture on Windows 10 version 2004 (build 19041) and later. On older Windows 10 builds the flag falls back to `WDA_MONITOR`, which shows the window as a solid black rectangle in the capture instead of hiding it, so the pill would appear as a black box in the video. macOS and Linux X11 hide it through their own capture exclusion where the compositor supports it. The e2e test `the pill never appears in the recorded video` checks that no pill pixels reach the file.
 
 The microphone and camera buttons keep their state in the main process (`main/recording/media-state.ts`). The pill asks for a named state (`set-mic-muted`, `set-camera-enabled`), never "flip", so a repeated press is the same request. Main switches the live track on or off in the recorder page (`track.enabled`), so the recording carries on in step: a muted microphone records silence and a disabled camera records black frames. The bubble window is hidden while the camera is off. Each change is written to `toggles` in `session.json` on the recording clock, which leaves paused time out, and export reads that log to hide the bubble and silence the sound for those stretches. A device that was off before recording cannot be turned on mid recording.
+
+## How a rendered video finds its project
+
+A video in the Library must lead back to the working files it was rendered from, or Edit has nothing to open. Three links are tried in order:
+
+1. export.json in the project folder. Every render writes it with the path of the video and the project id (the session id). The Library follows it first, and a rename in the Library rewrites it, so a renamed video keeps its project.
+2. The comment tag inside the MP4, scrim-project:<session id>, written by the exporter with ffmpeg -metadata. It is read with ffprobe only for videos that no project claimed, and cached by path and modified time. It survives a moved or renamed file and a lost export.json.
+3. For videos rendered before ids were stored: the file name equals the session name, or the name followed by a number.
+
+A video that none of these link has no project (the working files were deleted or moved). Edit stays disabled and says why. Raw recordings are never modified by any of this.
+
+## Disabled controls explain themselves
+
+Every disabled control gives a plain reason. The shared Button takes disabledReason: while disabled it becomes ria-disabled (still focusable, clicks ignored) and shows the reason on hover and keyboard focus, described through ria-describedby. Escape hides it. Segmented, Tile, Switch and Select take the same prop. A control with no reason keeps the native disabled attribute.

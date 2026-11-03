@@ -1,3 +1,4 @@
+import { FolderOpen, Pencil, Share2, Trash2, Video } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button, ConfirmDialog, Segmented } from '../../ui';
 import { RecordingEditPane } from '../edit/recording-edit-pane';
@@ -173,6 +174,29 @@ export function ReviewScreen({
     void window.scrim.invoke('export:start', { folder: finished.folder });
   };
 
+  const facts: (readonly [string, string])[] =
+    review === null
+      ? []
+      : [
+          ['Length', formatTimer(review.durationMs)],
+          [
+            'Size',
+            review.width > 0 ? `${String(review.width)} by ${String(review.height)}` : 'Unknown',
+          ],
+          ['Frame rate', review.fps === null ? 'Unknown' : `${String(Math.round(review.fps))} fps`],
+          ['Recording file', formatBytes(review.rawBytes)],
+          [
+            'Video file',
+            review.previewBytes === null
+              ? working
+                ? 'Being made'
+                : 'Not made yet'
+              : formatBytes(review.previewBytes),
+          ],
+          ['Recorded', formatMoment(review.createdAt)],
+          ['Saved in', review.outputFolder],
+        ];
+
   if (editing) {
     return (
       <RecordingEditPane
@@ -190,66 +214,69 @@ export function ReviewScreen({
 
   return (
     <section className="review" aria-labelledby="review-title">
-      <header className="review-head">
-        <h2 id="review-title" className="review-title">
-          {finished.recovered ? 'Recording recovered' : 'Review your recording'}
-        </h2>
-        <Segmented
-          label="View"
-          value={mode}
-          onChange={(next) => {
-            setPicked(true);
-            setMode(next);
-          }}
-          options={[
-            { value: 'before', label: 'Before' },
-            { value: 'after', label: 'After', disabled: !afterReady && live === null && !working },
-            { value: 'compare', label: 'Compare', disabled: !afterReady },
-          ]}
-        />
-      </header>
+      <div className="review-layout">
+        <div className="review-main">
+          <header className="review-head">
+            <h2 id="review-title" className="review-title">
+              {finished.recovered ? 'Recording recovered' : 'Review your recording'}
+            </h2>
+            <Segmented
+              label="View"
+              disabledReason="The finished look is not ready yet. This turns on when your video is made."
+              value={mode}
+              onChange={(next) => {
+                setPicked(true);
+                setMode(next);
+              }}
+              options={[
+                { value: 'before', label: 'Before' },
+                {
+                  value: 'after',
+                  label: 'After',
+                  disabled: !afterReady && live === null && !working,
+                },
+                { value: 'compare', label: 'Compare', disabled: !afterReady },
+              ]}
+            />
+          </header>
 
-      {loadError === null ? null : (
-        <p className="export-error" role="alert">
-          {loadError}
-        </p>
-      )}
+          {loadError === null ? null : (
+            <p className="export-error" role="alert">
+              {loadError}
+            </p>
+          )}
 
-      {/* Above the picture, so the progress and Cancel are in view without scrolling. */}
-      {working ? (
-        <ProgressRow
-          text={progressWords(rendering)}
-          label="Making your video"
-          fraction={rendering.progress?.fraction ?? null}
-          onCancel={() => {
-            setConfirmCancel(true);
-          }}
-        />
-      ) : null}
+          {/* Above the picture, so the progress and Cancel are in view without scrolling. */}
+          {working ? (
+            <ProgressRow
+              text={progressWords(rendering)}
+              label="Making your video"
+              fraction={rendering.progress?.fraction ?? null}
+              onCancel={() => {
+                setConfirmCancel(true);
+              }}
+            />
+          ) : null}
 
-      {review === null ? null : mode === 'after' && !afterReady && !liveWanted ? (
-        <div className="review-wait" role="status">
-          <p className="saved-export-line">Getting your preview ready</p>
-        </div>
-      ) : (
-        <ReviewPlayer
-          mode={mode}
-          before={review.before}
-          after={review.after}
-          live={live ?? undefined}
-        />
-      )}
+          {review === null ? null : mode === 'after' && !afterReady && !liveWanted ? (
+            <div className="review-wait" role="status">
+              <p className="saved-export-line">Getting your preview ready</p>
+            </div>
+          ) : (
+            <ReviewPlayer
+              mode={mode}
+              before={review.before}
+              after={review.after}
+              live={live ?? undefined}
+            />
+          )}
 
-      {review === null ? null : (
-        <>
-          {rendering?.phase === 'done' && rendering.result !== null ? (
+          {review !== null && rendering?.phase === 'done' && rendering.result?.fellBack ? (
             <p className="saved-export-line" role="status" data-testid="review-saved">
-              {rendering.result.fellBack
-                ? "Saved in Scrim's own folder, because your folder could not be written to."
-                : `Saved to ${rendering.result.savedIn}`}
+              Saved in Scrim's own folder, because your folder could not be written to.
             </p>
           ) : null}
-          {rendering?.phase === 'cancelled' ? (
+          {review !== null && rendering?.phase === 'cancelled' ? (
             <div className="saved-export" role="status">
               <p className="saved-export-line">The export was cancelled. Your recording is kept.</p>
               <div className="review-actions">
@@ -259,7 +286,7 @@ export function ReviewScreen({
               </div>
             </div>
           ) : null}
-          {rendering?.phase === 'failed' && rendering.error !== null ? (
+          {review !== null && rendering?.phase === 'failed' && rendering.error !== null ? (
             <div className="saved-export error" role="alert">
               <p className="saved-export-line">{rendering.error.message}</p>
               <p className="ui-help">{rendering.error.nextStep}</p>
@@ -282,86 +309,65 @@ export function ReviewScreen({
               </div>
             </div>
           ) : null}
+        </div>
 
-          <div className="review-actions" role="group" aria-label="What to do next">
-            <Button
-              variant="primary"
-              onClick={() => {
-                setEditing(true);
-              }}
-            >
-              Edit
-            </Button>
-            <Button onClick={onShowInFolder}>Show in folder</Button>
-            <Button
-              disabled={libraryId === null}
-              onClick={() => {
-                setSharing(libraryId);
-              }}
-            >
-              Share
-            </Button>
-            <Button onClick={onRecordAgain}>Record again</Button>
-            <Button
-              variant="danger"
-              onClick={() => {
-                setConfirmDiscard(true);
-              }}
-            >
-              Discard
-            </Button>
-          </div>
-
-          <div className="review-info">
-            <p className="review-name">{review.name}</p>
-            <dl className="review-facts">
-              <div>
-                <dt>Length</dt>
-                <dd>{formatTimer(review.durationMs)}</dd>
-              </div>
-              <div>
-                <dt>Size</dt>
-                <dd>
-                  {review.width > 0
-                    ? `${String(review.width)} by ${String(review.height)}`
-                    : 'Unknown'}
-                </dd>
-              </div>
-              <div>
-                <dt>Frame rate</dt>
-                <dd>{review.fps === null ? 'Unknown' : `${String(Math.round(review.fps))} fps`}</dd>
-              </div>
-              <div>
-                <dt>Recording file</dt>
-                <dd>{formatBytes(review.rawBytes)}</dd>
-              </div>
-              <div>
-                <dt>Video file</dt>
-                <dd>
-                  {review.previewBytes === null
-                    ? working
-                      ? 'Being made'
-                      : 'Not made yet'
-                    : formatBytes(review.previewBytes)}
-                </dd>
-              </div>
-              <div>
-                <dt>Recorded</dt>
-                <dd>{formatMoment(review.createdAt)}</dd>
-              </div>
-              <div className="review-fact-wide">
-                <dt>Saved in</dt>
-                <dd>{review.outputFolder}</dd>
-              </div>
-            </dl>
-            {finished.warnings.map((warning) => (
-              <p key={warning} className="ui-help">
-                {warning}
-              </p>
-            ))}
-          </div>
-        </>
-      )}
+        {review === null ? null : (
+          <aside className="review-side" aria-label="Details and actions">
+            <div className="review-side-scroll">
+              <h3 className="lib-detail-name">{review.name}</h3>
+              <dl className="lib-detail-facts">
+                {facts.map(([label, value]) => (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              {finished.warnings.map((warning) => (
+                <p key={warning} className="ui-help">
+                  {warning}
+                </p>
+              ))}
+            </div>
+            <div className="lib-detail-actions five" role="group" aria-label="What to do next">
+              <Button
+                variant="primary"
+                icon={<Pencil size={16} strokeWidth={1.75} />}
+                onClick={() => {
+                  setEditing(true);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                icon={<Share2 size={16} strokeWidth={1.75} />}
+                disabled={libraryId === null}
+                disabledReason="Sharing is ready once your video is made."
+                onClick={() => {
+                  setSharing(libraryId);
+                }}
+              >
+                Share
+              </Button>
+              <Button icon={<FolderOpen size={16} strokeWidth={1.75} />} onClick={onShowInFolder}>
+                Show in folder
+              </Button>
+              <Button icon={<Video size={16} strokeWidth={1.75} />} onClick={onRecordAgain}>
+                Record again
+              </Button>
+              <Button
+                variant="danger"
+                icon={<Trash2 size={16} strokeWidth={1.75} />}
+                onClick={() => {
+                  setConfirmDiscard(true);
+                }}
+              >
+                Discard
+              </Button>
+            </div>
+          </aside>
+        )}
+      </div>
 
       {sharing === null ? null : (
         <ShareDialog

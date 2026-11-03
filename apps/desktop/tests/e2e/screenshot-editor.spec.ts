@@ -122,7 +122,8 @@ test.describe('the screenshot editor', () => {
         });
       });
       await openResult(page);
-      await expect(page.getByText('Saved as shot-test.png and copied')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'shot-test.png' })).toBeVisible();
+      await expect(page.getByText('It was saved and copied to the clipboard.')).toBeVisible();
 
       await page.getByRole('button', { name: 'Edit' }).click();
       const toolbar = page.getByRole('toolbar', { name: 'Editing tools' });
@@ -233,7 +234,7 @@ test.describe('the screenshot editor', () => {
           return items.some((item) => item.types.includes('image/png'));
         }),
       ).toBe(true);
-      await expect(page.getByText(/Saved as shot-test-edited\.png/)).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'shot-test-edited.png' })).toBeVisible();
 
       expect(
         await page.evaluate(

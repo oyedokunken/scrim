@@ -112,7 +112,7 @@ describe('Switch', () => {
         onChange={vi.fn()}
       />,
     );
-    expect(html).toContain('disabled=""');
+    expect(html).toContain('aria-disabled="true"');
     expect(html).toContain('This recording has no camera.');
     expect(html).toMatch(/aria-describedby="([^"]+)"/);
   });
@@ -171,5 +171,57 @@ describe('the other primitives', () => {
     expect(html).toContain('<h2 class="ui-section-title">Camera</h2>');
     expect(html).toContain('Shown in a corner.');
     expect(html).toContain('<p>inside</p>');
+  });
+});
+
+describe('a disabled control with a reason', () => {
+  it('stays focusable, is aria-disabled and is described by its reason', () => {
+    const html = renderToStaticMarkup(
+      <Button disabled disabledReason="Nothing to save yet.">
+        Save
+      </Button>,
+    );
+    expect(html).toContain('aria-disabled="true"');
+    // Not the native attribute, so a keyboard user can still reach it.
+    expect(html).not.toMatch(/ disabled(=|>| )/);
+    const id = /aria-describedby="([^"]+)"/.exec(html)?.[1] ?? '';
+    expect(id).not.toBe('');
+    expect(html).toContain(`id="${id}"`);
+    // The reason is hidden from the name, which stays just the label.
+    expect(html).toMatch(/aria-hidden="true">Nothing to save yet\./);
+  });
+
+  it('keeps the native disabled attribute with no reason, and adds nothing when enabled', () => {
+    expect(renderToStaticMarkup(<Button disabled>Save</Button>)).toContain('disabled=""');
+    const enabled = renderToStaticMarkup(<Button disabledReason="Not shown.">Save</Button>);
+    expect(enabled).not.toContain('Not shown.');
+    expect(enabled).not.toContain('aria-disabled');
+  });
+
+  it('applies to a segmented option, a tile and a switch', () => {
+    const segmented = renderToStaticMarkup(
+      <Segmented
+        label="Size"
+        value="a"
+        disabledReason="Turn it on first."
+        onChange={vi.fn()}
+        options={[
+          { value: 'a', label: 'A', disabled: true },
+          { value: 'b', label: 'B', disabled: true },
+        ]}
+      />,
+    );
+    expect(segmented.match(/aria-disabled="true"/g)).toHaveLength(2);
+    const tile = renderToStaticMarkup(
+      <Tile label="Big" selected={false} onSelect={vi.fn()} disabled disabledReason="Zoom is off.">
+        <span />
+      </Tile>,
+    );
+    expect(tile).toContain('aria-disabled="true"');
+    expect(tile).toContain('Zoom is off.');
+    const toggle = renderToStaticMarkup(
+      <Switch label="Shadow" checked={false} onChange={vi.fn()} disabled disabledReason="No." />,
+    );
+    expect(toggle).toContain('aria-disabled="true"');
   });
 });

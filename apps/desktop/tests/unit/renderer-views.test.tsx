@@ -41,12 +41,12 @@ describe('the recording control', () => {
   it('says it is saving and cannot be pressed while the recording is being finished', () => {
     const html = control({ ...recording, phase: 'stopping' });
     expect(html).toContain('>Saving<');
-    expect(html.match(/disabled=""/g)).toHaveLength(2);
+    expect(html.match(/aria-disabled="true"/g)).toHaveLength(2);
   });
 
   it('cannot be pressed twice while a request is running', () => {
-    expect(control(recording, true).match(/disabled=""/g)).toHaveLength(2);
-    expect(control(recording, false)).not.toContain('disabled=""');
+    expect(control(recording, true).match(/aria-disabled="true"/g)).toHaveLength(2);
+    expect(control(recording, false)).not.toContain('disabled');
   });
 
   it('shows an hour as hours, minutes and seconds', () => {

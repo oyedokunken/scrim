@@ -84,7 +84,13 @@ export function ScreenshotView({
         text="Capture a region, a window or the whole screen"
         shortcut={SHORTCUTS.screenshot.keys}
         action={
-          <Button variant="primary" className="record-button" disabled={busy} onClick={onTake}>
+          <Button
+            variant="primary"
+            className="record-button"
+            disabled={busy}
+            disabledReason="Scrim is already opening the screenshot tool."
+            onClick={onTake}
+          >
             {busy ? 'Opening...' : 'Take screenshot'}
           </Button>
         }

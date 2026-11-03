@@ -55,7 +55,7 @@ describe('export done dialog', () => {
     expect(html).toContain('5.0 MB');
     expect(html).toContain('01:05');
     for (const label of ['Show in folder', 'Open', 'Share', 'Done']) {
-      expect(html).toContain(`>${label}</button>`);
+      expect(html).toMatch(new RegExp(`>${label}(<span|</button>)`));
     }
     expect(html).not.toContain("Scrim's own folder");
   });

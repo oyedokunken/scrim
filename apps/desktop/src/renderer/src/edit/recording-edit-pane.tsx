@@ -277,12 +277,21 @@ export function RecordingEditPane({ folder, name, onClose, onSaved }: RecordingE
         </div>
       ) : null}
       <div className="edit-actions" role="group" aria-label="Save your changes">
-        <Button disabled={working} onClick={leave}>
+        <Button
+          disabled={working}
+          disabledReason="Scrim is making the video. Cancel the export above, or wait for it to finish."
+          onClick={leave}
+        >
           Cancel
         </Button>
         <Button
           variant="primary"
           disabled={working || !dirty}
+          disabledReason={
+            working
+              ? 'Scrim is making the video. Wait for it to finish.'
+              : 'Change something first. There is nothing to save yet.'
+          }
           onClick={() => {
             setChoosing(true);
           }}

@@ -58,7 +58,12 @@ export function ExportPanel({ controls, folder, beforeStart }: ExportPanelProps)
           </Button>
         </>
       ) : (
-        <Button variant="primary" onClick={start} disabled={busy}>
+        <Button
+          variant="primary"
+          onClick={start}
+          disabled={busy}
+          disabledReason="Scrim is already exporting this recording."
+        >
           Export MP4
         </Button>
       )}

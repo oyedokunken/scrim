@@ -79,7 +79,17 @@ export function UpdatesCard({
       )}
       {wait === '' ? null : <p className="ui-help">{wait}</p>}
       <div>
-        <Button disabled={!canCheck} onClick={onCheck}>
+        <Button
+          disabled={!canCheck}
+          disabledReason={
+            state.phase === 'unsupported'
+              ? 'This copy of Scrim cannot update itself.'
+              : wait === ''
+                ? 'Scrim is already checking or downloading an update.'
+                : wait
+          }
+          onClick={onCheck}
+        >
           {state.phase === 'checking' ? 'Checking' : 'Check for updates'}
         </Button>
       </div>

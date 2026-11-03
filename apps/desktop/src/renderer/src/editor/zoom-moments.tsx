@@ -63,7 +63,12 @@ export function ZoomMoments(props: ZoomMomentsProps) {
         ))}
       </ul>
       <div className="moment-actions">
-        <Button icon={<Plus size={16} />} onClick={props.onAdd} disabled={!props.enabled}>
+        <Button
+          icon={<Plus size={16} />}
+          onClick={props.onAdd}
+          disabled={!props.enabled}
+          disabledReason={props.offReason ?? 'Zoom is turned off. Turn it on to add a zoom.'}
+        >
           Add zoom here
         </Button>
         {props.edited ? (

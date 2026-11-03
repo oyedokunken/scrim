@@ -7,6 +7,7 @@ import type { Readable } from 'node:stream';
 import { join } from 'node:path';
 import type { FfmpegPaths, RunProcess } from '../recording/ffmpeg';
 import { probeFile } from '../recording/ffmpeg';
+import { projectTag } from '../library/project-link';
 import { buildAudioGraph } from './audio-graph';
 import { createBubbleTrack } from './bubble';
 import { Compositor } from './compositor';
@@ -495,6 +496,8 @@ export async function exportRecording(
       ...(audio === null ? [] : ['-map', `[${audio.label}]`]),
       ...encoderArgs(choice.encoder, { bitrate, fps }),
       ...(audio === null ? ['-an'] : ['-c:a', 'aac', '-b:a', '160k']),
+      '-metadata',
+      `comment=${projectTag(source.session.id)}`,
       '-movflags',
       '+faststart',
       '-f',
@@ -662,7 +665,13 @@ export async function exportRecording(
   const bytes = (await stat(finalPath)).size;
   await writeFile(
     join(request.folder, 'export.json'),
-    JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), file: finalPath, bytes }),
+    JSON.stringify({
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      file: finalPath,
+      bytes,
+      projectId: source.session.id,
+    }),
   ).catch(() => undefined);
   deps.log(
     `export: done with ${choice.encoder}, ${String(model.frameCount)} frames, ${String(now() - began)} ms`,

@@ -21,6 +21,10 @@ import { ShareDialog } from '../share/share-dialog';
 import type { OpenedItem } from './use-library';
 import type { LibraryActions } from './use-library';
 
+/** Why Edit is off for a video whose working files are gone. Shown on hover, on focus and under the buttons. */
+export const NO_PROJECT_REASON =
+  "The original recording files are no longer on this computer, so this video can't be edited.";
+
 export interface LibraryDetailProps {
   item: LibraryItem;
   /** Start playing as soon as the view opens, for a recording opened from its play badge. */
@@ -114,6 +118,7 @@ export function LibraryDetail({
     );
   };
 
+  const cannotEdit = item.kind === 'recording' && !item.canEdit;
   const url = preview?.id === item.id ? preview.url : null;
   const missing = (): void => {
     showError({
@@ -229,7 +234,8 @@ export function LibraryDetail({
           >
             <Button
               icon={<Pencil size={16} strokeWidth={1.75} />}
-              disabled={item.kind === 'recording' && !item.canEdit}
+              disabled={cannotEdit}
+              disabledReason={cannotEdit ? NO_PROJECT_REASON : undefined}
               onClick={() => {
                 void actions.open(item.id).then((opened) => {
                   // A recording is edited right here, in the pane with Background, Cursor and Zoom.
@@ -249,6 +255,11 @@ export function LibraryDetail({
             <Button
               icon={<Share2 size={16} strokeWidth={1.75} />}
               disabled={!item.isFile}
+              disabledReason={
+                item.isFile
+                  ? undefined
+                  : 'There is no video file to share yet. Make the video first.'
+              }
               onClick={() => {
                 setSharing(true);
               }}
@@ -273,12 +284,18 @@ export function LibraryDetail({
               Delete
             </Button>
           </div>
+          {cannotEdit ? (
+            <p className="ui-help" data-testid="edit-reason">
+              {NO_PROJECT_REASON}
+            </p>
+          ) : null}
           {item.kind === 'recording' && !item.hasVideo && item.canEdit ? (
             <div className="lib-detail-make">
               <Button
                 variant="primary"
                 icon={<Clapperboard size={16} strokeWidth={1.75} />}
                 disabled={making}
+                disabledReason={making ? 'Scrim is already making this video.' : undefined}
                 onClick={makeVideo}
               >
                 {making ? 'Making video' : 'Make video'}

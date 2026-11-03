@@ -26,7 +26,13 @@ export function RecordView({ busy, options, onStart, review }: RecordViewProps) 
             text="Drag a box over the part of the screen to record"
             shortcut={SHORTCUTS.record.keys}
             action={
-              <Button variant="primary" className="record-button" disabled={busy} onClick={onStart}>
+              <Button
+                variant="primary"
+                className="record-button"
+                disabled={busy}
+                disabledReason="Scrim is already starting a recording."
+                onClick={onStart}
+              >
                 <span className="record-dot" aria-hidden="true" />
                 {busy ? 'Starting...' : 'Start recording'}
               </Button>

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { basename, dirname, extname, join } from 'node:path';
 import type { LibraryItem } from '../../shared/library-contract';
 import { MAX_LIBRARY_ITEMS } from '../../shared/library-contract';
+import { parseExportRecord, projectIdFromTag } from './project-link';
 
 export interface DirEntry {
   name: string;
@@ -44,6 +45,10 @@ export interface LibraryDeps {
   issueMedia?: (file: string, label: string) => string | undefined;
   /** Queues the render of a working folder into the videos folder. False when it could not be queued. */
   startRender?: (folder: string) => boolean;
+  /** The `comment` tag of a video, which names the project it was rendered from. Null when it has none. */
+  readProjectTag?: (path: string, modifiedMs: number) => Promise<string | null>;
+  /** Writes a small text file, used to keep a project's `export.json` pointing at a renamed video. */
+  writeText?: (path: string, text: string) => Promise<void>;
 }
 
 interface Entry {
@@ -65,6 +70,7 @@ interface Entry {
 }
 
 const PROJECT_SUFFIX = '.scrim';
+const EXPORT_RECORD = 'export.json';
 /** Characters Windows file names cannot hold, and the dots and spaces it trims. */
 const BAD_NAME = /[<>:"/\\|?*]/;
 
@@ -149,9 +155,21 @@ export function createLibrary(deps: LibraryDeps) {
       ...mainShots.map((file) => ({ file, folder: deps.screenshotsFolder() })),
       ...extraShots.map((file) => ({ file, folder: extra ?? '' })),
     ];
-    const mp4s = videoFiles.filter(
-      (entry) => !entry.isDirectory && extname(entry.name).toLowerCase() === '.mp4',
-    );
+    interface Mp4 {
+      name: string;
+      path: string;
+      modifiedMs: number;
+      bytes: number;
+    }
+    const isMp4 = (entry: DirEntry): boolean =>
+      !entry.isDirectory && extname(entry.name).toLowerCase() === '.mp4';
+    const mp4s: Mp4[] = [
+      ...videoFiles.filter(isMp4).map((entry) => ({ ...entry, path: join(videos, entry.name) })),
+      ...extraMp4s
+        .filter(isMp4)
+        .map((entry) => ({ ...entry, path: join(extraVideos ?? '', entry.name) })),
+    ];
+    const byPath = new Map(mp4s.map((file) => [file.path.toLowerCase(), file]));
     const used = new Set<string>();
     const entries: Entry[] = [];
 
@@ -160,37 +178,69 @@ export function createLibrary(deps: LibraryDeps) {
       ...videoFiles.map((entry) => ({ entry, parent: videos })),
     ].filter(({ entry }) => entry.isDirectory && entry.name.endsWith(PROJECT_SUFFIX));
 
+    interface Found {
+      folder: string;
+      session: SessionFile;
+      matches: Mp4[];
+    }
+    const found: Found[] = [];
     for (const { entry, parent } of folders) {
       const folder = join(parent, entry.name);
       const project = await readProject(deps, folder);
       // A session that did not close cleanly is offered for recovery, not listed as a recording.
       if (project === null || !project.session.cleanClose) continue;
       const { session } = project;
-      const matches = mp4s
-        .filter((file) => matchesExportName(basename(file.name, extname(file.name)), session.name))
-        .sort((a, b) => b.modifiedMs - a.modifiedMs);
+      const matches: Mp4[] = [];
+      // 1. The record the last render left in the project, which survives a renamed video.
+      const record = parseExportRecord(await deps.readText(join(folder, EXPORT_RECORD)));
+      const recorded = record === null ? undefined : byPath.get(record.file.toLowerCase());
+      if (recorded !== undefined) matches.push(recorded);
+      // 2. Videos from before the record existed: the same name, or the name with a number.
+      for (const file of mp4s) {
+        if (
+          matchesExportName(basename(file.name, extname(file.name)), session.name) &&
+          !matches.includes(file)
+        ) {
+          matches.push(file);
+        }
+      }
+      found.push({ folder, session, matches });
+    }
+
+    // 3. A video that is still unclaimed and carries a Scrim tag names its project by id.
+    if (deps.readProjectTag !== undefined) {
+      const claimed = new Set(found.flatMap((project) => project.matches));
+      for (const file of mp4s) {
+        if (claimed.has(file)) continue;
+        const id = projectIdFromTag(await deps.readProjectTag(file.path, file.modifiedMs));
+        const owner = found.find((project) => project.session.id.toLowerCase() === id);
+        if (owner !== undefined) owner.matches.push(file);
+      }
+    }
+
+    for (const { folder, session, matches } of found) {
+      matches.sort((a, b) => b.modifiedMs - a.modifiedMs);
       const mp4 = matches[0];
-      for (const file of matches) used.add(file.name);
+      for (const file of matches) used.add(file.path.toLowerCase());
       const screen = session.tracks.find((track) => track.kind === 'screen');
       const screenName = screen?.playableFile ?? screen?.file;
       const sourceVideo =
         screenName !== undefined && (await deps.exists(join(folder, screenName)))
           ? join(folder, screenName)
           : null;
-      const mp4Path = mp4 === undefined ? null : join(videos, mp4.name);
       entries.push({
         kind: 'recording',
         name: session.name,
         createdMs: Date.parse(session.createdAt),
         durationMs:
           mp4 !== undefined
-            ? await duration(mp4Path ?? '', mp4.modifiedMs)
+            ? await duration(mp4.path, mp4.modifiedMs)
             : session.heartbeatElapsedMs > 0
               ? session.heartbeatElapsedMs
               : null,
         bytes: mp4?.bytes ?? 0,
         project: folder,
-        file: mp4Path,
+        file: mp4?.path ?? null,
         sourceVideo,
         width: session.source.frame?.width ?? 0,
         height: session.source.frame?.height ?? 0,
@@ -199,34 +249,15 @@ export function createLibrary(deps: LibraryDeps) {
     }
 
     for (const file of mp4s) {
-      if (used.has(file.name)) continue;
-      const path = join(videos, file.name);
+      if (used.has(file.path.toLowerCase())) continue;
       entries.push({
         kind: 'recording',
         name: basename(file.name, extname(file.name)),
         createdMs: file.modifiedMs,
-        durationMs: await duration(path, file.modifiedMs),
+        durationMs: await duration(file.path, file.modifiedMs),
         bytes: file.bytes,
         project: null,
-        file: path,
-        sourceVideo: null,
-        width: 0,
-        height: 0,
-        tracks: ['screen'],
-      });
-    }
-
-    for (const file of extraMp4s) {
-      if (file.isDirectory || extname(file.name).toLowerCase() !== '.mp4') continue;
-      const path = join(extraVideos ?? '', file.name);
-      entries.push({
-        kind: 'recording',
-        name: basename(file.name, extname(file.name)),
-        createdMs: file.modifiedMs,
-        durationMs: await duration(path, file.modifiedMs),
-        bytes: file.bytes,
-        project: null,
-        file: path,
+        file: file.path,
         sourceVideo: null,
         width: 0,
         height: 0,
@@ -412,6 +443,16 @@ export function createLibrary(deps: LibraryDeps) {
       if (await deps.exists(target)) return { ok: false, reason: 'exists' };
       try {
         await deps.rename(entry.file, target);
+        // The project keeps pointing at its video, so Edit still finds it under the new name.
+        if (entry.project !== null && deps.writeText !== undefined) {
+          const recordPath = join(entry.project, EXPORT_RECORD);
+          const record = parseExportRecord(await deps.readText(recordPath));
+          if (record !== null) {
+            await deps
+              .writeText(recordPath, JSON.stringify({ ...record, file: target }))
+              .catch(() => undefined);
+          }
+        }
         return { ok: true };
       } catch {
         return { ok: false, reason: 'failed' };

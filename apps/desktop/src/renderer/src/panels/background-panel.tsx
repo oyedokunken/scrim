@@ -21,6 +21,8 @@ export interface BackgroundPanelProps {
   onChange: (value: BackgroundValue) => void;
 }
 
+const NO_BACKDROP = 'Choose a background first. This turns on when there is one.';
+
 const PADDING_OPTIONS = [
   { value: 'none', label: 'None' },
   { value: 'small', label: 'Small' },
@@ -106,15 +108,16 @@ export function BackgroundPanel({ value, onChange }: BackgroundPanelProps) {
               </button>
             );
           })}
-          <button
-            type="button"
+          <Button
+            bare
             aria-label="Add your own image"
             className="bg-swatch bg-image"
             disabled={images.length >= MAX_BACKGROUNDS}
+            disabledReason={`You can keep ${String(MAX_BACKGROUNDS)} images. Remove one to add another.`}
             onClick={addImage}
           >
             <ImagePlus size={20} strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          </Button>
         </div>
         {problem === null ? null : (
           <p className="panel-error" role="alert">
@@ -135,6 +138,7 @@ export function BackgroundPanel({ value, onChange }: BackgroundPanelProps) {
       <PanelSection title="Padding">
         <Segmented
           label="Padding"
+          disabledReason={NO_BACKDROP}
           options={PADDING_OPTIONS.map((option) => ({ ...option, disabled: none }))}
           value={value.padding}
           onChange={(padding) => {
@@ -145,6 +149,7 @@ export function BackgroundPanel({ value, onChange }: BackgroundPanelProps) {
       <PanelSection title="Corners">
         <Segmented
           label="Corners"
+          disabledReason={NO_BACKDROP}
           options={CORNER_OPTIONS.map((option) => ({ ...option, disabled: none }))}
           value={value.corners}
           onChange={(corners) => {
@@ -157,6 +162,7 @@ export function BackgroundPanel({ value, onChange }: BackgroundPanelProps) {
           label="Soft shadow"
           checked={value.shadow}
           disabled={none}
+          disabledReason={NO_BACKDROP}
           onChange={(shadow) => {
             onChange({ ...value, shadow });
           }}

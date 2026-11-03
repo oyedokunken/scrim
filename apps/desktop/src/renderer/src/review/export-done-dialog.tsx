@@ -27,6 +27,8 @@ interface Found {
   folder: string;
 }
 
+const STILL_LOOKING = 'Scrim is still looking for the finished video.';
+
 /** The plain words that say where the file went. */
 export function savedWhere(fellBack: boolean, folder: string | null): string {
   if (fellBack) return "Scrim's own folder, because your folder could not be written to";
@@ -91,6 +93,7 @@ export function ExportDoneDialog({ done, folder, onDone }: ExportDoneDialogProps
           <Button
             icon={<ExternalLink size={16} strokeWidth={2} />}
             disabled={found === null}
+            disabledReason={STILL_LOOKING}
             onClick={() => {
               if (found !== null) void window.scrim.invoke('library:play', { id: found.id });
             }}
@@ -100,6 +103,7 @@ export function ExportDoneDialog({ done, folder, onDone }: ExportDoneDialogProps
           <Button
             icon={<Share2 size={16} strokeWidth={2} />}
             disabled={found === null}
+            disabledReason={STILL_LOOKING}
             onClick={() => {
               setSharing(true);
             }}

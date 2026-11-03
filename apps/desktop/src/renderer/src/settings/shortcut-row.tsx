@@ -113,6 +113,11 @@ export function ShortcutRow({ id, all, unavailable, onChange, onCapturing }: Sho
         <Button
           aria-label={`Reset ${SHORTCUT_LABELS[id].toLowerCase()} shortcut`}
           disabled={isDefault || capturing}
+          disabledReason={
+            capturing
+              ? 'Finish changing the shortcut first, or press Cancel.'
+              : 'This is already the default shortcut.'
+          }
           onClick={reset}
         >
           Reset

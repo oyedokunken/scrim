@@ -36,6 +36,8 @@ interface Row {
   show: (info: Extract<Info, { ok: true }>) => boolean;
 }
 
+const BUSY_REASON = 'Scrim is working on another option. Wait for it to finish.';
+
 const ROWS: readonly Row[] = [
   { action: 'app', label: 'Share with an app', Icon: Share2, show: (info) => info.can.app },
   { action: 'copy-file', label: 'Copy file', Icon: Copy, show: (info) => info.can.copyFile },
@@ -159,6 +161,7 @@ export function ShareDialog({ source, onClose, onMissing }: ShareDialogProps) {
               <Button
                 icon={<Minimize2 size={16} strokeWidth={1.75} />}
                 disabled={busy !== null}
+                disabledReason={BUSY_REASON}
                 onClick={() => {
                   run('smaller');
                 }}
@@ -182,6 +185,7 @@ export function ShareDialog({ source, onClose, onMissing }: ShareDialogProps) {
                 className="share-action"
                 icon={<Icon size={16} strokeWidth={1.75} />}
                 disabled={busy !== null}
+                disabledReason={BUSY_REASON}
                 {...(index === 0 ? { 'data-autofocus': true } : {})}
                 onClick={() => {
                   run(action);
@@ -213,6 +217,11 @@ export function ShareDialog({ source, onClose, onMissing }: ShareDialogProps) {
             className="share-secondary"
             icon={<Link2 size={16} strokeWidth={1.75} />}
             disabled={busy !== null || source?.kind === 'edited'}
+            disabledReason={
+              busy !== null
+                ? BUSY_REASON
+                : 'An edited screenshot is not a file yet. Save it first to get a path.'
+            }
             onClick={() => {
               run('copy-path');
             }}
