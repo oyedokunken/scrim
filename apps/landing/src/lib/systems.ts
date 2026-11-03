@@ -51,8 +51,9 @@ export const SYSTEMS: readonly SystemInfo[] = [
     name: 'Linux',
     summary: 'An AppImage and a deb package for 64 bit Linux.',
     help: [
-      'Make the AppImage executable and run it, or install the deb package with your package manager.',
-      'On X11 you get everything. On Wayland, cursor effects and auto zoom are off, because Wayland does not let apps watch the mouse. Recording itself works.',
+      'Make the AppImage executable with chmod +x and run it, or install the deb package with your package manager. The deb also sets up the sandbox permission that Ubuntu 24.04 asks for.',
+      'On Ubuntu 24.04 an AppImage needs one more step before it starts, because Ubuntu restricts the sandbox that Scrim keeps on. The commands are in the Linux help on the website.',
+      'On X11 you get everything. On Wayland, auto zoom and cursor effects are off, because Wayland does not let apps watch the mouse. Recording goes through the system screen sharing portal, so your desktop asks which screen to share.',
       'This build has had less testing than Windows. If something breaks, open an issue.',
     ],
   },

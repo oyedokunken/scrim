@@ -7,6 +7,7 @@ import { DownloadTrigger } from '../download/download-provider';
 import { OsIcon } from '../os-icons';
 import { usePlatform } from '../use-platform';
 import styles from './download.module.css';
+import { LinuxAppImageSteps, LinuxVerify } from './linux-help';
 
 const ISSUE_PHRASE = 'open an issue';
 
@@ -59,7 +60,9 @@ export function SystemBlocks() {
               {system.help.map((paragraph) => (
                 <p key={paragraph}>{withIssueLink(paragraph)}</p>
               ))}
+              {system.os === 'linux' ? <LinuxAppImageSteps /> : null}
             </details>
+            {system.os === 'linux' ? <LinuxVerify /> : null}
           </article>
         );
       })}
