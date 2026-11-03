@@ -26,6 +26,7 @@ function setup(
     camera?: boolean;
     look?: BubbleLook;
     recording?: boolean;
+    hide?: boolean;
   } = {},
 ) {
   const clock = { now: 10_000 };
@@ -86,6 +87,7 @@ function setup(
       },
     },
     record: (keyframe) => records.push(keyframe),
+    ...(options.hide === undefined ? {} : { hideWhileRecording: options.hide }),
   };
   const controller = createBubbleController(deps);
   /** Advances the fake clock and runs every timer once per step. */
@@ -314,5 +316,56 @@ describe('the camera bubble controller', () => {
       expect(t.calls).toEqual([`open ${String(top.x)},${String(top.y)} left 240 rounded-square`]);
       expect(t.records).toEqual([{ corner: 'tr', x: top.x, y: top.y, size: 240 }]);
     });
+  });
+});
+
+describe('the camera bubble where windows cannot be hidden from capture (Linux)', () => {
+  const preview = {
+    displayId: '1',
+    camera: {},
+    mic: { enabled: true },
+  };
+
+  it('stays visible in the preview before the countdown, so people can centre themselves', () => {
+    const t = setup({ hide: true });
+    t.controller.preview(preview);
+    expect(t.controller.isPreviewing()).toBe(true);
+    expect(t.calls.some((call) => call.startsWith('visible'))).toBe(false);
+  });
+
+  it('is hidden right before capture and when recording starts, and the camera stays open', () => {
+    const t = setup({ hide: true });
+    t.controller.preview(preview);
+    t.controller.hideForCapture();
+    expect(t.calls).toContain('visible false');
+    t.controller.start();
+    expect(t.controller.isOpen()).toBe(true);
+    expect(t.controller.isShown()).toBe(false);
+    expect(t.calls.filter((call) => call === 'close')).toEqual([]);
+    // The position is still noted, so export draws the camera where it was.
+    expect(t.records).toHaveLength(1);
+  });
+
+  it('is hidden when recording starts without a preview', () => {
+    const t = setup({ hide: true });
+    t.controller.start();
+    expect(t.calls).toContain('visible false');
+  });
+
+  it('is not shown again by the pill camera button while recording', () => {
+    const t = setup({ hide: true });
+    t.controller.start();
+    t.controller.setMedia({ micMuted: false, cameraOn: false });
+    t.controller.setMedia({ micMuted: false, cameraOn: true });
+    expect(t.calls.filter((call) => call === 'visible true')).toEqual([]);
+    expect(t.controller.isShown()).toBe(false);
+  });
+
+  it('is never hidden by the new option where windows are hidden from capture (Windows)', () => {
+    const t = setup();
+    t.controller.start();
+    t.controller.hideForCapture();
+    expect(t.calls).not.toContain('visible false');
+    expect(t.controller.isShown()).toBe(true);
   });
 });

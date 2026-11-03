@@ -44,6 +44,8 @@ export function createAreaPicker(options: {
   preview?: {
     show: NonNullable<Parameters<typeof createAreaFlow>[0]['showPreview']>;
     hide: () => void;
+    /** Right before capture starts. */
+    beforeStart?: () => void;
   };
 }): AreaPicker {
   const log =
@@ -95,7 +97,13 @@ export function createAreaPicker(options: {
     ...(options.beforeOpen === undefined ? {} : { beforeOpen: options.beforeOpen }),
     ...(options.preview === undefined
       ? {}
-      : { showPreview: options.preview.show, hidePreview: options.preview.hide }),
+      : {
+          showPreview: options.preview.show,
+          hidePreview: options.preview.hide,
+          ...(options.preview.beforeStart === undefined
+            ? {}
+            : { beforeStart: options.preview.beforeStart }),
+        }),
     wait,
     log,
     captureDelayMs: platform.capture.settleMs,

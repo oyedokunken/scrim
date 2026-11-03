@@ -39,6 +39,8 @@ export interface MarkableWindow {
 export interface MarkOptions {
   /** Makes the red dot image. Called once per recording. */
   makeDot: () => unknown;
+  /** Whether the taskbar button can carry the dot. Windows only, so the default is true. */
+  taskbarDot?: boolean;
 }
 
 /**
@@ -51,12 +53,12 @@ export function createRecordingMark(options: MarkOptions) {
     begin(window: MarkableWindow | null): void {
       if (!window || window.isDestroyed()) return;
       window.setContentProtection(true);
-      window.setOverlayIcon(options.makeDot(), 'Recording');
+      if (options.taskbarDot !== false) window.setOverlayIcon(options.makeDot(), 'Recording');
       window.minimize();
     },
     end(window: MarkableWindow | null): void {
       if (!window || window.isDestroyed()) return;
-      window.setOverlayIcon(null, '');
+      if (options.taskbarDot !== false) window.setOverlayIcon(null, '');
       window.setContentProtection(false);
       if (window.isMinimized()) window.restore();
       window.show();

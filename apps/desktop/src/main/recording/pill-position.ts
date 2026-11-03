@@ -72,8 +72,17 @@ export function resolvePillPosition(options: {
   workArea: Rect;
   workAreas: readonly Rect[];
   recorded?: Rect;
+  /**
+   * Ignore a remembered spot that sits on the recorded box. For a system that cannot hide the pill
+   * from capture, where a pill in the picture is a mistake.
+   */
+  avoidRecorded?: boolean;
 }): Point {
   const { saved, workArea, workAreas, recorded } = options;
-  if (saved !== undefined && isOnScreen(saved, workAreas)) return saved;
+  const onRecorded =
+    options.avoidRecorded === true && saved !== undefined && recorded !== undefined
+      ? overlaps(pillAt(saved), recorded)
+      : false;
+  if (saved !== undefined && isOnScreen(saved, workAreas) && !onRecorded) return saved;
   return defaultPillPosition(workArea, recorded);
 }

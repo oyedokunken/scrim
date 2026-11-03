@@ -52,6 +52,8 @@ export function createShell({ recorder, platform, appPath, env, askInApp }: Shel
   const iconsDir = join(appPath, 'resources', 'icons');
   const mark = createRecordingMark({
     makeDot: () => nativeImage.createFromBitmap(redDotBitmap(16), { width: 16, height: 16 }),
+    // The red dot on the taskbar button is a Windows feature. Linux shows the state in the tray.
+    taskbarDot: platform !== 'linux',
   });
 
   function trayImage(recording: boolean): NativeImage {

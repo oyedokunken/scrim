@@ -72,3 +72,21 @@ describe('createRecordingMark', () => {
     expect(setContentProtection).not.toHaveBeenCalled();
   });
 });
+
+describe('createRecordingMark without a taskbar dot (Linux)', () => {
+  const mark = createRecordingMark({ makeDot: () => ({}), taskbarDot: false });
+
+  it('minimizes without setting an overlay icon', () => {
+    const { window, calls } = fakeWindow();
+    mark.begin(window);
+    expect(calls).not.toContain('overlay:on');
+    expect(calls).toContain('minimize');
+  });
+
+  it('brings the window back without clearing an overlay icon', () => {
+    const { window, calls } = fakeWindow();
+    mark.end(window);
+    expect(calls).not.toContain('overlay:off');
+    expect(calls).toContain('show');
+  });
+});
