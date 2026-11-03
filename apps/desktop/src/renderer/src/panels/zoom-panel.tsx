@@ -1,4 +1,5 @@
 import { PanelSection, Segmented, Switch, Tile } from '../../ui';
+import { PlatformNote, usePlatformInfo } from '../platform';
 import { ZOOM_HOLDS, ZOOM_MOTIONS, ZOOM_STRENGTHS, holdOf, motionOf, strengthOf } from './presets';
 
 export interface ZoomValue {
@@ -32,8 +33,10 @@ const OFF_REASON = 'Turn on Auto zoom first.';
 /** Auto zoom switch, strength, hold and motion. No sliders. */
 export function ZoomPanel({ value, onChange }: ZoomPanelProps) {
   const off = !value.on;
+  const platform = usePlatformInfo();
   return (
     <>
+      <PlatformNote text={platform.cursorEffectsNote} />
       <PanelSection
         title="Auto zoom"
         help="Zooms in where you click and follows your mouse, then eases back out."

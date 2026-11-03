@@ -4,6 +4,7 @@ import type { Settings } from '../../shared/settings';
 import { acceleratorsOf, SHORTCUT_IDS, type ShortcutId } from '../../shared/shortcut-keys';
 import type { SettingsStore } from '../settings/settings-store';
 import type { Handlers } from './dispatcher';
+import type { PlatformInfo } from '../../shared/platform-info';
 import { createAboutHandlers, type AboutApi } from '../about/about-handlers';
 import { createUpdateHandlers } from '../updates/update-handlers';
 import type { UpdateController } from '../updates/update-controller';
@@ -39,6 +40,8 @@ export interface HandlerDeps {
   /** The Windows share sheet. Null when this computer has none Scrim can open. */
   share: ((path: string) => Promise<void>) | null;
   platform: NodeJS.Platform;
+  /** What the page may know about this system. */
+  platformInfo: () => PlatformInfo;
   /** The update flow: check, download and install, each only when asked. */
   updates: UpdateController;
   /** The version and computer details for the About card. */
@@ -160,6 +163,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       if (!isInsideKnownFolder(path, known, deps.platform)) throw new Error('path not allowed');
       deps.showItemInFolder(resolve(path));
     },
+    'platform:info': () => deps.platformInfo(),
     ...createAboutHandlers(deps.about),
     ...createUpdateHandlers(deps.updates),
     ...createRecordingHandlers({

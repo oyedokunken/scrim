@@ -2,6 +2,7 @@ import { Mic, Video } from 'lucide-react';
 import type { Settings, SettingsPatch } from '../../../shared/settings';
 import { PanelSection, Select, Switch } from '../../ui';
 import type { DeviceOption } from '../hooks';
+import { PlatformNote, usePlatformInfo } from '../platform';
 
 export interface RecordPanelProps {
   settings: Settings;
@@ -49,8 +50,10 @@ function DevicePicker({ id, label, devices, value, enabled, noneText, onPick }: 
 
 /** The only things needed before recording: camera and microphone. */
 export function RecordPanel({ settings, cameras, mics, onChange }: RecordPanelProps) {
+  const platform = usePlatformInfo();
   return (
     <>
+      <PlatformNote text={platform.cursorEffectsNote} />
       <PanelSection title="Camera" icon={<Video size={16} strokeWidth={1.75} aria-hidden="true" />}>
         <Switch
           label="Use camera"

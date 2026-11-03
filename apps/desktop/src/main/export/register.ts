@@ -1,3 +1,4 @@
+import { currentPlatform } from '../platform/platform';
 import { app, shell } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { availableParallelism } from 'node:os';
@@ -57,7 +58,7 @@ export interface RegisterOptions {
 
 /** The folder that receives finished videos: the saved one, or Videos\Scrim. */
 function destination(settings: Settings): string {
-  return settings.destinationFolder ?? join(app.getPath('videos'), 'Scrim');
+  return settings.destinationFolder ?? currentPlatform().folders.recordings(app.getPath('videos'));
 }
 
 /** Where a video goes when the chosen folder refuses it, inside the app's own data. */

@@ -15,7 +15,7 @@ import { handleAppRequest } from './app-protocol';
 import { exportFallbackFolder, previewFolder } from './export/register';
 import { handleMediaRequest } from './media/media-protocol';
 import { MEDIA_SCHEME, MediaRegistry } from './media/media-registry';
-import { projectsRoot } from './recording/projects-folder';
+import { currentPlatform } from './platform/platform';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
 import { screenshotFolderOf } from './ipc/handlers';
@@ -45,6 +45,8 @@ import { createRecordingControl, isLivePhase } from './shell/recording-control';
 import { createShell } from './shell/shell-controller';
 import { createWindowStateTracker } from './shell/window-state-tracker';
 import { createMainWindow, MAIN_WINDOW_DEFAULT, MAIN_WINDOW_MINIMUM } from './windows/main-window';
+
+const platform = currentPlatform();
 
 // Groups the taskbar buttons and keeps the icon on pinned shortcuts. Same id as the installer.
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
@@ -161,14 +163,10 @@ if (!app.requestSingleInstanceLock()) {
     );
     const media = new MediaRegistry(
       () => [
-        projectsRoot({
-          platform: process.platform,
-          env: process.env,
-          userData: app.getPath('userData'),
-        }),
+        platform.folders.projectsRoot(app.getPath('userData')),
         previewFolder(),
         // The finished videos, so the Library can play them. Only files the Library names are served.
-        settings?.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+        settings?.get().destinationFolder ?? platform.folders.recordings(app.getPath('videos')),
         exportFallbackFolder(),
       ],
       process.platform === 'win32',
@@ -396,7 +394,7 @@ if (!app.requestSingleInstanceLock()) {
         buildAreaRequest(
           { mode, ...devicesFromSettings(saved) },
           saved,
-          screenshotFolderOf(saved, join(app.getPath('pictures'), 'Scrim')),
+          screenshotFolderOf(saved, platform.folders.screenshots(app.getPath('pictures'))),
         ),
       );
     };

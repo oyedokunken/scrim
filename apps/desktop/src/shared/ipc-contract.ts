@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { Channel, EventChannel } from './channels';
 import { isAllowedExternalUrl } from './external-urls';
 import { aboutContract } from './about-contract';
+import { platformContract } from './platform-info';
 import { backgroundsContract } from './backgrounds-contract';
 import { editorContract } from './editor-contract';
 import { reviewContract } from './review-contract';
@@ -79,6 +80,7 @@ export const contract = {
   'area:run': { input: areaRequestSchema, output: areaOutcomeSchema },
   'area:cancel': { input: z.void(), output: z.void() },
   ...aboutContract,
+  ...platformContract,
   ...updatesContract,
   ...imageContract,
   ...libraryContract,
