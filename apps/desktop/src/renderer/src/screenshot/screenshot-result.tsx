@@ -2,6 +2,7 @@ import { Copy, FolderOpen, Pencil, Save, Share2, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button, ConfirmDialog, useShowError, useToast } from '../../ui';
 import { ShareDialog } from '../share/share-dialog';
+import { usePlatformInfo } from '../platform';
 
 export interface ScreenshotResultProps {
   path: string;
@@ -26,6 +27,7 @@ const WAITING = 'The screenshot is still opening.';
 
 /** What you just captured: a preview, and what to do with it. It was already saved and copied. */
 export function ScreenshotResult({ path, width, height, onEdit, onDone }: ScreenshotResultProps) {
+  const platform = usePlatformInfo();
   const toast = useToast();
   const showError = useShowError();
   const [loaded, setLoaded] = useState<{ path: string; dataUrl: string | null } | null>(null);
@@ -177,16 +179,18 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
           >
             Delete
           </Button>
-          <Button
-            icon={<Share2 size={16} strokeWidth={1.75} />}
-            disabled={source === null}
-            disabledReason={WAITING}
-            onClick={() => {
-              setSharing(true);
-            }}
-          >
-            Share
-          </Button>
+          {platform.shareSheet ? (
+            <Button
+              icon={<Share2 size={16} strokeWidth={1.75} />}
+              disabled={source === null}
+              disabledReason={WAITING}
+              onClick={() => {
+                setSharing(true);
+              }}
+            >
+              Share
+            </Button>
+          ) : null}
         </div>
       </aside>
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Button, Dialog } from '../../ui';
 import { formatBytes, formatTimer } from '../format';
 import { ShareDialog } from '../share/share-dialog';
+import { usePlatformInfo } from '../platform';
 
 /** What the dialog needs of a finished export. It carries no path. */
 interface ExportDone {
@@ -41,6 +42,7 @@ export function savedWhere(fellBack: boolean, folder: string | null): string {
  * the new file, because the working copy used for review is already gone.
  */
 export function ExportDoneDialog({ done, folder, onDone }: ExportDoneDialogProps) {
+  const platform = usePlatformInfo();
   const [found, setFound] = useState<Found | null>(null);
   const [sharing, setSharing] = useState(false);
 
@@ -100,16 +102,18 @@ export function ExportDoneDialog({ done, folder, onDone }: ExportDoneDialogProps
           >
             Open
           </Button>
-          <Button
-            icon={<Share2 size={16} strokeWidth={2} />}
-            disabled={found === null}
-            disabledReason={STILL_LOOKING}
-            onClick={() => {
-              setSharing(true);
-            }}
-          >
-            Share
-          </Button>
+          {platform.shareSheet ? (
+            <Button
+              icon={<Share2 size={16} strokeWidth={2} />}
+              disabled={found === null}
+              disabledReason={STILL_LOOKING}
+              onClick={() => {
+                setSharing(true);
+              }}
+            >
+              Share
+            </Button>
+          ) : null}
           <Button variant="primary" data-autofocus onClick={onDone}>
             Done
           </Button>

@@ -38,6 +38,7 @@ import { ShareDialog } from '../share/share-dialog';
 import type { ShareSource } from '../../../shared/share-contract';
 import { LibraryDetail } from './library-detail';
 import { useLibrary, type OpenedItem, type Recoverable } from './use-library';
+import { usePlatformInfo } from '../platform';
 
 const thumbCache = new Map<string, string | null>();
 
@@ -66,6 +67,7 @@ function Card({
   onShare,
   onDelete,
 }: CardProps) {
+  const platform = usePlatformInfo();
   const key = thumbKey(item);
   const [loaded, setLoaded] = useState<{ key: string; url: string | null } | null>(null);
   const url = thumbCache.get(key) ?? (loaded?.key === key ? loaded.url : null);
@@ -121,12 +123,16 @@ function Card({
       : []),
     ...(item.isFile
       ? [
-          {
-            key: 'share',
-            label: 'Share',
-            icon: <Share2 size={16} strokeWidth={1.75} />,
-            onSelect: onShare,
-          },
+          ...(platform.shareSheet
+            ? [
+                {
+                  key: 'share',
+                  label: 'Share',
+                  icon: <Share2 size={16} strokeWidth={1.75} />,
+                  onSelect: onShare,
+                },
+              ]
+            : []),
           {
             key: 'rename',
             label: 'Rename',

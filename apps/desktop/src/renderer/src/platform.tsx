@@ -8,9 +8,9 @@ import {
 
 let cached: PlatformInfo | undefined;
 
-/** For tests: forget the answer the main process gave. */
-export function resetPlatformInfoCache(): void {
-  cached = undefined;
+/** For tests: pretend the main process gave this answer. Pass undefined to forget it. */
+export function setPlatformInfoForTests(info: PlatformInfo | undefined): void {
+  cached = info;
 }
 
 /**

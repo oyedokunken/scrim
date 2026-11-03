@@ -9,6 +9,7 @@ import { ShareDialog } from '../share/share-dialog';
 import { ExportProgress } from './export-progress';
 import type { LivePreviewSource } from './live-preview';
 import { ReviewPlayer, type ReviewMode } from './review-player';
+import { usePlatformInfo } from '../platform';
 
 type Review = Extract<
   Awaited<ReturnType<typeof window.scrim.invoke<'review:open'>>>,
@@ -92,6 +93,7 @@ export function ReviewScreen({
   onDiscarded,
   onProblem,
 }: ReviewScreenProps) {
+  const platform = usePlatformInfo();
   const [review, setReview] = useState<Review | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<ReviewMode>('before');
@@ -339,16 +341,18 @@ export function ReviewScreen({
               >
                 Edit
               </Button>
-              <Button
-                icon={<Share2 size={16} strokeWidth={1.75} />}
-                disabled={libraryId === null}
-                disabledReason="Sharing is ready once your video is made."
-                onClick={() => {
-                  setSharing(libraryId);
-                }}
-              >
-                Share
-              </Button>
+              {platform.shareSheet ? (
+                <Button
+                  icon={<Share2 size={16} strokeWidth={1.75} />}
+                  disabled={libraryId === null}
+                  disabledReason="Sharing is ready once your video is made."
+                  onClick={() => {
+                    setSharing(libraryId);
+                  }}
+                >
+                  Share
+                </Button>
+              ) : null}
               <Button icon={<FolderOpen size={16} strokeWidth={1.75} />} onClick={onShowInFolder}>
                 Show in folder
               </Button>
