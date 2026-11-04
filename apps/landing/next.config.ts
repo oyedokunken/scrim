@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
+import { oldAddressRedirects } from './src/redirects';
 import { securityHeaders } from './src/security-headers';
 
 const monorepoRoot = path.join(import.meta.dirname, '../..');
@@ -14,6 +15,9 @@ const config: NextConfig = {
   outputFileTracingRoot: monorepoRoot,
   turbopack: { root: monorepoRoot },
   images: { formats: ['image/avif', 'image/webp'] },
+  redirects() {
+    return Promise.resolve(oldAddressRedirects());
+  },
   headers() {
     return Promise.resolve([
       { source: '/:path*', headers: securityHeaders(process.env.NODE_ENV === 'production') },
