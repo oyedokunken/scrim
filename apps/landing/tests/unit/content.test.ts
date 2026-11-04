@@ -4,7 +4,6 @@ import { FAQ } from '@/lib/faq';
 import { serializeJsonLd, softwareApplicationJsonLd } from '@/lib/json-ld';
 import { pageMetadata } from '@/lib/page-metadata';
 import { formatPrivacyDate, PRIVACY_LAST_UPDATED, RETENTION_STATEMENT } from '@/lib/privacy';
-import { formatReleaseDate } from '@/lib/release-date';
 import { SYSTEMS, windowsHelp } from '@/lib/systems';
 import { siteConfig } from '@/site.config';
 
@@ -130,18 +129,6 @@ describe('the privacy constants', () => {
       'We keep download records only as long as we need them to count downloads and send release notices. You can ask us to delete yours at any time.',
     );
     expect(RETENTION_STATEMENT).not.toMatch(/\d+\s*(day|month|year)/i);
-  });
-});
-
-describe('formatReleaseDate', () => {
-  it('formats an ISO date in UTC for people', () => {
-    expect(formatReleaseDate('2026-11-02T09:30:00Z')).toBe('2 November 2026');
-    expect(formatReleaseDate('2026-11-02T23:59:59Z')).toBe('2 November 2026');
-  });
-
-  it('returns null for a missing or unreadable date', () => {
-    expect(formatReleaseDate(null)).toBeNull();
-    expect(formatReleaseDate('not a date')).toBeNull();
   });
 });
 

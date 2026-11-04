@@ -232,9 +232,8 @@ describe('the hero video on the server', () => {
     expect(html).not.toContain('<img');
   });
 
-  it('shows every segment on the timeline', () => {
-    for (const segment of SEGMENTS) {
-      expect(html).toContain(`data-segment="${segment.id}"`);
-    }
+  it('keeps the timeline plain: no segment blocks and no ruler', () => {
+    expect(html).not.toContain('data-segment');
+    expect(html).not.toMatch(/class="[^"]*(ruler|tick)/);
   });
 });

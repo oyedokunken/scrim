@@ -58,8 +58,8 @@ test.describe('the hero video', () => {
     const zoom = await page.getByRole('switch', { name: 'Auto zoom' }).boundingBox();
     for (const box of [play, zoom]) {
       expect(box).not.toBeNull();
-      // Inside the video, in its lower right half.
-      expect(box?.x ?? 0).toBeGreaterThan((stage?.x ?? 0) + (stage?.width ?? 0) * 0.3);
+      // Inside the video, along its bottom edge.
+      expect(box?.y ?? 0).toBeGreaterThan((stage?.y ?? 0) + (stage?.height ?? 0) * 0.6);
       expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(
         (stage?.y ?? 0) + (stage?.height ?? 0) + 1,
       );
@@ -77,9 +77,11 @@ test.describe('the hero video', () => {
     await expect(hero.getByText('Play demo')).toHaveCount(0);
     await expect(hero.getByText(/Auto zoom is (on|off)/)).toHaveCount(0);
     await expect(hero.getByText('Timeline', { exact: true })).toHaveCount(0);
-    // The timeline sits under the video.
+    // The timeline is inside the video too, not under it.
     const line = await timeline(page).boundingBox();
-    expect(line?.y ?? 0).toBeGreaterThanOrEqual((stage?.y ?? 0) + (stage?.height ?? 0) - 1);
+    expect((line?.y ?? 0) + (line?.height ?? 0)).toBeLessThanOrEqual(
+      (stage?.y ?? 0) + (stage?.height ?? 0) + 1,
+    );
   });
 
   test('the play control pauses and resumes from the same place', async ({ page }) => {
@@ -209,7 +211,7 @@ test.describe('the hero video', () => {
     const view = demo(page);
     await expect(view).toHaveAttribute('data-playing', 'true');
     await page.evaluate(() => {
-      document.querySelector('#features')?.scrollIntoView();
+      document.querySelector('#faq')?.scrollIntoView();
     });
     await expect(view).toHaveAttribute('data-playing', 'false');
     await page.evaluate(() => {
@@ -542,16 +544,27 @@ test.describe('the recording look of the demo', () => {
     );
   });
 
-  test('the timeline has segments, a ruler and a flag that follows the playhead', async ({
+  test('the timeline sits on the control row inside the video, with only the time as text', async ({
     page,
   }) => {
     await page.goto('/');
-    // The segments are marked on the track, with no names on them.
-    await expect(page.locator('[data-segment]')).toHaveCount(SEGMENTS.length);
-    for (let second = 0; second <= Math.floor(MASTER_DURATION_MS / 5000) * 5; second += 5) {
-      const label = `0:${String(second).padStart(2, '0')}`;
-      await expect(page.getByText(label, { exact: true }).first()).toBeAttached();
+    const view = await demo(page).boundingBox();
+    const bar = await timeline(page).boundingBox();
+    const play = await playButton(page).boundingBox();
+    expect(view).not.toBeNull();
+    expect(bar).not.toBeNull();
+    expect(play).not.toBeNull();
+    // Inside the video, and level with the buttons. On a narrow video it wraps to its own row.
+    expect(bar?.y ?? 0).toBeGreaterThanOrEqual(view?.y ?? 0);
+    expect((bar?.y ?? 0) + (bar?.height ?? 0)).toBeLessThanOrEqual(
+      (view?.y ?? 0) + (view?.height ?? 0) + 1,
+    );
+    if ((view?.width ?? 0) > 576) {
+      expect(Math.abs((bar?.y ?? 0) - (play?.y ?? 0))).toBeLessThan(6);
     }
+    // No segment blocks and no ruler, and the zooms are dots.
+    await expect(page.locator('[data-segment]')).toHaveCount(0);
+    await expect(page.locator('[class*="tick"]')).toHaveCount(0);
     await pause(page);
     await clickTimelineAt(page, shareOf('edit'));
     await expect(timeline(page)).toHaveAttribute('aria-valuetext', /^Edit, 0:\d\d of 0:\d\d$/);
