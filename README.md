@@ -31,12 +31,6 @@
   <img alt="Vitest" src="https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white" />
 </p>
 
-<p align="center">
-  <a href="docs/media/scrim-hero.mp4">
-    <img src="docs/media/scrim-hero.gif" alt="A video of Scrim: the logo, then recording with the cursor highlighted and an automatic zoom, then editing, export and the library." width="800" />
-  </a>
-</p>
-
 ---
 
 Scrim is a free, open source screen recorder and screenshot tool for Windows, macOS and Linux. It highlights the cursor, ripples every click, zooms in where you work, adds your face in a bubble, and exports an MP4 that plays everywhere. Get it at [scrim.oyedokun.dev](https://scrim.oyedokun.dev).
@@ -70,7 +64,7 @@ Choose your system on [scrim.oyedokun.dev](https://scrim.oyedokun.dev), or take 
 | macOS   | `.dmg` for Apple Silicon and Intel            | Choose Open Anyway in Privacy and Security. Allow Screen Recording and Accessibility when asked.  |
 | Linux   | AppImage and `.deb` for 64 bit Linux          | Make the AppImage executable and run it. On Wayland, cursor effects and auto zoom are turned off. |
 
-Windows has had the most testing. If something breaks on macOS or Linux, please open an issue.
+Only the Windows installer is published so far. macOS and Linux installers will appear here once they have been tested on real machines.
 
 ## Features
 
@@ -143,7 +137,7 @@ The desktop app (`apps/desktop`) is an Electron app. The main process owns captu
 
 The app makes no network requests while recording, editing or exporting. Its only use of the network is the update check in Settings: it runs when you press Check for updates, or at start if you turn that on, it asks GitHub for the latest release details and sends nothing about you, and it downloads a new version only when you press Update now.
 
-Scrim runs on Windows, macOS and Linux. Windows has had the most testing. The macOS and Linux packaging, FFmpeg pins, entitlements and release workflow are written but only partly run on real machines. [docs/releasing.md](docs/releasing.md) lists what is verified and gives a test checklist for each system.
+The Windows installer (version 1.0.0, marked a pre-release) is published on the [Releases page](https://github.com/oyedokunken/scrim/releases) and is the only build that has been tested on a real machine. The macOS and Linux builds, with their packaging, FFmpeg pins, entitlements and release workflow, are written and have been run only on Windows and in containers, so they are not published yet. [docs/releasing.md](docs/releasing.md) lists what is verified and gives a test checklist for each system.
 
 | Phase | Scope                                         | State                          |
 | ----- | --------------------------------------------- | ------------------------------ |
