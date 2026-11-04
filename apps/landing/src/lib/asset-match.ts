@@ -25,7 +25,8 @@ function extensions(wanted: AssetWanted): readonly string[] {
     case 'macos':
       return ['.dmg'];
     case 'linux':
-      return wanted.format === 'deb' ? ['.deb'] : ['.appimage'];
+      // The deb is the default for Linux, because it installs the sandbox profile on Ubuntu 24.04.
+      return wanted.format === 'appimage' ? ['.appimage'] : ['.deb'];
   }
 }
 

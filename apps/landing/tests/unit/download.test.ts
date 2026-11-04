@@ -122,7 +122,7 @@ describe('matchAsset', () => {
     ],
     ['Linux, deb', { os: 'linux', arch: 'x64', format: 'deb' }, 'scrim_1.0.0_amd64.deb'],
     ['Linux on Arm, deb', { os: 'linux', arch: 'arm64', format: 'deb' }, 'scrim_1.0.0_arm64.deb'],
-    ['Linux with no package given', { os: 'linux', arch: 'x64' }, 'Scrim-1.0.0-x86_64.AppImage'],
+    ['Linux with no package given', { os: 'linux', arch: 'x64' }, 'scrim_1.0.0_amd64.deb'],
   ] as const)('picks the right file for %s', (_label, wanted, expected) => {
     expect(matchAsset(release, wanted)?.name).toBe(expected);
   });
