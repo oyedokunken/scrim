@@ -11,7 +11,7 @@ import { getSiteEnv } from '@/server/env';
 import { fetchLatestRelease } from '@/server/releases';
 import { siteConfig } from '@/site.config';
 
-// The download section shows the latest release, so the page regenerates every 5 minutes and
+// The structured data names the latest release, so the page regenerates every 5 minutes and
 // updates after a release without a redeploy. Segment config must be a literal. A test keeps
 // this equal to RELEASE_REVALIDATE_SECONDS.
 export const revalidate = 300;
@@ -38,7 +38,7 @@ export default async function HomePage() {
       <Hero />
       <Features />
       <UseCases />
-      <DownloadSection release={release} />
+      <DownloadSection />
       <Faq />
       <Contribute />
       <Contact />

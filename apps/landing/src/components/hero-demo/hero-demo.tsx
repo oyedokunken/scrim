@@ -557,109 +557,84 @@ export function HeroDemo() {
               {autoZoom ? 'On' : 'Off'}
             </span>
           </button>
-        </div>
-      </div>
-
-      {/* The timeline is the only control outside the video. Every layer is a segment on it. */}
-      <div className={styles.timeline}>
-        <div ref={track} className={styles.timelineTrack} style={vars({ '--master': '0' })}>
-          <span ref={flag} className={styles.flag} aria-hidden="true">
-            0:00
-          </span>
-          {SEGMENTS.map((segment) => (
-            <span
-              key={segment.id}
-              className={styles.segment}
-              data-segment={segment.id}
-              aria-hidden="true"
-              style={{
-                left: `${String(percentOf(segment.start))}%`,
-                width: `${String(percentOf(segment.end) - percentOf(segment.start))}%`,
-              }}
-            ></span>
-          ))}
-          {DEMO_ZOOM_SPANS.map((span) => (
-            <span
-              key={span.start}
-              className={styles.zoomSpan}
-              style={{
-                left: `${String(percentOf(DEMO_START_MS + span.start))}%`,
-                width: `${String(percentOf(span.end) - percentOf(span.start))}%`,
-              }}
-            />
-          ))}
-          {DEMO_CLICKS.map((click) => (
-            <span
-              key={click.t}
-              className={styles.clickMark}
-              style={{ left: `${String(percentOf(DEMO_START_MS + click.t))}%` }}
-            />
-          ))}
-          <span className={styles.playhead} aria-hidden="true" />
-          <input
-            ref={slider}
-            type="range"
-            min={0}
-            max={MASTER_DURATION_MS}
-            step={10}
-            defaultValue={0}
-            className={styles.scrubber}
-            aria-label="Video timeline"
-            aria-valuetext={describePosition(0)}
-            onPointerDown={() => {
-              setScrubbing(true);
-            }}
-            onPointerUp={() => {
-              setScrubbing(false);
-            }}
-            onPointerCancel={() => {
-              setScrubbing(false);
-            }}
-            onBlur={() => {
-              setScrubbing(false);
-            }}
-            onKeyDown={(event) => {
-              // A native range moves one step per key, which is far too small here. Arrow keys move
-              // one second and Page Up and Page Down five.
-              const jump =
-                event.key === 'ArrowRight' || event.key === 'ArrowUp'
-                  ? 1000
-                  : event.key === 'ArrowLeft' || event.key === 'ArrowDown'
-                    ? -1000
-                    : event.key === 'PageUp'
-                      ? 5000
-                      : event.key === 'PageDown'
-                        ? -5000
-                        : 0;
-              if (jump === 0) {
-                return;
-              }
-              event.preventDefault();
-              const next = Math.min(
-                MASTER_DURATION_MS,
-                Math.max(0, Number(event.currentTarget.value) + jump),
-              );
-              player.current?.seek(next);
-              setEnded(next >= MASTER_DURATION_MS);
-            }}
-            onInput={(event) => {
-              const next = Number(event.currentTarget.value);
-              player.current?.seek(next);
-              // Moving off the end makes the control say Pause or Play again.
-              setEnded(next >= MASTER_DURATION_MS);
-            }}
-          />
-        </div>
-        <div className={styles.ruler} aria-hidden="true">
-          {Array.from({ length: Math.floor(MASTER_DURATION_MS / 5000) + 1 }, (_, step) => (
-            <span
-              key={step}
-              className={styles.tick}
-              style={{ left: `${String(percentOf(step * 5000))}%` }}
-            >
-              {formatTime(step * 5000)}
-            </span>
-          ))}
+          {/* The timeline shares the row with the buttons. Drag it or use the arrow keys. */}
+          <div className={styles.timeline}>
+            <div ref={track} className={styles.timelineTrack} style={vars({ '--master': '0' })}>
+              <span ref={flag} className={styles.flag} aria-hidden="true">
+                0:00
+              </span>
+              {DEMO_ZOOM_SPANS.map((span) => (
+                <span
+                  key={span.start}
+                  className={styles.zoomDot}
+                  style={{
+                    left: `${String(percentOf(DEMO_START_MS + (span.start + span.end) / 2))}%`,
+                  }}
+                />
+              ))}
+              {DEMO_CLICKS.map((click) => (
+                <span
+                  key={click.t}
+                  className={styles.clickMark}
+                  style={{ left: `${String(percentOf(DEMO_START_MS + click.t))}%` }}
+                />
+              ))}
+              <span className={styles.playhead} aria-hidden="true" />
+              <input
+                ref={slider}
+                type="range"
+                min={0}
+                max={MASTER_DURATION_MS}
+                step={10}
+                defaultValue={0}
+                className={styles.scrubber}
+                aria-label="Video timeline"
+                aria-valuetext={describePosition(0)}
+                onPointerDown={() => {
+                  setScrubbing(true);
+                }}
+                onPointerUp={() => {
+                  setScrubbing(false);
+                }}
+                onPointerCancel={() => {
+                  setScrubbing(false);
+                }}
+                onBlur={() => {
+                  setScrubbing(false);
+                }}
+                onKeyDown={(event) => {
+                  // A native range moves one step per key, which is far too small here. Arrow keys move
+                  // one second and Page Up and Page Down five.
+                  const jump =
+                    event.key === 'ArrowRight' || event.key === 'ArrowUp'
+                      ? 1000
+                      : event.key === 'ArrowLeft' || event.key === 'ArrowDown'
+                        ? -1000
+                        : event.key === 'PageUp'
+                          ? 5000
+                          : event.key === 'PageDown'
+                            ? -5000
+                            : 0;
+                  if (jump === 0) {
+                    return;
+                  }
+                  event.preventDefault();
+                  const next = Math.min(
+                    MASTER_DURATION_MS,
+                    Math.max(0, Number(event.currentTarget.value) + jump),
+                  );
+                  player.current?.seek(next);
+                  setEnded(next >= MASTER_DURATION_MS);
+                }}
+                onInput={(event) => {
+                  const next = Number(event.currentTarget.value);
+                  player.current?.seek(next);
+                  // Moving off the end makes the control say Pause or Play again.
+                  setEnded(next >= MASTER_DURATION_MS);
+                }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -17,7 +17,7 @@ const page = () =>
     <Hero key="hero" />,
     <Features key="features" />,
     <UseCases key="use-cases" />,
-    <DownloadSection key="download" release={null} />,
+    <DownloadSection key="download" />,
     <Faq key="faq" />,
     <Contribute key="contribute" />,
     <Contact key="contact" />,
@@ -112,8 +112,8 @@ describe('the sections in detail', () => {
     expect(html).not.toContain('Who it');
   });
 
-  it('Download shows no status line when no release can be read', () => {
-    const html = renderToStaticMarkup(<DownloadSection release={null} />);
+  it('Download carries no status line, no Releases page link and no error text', () => {
+    const html = renderToStaticMarkup(<DownloadSection />);
     expect(html).not.toContain('Every build of Scrim');
     expect(html).not.toContain('Open the Releases page');
     expect(html).not.toContain('Releases page');
@@ -123,23 +123,14 @@ describe('the sections in detail', () => {
     expect(html).toContain('Choose your operating system below and download Scrim.');
   });
 
-  it('Download shows the version and the date when a release exists', () => {
-    const html = renderToStaticMarkup(
-      <DownloadSection
-        release={{
-          version: '1.2.3',
-          url: 'https://github.com/oyedokunken/scrim/releases/tag/v1.2.3',
-          publishedAt: '2026-11-02T09:30:00Z',
-        }}
-      />,
-    );
-    expect(html).toContain('Version 1.2.3');
-    expect(html).toContain('2 November 2026');
-    expect(html).not.toContain('Every build of Scrim');
+  it('Download has one plain subtext that is not tied to a version, a date or the release notes', () => {
+    const html = renderToStaticMarkup(<DownloadSection />);
+    expect(html).toContain('Choose your operating system below and download Scrim.');
+    expect(html).not.toMatch(/Version \d|published on|release notes/i);
   });
 
   it('Download has three system blocks, each downloadable', () => {
-    const html = renderToStaticMarkup(<DownloadSection release={null} />);
+    const html = renderToStaticMarkup(<DownloadSection />);
     for (const name of ['Windows', 'macOS', 'Linux']) {
       expect(html).toContain(`<h3>${name}</h3>`);
     }
@@ -154,7 +145,7 @@ describe('the sections in detail', () => {
   });
 
   it('the Need help text links "open an issue" once, with one outside arrow', () => {
-    const html = renderToStaticMarkup(<DownloadSection release={null} />);
+    const html = renderToStaticMarkup(<DownloadSection />);
     const links = html.match(/<a [^>]*>open an issue.*?<\/a>/g) ?? [];
     expect(links).toHaveLength(2);
     for (const link of links) {
