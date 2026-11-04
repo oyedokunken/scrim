@@ -16,7 +16,7 @@ describe('isExternal', () => {
     ['/privacy', false],
     ['/#features', false],
     ['#top', false],
-    ['mailto:hello@scrim.oyedokunken.dev', false],
+    ['mailto:hello@scrim.oyedokun.dev', false],
     ['tel:+123', false],
     ['privacy', false],
   ])('%s is external: %s', (href, expected) => {

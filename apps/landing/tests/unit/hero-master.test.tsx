@@ -206,13 +206,16 @@ describe('the hero video on the server', () => {
     expect(html).toContain(siteConfig.heroAddress);
   });
 
-  it('has the play control, the sound toggle, the auto zoom switch, the chapter buttons and the timeline', () => {
-    // The play control, the sound toggle, the auto zoom switch and one button for each chapter.
-    expect(html.match(/<button/g)).toHaveLength(3 + SEGMENTS.length);
+  it('has the play control, the sound toggle, the auto zoom switch and the timeline', () => {
+    // The play control, the sound toggle and the auto zoom switch. There are no chapter buttons
+    // and no chapter names while the video is being reworked.
+    expect(html.match(/<button/g)).toHaveLength(3);
     expect(html).toContain('aria-label="Sound"');
     expect(html).toContain('aria-pressed="false"');
-    expect(html).toContain('aria-label="Chapters"');
-    expect(html.match(/aria-current="true"/g)).toHaveLength(1);
+    expect(html).not.toContain('aria-label="Chapters"');
+    for (const label of ['Logo', 'Headline', 'Recording', 'Platforms', 'Address']) {
+      expect(html).not.toContain(`>${label}<`);
+    }
     expect(html).toContain('>Pause<');
     expect(html).toContain('role="switch"');
     expect(html).toContain('aria-label="Auto zoom"');
@@ -229,9 +232,8 @@ describe('the hero video on the server', () => {
     expect(html).not.toContain('<img');
   });
 
-  it('shows every segment on the timeline', () => {
-    for (const segment of SEGMENTS) {
-      expect(html).toContain(`data-segment="${segment.id}"`);
-    }
+  it('keeps the timeline plain: no segment blocks and no ruler', () => {
+    expect(html).not.toContain('data-segment');
+    expect(html).not.toMatch(/class="[^"]*(ruler|tick)/);
   });
 });

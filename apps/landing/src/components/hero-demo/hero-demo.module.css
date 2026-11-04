@@ -89,8 +89,10 @@
   position: absolute;
   right: 2.2cqw;
   bottom: 2.2cqw;
+  left: 2.2cqw;
   z-index: 2;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
@@ -138,6 +140,12 @@
 }
 
 @media (max-width: 36rem) {
+  /* On a narrow video the timeline takes its own row above the buttons. */
+  .timeline {
+    flex: 1 1 100%;
+    order: -1;
+  }
+
   .controlText,
   .state {
     display: none;
@@ -376,51 +384,29 @@
   transform-origin: bottom;
 }
 
-/* The timeline is the only control outside the video. Each layer is a segment on it. */
+/* The timeline fills the rest of the control row, on the same dark pill as the buttons. */
 .timeline {
-  display: grid;
-  gap: var(--scrim-space-1);
+  flex: 1;
+  min-width: 0;
 }
 
 .timelineTrack {
   position: relative;
-  height: 3rem;
-  border: 1px solid var(--scrim-border-on-white);
-  border-radius: var(--scrim-radius-md);
-  background: var(--scrim-white);
+  height: 2.75rem;
+  border: 1px solid color-mix(in srgb, var(--scrim-butter) 35%, transparent);
+  border-radius: var(--scrim-radius-pill);
+  background: color-mix(in srgb, var(--scrim-black) 80%, transparent);
 }
 
-.segment {
+/* An auto zoom, shown as a green dot with a butter ring so it reads on the dark track. */
+.zoomDot {
   position: absolute;
-  top: 0.25rem;
-  bottom: 0.25rem;
-  display: flex;
-  align-items: center;
-  padding: 0 0.5rem;
-  overflow: hidden;
-  border-radius: 0.5rem;
-  background: color-mix(in srgb, var(--scrim-green) 12%, var(--scrim-white));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--scrim-green) 22%, transparent);
-  pointer-events: none;
-}
-
-.segment[data-segment='demo'] {
-  background: var(--scrim-white);
-}
-
-.segmentName {
-  color: var(--scrim-text-secondary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.zoomSpan {
-  position: absolute;
-  bottom: 0.5rem;
-  height: 0.5rem;
-  border-radius: 0.25rem;
+  top: 50%;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin: -0.375rem 0 0 -0.375rem;
+  border: 2px solid var(--scrim-butter);
+  border-radius: 50%;
   background: var(--scrim-green);
   pointer-events: none;
 }
@@ -428,28 +414,27 @@
 .clickMark {
   position: absolute;
   top: 50%;
-  width: 0.625rem;
-  height: 0.625rem;
-  margin: -0.3125rem 0 0 -0.3125rem;
-  border: 2px solid var(--scrim-black);
+  width: 0.375rem;
+  height: 0.375rem;
+  margin: -0.1875rem 0 0 -0.1875rem;
   border-radius: 50%;
-  background: var(--scrim-butter);
+  background: color-mix(in srgb, var(--scrim-butter) 70%, transparent);
   pointer-events: none;
 }
 
 .playhead {
   position: absolute;
-  top: -0.25rem;
-  bottom: -0.25rem;
+  top: 0.375rem;
+  bottom: 0.375rem;
   left: calc(var(--master) * 100%);
   width: 3px;
   margin-left: -1.5px;
   border-radius: 2px;
-  background: var(--scrim-black);
+  background: var(--scrim-butter);
   pointer-events: none;
 }
 
-/* A flag on the playhead that shows the time, like a video editor. */
+/* The only text on the timeline: the time at the playhead. */
 .flag {
   position: absolute;
   bottom: calc(100% + 0.5rem);
@@ -485,7 +470,7 @@
 }
 
 .scrubber::-webkit-slider-thumb {
-  width: 4px;
+  width: 1px;
   height: 100%;
   appearance: none;
   border: 0;
@@ -498,142 +483,22 @@
 }
 
 .scrubber::-moz-range-thumb {
-  width: 4px;
+  width: 1px;
   height: 100%;
   border: 0;
   background: transparent;
 }
 
 .scrubber:focus-visible {
-  outline: 3px solid var(--scrim-green);
-  outline-offset: 3px;
-  border-radius: var(--scrim-radius-md);
-}
-
-/* The time ruler under the track, with a label every five seconds. */
-.ruler {
-  position: relative;
-  height: 1.25rem;
-}
-
-.tick {
-  position: absolute;
-  top: 0;
-  padding-top: 0.5rem;
-  color: var(--scrim-text-secondary);
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  line-height: 1;
-  transform: translateX(-50%);
-}
-
-.tick::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 1px;
-  height: 0.375rem;
-  background: var(--scrim-text-secondary);
-}
-
-.ruler > :first-child {
-  transform: none;
-}
-
-.ruler > :first-child::before {
-  left: 0;
-}
-
-.ruler > :last-child {
-  transform: translateX(-100%);
-}
-
-.ruler > :last-child::before {
-  left: 100%;
-}
-
-@media (max-width: 48rem) {
-  .timelineTrack {
-    height: 2.75rem;
-  }
-
-  .tick:nth-child(even) {
-    display: none;
-  }
-}
-
-@media (max-width: 36rem) {
-  .segmentName {
-    display: none;
-  }
+  outline: 3px solid var(--scrim-butter);
+  outline-offset: 2px;
+  border-radius: var(--scrim-radius-pill);
 }
 
 /* A card that holds an app screen. It fills the video instead of centring its content. */
 .screenCard {
   display: block;
   padding: 0;
-}
-
-/* The chapter bar under the timeline. One segmented control with a small radius, exactly as wide
-   as the video. The cells share the width, so it never overflows, and it wraps into rows on a
-   narrow screen. Each cell is a 44px target and the current one is filled green. */
-.chapters {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  box-sizing: border-box;
-  width: 100%;
-  margin-top: var(--scrim-space-3);
-  overflow: hidden;
-  border: 1px solid var(--scrim-border-on-white);
-  border-radius: 6px;
-  background: var(--scrim-border-on-white);
-}
-
-@media (min-width: 30rem) {
-  .chapters {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 56rem) {
-  .chapters {
-    grid-template-columns: repeat(10, minmax(0, 1fr));
-  }
-}
-
-.chapter {
-  min-width: 0;
-  min-height: 2.75rem;
-  padding: 0 var(--scrim-space-1);
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  background: var(--scrim-white);
-  color: var(--scrim-green);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.chapter:hover {
-  background: var(--scrim-green-tint);
-}
-
-.chapter[aria-current='true'] {
-  background: var(--scrim-green);
-  color: var(--scrim-white);
-}
-
-.chapter:focus-visible {
-  position: relative;
-  outline: 2px solid var(--scrim-green);
-  outline-offset: -3px;
 }
 
 /* The sound toggle is a round, icon only button with the same 44px target as the others. */

@@ -1,10 +1,29 @@
 'use client';
 
 import { SYSTEMS } from '@/lib/systems';
+import { siteConfig } from '@/site.config';
+import { SiteLink } from '../site-link';
 import { DownloadTrigger } from '../download/download-provider';
 import { OsIcon } from '../os-icons';
 import { usePlatform } from '../use-platform';
 import styles from './download.module.css';
+
+const ISSUE_PHRASE = 'open an issue';
+
+/** Turns the words "open an issue" into a link to the issue tracker, with one outside arrow. */
+function withIssueLink(paragraph: string) {
+  const at = paragraph.indexOf(ISSUE_PHRASE);
+  if (at === -1) {
+    return paragraph;
+  }
+  return (
+    <>
+      {paragraph.slice(0, at)}
+      <SiteLink href={siteConfig.issuesUrl}>{ISSUE_PHRASE}</SiteLink>
+      {paragraph.slice(at + ISSUE_PHRASE.length)}
+    </>
+  );
+}
 
 /**
  * The three systems. Once the visitor's system is known it moves to the front and is marked, but
@@ -38,7 +57,7 @@ export function SystemBlocks() {
             <details className={styles.help}>
               <summary>Need help?</summary>
               {system.help.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
+                <p key={paragraph}>{withIssueLink(paragraph)}</p>
               ))}
             </details>
           </article>

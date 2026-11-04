@@ -18,9 +18,9 @@ const input: DownloadEmailInput = {
   version: '1.0.0',
   url: 'https://github.com/oyedokunken/scrim/releases/download/v1.0.0/Scrim-1.0.0-x64.exe',
   help: windows?.help ?? [],
-  siteUrl: 'https://scrim.oyedokunken.dev',
-  privacyUrl: 'https://scrim.oyedokunken.dev/privacy',
-  unsubscribeUrl: `https://scrim.oyedokunken.dev/unsubscribe?token=${TOKEN}`,
+  siteUrl: 'https://scrim.oyedokun.dev',
+  privacyUrl: 'https://scrim.oyedokun.dev/privacy',
+  unsubscribeUrl: `https://scrim.oyedokun.dev/unsubscribe?token=${TOKEN}`,
   supportUrl: 'https://buymeamalt.com/@oyedokunken',
 };
 
@@ -83,7 +83,7 @@ describe('the thank you email', () => {
 
   it('carries the privacy and unsubscribe links in the HTML and the text', () => {
     for (const body of [email.html, email.text]) {
-      expect(body).toContain('https://scrim.oyedokunken.dev/privacy');
+      expect(body).toContain('https://scrim.oyedokun.dev/privacy');
       expect(body).toContain(input.unsubscribeUrl);
     }
   });
@@ -159,7 +159,7 @@ const owner: OwnerEmailInput = {
   direct: true,
   updatesOptIn: true,
   when: '2026-11-02 09:30 UTC',
-  siteUrl: 'https://scrim.oyedokunken.dev',
+  siteUrl: 'https://scrim.oyedokun.dev',
 };
 
 describe('the note the owner gets', () => {
@@ -228,7 +228,7 @@ describe('sendEmail', () => {
     const { sent, transport } = fakeTransport();
     await sendEmail(transport, {
       to: 'ada@example.com',
-      from: 'Scrim <hello@scrim.oyedokunken.dev>',
+      from: 'Scrim <hello@scrim.oyedokun.dev>',
       replyTo: 'oyedokunken@gmail.com',
       email,
       unsubscribeUrl: input.unsubscribeUrl,
@@ -236,7 +236,7 @@ describe('sendEmail', () => {
     });
     const message = sent[0];
     expect(message?.to).toBe('ada@example.com');
-    expect(message?.from).toBe('Scrim <hello@scrim.oyedokunken.dev>');
+    expect(message?.from).toBe('Scrim <hello@scrim.oyedokun.dev>');
     expect(message?.replyTo).toBe('oyedokunken@gmail.com');
     expect(message?.subject).toBe('Thank you for downloading Scrim');
     expect(message?.html).toBe(email.html);
@@ -283,14 +283,14 @@ const job: EmailJob = {
 
 describe('unsubscribeUrl', () => {
   it('points at the unsubscribe page with the token', () => {
-    expect(unsubscribeUrl('https://scrim.oyedokunken.dev', TOKEN)).toBe(
-      `https://scrim.oyedokunken.dev/unsubscribe?token=${TOKEN}`,
+    expect(unsubscribeUrl('https://scrim.oyedokun.dev', TOKEN)).toBe(
+      `https://scrim.oyedokun.dev/unsubscribe?token=${TOKEN}`,
     );
   });
 
   it('encodes a token that is not safe in a URL', () => {
-    expect(unsubscribeUrl('https://scrim.oyedokunken.dev', 'a b&c')).toBe(
-      'https://scrim.oyedokunken.dev/unsubscribe?token=a%20b%26c',
+    expect(unsubscribeUrl('https://scrim.oyedokun.dev', 'a b&c')).toBe(
+      'https://scrim.oyedokun.dev/unsubscribe?token=a%20b%26c',
     );
   });
 });
@@ -301,9 +301,9 @@ describe('sendDownloadEmailJob', () => {
     const marked: string[] = [];
     await sendDownloadEmailJob(job, {
       mail: transport,
-      from: 'Scrim <hello@scrim.oyedokunken.dev>',
+      from: 'Scrim <hello@scrim.oyedokun.dev>',
       replyTo: 'oyedokunken@gmail.com',
-      siteUrl: 'https://scrim.oyedokunken.dev',
+      siteUrl: 'https://scrim.oyedokun.dev',
       loadLogo: () => Promise.resolve(new Uint8Array([1, 2, 3])),
       markSent: (id) => {
         marked.push(id);
@@ -315,7 +315,7 @@ describe('sendDownloadEmailJob', () => {
     expect(textOf(sent[0]?.html)).toContain('SmartScreen');
     expect(textOf(sent[0]?.html)).toContain(`unsubscribe?token=${TOKEN}`);
     expect(sent[0]?.headers).toEqual({
-      'List-Unsubscribe': `<https://scrim.oyedokunken.dev/unsubscribe?token=${TOKEN}>`,
+      'List-Unsubscribe': `<https://scrim.oyedokun.dev/unsubscribe?token=${TOKEN}>`,
     });
     expect(marked).toEqual(['download-1']);
   });
@@ -330,7 +330,7 @@ describe('sendDownloadEmailJob', () => {
         mail: refusing,
         from: 'x@y.co',
         replyTo: 'x@y.co',
-        siteUrl: 'https://scrim.oyedokunken.dev',
+        siteUrl: 'https://scrim.oyedokun.dev',
         loadLogo: () => Promise.resolve(new Uint8Array()),
         markSent: (id) => {
           marked.push(id);
@@ -347,9 +347,9 @@ describe('sendOwnerNote', () => {
     const { sent, transport } = fakeTransport();
     await sendOwnerNote(job, {
       mail: transport,
-      from: 'Scrim <hello@scrim.oyedokunken.dev>',
+      from: 'Scrim <hello@scrim.oyedokun.dev>',
       to: 'oyedokunken@gmail.com',
-      siteUrl: 'https://scrim.oyedokunken.dev',
+      siteUrl: 'https://scrim.oyedokun.dev',
       now: () => new Date('2026-11-02T09:30:45Z'),
     });
     expect(sent).toHaveLength(1);
@@ -383,7 +383,7 @@ describe.each(SYSTEMS)('the emails for $name', (system) => {
     direct: true,
     updatesOptIn: false,
     when: '2026-11-02 09:30 UTC',
-    siteUrl: 'https://scrim.oyedokunken.dev',
+    siteUrl: 'https://scrim.oyedokun.dev',
   });
   const BANNED =
     /coming soon|not out yet|isn.t out|first release|will be available|in development/i;

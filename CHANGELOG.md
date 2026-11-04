@@ -4,6 +4,10 @@ All notable changes to Scrim are documented here.
 
 ## Unreleased
 
+## 1.0.0 (2026-11-03)
+
+Scrim for Windows.
+
 ### Added (desktop app)
 
 - Electron app with a locked down baseline: sandboxed renderer, context isolation, a strict content security policy on the `app://` protocol, navigation and permission guards, one allowlisted link opener, a single instance lock, and Electron fuses checked in the packaged binary

@@ -16,9 +16,11 @@ export const siteConfig = {
   maltUrl: 'https://buymeamalt.com/@oyedokunken',
   /** The owner's inbox. Only the privacy page links to it, for access and deletion requests. */
   contactInbox: 'oyedokunken@gmail.com',
+  /** The address shown for email. It opens a message to the contact inbox above. */
+  contactEmailLabel: 'hello@scrim.app',
   /**
    * The address shown on the last card of the hero video. It stays www.scrim.app on purpose (owner
-   * decision, 2026-11-03): the site itself lives at scrim.oyedokunken.dev, and every link and email
+   * decision, 2026-11-03): the site itself lives at scrim.oyedokun.dev, and every link and email
    * takes that from SITE_URL.
    */
   heroAddress: 'www.scrim.app',

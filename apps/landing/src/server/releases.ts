@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getSiteEnv } from './env';
 
 const releaseSchema = z.object({
+  draft: z.boolean().optional(),
   tag_name: z.string().min(1),
   html_url: z.url(),
   published_at: z.string().nullable().optional(),
@@ -14,6 +15,8 @@ const releaseSchema = z.object({
     }),
   ),
 });
+
+const releasesSchema = z.array(releaseSchema);
 
 interface ReleaseAsset {
   name: string;
@@ -42,9 +45,11 @@ type FetchLike = (
 ) => Promise<Response>;
 
 /**
- * The latest published GitHub Release, or `null` when there is none or GitHub cannot be reached.
- * It never throws, so a page can always render. Drafts and pre releases are not returned by the
- * `latest` endpoint. Failures are logged without any request detail.
+ * The newest published GitHub Release, or `null` when there is none or GitHub cannot be reached.
+ * It never throws, so a page can always render. It reads the release list rather than the `latest`
+ * endpoint, because `latest` answers 404 while the only release is marked a pre release, which
+ * sent every visitor to the Releases page. Drafts are skipped. Failures are logged without any
+ * request detail.
  */
 export async function fetchLatestRelease(
   fetchImpl: FetchLike = fetch,
@@ -60,7 +65,7 @@ export async function fetchLatestRelease(
 
   try {
     const response = await fetchImpl(
-      `https://api.github.com/repos/${site.GITHUB_REPO}/releases/latest`,
+      `https://api.github.com/repos/${site.GITHUB_REPO}/releases?per_page=10`,
       {
         headers,
         signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -74,16 +79,20 @@ export async function fetchLatestRelease(
       console.warn(`Release lookup failed with status ${response.status}.`);
       return null;
     }
-    const parsed = releaseSchema.safeParse(await response.json());
+    const parsed = releasesSchema.safeParse(await response.json());
     if (!parsed.success) {
       console.warn('Release lookup returned an unexpected shape.');
       return null;
     }
+    const newest = parsed.data.find((release) => release.draft !== true);
+    if (newest === undefined) {
+      return null; // Only drafts, or nothing, so far.
+    }
     return {
-      version: parsed.data.tag_name.replace(/^v/i, ''),
-      url: parsed.data.html_url,
-      publishedAt: parsed.data.published_at ?? null,
-      assets: parsed.data.assets.map((asset) => ({
+      version: newest.tag_name.replace(/^v/i, ''),
+      url: newest.html_url,
+      publishedAt: newest.published_at ?? null,
+      assets: newest.assets.map((asset) => ({
         name: asset.name,
         url: asset.browser_download_url,
         size: asset.size,

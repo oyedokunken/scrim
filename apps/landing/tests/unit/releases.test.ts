@@ -17,6 +17,8 @@ const release = {
   ],
 };
 
+const list = (...releases: unknown[]) => Promise.resolve(Response.json(releases));
+
 const json = (body: unknown, status = 200) =>
   Promise.resolve(new Response(JSON.stringify(body), { status }));
 
@@ -26,7 +28,7 @@ afterEach(() => {
 
 describe('fetchLatestRelease', () => {
   it('returns the version without the v, the page and the assets', async () => {
-    const result = await fetchLatestRelease(() => json(release), site);
+    const result = await fetchLatestRelease(() => list(release), site);
     expect(result).toEqual({
       version: '1.2.3',
       url: release.html_url,
@@ -41,13 +43,13 @@ describe('fetchLatestRelease', () => {
     });
   });
 
-  it('asks the latest release endpoint of the configured repository and caches for minutes', async () => {
+  it('asks the release list of the configured repository and caches for minutes', async () => {
     const fetchImpl = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(() =>
       json(release),
     );
     await fetchLatestRelease(fetchImpl, site);
     const [url, init] = fetchImpl.mock.calls[0] ?? [];
-    expect(url).toBe('https://api.github.com/repos/oyedokunken/scrim/releases/latest');
+    expect(url).toBe('https://api.github.com/repos/oyedokunken/scrim/releases?per_page=10');
     expect(init).toMatchObject({ next: { revalidate: 300 } });
   });
 
@@ -65,6 +67,22 @@ describe('fetchLatestRelease', () => {
     expect(JSON.stringify(withToken.mock.calls[0]?.[1]?.headers)).toContain('Bearer abc');
   });
 
+  it('uses a pre release, which the latest endpoint would hide', async () => {
+    const pre = { ...release, tag_name: 'v1.0.0', prerelease: true };
+    expect((await fetchLatestRelease(() => list(pre), site))?.version).toBe('1.0.0');
+  });
+
+  it('skips drafts and takes the newest of the rest', async () => {
+    const draft = { ...release, tag_name: 'v2.0.0', draft: true };
+    const result = await fetchLatestRelease(() => list(draft, release), site);
+    expect(result?.version).toBe('1.2.3');
+    expect(await fetchLatestRelease(() => list(draft), site)).toBeNull();
+  });
+
+  it('returns null when the list is empty', async () => {
+    expect(await fetchLatestRelease(() => list(), site)).toBeNull();
+  });
+
   it('returns null quietly when no release exists yet', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     expect(await fetchLatestRelease(() => json({ message: 'Not Found' }, 404), site)).toBeNull();
@@ -79,7 +97,7 @@ describe('fetchLatestRelease', () => {
 
   it('returns null when the response has an unexpected shape', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    expect(await fetchLatestRelease(() => json({ tag_name: 7 }), site)).toBeNull();
+    expect(await fetchLatestRelease(() => list({ tag_name: 7 }), site)).toBeNull();
   });
 
   it('returns null instead of throwing when the network fails or times out', async () => {

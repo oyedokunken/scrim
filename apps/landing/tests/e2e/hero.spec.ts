@@ -58,8 +58,8 @@ test.describe('the hero video', () => {
     const zoom = await page.getByRole('switch', { name: 'Auto zoom' }).boundingBox();
     for (const box of [play, zoom]) {
       expect(box).not.toBeNull();
-      // Inside the video, in its lower right half.
-      expect(box?.x ?? 0).toBeGreaterThan((stage?.x ?? 0) + (stage?.width ?? 0) * 0.3);
+      // Inside the video, along its bottom edge.
+      expect(box?.y ?? 0).toBeGreaterThan((stage?.y ?? 0) + (stage?.height ?? 0) * 0.6);
       expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(
         (stage?.y ?? 0) + (stage?.height ?? 0) + 1,
       );
@@ -71,17 +71,17 @@ test.describe('the hero video', () => {
     const hero = page.locator('section[aria-labelledby="hero-title"]');
     // The hero holds the download link, the source link, the play control, the switch and the
     // timeline. There is no Play demo button, no caption and no second label.
-    // Inside the video: Play and Pause, and the sound toggle. Under it sit one button for each chapter.
-    await expect(hero.getByRole('button')).toHaveCount(2 + SEGMENTS.length);
-    await expect(
-      hero.getByRole('navigation', { name: 'Chapters' }).getByRole('button'),
-    ).toHaveCount(SEGMENTS.length);
+    // Inside the video: Play and Pause, and the sound toggle. No chapter buttons under it.
+    await expect(hero.getByRole('button')).toHaveCount(2);
+    await expect(hero.getByRole('navigation', { name: 'Chapters' })).toHaveCount(0);
     await expect(hero.getByText('Play demo')).toHaveCount(0);
     await expect(hero.getByText(/Auto zoom is (on|off)/)).toHaveCount(0);
     await expect(hero.getByText('Timeline', { exact: true })).toHaveCount(0);
-    // The timeline sits under the video.
+    // The timeline is inside the video too, not under it.
     const line = await timeline(page).boundingBox();
-    expect(line?.y ?? 0).toBeGreaterThanOrEqual((stage?.y ?? 0) + (stage?.height ?? 0) - 1);
+    expect((line?.y ?? 0) + (line?.height ?? 0)).toBeLessThanOrEqual(
+      (stage?.y ?? 0) + (stage?.height ?? 0) + 1,
+    );
   });
 
   test('the play control pauses and resumes from the same place', async ({ page }) => {
@@ -211,7 +211,7 @@ test.describe('the hero video', () => {
     const view = demo(page);
     await expect(view).toHaveAttribute('data-playing', 'true');
     await page.evaluate(() => {
-      document.querySelector('#features')?.scrollIntoView();
+      document.querySelector('#faq')?.scrollIntoView();
     });
     await expect(view).toHaveAttribute('data-playing', 'false');
     await page.evaluate(() => {
@@ -343,71 +343,14 @@ test.describe('the video controls', () => {
   });
 });
 
-test.describe('the chapter buttons', () => {
-  test.beforeEach(async ({ page }) => {
+test.describe('the chapter list', () => {
+  test('is not shown under or inside the video', async ({ page }) => {
     await page.goto('/');
-  });
-
-  test('jump to their chapter and mark the playing one with aria-current', async ({ page }) => {
-    const nav = page.getByRole('navigation', { name: 'Chapters' });
-    await expect(nav.getByRole('button')).toHaveCount(SEGMENTS.length);
-    await pause(page);
-    for (const entry of SEGMENTS) {
-      await nav.getByRole('button', { name: entry.label, exact: true }).click();
-      await expect(demo(page)).toHaveAttribute('data-scene', entry.id);
-      await expect(nav.getByRole('button', { name: entry.label, exact: true })).toHaveAttribute(
-        'aria-current',
-        'true',
-      );
-      await expect(nav.locator('[aria-current="true"]')).toHaveCount(1);
+    await expect(page.getByRole('navigation', { name: 'Chapters' })).toHaveCount(0);
+    for (const label of ['Logo', 'Headline', 'Recording', 'Platforms', 'Address']) {
+      await expect(page.getByTestId('hero-demo').getByText(label, { exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: label, exact: true })).toHaveCount(0);
     }
-  });
-
-  for (const width of [320, 375, 768, 1024, 1440]) {
-    test(`form one bar as wide as the video, with a small radius, at ${String(width)} px`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto('/');
-      const video = await demo(page).boundingBox();
-      const nav = page.getByRole('navigation', { name: 'Chapters' });
-      const bar = await nav.boundingBox();
-      // Same left and right edges as the video, to the pixel.
-      expect(bar?.x).toBeCloseTo(video?.x ?? -1, 0);
-      expect((bar?.x ?? 0) + (bar?.width ?? 0)).toBeCloseTo(
-        (video?.x ?? 0) + (video?.width ?? 0),
-        0,
-      );
-      const radius = await nav.evaluate((element) =>
-        parseFloat(getComputedStyle(element).borderTopLeftRadius),
-      );
-      expect(radius).toBeGreaterThanOrEqual(4);
-      expect(radius).toBeLessThanOrEqual(8);
-      for (const box of await nav.getByRole('button').evaluateAll((buttons) =>
-        buttons.map((button) => {
-          const rect = button.getBoundingClientRect();
-          return { left: rect.left, right: rect.right, height: rect.height };
-        }),
-      )) {
-        expect(box.height).toBeGreaterThanOrEqual(44);
-        expect(box.left).toBeGreaterThanOrEqual((video?.x ?? 0) - 1);
-        expect(box.right).toBeLessThanOrEqual((video?.x ?? 0) + (video?.width ?? 0) + 1);
-      }
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-      ).toBe(true);
-    });
-  }
-
-  test('can be used from the keyboard alone', async ({ page }) => {
-    await pause(page);
-    const edit = page.getByRole('navigation', { name: 'Chapters' }).getByRole('button', {
-      name: 'Edit',
-      exact: true,
-    });
-    await edit.focus();
-    await page.keyboard.press('Enter');
-    await expect(demo(page)).toHaveAttribute('data-scene', 'edit');
   });
 });
 
@@ -601,19 +544,27 @@ test.describe('the recording look of the demo', () => {
     );
   });
 
-  test('the timeline has segments, a ruler and a flag that follows the playhead', async ({
+  test('the timeline sits on the control row inside the video, with only the time as text', async ({
     page,
   }) => {
     await page.goto('/');
-    for (const entry of SEGMENTS) {
-      await expect(
-        page.locator(`[data-segment]`).filter({ hasText: new RegExp(`^${entry.label}$`) }),
-      ).toHaveCount(1);
+    const view = await demo(page).boundingBox();
+    const bar = await timeline(page).boundingBox();
+    const play = await playButton(page).boundingBox();
+    expect(view).not.toBeNull();
+    expect(bar).not.toBeNull();
+    expect(play).not.toBeNull();
+    // Inside the video, and level with the buttons. On a narrow video it wraps to its own row.
+    expect(bar?.y ?? 0).toBeGreaterThanOrEqual(view?.y ?? 0);
+    expect((bar?.y ?? 0) + (bar?.height ?? 0)).toBeLessThanOrEqual(
+      (view?.y ?? 0) + (view?.height ?? 0) + 1,
+    );
+    if ((view?.width ?? 0) > 576) {
+      expect(Math.abs((bar?.y ?? 0) - (play?.y ?? 0))).toBeLessThan(6);
     }
-    for (let second = 0; second <= Math.floor(MASTER_DURATION_MS / 5000) * 5; second += 5) {
-      const label = `0:${String(second).padStart(2, '0')}`;
-      await expect(page.getByText(label, { exact: true }).first()).toBeAttached();
-    }
+    // No segment blocks and no ruler, and the zooms are dots.
+    await expect(page.locator('[data-segment]')).toHaveCount(0);
+    await expect(page.locator('[class*="tick"]')).toHaveCount(0);
     await pause(page);
     await clickTimelineAt(page, shareOf('edit'));
     await expect(timeline(page)).toHaveAttribute('aria-valuetext', /^Edit, 0:\d\d of 0:\d\d$/);
