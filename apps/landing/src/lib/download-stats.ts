@@ -1,4 +1,4 @@
-export type SystemName = 'Windows' | 'macOS' | 'Linux';
+type SystemName = 'Windows' | 'macOS' | 'Linux';
 
 /** One row of grouped counts, as the database returns it. */
 export interface DownloadGroup {
