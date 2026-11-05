@@ -260,7 +260,12 @@ describe('the privacy page', () => {
   it('is one article with one h1 and a last updated date', () => {
     expect(html.match(/<h1[ >]/g)).toHaveLength(1);
     expect(html).toContain('Last updated');
-    expect(html).toContain('<time dateTime="2026-10-28">28 October 2026</time>');
+    expect(html).toContain('<time dateTime="2026-11-05">5 November 2026</time>');
+  });
+
+  it('says the time zone is used only to show times in the email', () => {
+    expect(html).toContain('time zone');
+    expect(html).toContain('It is not stored.');
   });
 
   it('lists everything the download form stores, and nothing else', () => {

@@ -65,6 +65,10 @@ export default function PrivacyPage() {
             email and the system you chose, and nothing else.
           </li>
           <li>To send release notices, only if you ticked the box to get them.</li>
+          <li>
+            Your browser sends its time zone with the form. It is used only to show times in your
+            email in your own zone. It is not stored.
+          </li>
         </ul>
       </section>
 
