@@ -13,7 +13,7 @@ import { enterApp, expect, removeAfterAppCloses, test } from './fixtures';
 const APP_DIR = join(__dirname, '../..');
 const ffmpeg = existsSync(join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe'))
   ? join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe')
-  : (process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
+  : (process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
 const SHOTS = process.env['SCRIM_SHOTS'];
 
 test.skip(process.env['SCRIM_E2E_TARGET'] === 'packaged', 'Needs the main process.');
