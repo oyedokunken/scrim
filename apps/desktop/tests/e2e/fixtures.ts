@@ -28,7 +28,7 @@ const PACKAGED = process.env['SCRIM_E2E_TARGET'] === 'packaged';
 // only: on a hosted Windows runner the same flags made every launch end with an access violation
 // (exit code 3221225477), while a launch without them works.
 const onLinuxRunner = process.env['CI'] !== undefined && process.platform === 'linux';
-const sandboxFlags = onLinuxRunner ? ['--no-sandbox', '--disable-gpu'] : [];
+export const sandboxFlags = onLinuxRunner ? ['--no-sandbox', '--disable-gpu'] : [];
 
 /** Ends the app and its helper processes, which keep the user data folder locked on Windows. */
 async function stopTree(child: ChildProcess): Promise<void> {

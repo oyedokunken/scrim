@@ -12,6 +12,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { sandboxFlags } from './fixtures';
 
 /**
  * The area chooser for Record and for Screenshot, in the built app and in the PACKAGED app, with
@@ -55,7 +56,7 @@ async function launch(): Promise<Running> {
       destinationFolder: join(work, 'exports'),
     }),
   );
-  const flags = [`--user-data-dir=${userData}`, '--remote-debugging-port=0'];
+  const flags = [`--user-data-dir=${userData}`, '--remote-debugging-port=0', ...sandboxFlags];
   const exe = PACKAGED
     ? (process.env['SCRIM_PACKAGED_EXE'] ?? join(APP_DIR, 'release', 'win-unpacked', 'Scrim.exe'))
     : electronPath;
