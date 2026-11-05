@@ -23,7 +23,6 @@
   },
   "devDependencies": {
     "@electron/fuses": "catalog:",
-    "@axe-core/playwright": "catalog:",
     "@fontsource-variable/urbanist": "catalog:",
     "@playwright/test": "catalog:",
     "@scrim/core": "workspace:*",

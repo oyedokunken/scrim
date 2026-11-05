@@ -153,7 +153,7 @@ export function planSigning(input: SigningPlanInput): SigningDecision {
 }
 
 /** Reads the environment into plain facts for planSigning. */
-export function signingInputFromEnv(env: SigningEnv, dryRunFlag = false): SigningPlanInput {
+function signingInputFromEnv(env: SigningEnv, dryRunFlag = false): SigningPlanInput {
   const dryRun = dryRunFlag || (env['SCRIM_SIGNING_DRY_RUN'] ?? '').trim().toLowerCase() === 'true';
   const tagPush =
     env['GITHUB_EVENT_NAME'] === 'push' && (env['GITHUB_REF'] ?? '').startsWith('refs/tags/v');

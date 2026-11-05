@@ -19,7 +19,7 @@ export function projectIdFromTag(tag: string | null | undefined): string | null 
  * `export.json` in a project folder: which video the last render wrote. It is the first link the
  * Library follows, because it survives a renamed video. The video's own tag is the second.
  */
-export const exportRecordSchema = z.object({
+const exportRecordSchema = z.object({
   version: z.literal(1),
   exportedAt: z.string(),
   file: z.string(),
