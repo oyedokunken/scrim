@@ -1,3 +1,7 @@
+.logo {
+  color: var(--scrim-black);
+}
+
 .page {
   display: grid;
   min-height: 100vh;
@@ -36,8 +40,10 @@
   text-decoration: none;
 }
 
-.button:hover {
+.button:hover,
+.button:focus-visible {
   background: var(--scrim-green-hover);
+  color: var(--scrim-white);
 }
 
 .button:focus-visible {

@@ -35,7 +35,7 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
       />
-      <Hero />
+      <Hero version={release?.version ?? null} />
       <Features />
       <UseCases />
       <DownloadSection />

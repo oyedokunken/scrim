@@ -39,6 +39,13 @@
   max-width: 24rem;
 }
 
+.logoRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--scrim-space-3);
+}
+
 .brand p {
   color: color-mix(in srgb, var(--scrim-butter) 78%, var(--scrim-black));
 }

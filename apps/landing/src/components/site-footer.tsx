@@ -3,20 +3,26 @@ import { BuiltBy } from './built-by';
 import { Logo } from './logo';
 import { MaltLink } from './malt-link';
 import { SiteLink } from './site-link';
+import { VersionPill } from './version-pill';
 import styles from './site-footer.module.css';
 
 interface SiteFooterProps {
   /** The year shown in the copyright line. */
   year: number;
+  /** The latest release number, shown as a pill beside the logo. */
+  version?: string | null;
 }
 
-export function SiteFooter({ year }: SiteFooterProps) {
+export function SiteFooter({ year, version = null }: SiteFooterProps) {
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.top}>
           <div className={styles.brand}>
-            <Logo markSize={36} />
+            <div className={styles.logoRow}>
+              <Logo markSize={36} />
+              <VersionPill version={version} />
+            </div>
             <p>
               Scrim records your screen, spotlights your cursor and zooms in on the action. Free,
               open source and entirely on your computer.

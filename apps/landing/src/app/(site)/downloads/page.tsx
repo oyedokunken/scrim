@@ -9,8 +9,10 @@ export const metadata: Metadata = pageMetadata({
   path: '/downloads',
 });
 
-// Counts change slowly, so the page regenerates every 5 minutes instead of on every visit.
-export const revalidate = 300;
+// The counts are read on every visit. A page built ahead of time would bake in "not available"
+// whenever the database could not be reached while it was being built or refreshed, and show that
+// message for minutes. The query is three small counts, so reading it live is cheap.
+export const dynamic = 'force-dynamic';
 
 export default async function DownloadsPage() {
   const summary = await loadDownloadSummary();

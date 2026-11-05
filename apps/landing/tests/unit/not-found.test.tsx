@@ -26,3 +26,17 @@ describe('the 404 page', () => {
     expect(site).toContain('SiteFooter');
   });
 });
+
+describe('the 404 button', () => {
+  const css = readFileSync(new URL('../../src/app/not-found.module.css', import.meta.url), 'utf8');
+
+  it('keeps white text on the green hover background', () => {
+    const rule = /\.button:hover[^{]*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(rule).toContain('background: var(--scrim-green-hover)');
+    expect(rule).toContain('color: var(--scrim-white)');
+  });
+
+  it('shows the full logo with the name', () => {
+    expect(renderToStaticMarkup(<NotFound />)).toContain('>Scrim<');
+  });
+});

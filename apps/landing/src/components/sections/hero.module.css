@@ -10,6 +10,17 @@
   align-items: end;
 }
 
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--scrim-space-3);
+}
+
+.titleRow > span {
+  margin-top: 0.75rem;
+}
+
 .title {
   max-width: 18ch;
   font-size: var(--scrim-text-display);
