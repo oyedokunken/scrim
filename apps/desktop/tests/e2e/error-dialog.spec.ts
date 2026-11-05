@@ -46,8 +46,10 @@ test.describe('errors in a dialog', () => {
     await expect(dialog.getByText('Error code: screen-permission')).toBeVisible();
 
     await dialog.getByRole('button', { name: 'Try again' }).click();
-    await expect(dialog).toBeVisible();
-    await expect.poll(() => calls(app)).toBe(2);
+    // The second start fails the same way and opens the dialog again. Wait for the call first, so a
+    // slow machine is told apart from a retry that never ran.
+    await expect.poll(() => calls(app), { timeout: 15_000 }).toBe(2);
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
   });
 
   test('the X, Escape and the Close button close it', async ({ app, page }) => {
