@@ -9,7 +9,7 @@ import { FinalCta } from '@/components/sections/final-cta';
 import { Hero } from '@/components/sections/hero';
 import { RUN_COMMANDS } from '@/components/sections/run-commands';
 import { UseCases } from '@/components/sections/use-cases';
-import PrivacyPage from '@/app/privacy/page';
+import PrivacyPage from '@/app/(site)/privacy/page';
 import { siteConfig } from '@/site.config';
 
 const page = () =>

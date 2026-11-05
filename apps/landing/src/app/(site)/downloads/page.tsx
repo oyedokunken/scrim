@@ -14,6 +14,15 @@ export const revalidate = 300;
 
 export default async function DownloadsPage() {
   const summary = await loadDownloadSummary();
+  const periods =
+    summary === null
+      ? []
+      : [
+          { label: 'Today', count: summary.periods.today },
+          { label: 'This week', count: summary.periods.week },
+          { label: 'This month', count: summary.periods.month },
+          { label: 'Total', count: summary.total },
+        ];
 
   return (
     <article className={`container ${styles.page}`} aria-labelledby="downloads-title">
@@ -31,14 +40,25 @@ export default async function DownloadsPage() {
         <p>The counts are not available right now. Please try again in a few minutes.</p>
       ) : (
         <>
-          <section aria-labelledby="total-title">
-            <h2 id="total-title">In total</h2>
-            <p className={styles.total}>{summary.total.toLocaleString('en-GB')}</p>
+          <section aria-labelledby="period-title">
+            <h2 id="period-title" className="visually-hidden">
+              Downloads over time
+            </h2>
+            <ul className={styles.tiles}>
+              {periods.map((item) => (
+                <li key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.count.toLocaleString('en-GB')}</strong>
+                </li>
+              ))}
+            </ul>
           </section>
 
           <section aria-labelledby="system-title">
-            <h2 id="system-title">By system</h2>
-            <ul className={styles.list}>
+            <h2 id="system-title" className="visually-hidden">
+              Downloads by system
+            </h2>
+            <ul className={`${styles.tiles} ${styles.three}`}>
               {summary.bySystem.map((item) => (
                 <li key={item.name}>
                   <span>{item.name}</span>

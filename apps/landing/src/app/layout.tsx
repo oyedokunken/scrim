@@ -2,10 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import '@scrim/tokens/tokens.css';
 import './globals.css';
-import { BackToTop } from '@/components/back-to-top';
-import { DownloadProvider } from '@/components/download/download-provider';
-import { SiteFooter } from '@/components/site-footer';
-import { SiteHeader } from '@/components/site-header';
 import { getSiteEnv } from '@/server/env';
 import { siteConfig } from '@/site.config';
 import { urbanist } from './fonts';
@@ -43,17 +39,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={urbanist.variable}>
-      <body>
-        <a className="skip-link" href="#main">
-          Skip to content
-        </a>
-        <DownloadProvider>
-          <SiteHeader />
-          <main id="main">{children}</main>
-          <SiteFooter year={new Date().getFullYear()} />
-          <BackToTop />
-        </DownloadProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
