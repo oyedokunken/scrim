@@ -64,7 +64,7 @@ Choose your system on [scrim.oyedokun.dev](https://scrim.oyedokun.dev), or take 
 | macOS   | `.dmg` for Apple Silicon and Intel            | Choose Open Anyway in Privacy and Security. Allow Screen Recording and Accessibility when asked.  |
 | Linux   | AppImage and `.deb` for 64 bit Linux          | Make the AppImage executable and run it. On Wayland, cursor effects and auto zoom are turned off. |
 
-Only the Windows installer is published so far. macOS and Linux installers will appear here once they have been tested on real machines.
+Windows and Linux (64 bit) installers are published. The Linux build has had less testing than Windows. macOS will appear here once it has been tested on a real machine.
 
 ## Features
 
