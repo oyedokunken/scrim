@@ -2,6 +2,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { LinuxAppImageSteps, LinuxVerify } from '@/components/sections/linux-help';
 import {
+  APPIMAGE_PROFILE_COMMANDS,
+  APPIMAGE_PROFILE_FILE,
+  APPIMAGE_PROFILE_FOLDER,
   APPIMAGE_RUN_COMMANDS,
   APPIMAGE_SANDBOX_COMMANDS,
   spacedFingerprint,
@@ -51,6 +54,35 @@ describe('the AppImage steps', () => {
     ].join('\n');
     expect(everything).not.toContain('no-sandbox');
     expect(everything).not.toContain('disable-setuid-sandbox');
+  });
+});
+
+describe('the Scrim only AppArmor profile for an AppImage', () => {
+  const html = renderToStaticMarkup(<LinuxAppImageSteps />);
+  const profile = APPIMAGE_PROFILE_COMMANDS.write.join('\n');
+
+  it('allows user namespaces for one program and nothing else', () => {
+    expect(profile).toContain('userns,');
+    expect(profile).toContain(`profile scrim-appimage ${APPIMAGE_PROFILE_FOLDER}/scrim`);
+    expect(profile).toContain('flags=(unconfined)');
+    expect(profile).not.toContain('/**');
+    expect(profile).not.toContain('capability');
+  });
+
+  it('is the same shape as the profile the deb installs', () => {
+    expect(profile).toContain('abi <abi/4.0>,');
+    expect(profile).toContain('include <tunables/global>');
+    expect(profile).toContain('include if exists <local/scrim-appimage>');
+  });
+
+  it('is recommended before the whole computer setting, with a way to remove it', () => {
+    expect(html).toContain(APPIMAGE_PROFILE_COMMANDS.load);
+    expect(html).toContain('--appimage-extract');
+    expect(html).toContain(APPIMAGE_PROFILE_FILE);
+    expect(html.indexOf(APPIMAGE_PROFILE_COMMANDS.load)).toBeLessThan(
+      html.indexOf(APPIMAGE_SANDBOX_COMMANDS.now),
+    );
+    expect(APPIMAGE_PROFILE_COMMANDS.remove.join('\n')).toContain('apparmor_parser -R');
   });
 });
 

@@ -1,4 +1,5 @@
 import {
+  APPIMAGE_PROFILE_COMMANDS,
   APPIMAGE_RUN_COMMANDS,
   APPIMAGE_SANDBOX_COMMANDS,
   spacedFingerprint,
@@ -25,16 +26,30 @@ export function LinuxAppImageSteps() {
       <Commands lines={APPIMAGE_RUN_COMMANDS} />
       <p>
         <strong>AppImage on Ubuntu 24.04.</strong> If Scrim stops with a sandbox error, Ubuntu is
-        blocking the user namespaces that the Chromium sandbox needs. The sandbox stays on. To allow
-        the namespaces until you restart:
+        blocking the user namespaces that the Chromium sandbox needs. The sandbox stays on. The
+        safest fix allows the namespaces for Scrim alone, with the same small AppArmor profile that
+        the deb installs. First unpack the AppImage into a fixed folder, because a profile cannot
+        name the temporary folder an AppImage normally runs from:
+      </p>
+      <Commands lines={APPIMAGE_PROFILE_COMMANDS.extract} />
+      <p>Then write the profile and load it:</p>
+      <Commands lines={[...APPIMAGE_PROFILE_COMMANDS.write, APPIMAGE_PROFILE_COMMANDS.load]} />
+      <p>Start Scrim from the unpacked folder:</p>
+      <Commands lines={[APPIMAGE_PROFILE_COMMANDS.run]} />
+      <p>
+        An unpacked copy does not update itself. To update, download the new AppImage and repeat
+        these steps. To remove all of it:
+      </p>
+      <Commands lines={APPIMAGE_PROFILE_COMMANDS.remove} />
+      <p>
+        <strong>Or, for the whole computer.</strong> This setting is simpler but wider: it lets
+        every program create user namespaces, which Ubuntu 24.04 limits on purpose. To allow them
+        until you restart:
       </p>
       <Commands lines={[APPIMAGE_SANDBOX_COMMANDS.now]} />
       <p>To keep that setting after a restart:</p>
       <Commands lines={[APPIMAGE_SANDBOX_COMMANDS.keep]} />
-      <p>
-        This setting is for the whole computer: it lets every program create user namespaces, which
-        Ubuntu 24.04 limits on purpose. To put the limit back:
-      </p>
+      <p>To put the limit back:</p>
       <Commands lines={[APPIMAGE_SANDBOX_COMMANDS.undo]} />
       <p>
         The deb package avoids this: it adds a small AppArmor profile that allows the namespaces for
