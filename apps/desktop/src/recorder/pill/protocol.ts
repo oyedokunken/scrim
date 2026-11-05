@@ -3,19 +3,14 @@ import { z } from 'zod';
 export type PillPhase = 'recording' | 'paused' | 'saving';
 
 /** Why a button cannot be used right now. Shown as a short message in the pill. */
-export const mediaErrorSchema = z.enum([
-  'device-removed',
-  'device-busy',
-  'permission-denied',
-  'unknown',
-]);
+const mediaErrorSchema = z.enum(['device-removed', 'device-busy', 'permission-denied', 'unknown']);
 export type MediaError = z.infer<typeof mediaErrorSchema>;
 
 /**
  * One device on the pill. `available` is false when it was off before recording started, and a
  * device cannot be turned on mid recording. `active` is the mic not muted, or the camera shown.
  */
-export const mediaDeviceStateSchema = z.strictObject({
+const mediaDeviceStateSchema = z.strictObject({
   available: z.boolean(),
   active: z.boolean(),
   error: mediaErrorSchema.optional(),

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** The prefix of a background id that names one of the person's own images. */
-export const CUSTOM_BACKGROUND_PREFIX = 'image:';
+const CUSTOM_BACKGROUND_PREFIX = 'image:';
 
 /** The largest picture Scrim keeps as a background. */
 export const MAX_BACKGROUND_BYTES = 10 * 1024 * 1024;
@@ -11,9 +11,7 @@ export const MAX_BACKGROUNDS = 24;
 
 const idSchema = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
 
-export const backgroundSchema = z
-  .object({ id: idSchema, name: z.string().min(1).max(120) })
-  .strict();
+const backgroundSchema = z.object({ id: idSchema, name: z.string().min(1).max(120) }).strict();
 export type BackgroundImage = z.infer<typeof backgroundSchema>;
 
 const imageDataUrlSchema = z
@@ -22,7 +20,7 @@ const imageDataUrlSchema = z
   .regex(/^data:image\/(png|jpeg|webp);base64,/, 'Only PNG, JPG and WebP images are accepted.');
 
 /** Why a picture was not added, in words the page can show as they are. */
-export const addBackgroundOutcomeSchema = z.discriminatedUnion('ok', [
+const addBackgroundOutcomeSchema = z.discriminatedUnion('ok', [
   z.object({ ok: z.literal(true), background: backgroundSchema }).strict(),
   z
     .object({
