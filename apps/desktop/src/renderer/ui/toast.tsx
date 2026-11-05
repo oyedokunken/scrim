@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { Button } from './button';
 import { Tooltip } from './tooltip';
 import {
   createContext,
@@ -20,13 +21,20 @@ interface ToastAction {
   run: () => void;
 }
 
-interface ToastItem {
-  id: number;
-  message: string;
+/** What a toast can carry beside its title. */
+interface ToastOptions {
+  /** The line under the title. */
+  text?: string | undefined;
+  /** A button under the text, such as Show in folder. */
   action?: ToastAction | undefined;
 }
 
-type Notify = (message: string, action?: ToastAction) => void;
+interface ToastItem extends ToastOptions {
+  id: number;
+  title: string;
+}
+
+type Notify = (title: string, options?: ToastOptions) => void;
 
 const ToastContext = createContext<Notify | null>(null);
 
@@ -52,31 +60,37 @@ function ToastView({ item, onClose }: { item: ToastItem; onClose: (id: number) =
 
   return (
     <div className="ui-toast">
-      <span>{item.message}</span>
-      {item.action === undefined ? null : (
-        <button
-          type="button"
-          className="ui-toast-action"
-          onClick={() => {
-            item.action?.run();
-            onClose(item.id);
-          }}
-        >
-          {item.action.label}
-        </button>
+      <div className="ui-toast-head">
+        <p className="ui-toast-title">{item.title}</p>
+        <Tooltip label="Close" side="bottom-end">
+          <button
+            type="button"
+            className="ui-toast-close"
+            aria-label="Close"
+            onClick={() => {
+              onClose(item.id);
+            }}
+          >
+            <X size={16} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </Tooltip>
+      </div>
+      {item.text === undefined || item.text === '' ? null : (
+        <p className="ui-toast-text">{item.text}</p>
       )}
-      <Tooltip label="Dismiss">
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Dismiss"
-          onClick={() => {
-            onClose(item.id);
-          }}
-        >
-          <X size={16} strokeWidth={1.75} aria-hidden="true" />
-        </button>
-      </Tooltip>
+      {item.action === undefined ? null : (
+        <div className="ui-toast-actions">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              item.action?.run();
+              onClose(item.id);
+            }}
+          >
+            {item.action.label}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -89,10 +103,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setItems((current) => current.filter((item) => item.id !== id));
   }, []);
 
-  const notify = useCallback<Notify>((message, action) => {
+  const notify = useCallback<Notify>((title, options) => {
     const id = next.current;
     next.current += 1;
-    setItems((current) => [...current.slice(-3), { id, message, action }]);
+    setItems((current) => [...current.slice(-3), { id, title, ...options }]);
   }, []);
 
   return (

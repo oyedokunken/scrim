@@ -477,7 +477,7 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
   }, [image, imageSize, history.present, background, backgroundImage]);
 
   const failed = (): void => {
-    toast('Scrim could not do that. Try again.');
+    toast('That did not work', { text: 'Scrim could not do that. Try again.' });
   };
 
   const onDone = (): void => {
@@ -494,7 +494,9 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
     void window.scrim
       .invoke('image:save-edited', { sourcePath: path, dataUrl, copy })
       .then((result) => {
-        toast(`Saved ${fileName(result.path)}${result.copied ? ' and copied it' : ''}`);
+        toast('Screenshot saved', {
+          text: `${fileName(result.path)}${result.copied ? ' was saved and copied.' : ' was saved.'}`,
+        });
         const saved = frameGeometry(outputSize(history.present, imageSize), background);
         onSaved(result.path, { width: saved.width, height: saved.height });
       })
@@ -513,7 +515,7 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
     void window.scrim
       .invoke('image:copy', { dataUrl })
       .then(() => {
-        toast('Copied to the clipboard');
+        toast('Copied', { text: 'It is on your clipboard.' });
       })
       .catch(failed);
   };
@@ -542,7 +544,8 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
     void window.scrim
       .invoke('image:save-as', { dataUrl, name: `${base}-edited.png` })
       .then((result) => {
-        if (result.path !== null) toast(`Saved ${fileName(result.path)}`);
+        if (result.path !== null)
+          toast('Screenshot saved', { text: `${fileName(result.path)} was saved.` });
       })
       .catch(failed);
   };

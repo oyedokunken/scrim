@@ -362,9 +362,29 @@ test.describe('the screenshot editor', () => {
     try {
       await openResult(page);
       await page.getByRole('button', { name: 'Copy', exact: true }).click();
-      const toast = page.getByText('Copied to the clipboard', { exact: true });
+      const toast = page.locator('.ui-toast').filter({ hasText: 'Copied' });
       await expect(toast).toBeVisible();
-      await page.getByRole('button', { name: 'Dismiss' }).click();
+      await expect(toast.locator('.ui-toast-title')).toHaveText('Copied');
+      await expect(toast.locator('.ui-toast-text')).toHaveText('It is on your clipboard.');
+      await toast.screenshot({ path: 'test-results/toast-copied.png' });
+
+      // The title is on the left, the close button on the right in the same row, and the text is
+      // under the title. The close target is 32 px.
+      const title = await toast.locator('.ui-toast-title').boundingBox();
+      const text = await toast.locator('.ui-toast-text').boundingBox();
+      const close = toast.getByRole('button', { name: 'Close' });
+      const closeBox = await close.boundingBox();
+      expect(title).not.toBeNull();
+      expect(text).not.toBeNull();
+      expect(closeBox).not.toBeNull();
+      expect(closeBox?.width).toBeCloseTo(32, 0);
+      expect(closeBox?.height).toBeCloseTo(32, 0);
+      expect((title?.x ?? 0) + (title?.width ?? 0)).toBeLessThanOrEqual(closeBox?.x ?? 0);
+      expect(Math.abs((title?.y ?? 0) - (closeBox?.y ?? 0))).toBeLessThan(16);
+      expect(text?.y ?? 0).toBeGreaterThan((title?.y ?? 0) + (title?.height ?? 0) - 1);
+      expect(text?.x).toBeCloseTo(title?.x ?? 0, 0);
+
+      await close.click();
       await expect(toast).toBeHidden();
 
       await page.getByRole('button', { name: 'Copy', exact: true }).click();

@@ -132,7 +132,7 @@ export function LibraryDetail({
 
   const copyImage = (): void => {
     void actions.copyImage(item.id).then((ok) => {
-      if (ok) toast('Copied to the clipboard');
+      if (ok) toast('Copied', { text: 'It is on your clipboard.' });
       else {
         showError({
           title: 'Scrim could not copy the screenshot',
@@ -340,7 +340,7 @@ export function LibraryDetail({
           setConfirmDelete(false);
           void actions.remove(item.id).then((ok) => {
             if (ok) {
-              toast('Moved to the recycle bin');
+              toast('Moved to the recycle bin', { text: 'You can restore it from there.' });
               onBack();
             } else {
               showError({
