@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import { escapeForReact } from './support/html-text';
 import { describe, expect, it, vi } from 'vitest';
 import {
   cardFacts,
@@ -233,6 +234,6 @@ describe('the Library detail page', () => {
     expect(html.indexOf('aria-disabled="true"')).toBeLessThan(html.indexOf('Edit<'));
     // The reason is in the button's description and in a line under the buttons.
     expect(html).toContain('aria-describedby=');
-    expect(html.split(NO_PROJECT_REASON.replace("'", '&#x27;')).length - 1).toBe(2);
+    expect(html.split(escapeForReact(NO_PROJECT_REASON)).length - 1).toBe(2);
   });
 });

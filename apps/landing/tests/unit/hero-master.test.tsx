@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { HeroDemo } from '@/components/hero-demo/hero-demo';
+import { textOf } from './support/html-text';
 import {
   CARD_SCENES,
   DEMO_START_MS,
@@ -192,11 +193,9 @@ describe('the hero video on the server', () => {
   it('sets the headline on two lines that read as one sentence', () => {
     const block = /<p class="[^"]*words[^"]*">(.*?)<\/p>/.exec(html)?.[1] ?? '';
     const lines = block
-      .replace(/<span class="[^"]*headlineLine[^"]*">/g, '|')
-      .replace(/<[^>]+>/g, '')
-      .split('|')
+      .split(/<span class="[^"]*headlineLine[^"]*">/)
       .slice(1)
-      .map((line) => line.replace(/\s+/g, ' ').trim());
+      .map((line) => textOf(line).replace(/\s+/g, ' ').trim());
     expect(lines).toEqual(['Record anything on your', 'screen effortlessly']);
     expect(siteConfig.tagline).toBe('Record anything on your screen effortlessly');
   });
