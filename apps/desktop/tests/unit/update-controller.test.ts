@@ -1,3 +1,5 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createUpdateController,
@@ -225,6 +227,38 @@ describe('release notes as text', () => {
     );
     expect(notesToText(null)).toBe('');
     expect(notesToText([{ note: 'One' }, { note: null }, { note: 'Two' }])).toBe('One\n\nTwo');
+  });
+
+  it.each([
+    '<scr<script>ipt>alert(1)</script>',
+    '<<b>script>alert(1)<</b>/script>',
+    '<img src=x onerror=alert(1)>',
+    '<scr<scr<script>ipt>ipt>alert(1)',
+    '<a href="javascript:alert(1)">x</a',
+  ])('never leaves a tag start behind for %s', (input) => {
+    const text = notesToText(input);
+    expect(text).not.toContain('<');
+    const html = renderToStaticMarkup(createElement('pre', null, text));
+    expect(html).not.toMatch(/<script/i);
+    expect(html).not.toMatch(/<img/i);
+  });
+
+  it('shows an entity written as a tag as text, never as markup', () => {
+    const html = renderToStaticMarkup(
+      createElement('pre', null, notesToText('&lt;script&gt;alert(1)&lt;/script&gt;')),
+    );
+    expect(html).toBe('<pre>&lt;script&gt;alert(1)&lt;/script&gt;</pre>');
+  });
+
+  it('keeps list and line breaks', () => {
+    expect(notesToText('<ul><li>One</li><li>Two</li></ul>')).toBe('- One\n- Two');
+    expect(notesToText('a<br/>b')).toBe('a\nb');
+  });
+
+  it('finishes quickly on a very long run of angle brackets', () => {
+    const start = performance.now();
+    notesToText('<'.repeat(200_000));
+    expect(performance.now() - start).toBeLessThan(200);
   });
 
   it('cuts very long notes', () => {

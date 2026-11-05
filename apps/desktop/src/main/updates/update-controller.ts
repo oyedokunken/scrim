@@ -59,6 +59,40 @@ const ENTITIES: Readonly<Record<string, string>> = {
   '&nbsp;': ' ',
 };
 
+/** What a tag turns into when its markup is removed, so lists and paragraphs stay readable. */
+function breakFor(tag: string): string {
+  const closing = tag.startsWith('/');
+  const name = (closing ? tag.slice(1) : tag).trimStart().split(/[\s/]/, 1)[0]?.toLowerCase() ?? '';
+  if (name === 'br') return '\n';
+  if (closing && /^(p|div|h[1-6]|ul|ol)$/.test(name)) return '\n\n';
+  if (!closing && name === 'li') return '\n- ';
+  return '';
+}
+
+/**
+ * Removes markup in one left to right pass. A regular expression cannot do this safely: removing
+ * one tag can join the text around it into a new tag, as in "<scr<script>ipt>". Here every "<"
+ * either starts a tag, which is skipped up to its ">", or is dropped, so the output never holds a
+ * "<". The page still shows the result as React text, which escapes it.
+ */
+function stripTags(raw: string): string {
+  let out = '';
+  let index = 0;
+  while (index < raw.length) {
+    const char = raw.charAt(index);
+    if (char !== '<') {
+      out += char;
+      index += 1;
+      continue;
+    }
+    const end = raw.indexOf('>', index);
+    if (end === -1) break;
+    out += breakFor(raw.slice(index + 1, end));
+    index = end + 1;
+  }
+  return out;
+}
+
 /**
  * Release notes arrive as the release page's HTML. The page shows plain text only: tags are
  * removed, a few entities are decoded, and nothing is ever rendered as markup.
@@ -71,11 +105,7 @@ export function notesToText(notes: UpdateCheckLike['updateInfo']['releaseNotes']
           .map((entry) => entry.note ?? '')
           .filter((note) => note !== '')
           .join('\n\n');
-  const text = raw
-    .replace(/<\s*br\s*\/?>/gi, '\n')
-    .replace(/<\/\s*(p|div|h[1-6]|ul|ol)\s*>/gi, '\n\n')
-    .replace(/<\s*li[^>]*>/gi, '\n- ')
-    .replace(/<[^>]*>/g, '')
+  const text = stripTags(raw)
     .replace(/&(amp|lt|gt|quot|nbsp|#39);/g, (entity) => ENTITIES[entity] ?? entity)
     .replace(/\r\n?/g, '\n')
     .replace(/[ \t]+\n/g, '\n')
