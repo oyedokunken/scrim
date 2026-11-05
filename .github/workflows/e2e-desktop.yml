@@ -58,7 +58,12 @@ jobs:
       - name: Fetch the bundled FFmpeg
         run: pnpm fetch:ffmpeg
 
+      # The built app, run from source, takes FFmpeg from these variables or the PATH, and a hosted
+      # runner has none on its PATH. The bundled build fetched above is the one the app ships.
       - name: Build and run the end to end tests against the build
+        env:
+          SCRIM_FFMPEG: ${{ github.workspace }}/apps/desktop/resources/ffmpeg/ffmpeg.exe
+          SCRIM_FFPROBE: ${{ github.workspace }}/apps/desktop/resources/ffmpeg/ffprobe.exe
         run: |
           pnpm build
           pnpm test:e2e
