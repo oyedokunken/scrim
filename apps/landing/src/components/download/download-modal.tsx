@@ -99,7 +99,7 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
       name: '',
       email: '',
       ...(initialOs === undefined ? {} : { os: initialOs }),
-      format: 'appimage',
+      format: 'deb',
       updatesOptIn: false,
       website: '',
     },
@@ -296,17 +296,17 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
                 <legend>Package</legend>
                 <div className={styles.inline}>
                   <label className={styles.pill}>
-                    <input type="radio" value="appimage" {...register('format')} />
-                    AppImage
-                  </label>
-                  <label className={styles.pill}>
                     <input type="radio" value="deb" {...register('format')} />
                     deb package
                   </label>
+                  <label className={styles.pill}>
+                    <input type="radio" value="appimage" {...register('format')} />
+                    AppImage
+                  </label>
                 </div>
                 <p className={styles.hint}>
-                  The AppImage runs on most distributions. The deb is for Ubuntu and Debian, and it
-                  sets up the sandbox permission that Ubuntu 24.04 asks for.
+                  The deb is for Ubuntu and Debian, and it sets up the sandbox permission that
+                  Ubuntu 24.04 asks for. The AppImage runs on most other distributions.
                 </p>
               </fieldset>
             ) : null}
