@@ -99,6 +99,21 @@ describe('sanitizeName', () => {
   });
 });
 
+describe('sanitizeName on crafted input', () => {
+  it.each([
+    ['dots then a letter', `${'.'.repeat(200_000)}x`],
+    ['alternating dots and spaces', `${'. '.repeat(100_000)}x`],
+    ['spaces between letters', `${'a '.repeat(100_000)}.`],
+    ['control characters', `${' '.repeat(100_000)}z`],
+  ])('finishes within a few milliseconds for %s', (_label, input) => {
+    const start = performance.now();
+    const name = sanitizeName(input);
+    expect(performance.now() - start).toBeLessThan(25);
+    expect(name.length).toBeLessThanOrEqual(200);
+    expect(name).not.toBe('');
+  });
+});
+
 describe('layout names', () => {
   it('names folders and logs after the recording', () => {
     expect(sessionFolderName('Demo: one')).toBe('Demo one.scrim');

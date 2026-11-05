@@ -10,23 +10,49 @@ export const SESSION_FILES = {
 
 const RESERVED_WINDOWS_NAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
 const MAX_NAME_LENGTH = 200;
+/** Longer input is cut before any work, so a crafted name cannot make this slow. */
+const MAX_INPUT_LENGTH = 1024;
+const FORBIDDEN = '<>:"/\\|?*';
+
+function isSpace(char: string): boolean {
+  return char.trim() === '';
+}
+
+/** Drops trailing dots and spaces with one backward scan, so it runs in linear time. */
+function trimEndDotsAndSpaces(text: string): string {
+  let end = text.length;
+  while (end > 0 && (text.charAt(end - 1) === '.' || text.charAt(end - 1) === ' ')) end -= 1;
+  return text.slice(0, end);
+}
+
+/** Replaces forbidden characters with spaces and collapses every run of spaces into one. */
+function collapse(text: string): string {
+  let out = '';
+  let pendingSpace = false;
+  for (const char of text) {
+    const blank = char.charCodeAt(0) < 32 || FORBIDDEN.includes(char) || isSpace(char);
+    if (blank) {
+      pendingSpace = out !== '';
+    } else {
+      if (pendingSpace) out += ' ';
+      pendingSpace = false;
+      out += char;
+    }
+  }
+  return out;
+}
 
 /**
  * Makes a recording name safe as a folder and file name on every system: no path separators or
  * characters Windows forbids, no control characters, no trailing dots or spaces, no reserved
- * device names, and at most 200 characters. An empty result becomes `Recording`.
+ * device names, and at most 200 characters. An empty result becomes `Recording`. It uses plain
+ * string scans, never a pattern that can backtrack, and reads at most 1024 characters.
  */
 export function sanitizeName(name: string): string {
-  const cleaned = Array.from(name)
-    .map((char) => (char.charCodeAt(0) < 32 || '<>:"/\\|?*'.includes(char) ? ' ' : char))
-    .join('')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/[. ]+$/, '')
-    .replace(/^\.+/, '')
-    .slice(0, MAX_NAME_LENGTH)
-    .trim()
-    .replace(/[. ]+$/, '');
+  let cleaned = trimEndDotsAndSpaces(collapse(name.slice(0, MAX_INPUT_LENGTH)));
+  let start = 0;
+  while (cleaned.charAt(start) === '.') start += 1;
+  cleaned = trimEndDotsAndSpaces(cleaned.slice(start, start + MAX_NAME_LENGTH).trim());
   if (cleaned === '') return 'Recording';
   return RESERVED_WINDOWS_NAMES.test(cleaned) ? `${cleaned} recording` : cleaned;
 }
