@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from 'react-dom/server';
+import { textOf } from './support/html-text';
 import { describe, expect, it } from 'vitest';
 import { formatDay, formatMoment } from '../../src/renderer/src/format';
 import { AboutCard, AboutFacts } from '../../src/renderer/src/settings/about-card';
@@ -67,7 +68,7 @@ describe('the attributions card', () => {
   it('holds exactly one row of three buttons: Source code, FFmpeg and The developer', () => {
     const row = /<div class="set-links">(.*)<\/div><\/section>/s.exec(html)?.[1] ?? '';
     const labels = [...row.matchAll(/<button[^>]*>(.*?)<\/button>/gs)].map((match) =>
-      match[1]?.replace(/<[^>]+>/g, '').trim(),
+      textOf(match[1] ?? '').trim(),
     );
     expect(labels).toEqual(['Source code', 'FFmpeg', 'The developer']);
     expect(html).not.toContain('Built by');
