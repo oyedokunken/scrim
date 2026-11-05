@@ -29,6 +29,12 @@ export function Dialog({ open, title, onClose, children, className }: DialogProp
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  // The native close event is queued after dialog.close(). When the same dialog is opened again in
+  // between, as a retry that fails again does, the late event must not close the new one.
+  const onNativeClose = (): void => {
+    if (ref.current?.open !== true) onClose();
+  };
+
   // A click on the backdrop lands on the dialog element itself, never on its content.
   const onBackdrop = (event: MouseEvent<HTMLDialogElement>): void => {
     if (event.target === event.currentTarget) onClose();
@@ -39,7 +45,7 @@ export function Dialog({ open, title, onClose, children, className }: DialogProp
       ref={ref}
       className={className === undefined ? 'ui-sheet' : `ui-sheet ${className}`}
       aria-label={title}
-      onClose={onClose}
+      onClose={onNativeClose}
       onClick={onBackdrop}
     >
       <div className="ui-sheet-head">
