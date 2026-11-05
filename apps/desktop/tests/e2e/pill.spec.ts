@@ -278,7 +278,13 @@ test('Discard asks first, Keep goes back, and Discard moves the recording to the
     await pill.locator('#discard').click();
     await tolerateClose(() => pill.locator('#yes').click());
     await expect.poll(() => pill.isClosed(), { timeout: 20_000 }).toBe(true);
-    await expect.poll(() => sessionFolders(running.folder).length, { timeout: 20_000 }).toBe(0);
+    await expect
+      .poll(() => sessionFolders(running.folder).length, {
+        timeout: 20_000,
+        message: `The recording folder is still there. What the app logged:
+${recent()}`,
+      })
+      .toBe(0);
   } finally {
     running.child.kill();
     killHard(running.child);
