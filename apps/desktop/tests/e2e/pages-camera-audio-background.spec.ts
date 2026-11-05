@@ -109,7 +109,10 @@ test.describe('the Background page', () => {
     await page.locator('button.bg-swatch[aria-label="None"]').click();
     await expect(frame).toHaveClass(/bg-none-frame/);
     await expect(page.getByRole('radio', { name: 'Large' })).toBeDisabled();
-    await expect(page.getByRole('radio', { name: /Your image/ })).toBeDisabled();
+    // With no saved images there is no "Your image" swatch to disable. Picking None must leave the
+    // add button working, so a person can still add an image and pick it.
+    await expect(page.getByRole('radio', { name: /Your image/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Add your own image' })).toBeEnabled();
     await page.waitForTimeout(400);
     const saved = await savedSettings(page);
     expect(saved).toMatchObject({
