@@ -1,0 +1,46 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  justify-items: center;
+  gap: var(--scrim-space-3);
+  padding: var(--scrim-space-6) 1rem;
+  text-align: center;
+}
+
+.code {
+  margin-top: var(--scrim-space-4);
+  color: var(--scrim-green);
+  font-size: var(--scrim-text-display);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.title {
+  font-size: var(--scrim-text-h3);
+  letter-spacing: -0.02em;
+}
+
+.text {
+  max-width: 28rem;
+  color: var(--scrim-text-secondary);
+}
+
+.button {
+  margin-top: var(--scrim-space-3);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.button:hover {
+  background: var(--scrim-green-hover);
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--scrim-green);
+  outline-offset: 3px;
+}

@@ -1,5 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { summarizeDownloads } from '@/lib/download-stats';
+import { periodStarts, summarizeDownloads } from '@/lib/download-stats';
+
+describe('periodStarts', () => {
+  it('starts the day, the week on Monday and the month in UTC', () => {
+    const starts = periodStarts(new Date('2026-11-05T15:30:00Z'));
+    expect(starts.today.toISOString()).toBe('2026-11-05T00:00:00.000Z');
+    expect(starts.week.toISOString()).toBe('2026-11-02T00:00:00.000Z');
+    expect(starts.month.toISOString()).toBe('2026-11-01T00:00:00.000Z');
+  });
+
+  it('keeps Monday and Sunday in the same week', () => {
+    expect(periodStarts(new Date('2026-11-02T00:00:00Z')).week.toISOString()).toBe(
+      '2026-11-02T00:00:00.000Z',
+    );
+    expect(periodStarts(new Date('2026-11-08T23:59:59Z')).week.toISOString()).toBe(
+      '2026-11-02T00:00:00.000Z',
+    );
+  });
+
+  it('carries the period counts into the summary', () => {
+    expect(summarizeDownloads([], { today: 1, week: 2, month: 3 }).periods).toEqual({
+      today: 1,
+      week: 2,
+      month: 3,
+    });
+  });
+});
 
 describe('summarizeDownloads', () => {
   it('lists every system, even with no downloads', () => {
