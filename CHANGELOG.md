@@ -4,14 +4,26 @@ All notable changes to Scrim are documented here.
 
 ## Unreleased
 
-### Linux (1.2.0)
+## 1.1.0 (2026-11-05)
+
+Scrim for Linux, plus the fixes since 1.0.0.
+
+### Linux
 
 - Linux x64 builds as an AppImage and a deb package. X11 gets every feature. On Wayland, auto zoom and cursor effects are off, because Wayland does not let apps watch the mouse, and recording goes through the system screen sharing portal
-- Both Linux files are signed with GPG: a detached `.asc` signature next to each, and a signed `SHA256SUMS.txt` for all three systems. The public key is `docs/scrim-release-key.asc`, and the website shows the two commands that verify a download
 - The deb declares its dependencies, installs a desktop entry and icons, removes all of it on uninstall, and installs a small AppArmor profile so the Chromium sandbox works on Ubuntu 24.04. The sandbox is never turned off. The website help gives the AppImage steps for Ubuntu 24.04
-- H.264 on Linux comes from the graphics chip through VA-API where there is one (the arguments now include the device and the upload), and from the libopenh264 software encoder otherwise. The bundled FFmpeg is the pinned LGPL build, now checked for its licence and a short test encode in CI. See ADR 0009
+- H.264 on Linux comes from the graphics chip through VA-API where there is one, and from the libopenh264 software encoder otherwise. The bundled FFmpeg is the pinned LGPL build. See ADR 0009
 - A deb install shows "A new version of Scrim is out" with a link to the release page. The AppImage updates itself
-- The download dialog asks which Linux package you want
+- The download dialog asks which Linux package you want, and the release lists a SHA256SUMS.txt file for checking a download
+
+### All systems
+
+- Microphone and camera buttons on the recording pill
+- Your voice plays in every preview, in one shared player with a full screen view
+- The edit page has a Back button, and the explaining texts are gone
+- A finished page sidebar, a link from the Library back to a recording's project, and a reason shown whenever a button is disabled
+- A Built by card and small polish in Settings
+- The website has a Downloads page with counts only, a 404 page, and the download email shows the full logo
 
 ## 1.0.0 (2026-11-03)
 
