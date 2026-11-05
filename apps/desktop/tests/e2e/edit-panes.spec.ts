@@ -13,7 +13,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
-import { enterApp, expect, removeAfterAppCloses, test } from './fixtures';
+import { projectsOf, enterApp, expect, removeAfterAppCloses, test } from './fixtures';
 
 /**
  * Edit in the two places it lives: the Library detail and the page after a recording, and the
@@ -140,7 +140,7 @@ async function arrangeRecording(
   const videos = join(root, 'videos');
   const pictures = join(root, 'pictures');
   const local = join(root, 'local');
-  const folder = join(local, 'Scrim', 'Projects', 'Take 1.scrim');
+  const folder = join(await projectsOf(app, local), 'Take 1.scrim');
   mkdirSync(join(videos, 'Scrim'), { recursive: true });
   mkdirSync(pictures, { recursive: true });
   mkdirSync(folder, { recursive: true });

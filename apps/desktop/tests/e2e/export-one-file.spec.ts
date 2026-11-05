@@ -12,7 +12,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { readPort, runnerFlags } from './fixtures';
+import { projectsFor, readPort, runnerFlags } from './fixtures';
 
 /**
  * One recording, one MP4, in the real built app. A recording is started through the typed
@@ -68,7 +68,7 @@ async function launch(destination?: string): Promise<Running> {
   // receives exports, so a recording must leave it empty.
   const local = join(work, 'local');
   const exports = join(work, 'exports');
-  const folder = join(local, 'Scrim', 'Projects');
+  const folder = projectsFor(local, userData);
   mkdirSync(userData, { recursive: true });
   mkdirSync(exports, { recursive: true });
   writeFileSync(

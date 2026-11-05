@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { axeViolations } from './axe';
-import { expect, test, enterApp, removeAfterAppCloses } from './fixtures';
+import { projectsOf, expect, test, enterApp, removeAfterAppCloses } from './fixtures';
 import { picturesFixture } from './png-fixture';
 
 // Linux has no share sheet by design (platform.shareSheet is off there), so the Share action,
@@ -43,6 +43,8 @@ function sessionJson(name: string): string {
 
 interface Disk {
   root: string;
+  /** The folder that holds the recordings' working folders. */
+  projects: string;
   pictures: ReturnType<typeof picturesFixture>;
   cleanup: () => void;
 }
@@ -54,12 +56,13 @@ async function arrange(app: ElectronApplication, withItems: boolean): Promise<Di
   const videos = join(root, 'videos');
   const local = join(root, 'local');
   mkdirSync(join(videos, 'Scrim'), { recursive: true });
-  mkdirSync(join(local, 'Scrim', 'Projects'), { recursive: true });
+  const projects = await projectsOf(app, local);
+  mkdirSync(projects, { recursive: true });
   if (withItems) {
     pictures.add('Pricing page.png', 600);
     pictures.add('Login screen.png', 300);
     writeFileSync(join(videos, 'Scrim', 'Loose clip.mp4'), 'not really a video');
-    const project = join(local, 'Scrim', 'Projects', 'Take 1.scrim');
+    const project = join(projects, 'Take 1.scrim');
     mkdirSync(project);
     writeFileSync(join(project, 'session.json'), sessionJson('Take 1'));
   }
@@ -72,6 +75,7 @@ async function arrange(app: ElectronApplication, withItems: boolean): Promise<Di
     { pictures: pictures.root, videos, local },
   );
   return {
+    projects,
     root,
     pictures,
     // Removed after the app closes, because the app can still have these folders open until then.
@@ -316,7 +320,7 @@ test.describe('the library', () => {
       await expect(detail.getByText('Not exported yet')).toBeVisible();
       await expect(detail.getByRole('button', { name: 'Make video' })).toBeVisible();
       await expect(detail.locator('video')).toHaveCount(0);
-      expect(existsSync(join(disk.root, 'local', 'Scrim', 'Projects', 'Take 1.scrim'))).toBe(true);
+      expect(existsSync(join(disk.projects, 'Take 1.scrim'))).toBe(true);
     } finally {
       disk.cleanup();
     }
@@ -567,7 +571,7 @@ test.describe('the library', () => {
     const disk = await arrange(app, true);
     try {
       const videos = join(disk.root, 'videos', 'Scrim');
-      const project = join(disk.root, 'local', 'Scrim', 'Projects', 'Take 1.scrim');
+      const project = join(disk.projects, 'Take 1.scrim');
       const target = join(videos, 'Launch day.mp4');
       writeFileSync(target, 'not really a video');
       writeFileSync(

@@ -12,7 +12,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runnerFlags } from './fixtures';
+import { projectsFor, runnerFlags } from './fixtures';
 
 /**
  * The area chooser for Record and for Screenshot, in the built app and in the PACKAGED app, with
@@ -78,7 +78,7 @@ async function launch(): Promise<Running> {
     context.pages().find((page) => page.url().includes('index.html')) ?? context.pages()[0];
   if (main === undefined) throw new Error('The app has no main page.');
   await main.waitForFunction(() => 'scrim' in window);
-  return { child, browser, main, context, work, shots, projects: join(local, 'Scrim', 'Projects') };
+  return { child, browser, main, context, work, shots, projects: projectsFor(local, userData) };
 }
 
 async function stop(running: Running | undefined): Promise<void> {

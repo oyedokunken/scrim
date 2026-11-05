@@ -52,6 +52,21 @@ test.describe('errors in a dialog', () => {
     await expect(dialog).toBeVisible({ timeout: 15_000 });
   });
 
+  test('a retry that fails at once shows the dialog again', async ({ app, page }) => {
+    // The answer comes back in the same breath as the click. A late native close event from the
+    // dialog that just closed must not close the new one.
+    await failAreaRun(app);
+    await enterApp(page);
+    await page.getByRole('button', { name: 'Start recording' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'Scrim could not start the recording' });
+    await expect(dialog).toBeVisible();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await dialog.getByRole('button', { name: 'Try again' }).click();
+      await expect.poll(() => calls(app)).toBe(attempt + 2);
+      await expect(dialog).toBeVisible();
+    }
+  });
+
   test('the X, Escape and the Close button close it', async ({ app, page }) => {
     await failAreaRun(app);
     await enterApp(page);

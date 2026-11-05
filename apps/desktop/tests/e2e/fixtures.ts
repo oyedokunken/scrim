@@ -43,6 +43,23 @@ export const runnerFlags = [
   ...fakeDevices,
 ];
 
+/**
+ * Where the app keeps a recording's working folders. On Windows that follows LOCALAPPDATA, which the
+ * tests point at a temp folder. On Linux and macOS it is the Projects folder inside the app's user
+ * data folder.
+ */
+export function projectsFor(local: string, userData: string): string {
+  return process.platform === 'win32'
+    ? join(local, 'Scrim', 'Projects')
+    : join(userData, 'Projects');
+}
+
+/** The same folder for a running app, asking it where its user data folder is. */
+export async function projectsOf(app: ElectronApplication, local: string): Promise<string> {
+  const userData = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'));
+  return projectsFor(local, userData);
+}
+
 /** Reads the debugging port Chromium writes at start. A file still being written is not ready yet. */
 export function readPort(file: string): number {
   try {
