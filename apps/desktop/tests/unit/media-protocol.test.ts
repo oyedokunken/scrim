@@ -58,6 +58,33 @@ describe('the media allow list', () => {
     expect((await handleMediaRequest(get(url), r, fs)).status).toBe(403);
   });
 
+  it('serves a file whose folder was named with a short alias, as Windows does for a long user name', async () => {
+    // The folder is allowed as /short/RUNNER~1/Projects. Its real name is /long/runneradmin/Projects,
+    // and so is the real path of the file inside it.
+    const shortRoot = '/short/RUNNER~1/Projects';
+    const longRoot = '/long/runneradmin/Projects';
+    const r = new MediaRegistry(() => [shortRoot], false);
+    const file = `${shortRoot}/One.scrim/screen.mp4`;
+    const url = r.issue(file) ?? '';
+    const fs = fakeFs({
+      [resolve(file)]: resolve(`${longRoot}/One.scrim/screen.mp4`),
+      [shortRoot]: resolve(longRoot),
+    });
+    expect((await handleMediaRequest(get(url), r, fs)).status).toBe(200);
+  });
+
+  it('still refuses a link that leads outside the real folder', async () => {
+    const shortRoot = '/short/RUNNER~1/Projects';
+    const r = new MediaRegistry(() => [shortRoot], false);
+    const file = `${shortRoot}/One.scrim/screen.mp4`;
+    const url = r.issue(file) ?? '';
+    const fs = fakeFs({
+      [resolve(file)]: resolve('/long/someone-else/screen.mp4'),
+      [shortRoot]: resolve('/long/runneradmin/Projects'),
+    });
+    expect((await handleMediaRequest(get(url), r, fs)).status).toBe(403);
+  });
+
   it('refuses writes and unknown file types', async () => {
     const r = registry();
     const url = r.issue(`${PROJECTS}/One.scrim/screen.mp4`) ?? '';
