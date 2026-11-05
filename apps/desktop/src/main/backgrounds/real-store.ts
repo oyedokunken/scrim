@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { createBackgroundStore, type BackgroundStore } from './store';
 
 /** The folder for the person's own background pictures, inside Scrim's own data. */
-export function backgroundsFolder(): string {
+function backgroundsFolder(): string {
   return join(app.getPath('userData'), 'backgrounds');
 }
 

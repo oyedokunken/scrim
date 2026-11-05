@@ -30,6 +30,14 @@ export const siteConfig = {
    * request as the first signed release, never before.
    */
   windowsSigned: false,
+  /**
+   * The 40 character fingerprint of the key that signs the Linux files (docs/scrim-release-key.asc),
+   * written as hex without spaces. It stays empty until the owner publishes the key. While it is
+   * empty the verification help says where to read the fingerprint, and never shows a made up one.
+   */
+  linuxSigningFingerprint: '',
+  /** The public key that signs the Linux files, in the repository. */
+  linuxKeyUrl: 'https://github.com/oyedokunken/scrim/blob/main/docs/scrim-release-key.asc',
   /** The line on the platforms card of the hero video. The owner chose it ahead of the installers. */
   heroPlatformLine: 'Available for all platforms',
   author: {

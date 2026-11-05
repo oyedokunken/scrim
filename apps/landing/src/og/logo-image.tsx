@@ -3,7 +3,7 @@ import { MarkSvg } from '@/lib/mark-svg';
 import { loadFont } from './brand-card';
 
 /** Pixel size of the full logo at 2x, so it stays sharp on high density screens. */
-export const FULL_LOGO = { width: 280, height: 88 } as const;
+const FULL_LOGO = { width: 280, height: 88 } as const;
 
 /** The mark and the Scrim wordmark side by side, on a transparent background. */
 export async function renderFullLogo(): Promise<ImageResponse> {

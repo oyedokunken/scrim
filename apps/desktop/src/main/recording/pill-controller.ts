@@ -17,7 +17,7 @@ export interface PillWindow {
 }
 
 /** The microphone and camera buttons. Their state lives in main, in `media-state.ts`. */
-export interface PillMedia {
+interface PillMedia {
   get: () => MediaState;
   setMicMuted: (muted: boolean) => Promise<void>;
   setCameraEnabled: (enabled: boolean) => Promise<void>;

@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignoreDependencies": ["@commitlint/types"],
-  "ignoreBinaries": ["electron-builder", "osascript"],
+  "ignoreBinaries": ["electron-builder", "osascript", "gpg", "gpgconf"],
   "workspaces": {
     ".": {
       "entry": ["tools/*.js", "tests/**/*.test.ts"],
@@ -10,7 +10,6 @@
     "apps/desktop": {
       "entry": [
         "electron-builder.config.ts",
-        "build/signing-cli.mts",
         "tests/e2e/**/*.spec.ts",
         "src/renderer/src/main.tsx",
         "src/recorder/page/main.ts",

@@ -32,6 +32,11 @@ export interface UpdateControllerDeps {
   /** Null when this install cannot update itself, with the reason in `unsupported`. */
   updater: UpdaterLike | null;
   unsupported: string;
+  /**
+   * True for a copy that can look for a newer version but not install one (a deb package). A found
+   * update then becomes the `manual` state, and nothing is ever downloaded or installed.
+   */
+  manualOnly?: boolean;
   /** Recording or exporting right now, or null. The editor is tracked by `setEditing`. */
   busy: () => Exclude<UpdateBlock, 'editing'> | null;
   /** Only an event name and plain values. Never a version string from the network, a path or a name. */
@@ -184,7 +189,10 @@ export function createUpdateController(deps: UpdateControllerDeps): UpdateContro
           return set({ phase: 'none' });
         }
         deps.log('updates.checked', { available: true });
-        return set({ phase: 'available', info: infoOf(result) });
+        return set({
+          phase: deps.manualOnly === true ? 'manual' : 'available',
+          info: infoOf(result),
+        });
       } catch (error) {
         const failure = classifyUpdateError(error);
         deps.log('updates.check-failed', {

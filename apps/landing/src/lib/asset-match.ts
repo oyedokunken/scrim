@@ -51,6 +51,11 @@ function archScore(name: string, wanted: AssetWanted): number {
 }
 
 /**
+ * Linux release files follow one rule: the format is the extension (.AppImage or .deb, any case)
+ * and 64 bit Intel is one of x64, x86_64, amd64 or x86-64 in the name. The desktop build names them
+ * Scrim-<version>-linux-x86_64.AppImage and Scrim-<version>-linux-amd64.deb. Signatures (.asc),
+ * checksums and update files are skipped, so they are never offered as a download.
+ *
  * Picks the installer that fits a visitor's system from a release's files, or `null` when none
  * does. It looks at the extension and the architecture in the name. A wrong guess would hand
  * someone a program that cannot run, so when nothing fits it returns `null` instead of the

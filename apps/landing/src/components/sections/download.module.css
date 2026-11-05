@@ -135,6 +135,27 @@
   font-size: var(--scrim-text-small);
 }
 
+/* Commands to copy. They scroll sideways inside the card, so the page never does. */
+.commands {
+  margin: 0 0 var(--scrim-space-3);
+  padding: var(--scrim-space-3);
+  overflow-x: auto;
+  border-radius: var(--scrim-radius-sm);
+  background: var(--scrim-fill-quiet-on-white);
+  font-size: var(--scrim-text-small);
+  line-height: 1.5;
+}
+
+.commands code {
+  font-family: ui-monospace, 'Cascadia Code', 'DejaVu Sans Mono', monospace;
+  white-space: pre;
+}
+
+.help code {
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, 'Cascadia Code', 'DejaVu Sans Mono', monospace;
+}
+
 @media (min-width: 56rem) {
   .systems {
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -2,7 +2,7 @@ import { keysOfAccelerator } from '../../shared/shortcut-keys';
 import { PILL_SIZE, defaultPillPosition, type Rect } from './pill-position';
 
 /** What the pill does for a recording. */
-export type PillPlan =
+type PillPlan =
   /** Today's behavior: the pill is hidden from capture by the system, so it shows where it likes. */
   | 'default'
   /** Shown, kept clear of the recorded box, because the system cannot hide it from capture. */

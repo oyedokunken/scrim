@@ -24,6 +24,7 @@ import { EditorView } from './editor/editor-view';
 import { SettingsView } from './settings/settings-view';
 import { UpdateModal } from './updates/update-modal';
 import { hasUpdateToShow, useUpdates } from './updates/use-updates';
+import { RELEASE_PAGE_URL } from '../../shared/updates-contract';
 import { LibraryView } from './library/library-view';
 import type { OpenedItem } from './library/use-library';
 import { editorApi, takeEdited } from './shell/editor-bridge';
@@ -735,6 +736,9 @@ export function MainScreen() {
         }}
         onDownload={updates.download}
         onInstall={updates.install}
+        onOpenRelease={() => {
+          void window.scrim.invoke('shell:open-external', { url: RELEASE_PAGE_URL });
+        }}
       />
     </>
   );
