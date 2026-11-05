@@ -621,7 +621,7 @@ test.describe('edit a screenshot', () => {
       await shot(page, 'edit-shot-own-image');
 
       await page.getByRole('button', { name: 'Done' }).click();
-      await expect(page.getByText(/Saved shot-test-edited\.png/)).toBeVisible();
+      await expect(page.getByText(/shot-test-edited\.png was saved/)).toBeVisible();
       const files = readdirSync(folder).sort();
       expect(files).toEqual(['shot-test-edited.png', 'shot-test.png']);
       const edited = join(folder, 'shot-test-edited.png');
