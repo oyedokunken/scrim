@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createHarness, flushWork, type Harness } from './support/engine-harness';
+import { createHarness, flushWork, waitUntil, type Harness } from './support/engine-harness';
 
 /**
  * Before commit 4cf89cb a session folder was made inside the export folder (Videos\Scrim). Now
@@ -40,6 +40,7 @@ async function oldLayoutSession(): Promise<{ h: Harness; folder: string }> {
 describe('a session folder from the old layout', () => {
   it('is found by the index and offered for recovery from where it is', async () => {
     const { h, folder } = await oldLayoutSession();
+    await waitUntil(async () => (await h.service.listRecoverable())[0]?.bytes === 600);
     const found = await h.service.listRecoverable();
     expect(found).toHaveLength(1);
     expect(found[0]).toMatchObject({ folder, name: 'Old', bytes: 600 });

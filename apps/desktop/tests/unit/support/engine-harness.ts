@@ -327,6 +327,22 @@ export async function createHarness(options: HarnessOptions = {}) {
 export type Harness = Awaited<ReturnType<typeof createHarness>>;
 
 /** Waits for pending promise chains and file writes to settle. */
+/**
+ * Waits until a condition holds, instead of waiting a fixed time. A fixed wait is enough on a quiet
+ * machine and too short on a busy CI runner, where file writes finish later.
+ */
+export async function waitUntil(
+  check: () => boolean | Promise<boolean>,
+  timeoutMs = 15_000,
+): Promise<void> {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    if (await check()) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('Timed out waiting for the engine to finish its work.');
+}
+
 export async function flushWork(): Promise<void> {
   for (let i = 0; i < 20; i += 1) await new Promise((resolve) => setTimeout(resolve, 5));
 }
