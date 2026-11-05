@@ -36,10 +36,31 @@ export function toFlipConfig(): FuseV1Config {
   };
 }
 
+/**
+ * Removes terminal color codes in one pass. The fuses tool colors its report when a build runs in
+ * a terminal that supports color, as the Linux build container does, and the codes would hide
+ * every line from the parser below.
+ */
+export function withoutColors(text: string): string {
+  let out = '';
+  let index = 0;
+  while (index < text.length) {
+    if (text.charCodeAt(index) === 27 && text.charAt(index + 1) === '[') {
+      index += 2;
+      while (index < text.length && !/[A-Za-z]/.test(text.charAt(index))) index += 1;
+      index += 1;
+    } else {
+      out += text.charAt(index);
+      index += 1;
+    }
+  }
+  return out;
+}
+
 /** Parses the output of `electron-fuses read` into name and state pairs. */
 export function parseFuseReport(report: string): Record<string, boolean> {
   const result: Record<string, boolean> = {};
-  for (const line of report.split(/\r?\n/)) {
+  for (const line of withoutColors(report).split(/\r?\n/)) {
     const match = /^\s*(\w+) is (Enabled|Disabled)\s*$/.exec(line);
     if (match?.[1] && match[2]) result[match[1]] = match[2] === 'Enabled';
   }
