@@ -55,8 +55,19 @@ describe('the deb dependencies', () => {
   });
 
   it('accepts the Ubuntu 24.04 t64 package names as alternatives', () => {
-    expect(DEB_DEPENDS).toContain('libgtk-3-0 | libgtk-3-0t64');
-    expect(DEB_DEPENDS).toContain('libasound2 | libasound2t64');
+    expect(DEB_DEPENDS).toContain('libgtk-3-0t64 | libgtk-3-0');
+    expect(DEB_DEPENDS).toContain('libasound2t64 | libasound2');
+  });
+
+  it('lists the t64 name first in every alternative, so apt never picks a virtual provider', () => {
+    // A clean Ubuntu 24.04 chose liboss4-salsa-asound2 for the virtual libasound2 and the app
+    // failed to start with a missing sound symbol.
+    const alternatives = DEB_DEPENDS.filter((entry) => entry.includes(' | '));
+    expect(alternatives.length).toBeGreaterThan(0);
+    for (const entry of alternatives) {
+      const [first = ''] = entry.split(' | ');
+      expect(first.endsWith('t64')).toBe(true);
+    }
   });
 
   it('passes them to the builder, with VA-API as a recommendation only', () => {
