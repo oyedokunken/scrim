@@ -26,15 +26,20 @@ export function screenshotFallbackFolder(): string {
  * Takes a screenshot of a display, a region or a window, as a PNG saved to a folder and copied to
  * the clipboard. It runs in the main process, so no picture ever passes through a page.
  */
-export function createScreenshotTaker(): (
-  source: ScreenshotSource,
-  options: ScreenshotOptions,
-) => Promise<Outcome<ScreenshotResult>> {
+export function createScreenshotTaker(
+  /**
+   * `stillOf` gives the picture the person already picked in the system portal (Wayland). While it
+   * has one, no new capture is made, because every capture there is a new picker on the screen.
+   */
+  deps: { stillOf?: () => ImageLike | undefined } = {},
+): (source: ScreenshotSource, options: ScreenshotOptions) => Promise<Outcome<ScreenshotResult>> {
   return (source, options) =>
     takeScreenshot(
       {
         fs: realServiceFs,
         async grabDisplay(displayId) {
+          const still = deps.stillOf?.();
+          if (still !== undefined) return still;
           const display = findDisplay(displayId);
           const sources = await desktopCapturer.getSources({
             types: ['screen'],
@@ -48,6 +53,8 @@ export function createScreenshotTaker(): (
           return asImage(match?.thumbnail);
         },
         async grabWindow(sourceId) {
+          const still = deps.stillOf?.();
+          if (still !== undefined) return still;
           const sources = await desktopCapturer.getSources({
             types: ['window'],
             thumbnailSize: { width: 3840, height: 2160 },

@@ -37,9 +37,19 @@ export function chooseSource<T extends SourceLike>(
 export function installDisplayMediaHandler(
   ses: Session,
   currentTarget: () => CaptureTarget | undefined,
+  /**
+   * The source the person already chose in the system portal (Wayland). When it is set the portal
+   * is not asked again, because every ask is a new picker on the screen.
+   */
+  portalSource?: () => DesktopCapturerSource | undefined,
 ): void {
   ses.setDisplayMediaRequestHandler(
     (_request, callback) => {
+      const fromPortal = portalSource?.();
+      if (fromPortal !== undefined) {
+        callback({ video: fromPortal });
+        return;
+      }
       const target = currentTarget();
       if (target === undefined) {
         callback({});

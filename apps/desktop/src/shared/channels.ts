@@ -7,6 +7,7 @@ export const CHANNELS = [
   'app:version',
   'app:about',
   'system:info',
+  'platform:info',
   'updates:state',
   'updates:check',
   'updates:download',

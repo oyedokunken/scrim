@@ -217,6 +217,36 @@ export class RecordingService {
     };
   }
 
+  /**
+   * What is being recorded, for a system that cannot keep its own windows out of the picture: the
+   * kind of source, and for a region the box on the desktop in device independent pixels. Nothing
+   * when not recording. (`recordedArea` above is what the Windows pill uses and is left as it is.)
+   */
+  recordedSource():
+    | {
+        kind: 'display' | 'region' | 'window';
+        displayId?: string;
+        rect?: { x: number; y: number; width: number; height: number };
+      }
+    | undefined {
+    const source = this.active?.session.source;
+    if (source === undefined) return undefined;
+    return {
+      kind: source.kind,
+      ...(source.displayId === undefined ? {} : { displayId: source.displayId }),
+      ...(source.crop === undefined
+        ? {}
+        : {
+            rect: {
+              x: source.crop.x,
+              y: source.crop.y,
+              width: source.crop.width,
+              height: source.crop.height,
+            },
+          }),
+    };
+  }
+
   /** The camera and microphone this recording was asked for, or nothing when not recording. */
   recordingDevices(): Pick<RecordingOptions, 'camera' | 'mic'> | undefined {
     return this.active === undefined ? undefined : this.devices;

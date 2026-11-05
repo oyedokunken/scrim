@@ -73,6 +73,7 @@ import {
   undo,
   type History,
 } from './history';
+import { usePlatformInfo } from '../platform';
 
 interface ToolSpec {
   tool: Tool;
@@ -139,6 +140,7 @@ function loadImage(dataUrl: string): Promise<HTMLImageElement> {
 
 /** The editor for one screenshot: a toolbar, the picture on a canvas, and the actions. All of it stays on this computer. */
 export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorProps) {
+  const platform = usePlatformInfo();
   const toast = useToast();
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -775,9 +777,11 @@ export function ScreenshotEditor({ path, onClose, onSaved }: ScreenshotEditorPro
         <Button icon={<Save size={16} strokeWidth={1.75} />} onClick={onSaveAs}>
           Save as
         </Button>
-        <Button icon={<Share2 size={16} strokeWidth={1.75} />} onClick={onShare}>
-          Share
-        </Button>
+        {platform.shareSheet ? (
+          <Button icon={<Share2 size={16} strokeWidth={1.75} />} onClick={onShare}>
+            Share
+          </Button>
+        ) : null}
         <Button
           onClick={() => {
             if (dirty) setConfirmCancel(true);

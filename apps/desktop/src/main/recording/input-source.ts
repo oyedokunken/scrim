@@ -1,3 +1,5 @@
+import { linuxSessionOf } from '../platform/platform-support';
+
 /** Why the mouse could not be logged. Matches the reasons the session file can hold. */
 type InputUnavailableReason = 'wayland' | 'permission' | 'error';
 
@@ -104,7 +106,7 @@ export function createHookSource(deps: HookSourceDeps): InputSource {
 
   return {
     async start(onEvent) {
-      if (deps.platform === 'linux' && deps.env['XDG_SESSION_TYPE'] === 'wayland') {
+      if (deps.platform === 'linux' && linuxSessionOf(deps.env) === 'wayland') {
         return { status: 'unavailable', reason: 'wayland' };
       }
       if (deps.platform === 'darwin' && !deps.isAccessibilityTrusted()) {

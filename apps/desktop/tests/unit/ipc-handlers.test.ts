@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { createHandlers, isInsideKnownFolder, type HandlerDeps } from '../../src/main/ipc/handlers';
+import { DEFAULT_PLATFORM_INFO } from '../../src/shared/platform-info';
 import { DEFAULT_SETTINGS, type Settings } from '../../src/shared/settings';
 import { fakeRecording } from './support/recording-api-fake';
 
@@ -110,6 +111,7 @@ function setup(overrides: Partial<HandlerDeps> = {}, destinationFolder: string |
       'review:discard': () => Promise.resolve({ ok: true as const, value: undefined }),
     },
     platform: process.platform,
+    platformInfo: () => DEFAULT_PLATFORM_INFO,
     updates: {
       snapshot: vi.fn(() => ({ state: { phase: 'idle' as const }, blocked: null })),
       check: vi.fn(() => Promise.resolve({ state: { phase: 'none' as const }, blocked: null })),

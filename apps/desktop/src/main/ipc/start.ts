@@ -24,7 +24,7 @@ import type { Settings } from '../../shared/settings';
 import { loadExportSource } from '../export/source';
 import { isInsideKnownFolder } from './handlers';
 import { realServiceFs } from '../recording/fs-adapter';
-import { projectsRoot } from '../recording/projects-folder';
+import { currentPlatform } from '../platform/platform';
 import { exportFallbackFolder, previewFolder, type ExportApi } from '../export/register';
 import type { MediaRegistry } from '../media/media-registry';
 import type { BackgroundStore } from '../backgrounds/store';
@@ -133,6 +133,7 @@ export async function startIpc(options: {
 }): Promise<SettingsStore> {
   const { appOrigin, logger, recording, area } = options;
 
+  const platform = currentPlatform();
   const share = createRealShare();
   const settings = createSettingsStore({
     path: join(app.getPath('userData'), 'settings.json'),
@@ -177,12 +178,8 @@ export async function startIpc(options: {
     isInsideKnownFolder(
       folder,
       [
-        projectsRoot({
-          platform: process.platform,
-          env: process.env,
-          userData: app.getPath('userData'),
-        }),
-        settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+        platform.folders.projectsRoot(app.getPath('userData')),
+        settings.get().destinationFolder ?? platform.folders.recordings(app.getPath('videos')),
         ...sessionFolders,
       ],
       process.platform,
@@ -205,7 +202,8 @@ export async function startIpc(options: {
     stopRendering: (folder) => {
       options.exporter.service.cancelFor(folder);
     },
-    outputFolder: () => settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+    outputFolder: () =>
+      settings.get().destinationFolder ?? platform.folders.recordings(app.getPath('videos')),
     fileSize: async (file) => {
       try {
         return (await stat(file)).size;
@@ -257,9 +255,10 @@ export async function startIpc(options: {
   });
 
   const library = createRealLibrary({
-    videosFolder: () => settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+    videosFolder: () =>
+      settings.get().destinationFolder ?? platform.folders.recordings(app.getPath('videos')),
     screenshotsFolder: () =>
-      screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+      screenshotFolderOf(settings.get(), platform.folders.screenshots(app.getPath('pictures'))),
     extraScreenshotsFolder: screenshotFallbackFolder,
     extraVideosFolder: exportFallbackFolder,
     share,
@@ -300,23 +299,20 @@ export async function startIpc(options: {
         count: async () =>
           (
             await findLegacyFolders(
-              settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+              settings.get().destinationFolder ??
+                platform.folders.recordings(app.getPath('videos')),
             )
           ).length,
         move: async () => {
           const found = await findLegacyFolders(
-            settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
+            settings.get().destinationFolder ?? platform.folders.recordings(app.getPath('videos')),
           );
           const sessions = createSessionIndex(
             join(app.getPath('userData'), 'sessions.json'),
             realServiceFs,
           );
           return moveLegacyFolders(found, {
-            projectsRoot: projectsRoot({
-              platform: process.platform,
-              env: process.env,
-              userData: app.getPath('userData'),
-            }),
+            projectsRoot: platform.folders.projectsRoot(app.getPath('userData')),
             moved: async (from, to) => {
               await sessions.remove(from);
               await sessions.add(to);
@@ -342,14 +338,10 @@ export async function startIpc(options: {
         ffmpeg: ffmpegPaths,
         // Only these folders: the projects, the cache, the chosen output folders and the fallbacks.
         allowedRoots: () => [
-          projectsRoot({
-            platform: process.platform,
-            env: process.env,
-            userData: app.getPath('userData'),
-          }),
+          platform.folders.projectsRoot(app.getPath('userData')),
           join(app.getPath('userData'), 'cache'),
-          settings.get().destinationFolder ?? join(app.getPath('videos'), 'Scrim'),
-          screenshotFolderOf(settings.get(), join(app.getPath('pictures'), 'Scrim')),
+          settings.get().destinationFolder ?? platform.folders.recordings(app.getPath('videos')),
+          screenshotFolderOf(settings.get(), platform.folders.screenshots(app.getPath('pictures'))),
           screenshotFallbackFolder(),
           exportFallbackFolder(),
         ],
@@ -357,8 +349,8 @@ export async function startIpc(options: {
       recording,
       area,
       extraScreenshotFolders: () => [screenshotFallbackFolder()],
-      defaultScreenshotFolder: () => join(app.getPath('pictures'), 'Scrim'),
-      defaultRecordingsFolder: () => join(app.getPath('videos'), 'Scrim'),
+      defaultScreenshotFolder: () => platform.folders.screenshots(app.getPath('pictures')),
+      defaultRecordingsFolder: () => platform.folders.recordings(app.getPath('videos')),
       ensureFolder: async (path) => {
         await mkdir(path, { recursive: true });
       },
@@ -433,6 +425,7 @@ export async function startIpc(options: {
       },
       extraKnownFolders: () => [...sessionFolders],
       platform: process.platform,
+      platformInfo: () => platform.info(),
       chooseFolder: async (startIn) => {
         const parent = BrowserWindow.getFocusedWindow();
         const dialogOptions = {

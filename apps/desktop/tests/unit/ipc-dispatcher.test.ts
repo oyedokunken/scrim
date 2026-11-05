@@ -7,6 +7,7 @@ import {
   type IpcFailure,
 } from '../../src/main/ipc/dispatcher';
 import { createRecordingHandlers } from '../../src/main/ipc/recording-handlers';
+import { DEFAULT_PLATFORM_INFO } from '../../src/shared/platform-info';
 import { DEFAULT_SETTINGS } from '../../src/shared/settings';
 import { fakeRecording } from './support/recording-api-fake';
 
@@ -30,6 +31,7 @@ function setup(overrides: Partial<Handlers> = {}) {
     'updates:install': () => undefined,
     'app:activity': () => undefined,
     'system:info': () => ({ computerName: 'PC', operatingSystem: 'Windows' }),
+    'platform:info': () => DEFAULT_PLATFORM_INFO,
     'settings:get': () => DEFAULT_SETTINGS,
     'settings:set': () => DEFAULT_SETTINGS,
     'folder:choose': () => null,

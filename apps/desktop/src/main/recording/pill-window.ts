@@ -1,5 +1,6 @@
 import { ipcMain, screen, type BrowserWindow } from 'electron';
 import { join } from 'node:path';
+import { currentPlatform } from '../platform/platform';
 import { PILL_CHANNELS } from '../../recorder/pill/channels';
 import { pillActionSchema, type PillAction, type PillState } from '../../recorder/pill/protocol';
 import { originOf } from '../renderer-target';
@@ -70,6 +71,7 @@ export function createPillWindow(deps: PillWindowDeps): PillWindow {
       workArea: display.workArea,
       workAreas: screen.getAllDisplays().map((candidate) => candidate.workArea),
       ...(area?.rect === undefined ? {} : { recorded: area.rect }),
+      avoidRecorded: !currentPlatform().hidesWindowsFromCapture,
     });
     // The recording may have ended while the position was read.
     if (!opening) return;
@@ -100,7 +102,9 @@ export function createPillWindow(deps: PillWindowDeps): PillWindow {
     );
     created.setAlwaysOnTop(true, 'screen-saver');
     // Windows leaves a window with this flag out of every capture, including the one in progress.
-    created.setContentProtection(true);
+    // Linux has no such flag, so the live windows keep out of the picture another way (see
+    // live-windows-policy.ts).
+    if (currentPlatform().hidesWindowsFromCapture) created.setContentProtection(true);
     ready = false;
     created.on('moved', () => {
       if (created.isDestroyed()) return;

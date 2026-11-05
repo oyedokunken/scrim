@@ -1,4 +1,5 @@
 import { PanelSection, Segmented, Tile } from '../../ui';
+import { PlatformNote, usePlatformInfo } from '../platform';
 import {
   CURSOR_STYLE_OPTIONS,
   HALO_COLOR_OPTIONS,
@@ -38,8 +39,10 @@ function CursorArt({ style }: { style: CursorStyleId }) {
 
 /** Cursor style and halo color. Used on the Cursor page and, with an open recording, the editor. */
 export function CursorPanel({ value, onChange }: CursorPanelProps) {
+  const platform = usePlatformInfo();
   return (
     <>
+      <PlatformNote text={platform.cursorEffectsNote} />
       <PanelSection title="Cursor style" help="How the mouse shows in the finished video.">
         <div className="tile-grid">
           {CURSOR_STYLE_OPTIONS.map((option) => (

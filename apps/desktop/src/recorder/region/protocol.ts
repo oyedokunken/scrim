@@ -48,6 +48,11 @@ export type RegionCommand =
   /** The toggles changed on another display. */
   | { type: 'set-devices'; camera: DeviceChoice; mic: DeviceChoice }
   | { type: 'windows'; tiles: WindowTile[] }
+  /**
+   * Wayland: a still picture of the source the person picked in the system portal, shown as the
+   * background in place of the live screen. Window cards are not offered then.
+   */
+  | { type: 'still'; png: Uint8Array }
   /** The countdown shows this number, or is over when null. */
   | { type: 'count'; n: number | null };
 

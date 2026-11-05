@@ -20,6 +20,7 @@ import { ReviewPlayer } from '../review/review-player';
 import { ShareDialog } from '../share/share-dialog';
 import type { OpenedItem } from './use-library';
 import type { LibraryActions } from './use-library';
+import { usePlatformInfo } from '../platform';
 
 /** Why Edit is off for a video whose working files are gone. Shown on hover, on focus and under the buttons. */
 export const NO_PROJECT_REASON =
@@ -47,6 +48,7 @@ export function LibraryDetail({
   onOpened,
   onReload,
 }: LibraryDetailProps) {
+  const platform = usePlatformInfo();
   const toast = useToast();
   const showError = useShowError();
   const job = useExportJob();
@@ -252,20 +254,22 @@ export function LibraryDetail({
                 Copy
               </Button>
             ) : null}
-            <Button
-              icon={<Share2 size={16} strokeWidth={1.75} />}
-              disabled={!item.isFile}
-              disabledReason={
-                item.isFile
-                  ? undefined
-                  : 'There is no video file to share yet. Make the video first.'
-              }
-              onClick={() => {
-                setSharing(true);
-              }}
-            >
-              Share
-            </Button>
+            {platform.shareSheet ? (
+              <Button
+                icon={<Share2 size={16} strokeWidth={1.75} />}
+                disabled={!item.isFile}
+                disabledReason={
+                  item.isFile
+                    ? undefined
+                    : 'There is no video file to share yet. Make the video first.'
+                }
+                onClick={() => {
+                  setSharing(true);
+                }}
+              >
+                Share
+              </Button>
+            ) : null}
             <Button
               icon={<FolderOpen size={16} strokeWidth={1.75} />}
               onClick={() => {

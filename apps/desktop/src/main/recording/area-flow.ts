@@ -46,6 +46,8 @@ export interface AreaDeps {
    */
   showPreview?: (input: { displayId: string; camera: DeviceChoice; mic: DeviceChoice }) => void;
   hidePreview?: () => void;
+  /** Runs right before capture starts, after the chooser and countdown are gone. */
+  beforeStart?: () => void;
   /** Runs before any overlay shows, so the main window can step aside and is never captured. */
   beforeOpen?: () => Promise<void>;
   wait: (ms: number) => Promise<void>;
@@ -405,6 +407,7 @@ async function choose(
   closeAll();
   // A moment for the overlay to leave the screen, so the first frames do not show it.
   await deps.wait(deps.captureDelayMs ?? DEFAULT_CAPTURE_DELAY_MS);
+  deps.beforeStart?.();
 
   const started = await deps.startRecording({
     source,

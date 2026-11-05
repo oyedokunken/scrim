@@ -1923,3 +1923,22 @@ input[type='checkbox'] {
   display: flex;
   justify-content: flex-start;
 }
+
+.platform-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--scrim-black) 14%, var(--scrim-white));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--scrim-black) 4%, var(--scrim-white));
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--scrim-text-secondary);
+}
+
+.platform-note svg {
+  flex: none;
+  margin-top: 2px;
+}

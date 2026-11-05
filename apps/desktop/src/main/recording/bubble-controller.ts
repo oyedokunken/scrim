@@ -67,6 +67,12 @@ export interface BubbleDeps {
   timers: BubbleTimers;
   /** Notes a position for the session file. */
   record: (keyframe: Omit<BubbleKeyframe, 't'>) => void;
+  /**
+   * Hide the window the moment capture starts and keep it hidden. For a system that cannot leave a
+   * window out of a screen capture (Linux). The camera is still recorded as its own track and
+   * drawn into the video at export, so nothing is lost.
+   */
+  hideWhileRecording?: boolean;
 }
 
 const WATCH_MS = 80;
@@ -156,6 +162,13 @@ export function createBubbleController(deps: BubbleDeps) {
     moveTo(nearestCorner(dropped, positions()));
   });
 
+  /** Hides the window for good while recording, when the system cannot leave it out of the video. */
+  const hideIfNeeded = (): void => {
+    if (deps.hideWhileRecording !== true || !shown) return;
+    shown = false;
+    deps.window.setVisible(false);
+  };
+
   const stop = (): void => {
     open = false;
     shown = true;
@@ -229,6 +242,7 @@ export function createBubbleController(deps: BubbleDeps) {
         deps.window.place(circle, dotSideFor(corner));
         lastMoveAt = deps.now();
         note();
+        hideIfNeeded();
         watch = deps.timers.setInterval(watchCursor, WATCH_MS);
         return;
       }
@@ -236,7 +250,15 @@ export function createBubbleController(deps: BubbleDeps) {
       if (devices === undefined || !devices.camera.enabled) return;
       show(devices);
       note();
+      hideIfNeeded();
       watch = deps.timers.setInterval(watchCursor, WATCH_MS);
+    },
+    /**
+     * Called right before capture starts. Where windows cannot be kept out of the capture, the
+     * bubble goes now, so not one frame has it. It stays open so the camera keeps running.
+     */
+    hideForCapture(): void {
+      if (open) hideIfNeeded();
     },
     /**
      * The pill's buttons changed. The page is told, and the window is hidden while the camera is
@@ -245,7 +267,8 @@ export function createBubbleController(deps: BubbleDeps) {
     setMedia(state: { micMuted: boolean; cameraOn: boolean }): void {
       if (!open) return;
       deps.window.media(state);
-      if (state.cameraOn !== shown) {
+      // Never show it again while recording where it would end up in the video.
+      if (deps.hideWhileRecording !== true && state.cameraOn !== shown) {
         shown = state.cameraOn;
         deps.window.setVisible(shown);
       }

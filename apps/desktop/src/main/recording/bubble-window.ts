@@ -1,3 +1,4 @@
+import { currentPlatform } from '../platform/platform';
 import { ipcMain } from 'electron';
 import { join } from 'node:path';
 import { BUBBLE_CHANNELS } from '../../recorder/bubble/channels';
@@ -96,7 +97,7 @@ export function createBubbleWindow(options: {
       );
       created.setAlwaysOnTop(true, 'screen-saver');
       // Windows leaves a window with this flag out of every capture, including the one in progress.
-      created.setContentProtection(true);
+      if (currentPlatform().hidesWindowsFromCapture) created.setContentProtection(true);
       applyShape(created);
       created.on('will-move', () => {
         if (!placing) for (const callback of dragStart) callback();

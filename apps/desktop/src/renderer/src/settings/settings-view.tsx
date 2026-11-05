@@ -10,6 +10,8 @@ import { AboutCard } from './about-card';
 import { AttributionsCard } from './attributions-card';
 import { MachineCard } from './machine-card';
 import { ShortcutRow } from './shortcut-row';
+import { PlatformNote, usePlatformInfo } from '../platform';
+import { defaultFolderLabel, displayPath } from '../../../shared/platform-info';
 
 function Section({
   title,
@@ -47,12 +49,14 @@ function FolderRow({
   onChange: () => void;
   onOpen: () => void;
 }) {
+  const platform = usePlatformInfo();
+  const shown = path === null ? null : displayPath(path, platform);
   return (
     <div className="set-row">
       <div className="set-row-text">
         <span className="set-row-label">{label}</span>
-        <Tooltip label={path ?? fallback}>
-          <span className="set-row-path">{path ?? `${fallback} (default)`}</span>
+        <Tooltip label={shown ?? fallback}>
+          <span className="set-row-path">{shown ?? `${fallback} (default)`}</span>
         </Tooltip>
       </div>
       <div className="set-row-control">
@@ -94,6 +98,7 @@ export function SettingsView({
   onShowUpdate,
 }: SettingsViewProps) {
   const toast = useToast();
+  const platform = usePlatformInfo();
   const showError = useShowError();
   const [unavailable, setUnavailable] = useState<readonly ShortcutId[]>([]);
   const [legacy, setLegacy] = useState(0);
@@ -161,6 +166,7 @@ export function SettingsView({
         icon={<Keyboard size={18} strokeWidth={1.75} aria-hidden="true" />}
         help="These work in any program. Press Change, then the keys you want."
       >
+        <PlatformNote text={platform.shortcutsNote} />
         {SHORTCUT_IDS.map((id) => (
           <ShortcutRow
             key={id}
@@ -191,7 +197,7 @@ export function SettingsView({
         <FolderRow
           label="Recordings"
           path={settings.destinationFolder}
-          fallback="Videos\Scrim"
+          fallback={defaultFolderLabel('Videos', platform)}
           onChange={() => void chooseFolder('recordings')}
           onOpen={() => {
             openFolder('recordings');
@@ -200,7 +206,7 @@ export function SettingsView({
         <FolderRow
           label="Screenshots"
           path={settings.screenshotFolder}
-          fallback="Pictures\Scrim"
+          fallback={defaultFolderLabel('Pictures', platform)}
           onChange={() => void chooseFolder('screenshots')}
           onOpen={() => {
             openFolder('screenshots');

@@ -33,6 +33,7 @@ const dom = {
   selection: element('selection', HTMLDivElement),
   size: element('size', HTMLSpanElement),
   windows: element('windows', HTMLDivElement),
+  still: element('still', HTMLImageElement),
   pill: element('pill', HTMLDivElement),
   hint: element('hint', HTMLParagraphElement),
   toolbar: element('toolbar', HTMLDivElement),
@@ -485,6 +486,14 @@ window.scrimRegion.onCommand((command) => {
       buildCards();
       render();
       return;
+    case 'still': {
+      dom.still.src = URL.createObjectURL(new Blob([command.png.slice()], { type: 'image/png' }));
+      dom.still.hidden = false;
+      // The portal already picked the source, so there is no window list to choose from.
+      const windowButton = dom.pill.querySelector('[data-area="window"]');
+      if (windowButton instanceof HTMLElement) windowButton.hidden = true;
+      return;
+    }
     case 'count':
       showCount(command.n);
       return;

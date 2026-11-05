@@ -16,6 +16,8 @@ import { ZoomPanel } from './panels/zoom-panel';
 import { ZoomPreview } from './panels/zoom-preview';
 import { Placeholder } from './shell/placeholder';
 import { FolderChip } from './shell/folder-chip';
+import { usePlatformInfo } from './platform';
+import { defaultFolderLabel, displayPath } from '../../shared/platform-info';
 import { RecordPanel } from './shell/record-panel';
 import { RecordView } from './shell/record-view';
 import { EditorView } from './editor/editor-view';
@@ -110,6 +112,7 @@ export function MainScreen() {
   const showError = useShowError();
   const toast = useToast();
   const renders = usePendingRenders();
+  const platform = usePlatformInfo();
 
   // A video that finishes or fails is told about wherever the person is in the app.
   useExportStatus((job) => {
@@ -400,8 +403,8 @@ export function MainScreen() {
   const live = LIVE.has(snapshot.phase);
   const folder =
     view === 'screenshot'
-      ? (settings.screenshotFolder ?? 'Pictures\\Scrim')
-      : (settings.destinationFolder ?? 'Videos\\Scrim');
+      ? displayPath(settings.screenshotFolder ?? defaultFolderLabel('Pictures', platform), platform)
+      : displayPath(settings.destinationFolder ?? defaultFolderLabel('Videos', platform), platform);
   const exporting = exportJob?.phase === 'queued' || exportJob?.phase === 'running';
   const state = live
     ? `${snapshot.phase === 'paused' ? 'Paused' : 'Recording'} ${formatTimer(snapshot.elapsedMs)}`
@@ -661,12 +664,18 @@ export function MainScreen() {
         titleAction={
           view === 'record' ? (
             <FolderChip
-              path={settings.destinationFolder ?? 'Videos\\Scrim'}
+              path={displayPath(
+                settings.destinationFolder ?? defaultFolderLabel('Videos', platform),
+                platform,
+              )}
               onChoose={() => void chooseFolder('recordings')}
             />
           ) : view === 'screenshot' ? (
             <FolderChip
-              path={settings.screenshotFolder ?? 'Pictures\\Scrim'}
+              path={displayPath(
+                settings.screenshotFolder ?? defaultFolderLabel('Pictures', platform),
+                platform,
+              )}
               onChoose={() => void chooseFolder('screenshots')}
             />
           ) : undefined

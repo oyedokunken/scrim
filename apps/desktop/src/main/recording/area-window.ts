@@ -3,7 +3,30 @@ import { join } from 'node:path';
 import { REGION_CHANNELS, type RegionCommand } from '../../recorder/region/protocol';
 import { originOf } from '../renderer-target';
 import { createAppWindow } from '../windows/create-window';
+import { currentPlatform } from '../platform/platform';
 import type { DisplayInfo, OverlayHandle } from './area-flow';
+import { scaleBox } from './still-area';
+
+function isReadyEvent(payload: unknown): boolean {
+  return (
+    typeof payload === 'object' && payload !== null && 'type' in payload && payload.type === 'ready'
+  );
+}
+
+function isConfirmRegion(payload: unknown): payload is {
+  type: 'confirm-region';
+  rect: { x: number; y: number; width: number; height: number };
+} {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'type' in payload &&
+    payload.type === 'confirm-region' &&
+    'rect' in payload &&
+    typeof payload.rect === 'object' &&
+    payload.rect !== null
+  );
+}
 
 /** The region page, served next to the app window: `app://scrim/region.html` or the dev server. */
 function regionPageUrl(appOrigin: string): string {
@@ -18,7 +41,13 @@ function regionPageUrl(appOrigin: string): string {
 export function createOverlayOpener(options: {
   appOrigin: string;
   log: (message: string) => void;
+  /**
+   * Wayland: the chooser is Scrim's own full screen window showing a still picture, not a
+   * transparent layer over other apps, which Wayland does not allow.
+   */
+  still?: { png: Uint8Array; size: { width: number; height: number } };
 }): (display: DisplayInfo) => OverlayHandle {
+  const { still } = options;
   return (display) => {
     const { bounds } = display;
     const window = createAppWindow(
@@ -29,14 +58,14 @@ export function createOverlayOpener(options: {
         width: bounds.width,
         height: bounds.height,
         frame: false,
-        transparent: true,
+        transparent: still === undefined,
         resizable: false,
         movable: false,
         minimizable: false,
         maximizable: false,
         fullscreenable: false,
         hasShadow: false,
-        backgroundColor: '#00000000',
+        backgroundColor: still === undefined ? '#00000000' : '#000000',
         webPreferences: {
           preload: join(__dirname, '../preload/region.js'),
           backgroundThrottling: false,
@@ -45,7 +74,9 @@ export function createOverlayOpener(options: {
       'helper',
     );
     window.setAlwaysOnTop(true, 'screen-saver');
-    window.setContentProtection(true);
+    // Windows and macOS leave a window with this flag out of every capture. Linux does not, which
+    // is why a Linux chooser closes and waits before the first frame is captured.
+    if (currentPlatform().hidesWindowsFromCapture) window.setContentProtection(true);
     const contents = window.webContents;
     const listeners: ((value: unknown) => void)[] = [];
     const closedListeners: (() => void)[] = [];
@@ -57,7 +88,22 @@ export function createOverlayOpener(options: {
         options.log('Ignored a region event from an unexpected origin.');
         return;
       }
-      for (const listener of listeners) listener(payload);
+      if (still !== undefined && isReadyEvent(payload)) {
+        contents.send(REGION_CHANNELS.command, {
+          type: 'still',
+          png: still.png,
+        } satisfies RegionCommand);
+      }
+      for (const listener of listeners) listener(scaleEvent(payload));
+    };
+    // The box is drawn in the window, which may not be the size of the still it stands for.
+    const scaleEvent = (payload: unknown): unknown => {
+      if (still === undefined || !isConfirmRegion(payload)) return payload;
+      const [width, height] = window.getContentSize();
+      return {
+        ...payload,
+        rect: scaleBox(payload.rect, { width: width ?? 0, height: height ?? 0 }, bounds),
+      };
     };
     ipcMain.on(REGION_CHANNELS.event, onEvent);
 
@@ -72,6 +118,11 @@ export function createOverlayOpener(options: {
     window.once('ready-to-show', () => {
       // Windows sizes a new window to the work area, which leaves the taskbar uncovered. Ask for the
       // whole display again once the window exists, and again after it is shown.
+      if (still !== undefined) {
+        window.setFullScreen(true);
+        window.show();
+        return;
+      }
       window.setBounds(bounds);
       window.show();
       window.setBounds(bounds);
