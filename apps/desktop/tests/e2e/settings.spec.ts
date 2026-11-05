@@ -4,6 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test, enterApp } from './fixtures';
 
+// The folder names are shown with the separator of the system the person uses.
+const separator = process.platform === 'win32' ? '\\' : '/';
+
 async function openSettings(page: Page): Promise<void> {
   await enterApp(page);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
@@ -135,12 +138,12 @@ test.describe('the settings', () => {
         dialog.showOpenDialog = () => Promise.resolve({ canceled: false, filePaths: [folder] });
       }, chosen);
       await openSettings(page);
-      await expect(page.getByText('Videos\\Scrim (default)')).toBeVisible();
-      await expect(page.getByText('Pictures\\Scrim (default)')).toBeVisible();
+      await expect(page.getByText(`Videos${separator}Scrim (default)`)).toBeVisible();
+      await expect(page.getByText(`Pictures${separator}Scrim (default)`)).toBeVisible();
       await page.getByRole('button', { name: 'Change screenshots' }).click();
       await saved(userDataDir, 'screenshotFolder', chosen);
       await expect(page.getByText(chosen)).toBeVisible();
-      await expect(page.getByText('Videos\\Scrim (default)')).toBeVisible();
+      await expect(page.getByText(`Videos${separator}Scrim (default)`)).toBeVisible();
       await page.getByRole('button', { name: 'Change recordings' }).click();
       await saved(userDataDir, 'destinationFolder', chosen);
     } finally {

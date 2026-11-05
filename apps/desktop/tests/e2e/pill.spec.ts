@@ -24,7 +24,7 @@ const APP_DIR = join(__dirname, '../..');
 const electronPath = createRequire(__filename)('electron') as string;
 const ffmpeg = existsSync(join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe'))
   ? join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe')
-  : (process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
+  : (process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
 
 test.skip(process.env['SCRIM_E2E_TARGET'] === 'packaged', 'Needs the built app.');
 test.describe.configure({ mode: 'serial' });

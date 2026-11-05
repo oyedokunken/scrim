@@ -7,6 +7,10 @@ import { axeViolations } from './axe';
 import { expect, test, enterApp, removeAfterAppCloses } from './fixtures';
 import { picturesFixture } from './png-fixture';
 
+// Linux has no share sheet by design (platform.shareSheet is off there), so the Share action,
+// its dialog and the checks for them exist only on Windows and macOS.
+const shareSheet = process.platform !== 'linux';
+
 function sessionJson(name: string): string {
   return JSON.stringify({
     version: 1,
@@ -152,7 +156,7 @@ test.describe('the library', () => {
       expect(names.map((name) => name.trim())).toEqual([
         'Edit',
         'Copy',
-        'Share',
+        ...(shareSheet ? ['Share'] : []),
         'Show in folder',
         'Delete',
       ]);
@@ -204,7 +208,7 @@ test.describe('the library', () => {
         await page.getByRole('button', { name: 'Open Login screen' }).click();
         const shot = await lines();
         await checkPage(page, `library-detail-actions-${String(size.width)}`);
-        expect(shot.count).toBe(5);
+        expect(shot.count).toBe(shareSheet ? 5 : 4);
         expect(shot.singleLine).toBe(true);
         await page.getByRole('button', { name: 'Back', exact: true }).click();
 
@@ -230,7 +234,7 @@ test.describe('the library', () => {
           );
         expect(names.map((name) => name.trim())).toEqual([
           'Edit',
-          'Share',
+          ...(shareSheet ? ['Share'] : []),
           'Show in folder',
           'Delete',
         ]);
@@ -257,7 +261,7 @@ test.describe('the library', () => {
     try {
       const mp4 = join(disk.root, 'videos', 'Scrim', 'Take 1.mp4');
       execFileSync(
-        process.env['SCRIM_FFMPEG'] ?? 'ffmpeg',
+        process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg',
         [
           '-v',
           'error',
@@ -428,7 +432,7 @@ test.describe('the library', () => {
       expect(box.x + box.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
       await menuButton.focus();
       await page.keyboard.press('Enter');
-      for (const name of ['Open', 'Show in folder', 'Share', 'Delete']) {
+      for (const name of ['Open', 'Show in folder', ...(shareSheet ? ['Share'] : []), 'Delete']) {
         await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
       }
     } finally {
@@ -440,6 +444,7 @@ test.describe('the library', () => {
     app,
     page,
   }) => {
+    test.skip(!shareSheet, 'Linux has no share sheet.');
     const disk = await arrange(app, true);
     try {
       await openLibrary(page);
@@ -477,6 +482,7 @@ test.describe('the library', () => {
   });
 
   test('warns about a video over 25 MB and offers a smaller copy', async ({ app, page }) => {
+    test.skip(!shareSheet, 'Linux has no share sheet.');
     const disk = await arrange(app, true);
     try {
       writeFileSync(

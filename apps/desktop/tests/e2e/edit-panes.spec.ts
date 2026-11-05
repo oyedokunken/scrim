@@ -20,7 +20,7 @@ import { enterApp, expect, removeAfterAppCloses, test } from './fixtures';
  * screenshot editor. A recording is edited with Background, Cursor and Zoom only. A screenshot keeps
  * its tools and gains a background. Both can use the person's own image. It needs `pnpm build` first.
  */
-const ffmpeg = process.env['SCRIM_FFMPEG'] ?? 'ffmpeg';
+const ffmpeg = process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg';
 const SHOTS = process.env['SCRIM_SHOTS'];
 
 test.skip(process.env['SCRIM_E2E_TARGET'] === 'packaged', 'Needs the main process.');

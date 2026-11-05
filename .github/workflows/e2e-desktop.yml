@@ -114,10 +114,20 @@ jobs:
           pnpm typecheck
           pnpm test
       - run: pnpm build
-      - name: Install a full FFmpeg for the test fixtures
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      # The test fixtures need libx264, which the system FFmpeg has. The app under test must use the
+      # pinned build it ships, because on Linux it encodes with libopenh264 or the graphics chip.
+      - name: Install a full FFmpeg for the test fixtures, and fetch the pinned one for the app
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg openbox
+          node scripts/fetch-ffmpeg.mts --target linux-x64 --out "$RUNNER_TEMP/ffmpeg"
       - name: End to end tests on X11 under xvfb (Electron gets --no-sandbox from CI)
-        run: xvfb-run --auto-servernum pnpm test:e2e
+        env:
+          SCRIM_FIXTURE_FFMPEG: ffmpeg
+        run: |
+          export SCRIM_FFMPEG="$RUNNER_TEMP/ffmpeg/ffmpeg"
+          export SCRIM_FFPROBE="$RUNNER_TEMP/ffmpeg/ffprobe"
+          # A window manager gives the window the maximize, minimize and focus the tests exercise.
+          xvfb-run --auto-servernum bash -c 'openbox & sleep 2; pnpm test:e2e'
 
       # Everything below is NEW and has never run: it was written on a Windows machine. Read the
       # logs of the first run, and fix the step, not the check. docs/releasing.md says what a
