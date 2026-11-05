@@ -67,6 +67,7 @@ export const siteConfig = {
       { label: 'Download', href: '/#download' },
       { label: 'FAQ', href: '/#faq' },
       { label: 'Release notes', href: 'https://github.com/oyedokunken/scrim/releases' },
+      { label: 'Downloads', href: '/downloads' },
     ],
     Project: [
       { label: 'Source code', href: 'https://github.com/oyedokunken/scrim' },

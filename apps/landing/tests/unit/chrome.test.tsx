@@ -103,6 +103,12 @@ describe('SiteFooter', () => {
     }
   });
 
+  it('links to the Downloads page next to the release notes', () => {
+    expect(html).toContain('<a href="/downloads">Downloads</a>');
+    const product = siteConfig.footerLinks.Product.map((link) => link.label);
+    expect(product.indexOf('Downloads')).toBe(product.indexOf('Release notes') + 1);
+  });
+
   it('no longer shows the system chips, the version chip or the trust line', () => {
     for (const gone of [
       'Supported systems',
