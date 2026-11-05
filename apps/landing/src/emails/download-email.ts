@@ -1,8 +1,10 @@
 import { blendOver, palette } from '@scrim/tokens';
 import { escapeHtml } from './escape';
 
-/** The content id the logo is attached under, so the HTML can show it inline. */
-export const LOGO_CID = 'scrim-logo';
+/** Where the logo image is served from, so every email can load it as a normal picture. */
+export function logoUrl(siteUrl: string): string {
+  return `${siteUrl}/email-logo.png`;
+}
 
 export interface DownloadEmailInput {
   /** The name the visitor gave. */
@@ -18,6 +20,8 @@ export interface DownloadEmailInput {
   /** Short help for the first run on this system. */
   help: readonly string[];
   siteUrl: string;
+  /** When the download was asked for, already written for the visitor's time zone. */
+  when: string;
   privacyUrl: string;
   unsubscribeUrl: string;
   /** The owner's support page. */
@@ -77,6 +81,8 @@ export function renderDownloadEmail(input: DownloadEmailInput): RenderedEmail {
     'You are getting this email because you downloaded Scrim from our website. We keep your name, your email and a few details about the download only to count downloads, as the privacy policy explains.';
 
   const text = [
+    'Scrim',
+    '',
     subject,
     '',
     `Hi ${first},`,
@@ -84,6 +90,8 @@ export function renderDownloadEmail(input: DownloadEmailInput): RenderedEmail {
     intro,
     '',
     opening(input),
+    `You asked for this download on ${input.when}.`,
+    '',
     `${button}: ${input.url}`,
     '',
     gettingStarted,
@@ -135,7 +143,7 @@ export function renderDownloadEmail(input: DownloadEmailInput): RenderedEmail {
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
             <tr>
               <td style="padding:0 0 24px;">
-                <img src="cid:${LOGO_CID}" width="140" height="44" alt="Scrim" style="display:block;border:0;" />
+                <img src="${escapeHtml(logoUrl(input.siteUrl))}" width="140" height="44" alt="Scrim" style="display:block;border:0;" />
               </td>
             </tr>
             <tr>
@@ -144,6 +152,7 @@ export function renderDownloadEmail(input: DownloadEmailInput): RenderedEmail {
                 ${paragraph(`Hi ${escapeHtml(first)},`)}
                 ${paragraph(escapeHtml(intro))}
                 ${paragraph(escapeHtml(opening(input)))}
+                ${paragraph(escapeHtml(`You asked for this download on ${input.when}.`))}
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 8px;">
                   <tr>
                     <td style="background:${GREEN};border-radius:999px;">

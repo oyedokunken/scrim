@@ -1,6 +1,6 @@
 import 'server-only';
 import { createTransport, type Transporter } from 'nodemailer';
-import { LOGO_CID, type RenderedEmail } from '@/emails/download-email';
+import type { RenderedEmail } from '@/emails/download-email';
 import { getServerEnv } from './env';
 
 /** The one piece of Nodemailer the sender needs, so tests can pass a stand in. */
@@ -34,13 +34,11 @@ export interface SendEmailInput {
   email: RenderedEmail;
   /** Adds a List-Unsubscribe header. Leave it out for mail that is not a notice. */
   unsubscribeUrl?: string | undefined;
-  /** The logo as a PNG, attached so the HTML can show it inline. */
-  logo?: Uint8Array | undefined;
 }
 
 /**
- * Sends one email. It carries an unsubscribe link in its headers, a reply address and the logo as
- * an inline attachment. It throws when the provider refuses the message, and the caller decides
+ * Sends one email. It carries an unsubscribe link in its headers and a reply address. The logo is a
+ * normal image on the website, not an attachment, so every mail client can show it. It throws when the provider refuses the message, and the caller decides
  * what that means, because a failed email must never stop a download.
  */
 export async function sendEmail(mail: MailTransport, input: SendEmailInput): Promise<void> {
@@ -54,17 +52,5 @@ export async function sendEmail(mail: MailTransport, input: SendEmailInput): Pro
     ...(input.unsubscribeUrl === undefined
       ? {}
       : { headers: { 'List-Unsubscribe': `<${input.unsubscribeUrl}>` } }),
-    attachments:
-      input.logo === undefined
-        ? []
-        : [
-            {
-              filename: 'scrim.png',
-              content: Buffer.from(input.logo),
-              cid: LOGO_CID,
-              contentType: 'image/png',
-              contentDisposition: 'inline',
-            },
-          ],
   });
 }

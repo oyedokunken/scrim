@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { escapeHtml } from '@/emails/escape';
-import { LOGO_CID, renderDownloadEmail, type DownloadEmailInput } from '@/emails/download-email';
+import { logoUrl, renderDownloadEmail, type DownloadEmailInput } from '@/emails/download-email';
 import { renderOwnerEmail, type OwnerEmailInput } from '@/emails/owner-email';
 import { SYSTEMS } from '@/lib/systems';
 import type { EmailJob } from '@/server/downloads';
@@ -19,6 +19,7 @@ const input: DownloadEmailInput = {
   url: 'https://github.com/oyedokunken/scrim/releases/download/v1.0.0/Scrim-1.0.0-x64.exe',
   help: windows?.help ?? [],
   siteUrl: 'https://scrim.oyedokun.dev',
+  when: 'Monday, November 2, 2026 at 9:30 AM (New York time)',
   privacyUrl: 'https://scrim.oyedokun.dev/privacy',
   unsubscribeUrl: `https://scrim.oyedokun.dev/unsubscribe?token=${TOKEN}`,
   supportUrl: 'https://buymeamalt.com/@oyedokunken',
@@ -51,10 +52,18 @@ describe('the thank you email', () => {
     expect(email.html).not.toContain('Hi Ada Lovelace');
   });
 
-  it('shows the logo as an inline attachment with a text alternative', () => {
-    expect(LOGO_CID).toBe('scrim-logo');
-    expect(email.html).toContain('src="cid:scrim-logo"');
+  it('loads the logo from the website as a normal image with a text alternative', () => {
+    expect(logoUrl(input.siteUrl)).toBe('https://scrim.oyedokun.dev/email-logo.png');
+    expect(email.html).toContain('src="https://scrim.oyedokun.dev/email-logo.png"');
     expect(email.html).toContain('alt="Scrim"');
+    expect(email.html).not.toContain('cid:');
+    expect(email.html).not.toContain('.svg');
+  });
+
+  it('starts the text version with the name and shows the time for the visitor', () => {
+    expect(email.text.startsWith('Scrim\n')).toBe(true);
+    expect(email.text).toContain('Monday, November 2, 2026 at 9:30 AM (New York time)');
+    expect(email.html).toContain('Monday, November 2, 2026 at 9:30 AM (New York time)');
   });
 
   it('shows the full logo as one image, with no separate wordmark text beside it', () => {
@@ -163,7 +172,7 @@ const owner: OwnerEmailInput = {
   filename: 'Scrim-1.0.0-x64.exe',
   direct: true,
   updatesOptIn: true,
-  when: '2026-11-02 09:30 UTC',
+  when: 'Monday, November 2, 2026 at 10:30 AM (Lagos time)',
   siteUrl: 'https://scrim.oyedokun.dev',
 };
 
@@ -178,7 +187,7 @@ describe('the note the owner gets', () => {
       'Windows, 64 bit Intel',
       'Scrim-1.0.0-x64.exe (version 1.0.0)',
       'Wants them',
-      '2026-11-02 09:30 UTC',
+      'Monday, November 2, 2026 at 10:30 AM (Lagos time)',
     ]) {
       expect(email.html).toContain(part);
       expect(email.text).toContain(part);
@@ -227,9 +236,7 @@ function fakeTransport() {
 
 describe('sendEmail', () => {
   const email = renderDownloadEmail(input);
-  const logo = new Uint8Array([137, 80, 78, 71]);
-
-  it('sends the HTML and the text with the logo attached inline and an unsubscribe header', async () => {
+  it('sends the HTML and the text with an unsubscribe header and no attachment', async () => {
     const { sent, transport } = fakeTransport();
     await sendEmail(transport, {
       to: 'ada@example.com',
@@ -237,7 +244,6 @@ describe('sendEmail', () => {
       replyTo: 'oyedokunken@gmail.com',
       email,
       unsubscribeUrl: input.unsubscribeUrl,
-      logo,
     });
     const message = sent[0];
     expect(message?.to).toBe('ada@example.com');
@@ -247,19 +253,14 @@ describe('sendEmail', () => {
     expect(message?.html).toBe(email.html);
     expect(message?.text).toBe(email.text);
     expect(message?.headers).toEqual({ 'List-Unsubscribe': `<${input.unsubscribeUrl}>` });
-    expect(message?.attachments).toHaveLength(1);
-    expect(message?.attachments?.[0]).toMatchObject({
-      cid: 'scrim-logo',
-      contentType: 'image/png',
-      contentDisposition: 'inline',
-    });
+    expect(message?.attachments).toBeUndefined();
   });
 
   it('adds no header and no attachment when it is given neither', async () => {
     const { sent, transport } = fakeTransport();
     await sendEmail(transport, { to: 'a@b.co', from: 'x@y.co', replyTo: 'x@y.co', email });
     expect(sent[0]?.headers).toBeUndefined();
-    expect(sent[0]?.attachments).toEqual([]);
+    expect(sent[0]?.attachments).toBeUndefined();
   });
 
   it('passes a refusal from the provider up to the caller', async () => {
@@ -284,6 +285,7 @@ const job: EmailJob = {
   url: input.url,
   unsubscribeToken: TOKEN,
   downloadId: 'download-1',
+  timeZone: 'America/New_York',
 };
 
 describe('unsubscribeUrl', () => {
@@ -309,7 +311,6 @@ describe('sendDownloadEmailJob', () => {
       from: 'Scrim <hello@scrim.oyedokun.dev>',
       replyTo: 'oyedokunken@gmail.com',
       siteUrl: 'https://scrim.oyedokun.dev',
-      loadLogo: () => Promise.resolve(new Uint8Array([1, 2, 3])),
       markSent: (id) => {
         marked.push(id);
         return Promise.resolve();
@@ -325,6 +326,25 @@ describe('sendDownloadEmailJob', () => {
     expect(marked).toEqual(['download-1']);
   });
 
+  it("writes the time in the visitor's own zone, and in UTC when the zone is not usable", async () => {
+    const now = () => new Date('2026-11-05T03:29:00Z');
+    const deps = {
+      from: 'x@y.co',
+      replyTo: 'x@y.co',
+      siteUrl: 'https://scrim.oyedokun.dev',
+      now,
+      markSent: () => Promise.resolve(),
+    };
+    const first = fakeTransport();
+    await sendDownloadEmailJob(job, { ...deps, mail: first.transport });
+    expect(first.sent[0]?.text).toContain(
+      'Wednesday, November 4, 2026 at 10:29 PM (New York time)',
+    );
+    const second = fakeTransport();
+    await sendDownloadEmailJob({ ...job, timeZone: 'UTC' }, { ...deps, mail: second.transport });
+    expect(second.sent[0]?.text).toContain('Thursday, November 5, 2026 at 3:29 AM (UTC)');
+  });
+
   it('does not mark the download as emailed when the provider refuses', async () => {
     const marked: string[] = [];
     const refusing = {
@@ -336,7 +356,6 @@ describe('sendDownloadEmailJob', () => {
         from: 'x@y.co',
         replyTo: 'x@y.co',
         siteUrl: 'https://scrim.oyedokun.dev',
-        loadLogo: () => Promise.resolve(new Uint8Array()),
         markSent: (id) => {
           marked.push(id);
           return Promise.resolve();
@@ -361,10 +380,13 @@ describe('sendOwnerNote', () => {
     expect(sent[0]?.to).toBe('oyedokunken@gmail.com');
     expect(sent[0]?.replyTo).toBe('ada@example.com');
     expect(sent[0]?.subject).toBe('New Scrim download for Windows');
-    expect(textOf(sent[0]?.text)).toContain('When: 2026-11-02 09:30 UTC');
+    expect(textOf(sent[0]?.text)).toContain(
+      'When: Monday, November 2, 2026 at 10:30 AM (Lagos time)',
+    );
+    expect(textOf(sent[0]?.text).startsWith('Scrim\n')).toBe(true);
     expect(textOf(sent[0]?.text)).toContain('Windows, 64 bit Intel');
     expect(sent[0]?.headers).toBeUndefined();
-    expect(sent[0]?.attachments).toEqual([]);
+    expect(sent[0]?.attachments).toBeUndefined();
   });
 });
 
@@ -387,7 +409,7 @@ describe.each(SYSTEMS)('the emails for $name', (system) => {
     filename: file,
     direct: true,
     updatesOptIn: false,
-    when: '2026-11-02 09:30 UTC',
+    when: 'Monday, November 2, 2026 at 10:30 AM (Lagos time)',
     siteUrl: 'https://scrim.oyedokun.dev',
   });
   const BANNED =

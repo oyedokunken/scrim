@@ -1,5 +1,5 @@
 /** When the privacy policy last changed. Update this one value and the page follows. */
-export const PRIVACY_LAST_UPDATED = '2026-10-28';
+export const PRIVACY_LAST_UPDATED = '2026-11-05';
 
 /**
  * How long download records are kept. The owner has not set a period yet, so this says so in

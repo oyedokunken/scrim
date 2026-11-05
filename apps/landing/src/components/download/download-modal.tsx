@@ -150,6 +150,8 @@ export function DownloadModal({ open, initialOs, onClose }: DownloadModalProps) 
     const request = {
       ...data,
       arch: detectedArch === 'arm64' ? 'arm64' : 'x64',
+      // Only used to write the time in the email in the visitor's own zone. It is never stored.
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       // The package choice only means something on Linux.
       format: data.os === 'linux' ? data.format : undefined,
       // Someone asking about a system with no installer is asking to be told when it is ready.
