@@ -12,6 +12,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { readPort, runnerFlags } from './fixtures';
 
 /**
  * The floating recording pill in the real built app. A recording is started through the typed
@@ -85,7 +86,13 @@ async function launch(
     writeFileSync(join(userData, 'pill-position.json'), JSON.stringify(pillAt));
   const child = spawn(
     electronPath,
-    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0', ...extraArgs],
+    [
+      APP_DIR,
+      `--user-data-dir=${userData}`,
+      '--remote-debugging-port=0',
+      ...runnerFlags,
+      ...extraArgs,
+    ],
     {
       env: { ...process.env, SCRIM_E2E: '', LOCALAPPDATA: local },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -107,7 +114,7 @@ async function launch(
   let port = 0;
   while (Date.now() < deadline && port === 0) {
     if (child.exitCode !== null) throw new Error('Scrim exited early.');
-    if (existsSync(file)) port = Number(readFileSync(file, 'utf8').split(/\r?\n/)[0]);
+    if (existsSync(file)) port = readPort(file);
     await sleep(200);
   }
   if (port === 0) throw new Error('No debugging port.');

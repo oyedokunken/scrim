@@ -28,7 +28,29 @@ const PACKAGED = process.env['SCRIM_E2E_TARGET'] === 'packaged';
 // only: on a hosted Windows runner the same flags made every launch end with an access violation
 // (exit code 3221225477), while a launch without them works.
 const onLinuxRunner = process.env['CI'] !== undefined && process.platform === 'linux';
-export const sandboxFlags = onLinuxRunner ? ['--no-sandbox', '--disable-gpu'] : [];
+// A hosted runner of any system has no camera, no microphone and no sound device. Chromium's fake
+// devices stand in for them, so the camera and sound checks and video playback behave as on a desk.
+const fakeDevices =
+  process.env['CI'] === undefined
+    ? []
+    : [
+        '--use-fake-device-for-media-stream',
+        '--use-fake-ui-for-media-stream',
+        '--disable-audio-output',
+      ];
+export const runnerFlags = [
+  ...(onLinuxRunner ? ['--no-sandbox', '--disable-gpu'] : []),
+  ...fakeDevices,
+];
+
+/** Reads the debugging port Chromium writes at start. A file still being written is not ready yet. */
+export function readPort(file: string): number {
+  try {
+    return Number(readFileSync(file, 'utf8').split('\n')[0]?.trim());
+  } catch {
+    return 0;
+  }
+}
 
 /** Ends the app and its helper processes, which keep the user data folder locked on Windows. */
 async function stopTree(child: ChildProcess): Promise<void> {
@@ -72,7 +94,7 @@ interface Launched {
  */
 function startBuilt(userDataDir: string): Promise<ElectronApplication> {
   return electron.launch({
-    args: [APP_DIR, `--user-data-dir=${userDataDir}`, ...sandboxFlags],
+    args: [APP_DIR, `--user-data-dir=${userDataDir}`, ...runnerFlags],
     env: {
       ...process.env,
       SCRIM_E2E: '1',
@@ -122,7 +144,7 @@ async function launchPackaged(userDataDir: string, use: (value: Launched) => Pro
     process.env['SCRIM_PACKAGED_EXE'] ?? join(APP_DIR, 'release', 'win-unpacked', 'Scrim.exe');
   const child = spawn(
     exe,
-    [`--user-data-dir=${userDataDir}`, '--remote-debugging-port=0', ...sandboxFlags],
+    [`--user-data-dir=${userDataDir}`, '--remote-debugging-port=0', ...runnerFlags],
     { stdio: 'ignore' },
   );
   try {
