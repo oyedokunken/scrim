@@ -17,14 +17,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: built-by alone
+          - name: built-by with CI unset
             specs: tests/e2e/built-by.spec.ts
-          - name: chooser 1 then built-by
-            specs: tests/e2e/area-chooser.spec.ts:139 tests/e2e/built-by.spec.ts
-          - name: chooser 1 and 2 then built-by
-            specs: tests/e2e/area-chooser.spec.ts:139 tests/e2e/area-chooser.spec.ts:162 tests/e2e/built-by.spec.ts
-          - name: chooser 1 to 3 then built-by
-            specs: tests/e2e/area-chooser.spec.ts tests/e2e/built-by.spec.ts
+            ci: ''
+          - name: csp with CI unset
+            specs: tests/e2e/csp.spec.ts
+            ci: ''
+          - name: built-by with CI set
+            specs: tests/e2e/built-by.spec.ts
+            ci: 'true'
     defaults:
       run:
         working-directory: apps/desktop
@@ -40,4 +41,6 @@ jobs:
       - run: pnpm fetch:ffmpeg
       - run: pnpm build
       - name: ${{ matrix.name }}
+        env:
+          CI: ${{ matrix.ci }}
         run: pnpm exec playwright test ${{ matrix.specs }}
