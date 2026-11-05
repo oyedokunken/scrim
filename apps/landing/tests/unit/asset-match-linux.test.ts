@@ -36,8 +36,14 @@ describe('matching the Linux release files', () => {
     );
   });
 
-  it('picks the AppImage when the visitor chose no format', () => {
+  it('picks the deb when the visitor chose no format', () => {
     expect(matchAsset(release, { os: 'linux', arch: 'x64' })?.name).toBe(
+      'Scrim-1.2.0-linux-amd64.deb',
+    );
+  });
+
+  it('picks the AppImage for the AppImage format', () => {
+    expect(matchAsset(release, { os: 'linux', arch: 'x64', format: 'appimage' })?.name).toBe(
       'Scrim-1.2.0-linux-x86_64.AppImage',
     );
   });
