@@ -59,7 +59,7 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
     void window.scrim
       .invoke('image:copy', { dataUrl: source })
       .then(() => {
-        toast('Copied to the clipboard');
+        toast('Copied', { text: 'It is on your clipboard.' });
       })
       .catch(() => {
         showError({
@@ -76,7 +76,8 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
     void window.scrim
       .invoke('image:save-as', { dataUrl: source, name: fileName(path) })
       .then((result) => {
-        if (result.path !== null) toast(`Saved ${fileName(result.path)}`);
+        if (result.path !== null)
+          toast('Screenshot saved', { text: `${fileName(result.path)} was saved.` });
       })
       .catch(() => {
         showError({
@@ -93,7 +94,7 @@ export function ScreenshotResult({ path, width, height, onEdit, onDone }: Screen
     void window.scrim
       .invoke('image:delete', { path })
       .then(() => {
-        toast('Moved the screenshot to the recycle bin');
+        toast('Moved to the recycle bin', { text: 'You can restore the screenshot from there.' });
         onDone();
       })
       .catch(() => {

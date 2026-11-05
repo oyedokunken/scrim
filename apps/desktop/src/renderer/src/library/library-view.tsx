@@ -329,7 +329,7 @@ export function LibraryView({
     void library.rename(item.id, renameText).then((result) => {
       if (result.ok) {
         setRenaming(null);
-        toast('Renamed');
+        toast('Renamed', { text: 'The new name is saved.' });
       } else if (result.reason === 'exists') {
         showError({
           title: 'That name is taken',
@@ -407,7 +407,7 @@ export function LibraryView({
                 onClick={() => {
                   void library.recover(session.folder).then((result) => {
                     if (result.ok) {
-                      toast('Recording recovered');
+                      toast('Recording recovered', { text: 'It is back in your library.' });
                       onOpened({ kind: 'editor', folder: result.folder });
                     } else {
                       showError({
@@ -476,7 +476,7 @@ export function LibraryView({
               }}
               onCopy={() => {
                 void library.copyImage(item.id).then((ok) => {
-                  if (ok) toast('Copied to the clipboard');
+                  if (ok) toast('Copied', { text: 'It is on your clipboard.' });
                   else {
                     showError({
                       title: 'Scrim could not copy the screenshot',
@@ -572,7 +572,7 @@ export function LibraryView({
           setDeleting(null);
           if (item === null) return;
           void library.remove(item.id).then((ok) => {
-            if (ok) toast('Moved to the recycle bin');
+            if (ok) toast('Moved to the recycle bin', { text: 'You can restore it from there.' });
             else {
               showError({
                 title: 'Scrim could not delete it',

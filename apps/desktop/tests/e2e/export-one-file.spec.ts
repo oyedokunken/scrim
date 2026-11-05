@@ -290,8 +290,21 @@ test('Stop opens the page at once, renders the one MP4 in the background and say
 
     // The toast names the folder and offers Show in folder.
     const toast = page.locator('.ui-toast');
+    await expect(toast.locator('.ui-toast-title')).toHaveText('Video saved');
     await expect(toast).toContainText('Saved to');
-    await expect(toast.getByRole('button', { name: 'Show in folder' })).toBeVisible();
+    const show = toast.getByRole('button', { name: 'Show in folder' });
+    await expect(show).toBeVisible();
+    await toast.screenshot({ path: 'test-results/toast-video-saved.png' });
+    // The title and the close button share the top row, the text is under the title, and the
+    // button is under the text on the left.
+    const title = await toast.locator('.ui-toast-title').boundingBox();
+    const text = await toast.locator('.ui-toast-text').boundingBox();
+    const button = await show.boundingBox();
+    const close = await toast.getByRole('button', { name: 'Close' }).boundingBox();
+    expect(title?.x ?? 0).toBeLessThan(close?.x ?? 0);
+    expect(text?.y ?? 0).toBeGreaterThan((title?.y ?? 0) + (title?.height ?? 0) - 1);
+    expect(button?.y ?? 0).toBeGreaterThan((text?.y ?? 0) + (text?.height ?? 0) - 1);
+    expect(button?.x).toBeCloseTo(title?.x ?? 0, 0);
 
     const file = join(running.exports, files[0] ?? '');
     const probe = spawnSync(

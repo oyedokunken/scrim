@@ -142,11 +142,12 @@ export function SettingsView({
     void window.scrim.invoke('legacy:move').then(
       (result) => {
         setLegacy(result.failed);
-        toast(
-          result.failed === 0
-            ? `Moved ${String(result.moved)} folders out of your videos folder`
-            : `Moved ${String(result.moved)}. ${String(result.failed)} could not be moved and stayed where they were.`,
-        );
+        toast(result.failed === 0 ? 'Folders moved' : 'Some folders stayed', {
+          text:
+            result.failed === 0
+              ? `Moved ${String(result.moved)} folders out of your videos folder.`
+              : `Moved ${String(result.moved)}. ${String(result.failed)} could not be moved and stayed where they were.`,
+        });
       },
       () => {
         showError({

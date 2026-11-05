@@ -120,10 +120,13 @@ export function MainScreen() {
     if (job.preview) return;
     if (job.phase === 'done' && job.result !== null) {
       const { fellBack, savedIn } = job.result;
-      toast(fellBack ? "Saved in Scrim's own folder" : `Saved to ${savedIn}`, {
-        label: 'Show in folder',
-        run: () => {
-          void window.scrim.invoke('export:reveal', { jobId: job.id, what: 'output' });
+      toast('Video saved', {
+        text: fellBack ? "Saved in Scrim's own folder." : `Saved to ${savedIn}`,
+        action: {
+          label: 'Show in folder',
+          run: () => {
+            void window.scrim.invoke('export:reveal', { jobId: job.id, what: 'output' });
+          },
         },
       });
     } else if (job.phase === 'failed' && job.error !== null) {

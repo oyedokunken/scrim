@@ -118,7 +118,10 @@ export function RecordingEditPane({ folder, name, onClose, onSaved }: RecordingE
     if (saving === null || mine === null || handled.current === mine.id) return;
     if (mine.phase === 'done') {
       handled.current = mine.id;
-      toast(saving.mode === 'replace' ? 'The video was replaced' : 'Saved as a new video');
+      toast('Video saved', {
+        text:
+          saving.mode === 'replace' ? 'The video was replaced.' : 'It was saved as a new video.',
+      });
       onSaved(saving.mode);
     } else if (mine.phase === 'failed' || mine.phase === 'cancelled') {
       handled.current = mine.id;

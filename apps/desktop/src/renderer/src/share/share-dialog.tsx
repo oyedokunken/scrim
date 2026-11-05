@@ -102,7 +102,7 @@ export function ShareDialog({ source, onClose, onMissing }: ShareDialogProps) {
         .then((result) => {
           setBusy(null);
           if (result.ok) {
-            toast(result.message);
+            toast('Done', { text: result.message });
             onClose();
             return;
           }
