@@ -135,14 +135,7 @@ export function renderDownloadEmail(input: DownloadEmailInput): RenderedEmail {
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
             <tr>
               <td style="padding:0 0 24px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                  <tr>
-                    <td style="vertical-align:middle;padding-right:12px;">
-                      <img src="cid:${LOGO_CID}" width="44" height="44" alt="Scrim" style="display:block;border:0;border-radius:11px;" />
-                    </td>
-                    <td style="vertical-align:middle;font-size:26px;font-weight:800;letter-spacing:-0.04em;color:${BLACK};">Scrim</td>
-                  </tr>
-                </table>
+                <img src="cid:${LOGO_CID}" width="140" height="44" alt="Scrim" style="display:block;border:0;" />
               </td>
             </tr>
             <tr>

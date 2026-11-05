@@ -57,6 +57,11 @@ describe('the thank you email', () => {
     expect(email.html).toContain('alt="Scrim"');
   });
 
+  it('shows the full logo as one image, with no separate wordmark text beside it', () => {
+    expect(email.html).toContain('width="140" height="44"');
+    expect(email.html).not.toMatch(/>Scrim<\/td>/);
+  });
+
   it('says which file was downloaded and offers a button to get it again', () => {
     expect(email.html).toContain('Scrim-1.0.0-x64.exe (version 1.0.0)');
     expect(email.html).toContain(`href="${input.url}"`);

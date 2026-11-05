@@ -6,7 +6,7 @@ import { siteConfig } from '@/site.config';
 
 const SIZE = { width: 1200, height: 630 } as const;
 
-async function loadFont(weight: 600 | 800): Promise<ArrayBuffer> {
+export async function loadFont(weight: 600 | 800): Promise<ArrayBuffer> {
   // The renderer needs TTF, OTF or WOFF. It cannot read WOFF2 or variable fonts, so this is the
   // static Urbanist package. A missing file throws, which fails the build instead of silently
   // falling back to a default font.
