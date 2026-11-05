@@ -3,7 +3,6 @@ import { prismaDownloadStore } from '@/server/download-store';
 import { MAX_BODY_BYTES, handleDownloadRequest } from '@/server/downloads';
 import { getServerEnv } from '@/server/env';
 import { getTransport } from '@/server/mail';
-import { loadMailLogo } from '@/server/mail-logo';
 import { fetchLatestRelease } from '@/server/releases';
 import { sendDownloadEmailJob, sendOwnerNote } from '@/server/send-download-email';
 import { siteConfig } from '@/site.config';
@@ -45,7 +44,6 @@ export async function POST(request: Request): Promise<Response> {
           from: env.MAIL_FROM,
           replyTo: siteConfig.contactInbox,
           siteUrl: env.SITE_URL,
-          loadLogo: loadMailLogo,
           markSent: (downloadId) => store.markEmailSent(downloadId),
         });
       } catch {

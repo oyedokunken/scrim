@@ -1,6 +1,7 @@
 import 'server-only';
 import { matchAsset } from '@/lib/asset-match';
 import { downloadRequestSchema, fieldErrors, type DownloadResponse } from '@/lib/download-request';
+import { resolveTimeZone } from '@/lib/email-date';
 import { clientIp, hashIp, truncateUserAgent } from './ip';
 import type { LatestRelease } from './releases';
 
@@ -49,6 +50,8 @@ export interface EmailJob {
   url: string;
   unsubscribeToken: string;
   downloadId: string;
+  /** The visitor's time zone, only for writing the time in their email. Never stored. */
+  timeZone: string;
 }
 
 export interface DownloadDeps {
@@ -202,6 +205,7 @@ export async function handleDownloadRequest(
       url: body.url,
       unsubscribeToken: recorded.unsubscribeToken,
       downloadId: recorded.downloadId,
+      timeZone: resolveTimeZone(request.timeZone),
     },
   };
 }

@@ -2,6 +2,7 @@ import 'server-only';
 import { renderDownloadEmail } from '@/emails/download-email';
 import { renderOwnerEmail } from '@/emails/owner-email';
 import { siteConfig } from '@/site.config';
+import { formatEmailDate, OWNER_TIME_ZONE } from '@/lib/email-date';
 import { SYSTEMS } from '@/lib/systems';
 import type { EmailJob } from './downloads';
 import type { MailTransport } from './mail';
@@ -13,7 +14,8 @@ export interface SendJobDeps {
   replyTo: string;
   /** The site's public origin, for the privacy and unsubscribe links. */
   siteUrl: string;
-  loadLogo: () => Promise<Uint8Array>;
+  /** The moment the email is written for. Tests set it. */
+  now?: () => Date;
   /** Called after the message is accepted, so the hourly limit can see it. */
   markSent: (downloadId: string) => Promise<void>;
 }
@@ -40,6 +42,7 @@ export async function sendDownloadEmailJob(job: EmailJob, deps: SendJobDeps): Pr
     url: job.url,
     help: system?.help ?? [],
     siteUrl: deps.siteUrl,
+    when: formatEmailDate(deps.now?.() ?? new Date(), job.timeZone),
     privacyUrl: `${deps.siteUrl}/privacy`,
     unsubscribeUrl: link,
     supportUrl: siteConfig.maltUrl,
@@ -51,7 +54,6 @@ export async function sendDownloadEmailJob(job: EmailJob, deps: SendJobDeps): Pr
     replyTo: deps.replyTo,
     email,
     unsubscribeUrl: link,
-    logo: await deps.loadLogo(),
   });
   await deps.markSent(job.downloadId);
 }
@@ -67,10 +69,10 @@ export interface OwnerNoteDeps {
 
 const CHIPS = { x64: '64 bit Intel', arm64: 'Apple Silicon or Arm' } as const;
 
-/** Tells the owner someone downloaded Scrim. It has no logo and no unsubscribe link. */
+/** Tells the owner someone downloaded Scrim. It has no unsubscribe link. */
 export async function sendOwnerNote(job: EmailJob, deps: OwnerNoteDeps): Promise<void> {
   const system = SYSTEMS.find((candidate) => candidate.os === job.os);
-  const when = (deps.now?.() ?? new Date()).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  const when = formatEmailDate(deps.now?.() ?? new Date(), OWNER_TIME_ZONE);
   const email = renderOwnerEmail({
     name: job.name,
     email: job.to,

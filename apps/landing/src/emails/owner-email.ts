@@ -1,6 +1,6 @@
 import { blendOver, palette } from '@scrim/tokens';
 import { escapeHtml } from './escape';
-import type { RenderedEmail } from './download-email';
+import { logoUrl, type RenderedEmail } from './download-email';
 
 export interface OwnerEmailInput {
   /** What the visitor typed. */
@@ -15,7 +15,7 @@ export interface OwnerEmailInput {
   /** True when the installer itself was linked. */
   direct: boolean;
   updatesOptIn: boolean;
-  /** When the download was asked for, as a readable UTC time. */
+  /** When the download was asked for, already written in the owner's time zone. */
   when: string;
   siteUrl: string;
 }
@@ -49,6 +49,8 @@ export function renderOwnerEmail(input: OwnerEmailInput): RenderedEmail {
   ];
 
   const text = [
+    'Scrim',
+    '',
     subject,
     '',
     ...rows.map(([label, value]) => `${label}: ${value}`),
@@ -69,6 +71,11 @@ export function renderOwnerEmail(input: OwnerEmailInput): RenderedEmail {
       <tr>
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" width="520" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:520px;">
+            <tr>
+              <td style="padding:0 0 24px;">
+                <img src="${escapeHtml(logoUrl(input.siteUrl))}" width="140" height="44" alt="Scrim" style="display:block;border:0;" />
+              </td>
+            </tr>
             <tr>
               <td style="background:${GREEN};border-radius:20px 20px 0 0;padding:20px 28px;font-size:14px;font-weight:800;letter-spacing:0.02em;color:${WHITE};">New download</td>
             </tr>

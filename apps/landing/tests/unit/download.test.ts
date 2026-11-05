@@ -523,7 +523,22 @@ describe('handleDownloadRequest', () => {
         url: release.assets[0]?.url,
         unsubscribeToken: TOKEN,
         downloadId: 'download-1',
+        timeZone: 'UTC',
       });
+    });
+
+    it('carries the visitor time zone to the email, and uses UTC for one that is not real', async () => {
+      const { deps } = setup();
+      const real = await handleDownloadRequest(
+        { headers: headers(), bodyText: body({ ...valid, timeZone: 'America/New_York' }) },
+        deps,
+      );
+      expect(real.email?.timeZone).toBe('America/New_York');
+      const fake = await handleDownloadRequest(
+        { headers: headers(), bodyText: body({ ...valid, timeZone: 'Mars/Olympus_Mons' }) },
+        setup().deps,
+      );
+      expect(fake.email?.timeZone).toBe('UTC');
     });
 
     it('asks for an email even when the download points at the Releases page', async () => {

@@ -20,6 +20,8 @@ export const downloadRequestSchema = z.strictObject({
   arch: z.enum(['x64', 'arm64']).optional(),
   format: z.enum(['appimage', 'deb']).optional(),
   updatesOptIn: z.boolean().default(false),
+  /** The browser's time zone, used only to write the time in the email. Never stored. */
+  timeZone: z.string().max(64).optional(),
   website: z.string().max(200).optional(),
 });
 
