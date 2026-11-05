@@ -1,6 +1,12 @@
 import { FuseV1Options } from '@electron/fuses';
 import { describe, expect, it } from 'vitest';
-import { diffFuses, FUSES, parseFuseReport, toFlipConfig } from '../../build/fuses.mts';
+import {
+  diffFuses,
+  FUSES,
+  parseFuseReport,
+  toFlipConfig,
+  withoutColors,
+} from '../../build/fuses.mts';
 
 const REPORT = `Analyzing app: Scrim.exe
 Fuse Version: v1
@@ -67,5 +73,23 @@ describe('fuse verification', () => {
 
   it('fails when a fuse is missing from the report', () => {
     expect(diffFuses({})).toHaveLength(Object.keys(FUSES).length);
+  });
+});
+
+describe('a colored report', () => {
+  const ESC = String.fromCharCode(27);
+  const colored = [
+    `Analyzing app: ${ESC}[36mscrim${ESC}[39m`,
+    `  ${ESC}[33mRunAsNode${ESC}[39m is ${ESC}[31mDisabled${ESC}[39m`,
+    `  ${ESC}[33mOnlyLoadAppFromAsar${ESC}[39m is ${ESC}[32mEnabled${ESC}[39m`,
+  ].join('\n');
+
+  it('loses its color codes', () => {
+    expect(withoutColors(colored)).not.toContain(ESC);
+    expect(withoutColors('plain text')).toBe('plain text');
+  });
+
+  it('reads the same as a plain report', () => {
+    expect(parseFuseReport(colored)).toEqual({ RunAsNode: false, OnlyLoadAppFromAsar: true });
   });
 });
