@@ -189,7 +189,9 @@ test.describe('acceptance: packaged build', () => {
       .click()
       .catch(() => undefined);
 
-    await expect(main.getByText('Recording saved')).toBeVisible({ timeout: 30_000 });
+    await expect(main.getByRole('heading', { name: 'Review your recording' })).toBeVisible({
+      timeout: 30_000,
+    });
     const projects = join(local, 'Scrim', 'Projects');
     const folders = readdirSync(projects).filter((n) => n.endsWith('.scrim'));
     expect(folders).toHaveLength(1);
@@ -222,7 +224,6 @@ test.describe('acceptance: packaged build', () => {
   // (see audit.md). test.fail() keeps the suite green while they are broken and turns red the
   // moment the feature works, which is the signal to remove the marker.
   test('2. Settings has real controls (folders, welcome screen, shortcuts)', async () => {
-    test.fail(true, 'Settings is a placeholder (audit.md, owner APP).');
     session = await launch(true);
     const { main } = session;
     await main.getByRole('button', { name: 'Settings', exact: true }).first().click();
