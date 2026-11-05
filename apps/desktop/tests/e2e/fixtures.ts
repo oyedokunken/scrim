@@ -23,9 +23,12 @@ const PACKAGED = process.env['SCRIM_E2E_TARGET'] === 'packaged';
  * over the Chromium debugging port. That gives a page but no main process handle, so specs
  * that need the main process skip themselves in this mode.
  */
-// A hosted runner has no GPU and no user session of its own. Software drawing keeps the app from
-// crashing at start there, and the logging says what Chromium thought if it still does.
-const sandboxFlags = process.env['CI'] ? ['--no-sandbox', '--disable-gpu'] : [];
+// A hosted Linux runner has no GPU and runs as a user that cannot use the Chromium sandbox, so
+// software drawing and --no-sandbox keep the app from crashing at start there. They are for Linux
+// only: on a hosted Windows runner the same flags made every launch end with an access violation
+// (exit code 3221225477), while a launch without them works.
+const onLinuxRunner = process.env['CI'] !== undefined && process.platform === 'linux';
+const sandboxFlags = onLinuxRunner ? ['--no-sandbox', '--disable-gpu'] : [];
 
 /** Ends the app and its helper processes, which keep the user data folder locked on Windows. */
 async function stopTree(child: ChildProcess): Promise<void> {
@@ -73,7 +76,7 @@ function startBuilt(userDataDir: string): Promise<ElectronApplication> {
     env: {
       ...process.env,
       SCRIM_E2E: '1',
-      ...(process.env['CI'] ? { ELECTRON_ENABLE_LOGGING: '1' } : {}),
+      ...(onLinuxRunner ? { ELECTRON_ENABLE_LOGGING: '1' } : {}),
     },
   });
 }
