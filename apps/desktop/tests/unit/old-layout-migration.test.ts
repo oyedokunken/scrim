@@ -49,7 +49,8 @@ describe('a session folder from the old layout', () => {
   it('recovers in place, keeps the raw file byte for byte, and moves or deletes nothing', async () => {
     const { h, folder } = await oldLayoutSession();
     const before = await readFile(join(folder, 'screen.raw.webm'));
-    const namesBefore = (await readdir(folder)).sort();
+    // A file being written is first a .tmp file that is then renamed, and a listing can catch it.
+    const namesBefore = (await readdir(folder)).filter((entry) => !entry.endsWith('.tmp')).sort();
     const exportFolderBefore = await readdir(h.destination);
 
     const result = await h.service.recover(folder);
