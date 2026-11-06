@@ -16,6 +16,10 @@ import { enterApp, expect, test } from './fixtures';
  * .exe, which is the Windows update shape. Nothing here installs anything.
  */
 test.skip(process.platform !== 'win32', 'The local feed serves the Windows update files');
+test.skip(
+  process.env['SCRIM_E2E_TARGET'] === 'packaged',
+  'A packaged app ignores the test feed, which only a development run reads',
+);
 
 let server: MockServer | undefined;
 

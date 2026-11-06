@@ -67,10 +67,17 @@ async function launch(): Promise<Running> {
   });
   const portFile = join(userData, 'DevToolsActivePort');
   const deadline = Date.now() + 30_000;
-  while (!existsSync(portFile) && Date.now() < deadline) {
+  let port: string | undefined;
+  while (Date.now() < deadline) {
+    try {
+      // Chromium may still hold the file while it writes it, which Windows reports as EBUSY.
+      port = readFileSync(portFile, 'utf8').split(/\r?\n/)[0];
+      if (port !== undefined && port !== '') break;
+    } catch {
+      // Not there yet, or busy. Read it again.
+    }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
-  const port = readFileSync(portFile, 'utf8').split(/\r?\n/)[0];
   const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port ?? ''}`);
   const context = browser.contexts()[0];
   if (context === undefined) throw new Error('The app exposed no browser context.');

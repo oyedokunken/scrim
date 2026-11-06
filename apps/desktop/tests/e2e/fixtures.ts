@@ -91,8 +91,13 @@ async function waitForDebugPort(userDataDir: string, child: ChildProcess): Promi
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`Scrim exited early with code ${child.exitCode}`);
     if (existsSync(file)) {
-      const port = Number(readFileSync(file, 'utf8').split(/\r?\n/)[0]);
-      if (Number.isInteger(port) && port > 0) return port;
+      // Chromium may still hold the file while it writes it, which Windows reports as EBUSY.
+      try {
+        const port = Number(readFileSync(file, 'utf8').split(/\r?\n/)[0]);
+        if (Number.isInteger(port) && port > 0) return port;
+      } catch {
+        // Read it again on the next turn.
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
