@@ -79,3 +79,5 @@ dev-app-update.yml
 
 # the owner private release checklist, never committed
 RELEASE.md
+
+.vercel
