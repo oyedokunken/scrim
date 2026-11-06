@@ -12,6 +12,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { projectsFor, readPort, runnerFlags } from './fixtures';
 
 /**
  * The floating recording pill in the real built app. A recording is started through the typed
@@ -23,7 +24,7 @@ const APP_DIR = join(__dirname, '../..');
 const electronPath = createRequire(__filename)('electron') as string;
 const ffmpeg = existsSync(join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe'))
   ? join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe')
-  : (process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
+  : (process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
 
 test.skip(process.env['SCRIM_E2E_TARGET'] === 'packaged', 'Needs the built app.');
 test.describe.configure({ mode: 'serial' });
@@ -69,7 +70,7 @@ async function launch(
   // receives exports, so a recording must leave it empty.
   const local = join(work, 'local');
   const exports = join(work, 'exports');
-  const folder = join(local, 'Scrim', 'Projects');
+  const folder = projectsFor(local, userData);
   mkdirSync(userData, { recursive: true });
   mkdirSync(exports, { recursive: true });
   writeFileSync(
@@ -85,7 +86,13 @@ async function launch(
     writeFileSync(join(userData, 'pill-position.json'), JSON.stringify(pillAt));
   const child = spawn(
     electronPath,
-    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0', ...extraArgs],
+    [
+      APP_DIR,
+      `--user-data-dir=${userData}`,
+      '--remote-debugging-port=0',
+      ...runnerFlags,
+      ...extraArgs,
+    ],
     {
       env: { ...process.env, SCRIM_E2E: '', LOCALAPPDATA: local },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -107,7 +114,7 @@ async function launch(
   let port = 0;
   while (Date.now() < deadline && port === 0) {
     if (child.exitCode !== null) throw new Error('Scrim exited early.');
-    if (existsSync(file)) port = Number(readFileSync(file, 'utf8').split(/\r?\n/)[0]);
+    if (existsSync(file)) port = readPort(file);
     await sleep(200);
   }
   if (port === 0) throw new Error('No debugging port.');
@@ -271,7 +278,13 @@ test('Discard asks first, Keep goes back, and Discard moves the recording to the
     await pill.locator('#discard').click();
     await tolerateClose(() => pill.locator('#yes').click());
     await expect.poll(() => pill.isClosed(), { timeout: 20_000 }).toBe(true);
-    await expect.poll(() => sessionFolders(running.folder).length, { timeout: 20_000 }).toBe(0);
+    await expect
+      .poll(() => sessionFolders(running.folder).length, {
+        timeout: 20_000,
+        message: `The recording folder is still there. What the app logged:
+${recent()}`,
+      })
+      .toBe(0);
   } finally {
     running.child.kill();
     killHard(running.child);

@@ -18,6 +18,7 @@ export interface DialogProps {
  */
 export function Dialog({ open, title, onClose, children, className }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  const closedByProp = useRef(false);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -26,8 +27,24 @@ export function Dialog({ open, title, onClose, children, className }: DialogProp
       dialog.showModal();
       dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
     }
-    if (!open && dialog.open) dialog.close();
+    if (!open && dialog.open) {
+      closedByProp.current = true;
+      dialog.close();
+    }
   }, [open]);
+
+  // dialog.close() fires a native close event in a later task. When the caller closed the dialog
+  // through `open`, its state is already updated, and a late event must not report it again: if the
+  // same dialog is opened again in between, as a retry that fails at once does, the event would
+  // close the new content. So a close the component made itself is told apart from a person's
+  // Escape or button, which still reach the caller.
+  const onNativeClose = (): void => {
+    if (closedByProp.current) {
+      closedByProp.current = false;
+      return;
+    }
+    onClose();
+  };
 
   // A click on the backdrop lands on the dialog element itself, never on its content.
   const onBackdrop = (event: MouseEvent<HTMLDialogElement>): void => {
@@ -39,7 +56,7 @@ export function Dialog({ open, title, onClose, children, className }: DialogProp
       ref={ref}
       className={className === undefined ? 'ui-sheet' : `ui-sheet ${className}`}
       aria-label={title}
-      onClose={onClose}
+      onClose={onNativeClose}
       onClick={onBackdrop}
     >
       <div className="ui-sheet-head">

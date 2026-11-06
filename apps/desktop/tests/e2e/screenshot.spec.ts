@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { runnerFlags } from './fixtures';
 
 /**
  * Screenshots end to end in the built app: the area overlay in screenshot mode, drawn and clicked
@@ -14,7 +15,7 @@ const APP_DIR = join(__dirname, '../..');
 const electronPath = createRequire(__filename)('electron') as string;
 const ffmpeg = existsSync(join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe'))
   ? join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe')
-  : (process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
+  : (process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
 
 test.skip(process.env['SCRIM_E2E_TARGET'] === 'packaged', 'Needs the built app.');
 test.describe.configure({ mode: 'serial' });
@@ -54,7 +55,7 @@ async function start(tool: string): Promise<Running> {
   const folder = join(work, 'shots');
   const child = spawn(
     electronPath,
-    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0'],
+    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0', ...runnerFlags],
     {
       env: { ...process.env, SCRIM_DEV_TOOL: tool, SCRIM_DEV_DEST: folder },
       stdio: ['ignore', 'pipe', 'pipe'],

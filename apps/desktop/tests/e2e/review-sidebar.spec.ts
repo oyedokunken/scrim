@@ -13,7 +13,7 @@ import { basename, join } from 'node:path';
 const APP_DIR = join(__dirname, '../..');
 const ffmpeg = existsSync(join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe'))
   ? join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe')
-  : (process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
+  : (process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
 const SHOTS = process.env['SCRIM_SHOTS'];
 
 test.skip(process.env['SCRIM_E2E_TARGET'] === 'packaged', 'Needs the main process.');
@@ -218,13 +218,19 @@ for (const [w, h] of [
               .trim(),
           ),
         );
-      expect(names).toEqual(['Edit', 'Share', 'Show in folder', 'Record again', 'Discard']);
-      // Share is off until the video exists, and says why.
-      const share = side.getByRole('button', { name: 'Share', exact: true });
-      await expect(share).toHaveAttribute('aria-disabled', 'true');
-      await share.hover();
-      await expect(share.locator('.ui-reason')).toBeVisible();
-      await page.mouse.move(0, 0);
+      expect(names).toEqual(
+        process.platform === 'linux'
+          ? ['Edit', 'Show in folder', 'Record again', 'Discard']
+          : ['Edit', 'Share', 'Show in folder', 'Record again', 'Discard'],
+      );
+      // Share is off until the video exists, and says why. Linux has no share sheet.
+      if (process.platform !== 'linux') {
+        const share = side.getByRole('button', { name: 'Share', exact: true });
+        await expect(share).toHaveAttribute('aria-disabled', 'true');
+        await share.hover();
+        await expect(share.locator('.ui-reason')).toBeVisible();
+        await page.mouse.move(0, 0);
+      }
 
       const boxes = await page.evaluate(() => {
         const rect = (selector: string) => {

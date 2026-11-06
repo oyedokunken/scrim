@@ -23,9 +23,51 @@ const PACKAGED = process.env['SCRIM_E2E_TARGET'] === 'packaged';
  * over the Chromium debugging port. That gives a page but no main process handle, so specs
  * that need the main process skip themselves in this mode.
  */
-// A hosted runner has no GPU and no user session of its own. Software drawing keeps the app from
-// crashing at start there, and the logging says what Chromium thought if it still does.
-const sandboxFlags = process.env['CI'] ? ['--no-sandbox', '--disable-gpu'] : [];
+// A hosted Linux runner has no GPU and runs as a user that cannot use the Chromium sandbox, so
+// software drawing and --no-sandbox keep the app from crashing at start there. They are for Linux
+// only: on a hosted Windows runner the same flags made every launch end with an access violation
+// (exit code 3221225477), while a launch without them works.
+const onLinuxRunner = process.env['CI'] !== undefined && process.platform === 'linux';
+// A hosted runner of any system has no camera, no microphone and no sound device. Chromium's fake
+// devices stand in for them, so the camera and sound checks and video playback behave as on a desk.
+const fakeDevices =
+  process.env['CI'] === undefined
+    ? []
+    : [
+        '--use-fake-device-for-media-stream',
+        '--use-fake-ui-for-media-stream',
+        '--disable-audio-output',
+      ];
+export const runnerFlags = [
+  ...(onLinuxRunner ? ['--no-sandbox', '--disable-gpu'] : []),
+  ...fakeDevices,
+];
+
+/**
+ * Where the app keeps a recording's working folders. On Windows that follows LOCALAPPDATA, which the
+ * tests point at a temp folder. On Linux and macOS it is the Projects folder inside the app's user
+ * data folder.
+ */
+export function projectsFor(local: string, userData: string): string {
+  return process.platform === 'win32'
+    ? join(local, 'Scrim', 'Projects')
+    : join(userData, 'Projects');
+}
+
+/** The same folder for a running app, asking it where its user data folder is. */
+export async function projectsOf(app: ElectronApplication, local: string): Promise<string> {
+  const userData = await app.evaluate(({ app: electronApp }) => electronApp.getPath('userData'));
+  return projectsFor(local, userData);
+}
+
+/** Reads the debugging port Chromium writes at start. A file still being written is not ready yet. */
+export function readPort(file: string): number {
+  try {
+    return Number(readFileSync(file, 'utf8').split('\n')[0]?.trim());
+  } catch {
+    return 0;
+  }
+}
 
 /** Ends the app and its helper processes, which keep the user data folder locked on Windows. */
 async function stopTree(child: ChildProcess): Promise<void> {
@@ -49,8 +91,13 @@ async function waitForDebugPort(userDataDir: string, child: ChildProcess): Promi
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`Scrim exited early with code ${child.exitCode}`);
     if (existsSync(file)) {
-      const port = Number(readFileSync(file, 'utf8').split(/\r?\n/)[0]);
-      if (Number.isInteger(port) && port > 0) return port;
+      // Chromium may still hold the file while it writes it, which Windows reports as EBUSY.
+      try {
+        const port = Number(readFileSync(file, 'utf8').split(/\r?\n/)[0]);
+        if (Number.isInteger(port) && port > 0) return port;
+      } catch {
+        // Read it again on the next turn.
+      }
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
@@ -69,11 +116,11 @@ interface Launched {
  */
 function startBuilt(userDataDir: string): Promise<ElectronApplication> {
   return electron.launch({
-    args: [APP_DIR, `--user-data-dir=${userDataDir}`, ...sandboxFlags],
+    args: [APP_DIR, `--user-data-dir=${userDataDir}`, ...runnerFlags],
     env: {
       ...process.env,
       SCRIM_E2E: '1',
-      ...(process.env['CI'] ? { ELECTRON_ENABLE_LOGGING: '1' } : {}),
+      ...(onLinuxRunner ? { ELECTRON_ENABLE_LOGGING: '1' } : {}),
     },
   });
 }
@@ -119,7 +166,7 @@ async function launchPackaged(userDataDir: string, use: (value: Launched) => Pro
     process.env['SCRIM_PACKAGED_EXE'] ?? join(APP_DIR, 'release', 'win-unpacked', 'Scrim.exe');
   const child = spawn(
     exe,
-    [`--user-data-dir=${userDataDir}`, '--remote-debugging-port=0', ...sandboxFlags],
+    [`--user-data-dir=${userDataDir}`, '--remote-debugging-port=0', ...runnerFlags],
     { stdio: 'ignore' },
   );
   try {

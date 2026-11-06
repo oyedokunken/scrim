@@ -103,10 +103,11 @@ describe('SiteFooter', () => {
     }
   });
 
-  it('links to the Downloads page next to the release notes', () => {
+  it('links to the Downloads page under Project', () => {
     expect(html).toContain('<a href="/downloads">Downloads</a>');
-    const product = siteConfig.footerLinks.Product.map((link) => link.label);
-    expect(product.indexOf('Downloads')).toBe(product.indexOf('Release notes') + 1);
+    const project = siteConfig.footerLinks.Project.map((link) => link.label);
+    expect(project).toContain('Downloads');
+    expect(siteConfig.footerLinks.Product.map((link) => link.label)).not.toContain('Downloads');
   });
 
   it('no longer shows the system chips, the version chip or the trust line', () => {

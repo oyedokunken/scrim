@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { axeViolations } from './axe';
-import { enterApp, expect, removeAfterAppCloses, test } from './fixtures';
+import { projectsOf, enterApp, expect, removeAfterAppCloses, test } from './fixtures';
 
 /**
  * The one shared video player, in the Library detail of a built app: its own controls, and
@@ -25,7 +25,7 @@ async function arrange(app: ElectronApplication): Promise<() => void> {
   const pictures = join(root, 'pictures');
   mkdirSync(join(videos, 'Scrim'), { recursive: true });
   mkdirSync(pictures, { recursive: true });
-  const project = join(local, 'Scrim', 'Projects', 'Take 1.scrim');
+  const project = join(await projectsOf(app, local), 'Take 1.scrim');
   mkdirSync(project, { recursive: true });
   writeFileSync(
     join(project, 'session.json'),

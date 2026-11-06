@@ -9,7 +9,7 @@ import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { chooseFirstFrame } from '../../src/main/recording/recording-service';
-import { createHarness, flushWork, type Harness } from './support/engine-harness';
+import { createHarness, flushWork, waitUntil, type Harness } from './support/engine-harness';
 
 let harness: Harness | undefined;
 
@@ -347,10 +347,11 @@ describe('warnings that do not stop the recording', () => {
       h.fireHeartbeat();
       await flushWork();
     }
-    await flushWork();
+    await waitUntil(() => h.events.some((event) => event.type === 'finished'));
     const error = h.events.find((event) => event.type === 'error');
     expect(error?.type === 'error' && error.error.code).toBe('disk-full');
     expect(h.events.some((event) => event.type === 'finished')).toBe(true);
+    await waitUntil(async () => (await readSessionFile(folder)).cleanClose);
     expect((await readSessionFile(folder)).cleanClose).toBe(true);
   }, 30_000);
 });

@@ -13,6 +13,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { runnerFlags } from './fixtures';
 
 /**
  * The recording engine against the real app: it records the real screen through the hidden
@@ -55,10 +56,14 @@ function launch(
   extraArgs: string[] = [],
   appDir = APP_DIR,
 ): Running {
-  const child = spawn(electronPath, [appDir, `--user-data-dir=${userData}`, ...extraArgs], {
-    env: { ...process.env, ...env },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const child = spawn(
+    electronPath,
+    [appDir, `--user-data-dir=${userData}`, ...runnerFlags, ...extraArgs],
+    {
+      env: { ...process.env, ...env },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
   const lines: string[] = [];
   const take = (data: Buffer): void => {
     lines.push(

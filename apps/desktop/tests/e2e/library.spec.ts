@@ -4,8 +4,12 @@ import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { axeViolations } from './axe';
-import { expect, test, enterApp, removeAfterAppCloses } from './fixtures';
+import { projectsOf, expect, test, enterApp, removeAfterAppCloses } from './fixtures';
 import { picturesFixture } from './png-fixture';
+
+// Linux has no share sheet by design (platform.shareSheet is off there), so the Share action,
+// its dialog and the checks for them exist only on Windows and macOS.
+const shareSheet = process.platform !== 'linux';
 
 function sessionJson(name: string): string {
   return JSON.stringify({
@@ -39,6 +43,8 @@ function sessionJson(name: string): string {
 
 interface Disk {
   root: string;
+  /** The folder that holds the recordings' working folders. */
+  projects: string;
   pictures: ReturnType<typeof picturesFixture>;
   cleanup: () => void;
 }
@@ -50,12 +56,13 @@ async function arrange(app: ElectronApplication, withItems: boolean): Promise<Di
   const videos = join(root, 'videos');
   const local = join(root, 'local');
   mkdirSync(join(videos, 'Scrim'), { recursive: true });
-  mkdirSync(join(local, 'Scrim', 'Projects'), { recursive: true });
+  const projects = await projectsOf(app, local);
+  mkdirSync(projects, { recursive: true });
   if (withItems) {
     pictures.add('Pricing page.png', 600);
     pictures.add('Login screen.png', 300);
     writeFileSync(join(videos, 'Scrim', 'Loose clip.mp4'), 'not really a video');
-    const project = join(local, 'Scrim', 'Projects', 'Take 1.scrim');
+    const project = join(projects, 'Take 1.scrim');
     mkdirSync(project);
     writeFileSync(join(project, 'session.json'), sessionJson('Take 1'));
   }
@@ -68,6 +75,7 @@ async function arrange(app: ElectronApplication, withItems: boolean): Promise<Di
     { pictures: pictures.root, videos, local },
   );
   return {
+    projects,
     root,
     pictures,
     // Removed after the app closes, because the app can still have these folders open until then.
@@ -152,7 +160,7 @@ test.describe('the library', () => {
       expect(names.map((name) => name.trim())).toEqual([
         'Edit',
         'Copy',
-        'Share',
+        ...(shareSheet ? ['Share'] : []),
         'Show in folder',
         'Delete',
       ]);
@@ -204,7 +212,7 @@ test.describe('the library', () => {
         await page.getByRole('button', { name: 'Open Login screen' }).click();
         const shot = await lines();
         await checkPage(page, `library-detail-actions-${String(size.width)}`);
-        expect(shot.count).toBe(5);
+        expect(shot.count).toBe(shareSheet ? 5 : 4);
         expect(shot.singleLine).toBe(true);
         await page.getByRole('button', { name: 'Back', exact: true }).click();
 
@@ -230,7 +238,7 @@ test.describe('the library', () => {
           );
         expect(names.map((name) => name.trim())).toEqual([
           'Edit',
-          'Share',
+          ...(shareSheet ? ['Share'] : []),
           'Show in folder',
           'Delete',
         ]);
@@ -257,7 +265,7 @@ test.describe('the library', () => {
     try {
       const mp4 = join(disk.root, 'videos', 'Scrim', 'Take 1.mp4');
       execFileSync(
-        process.env['SCRIM_FFMPEG'] ?? 'ffmpeg',
+        process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg',
         [
           '-v',
           'error',
@@ -312,7 +320,7 @@ test.describe('the library', () => {
       await expect(detail.getByText('Not exported yet')).toBeVisible();
       await expect(detail.getByRole('button', { name: 'Make video' })).toBeVisible();
       await expect(detail.locator('video')).toHaveCount(0);
-      expect(existsSync(join(disk.root, 'local', 'Scrim', 'Projects', 'Take 1.scrim'))).toBe(true);
+      expect(existsSync(join(disk.projects, 'Take 1.scrim'))).toBe(true);
     } finally {
       disk.cleanup();
     }
@@ -428,7 +436,7 @@ test.describe('the library', () => {
       expect(box.x + box.width).toBeLessThanOrEqual(cardBox.x + cardBox.width);
       await menuButton.focus();
       await page.keyboard.press('Enter');
-      for (const name of ['Open', 'Show in folder', 'Share', 'Delete']) {
+      for (const name of ['Open', 'Show in folder', ...(shareSheet ? ['Share'] : []), 'Delete']) {
         await expect(page.getByRole('menuitem', { name, exact: true })).toBeVisible();
       }
     } finally {
@@ -440,6 +448,7 @@ test.describe('the library', () => {
     app,
     page,
   }) => {
+    test.skip(!shareSheet, 'Linux has no share sheet.');
     const disk = await arrange(app, true);
     try {
       await openLibrary(page);
@@ -477,6 +486,7 @@ test.describe('the library', () => {
   });
 
   test('warns about a video over 25 MB and offers a smaller copy', async ({ app, page }) => {
+    test.skip(!shareSheet, 'Linux has no share sheet.');
     const disk = await arrange(app, true);
     try {
       writeFileSync(
@@ -561,7 +571,7 @@ test.describe('the library', () => {
     const disk = await arrange(app, true);
     try {
       const videos = join(disk.root, 'videos', 'Scrim');
-      const project = join(disk.root, 'local', 'Scrim', 'Projects', 'Take 1.scrim');
+      const project = join(disk.projects, 'Take 1.scrim');
       const target = join(videos, 'Launch day.mp4');
       writeFileSync(target, 'not really a video');
       writeFileSync(

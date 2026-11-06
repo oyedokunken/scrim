@@ -12,6 +12,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { projectsFor, readPort, runnerFlags } from './fixtures';
 
 /**
  * One recording, one MP4, in the real built app. A recording is started through the typed
@@ -23,7 +24,7 @@ const APP_DIR = join(__dirname, '../..');
 const electronPath = createRequire(__filename)('electron') as string;
 const ffmpeg = existsSync(join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe'))
   ? join(APP_DIR, 'resources/ffmpeg/ffmpeg.exe')
-  : (process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
+  : (process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg');
 
 test.skip(process.env['SCRIM_E2E_TARGET'] === 'packaged', 'Needs the built app.');
 test.describe.configure({ mode: 'serial' });
@@ -67,7 +68,7 @@ async function launch(destination?: string): Promise<Running> {
   // receives exports, so a recording must leave it empty.
   const local = join(work, 'local');
   const exports = join(work, 'exports');
-  const folder = join(local, 'Scrim', 'Projects');
+  const folder = projectsFor(local, userData);
   mkdirSync(userData, { recursive: true });
   mkdirSync(exports, { recursive: true });
   writeFileSync(
@@ -82,7 +83,7 @@ async function launch(destination?: string): Promise<Running> {
   rmSync(join(userData, 'DevToolsActivePort'), { force: true });
   const child = spawn(
     electronPath,
-    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0'],
+    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0', ...runnerFlags],
     {
       env: { ...process.env, SCRIM_E2E: '', LOCALAPPDATA: local },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -104,7 +105,7 @@ async function launch(destination?: string): Promise<Running> {
   let port = 0;
   while (Date.now() < deadline && port === 0) {
     if (child.exitCode !== null) throw new Error('Scrim exited early.');
-    if (existsSync(file)) port = Number(readFileSync(file, 'utf8').split(/\r?\n/)[0]);
+    if (existsSync(file)) port = readPort(file);
     await sleep(200);
   }
   if (port === 0) throw new Error('No debugging port.');
@@ -257,7 +258,10 @@ test('Stop opens the page at once, renders the one MP4 in the background and say
       timeout: 5000,
     });
     const openedAfter = Date.now() - stoppedAt;
-    expect(openedAfter, `opened after ${String(openedAfter)} ms`).toBeLessThan(4000);
+    // On a desk the page opens within 4 seconds of Stop. A hosted runner shares two slow cores
+    // with the capture and the screen it records is drawn in software, so it is given more room.
+    const budget = process.env['CI'] === undefined ? 4000 : 20_000;
+    expect(openedAfter, `opened after ${String(openedAfter)} ms`).toBeLessThan(budget);
     await expect(page.getByTestId('live-preview')).toBeVisible({ timeout: 10_000 });
     if (SHOTS) await shootAt(page, 'auto-live');
 

@@ -211,7 +211,7 @@ test.describe('the screenshot editor', () => {
 
       // Done.
       await page.getByRole('button', { name: 'Done' }).click();
-      await expect(page.getByText(/Saved shot-test-edited\.png and copied it/)).toBeVisible();
+      await expect(page.getByText(/shot-test-edited\.png was saved and copied/)).toBeVisible();
       const edited = join(fixture.folder, 'shot-test-edited.png');
       const files = readdirSync(fixture.folder).sort();
       expect(files).toEqual(['shot-test-edited.png', 'shot-test.png']);
@@ -350,7 +350,7 @@ test.describe('the screenshot editor', () => {
 
       await page.getByRole('button', { name: 'Delete', exact: true }).click();
       await dialog.getByRole('button', { name: 'Delete', exact: true }).click();
-      await expect(page.getByText('Moved the screenshot to the recycle bin')).toBeVisible();
+      await expect(page.getByText('You can restore the screenshot from there.')).toBeVisible();
       await expect.poll(() => readdirSync(fixture.folder)).toEqual([]);
     } finally {
       fixture.cleanup();

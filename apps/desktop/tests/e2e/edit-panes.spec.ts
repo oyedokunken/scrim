@@ -13,14 +13,14 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
-import { enterApp, expect, removeAfterAppCloses, test } from './fixtures';
+import { projectsOf, enterApp, expect, removeAfterAppCloses, test } from './fixtures';
 
 /**
  * Edit in the two places it lives: the Library detail and the page after a recording, and the
  * screenshot editor. A recording is edited with Background, Cursor and Zoom only. A screenshot keeps
  * its tools and gains a background. Both can use the person's own image. It needs `pnpm build` first.
  */
-const ffmpeg = process.env['SCRIM_FFMPEG'] ?? 'ffmpeg';
+const ffmpeg = process.env['SCRIM_FIXTURE_FFMPEG'] ?? process.env['SCRIM_FFMPEG'] ?? 'ffmpeg';
 const SHOTS = process.env['SCRIM_SHOTS'];
 
 test.skip(process.env['SCRIM_E2E_TARGET'] === 'packaged', 'Needs the main process.');
@@ -140,7 +140,7 @@ async function arrangeRecording(
   const videos = join(root, 'videos');
   const pictures = join(root, 'pictures');
   const local = join(root, 'local');
-  const folder = join(local, 'Scrim', 'Projects', 'Take 1.scrim');
+  const folder = join(await projectsOf(app, local), 'Take 1.scrim');
   mkdirSync(join(videos, 'Scrim'), { recursive: true });
   mkdirSync(pictures, { recursive: true });
   mkdirSync(folder, { recursive: true });
@@ -621,7 +621,7 @@ test.describe('edit a screenshot', () => {
       await shot(page, 'edit-shot-own-image');
 
       await page.getByRole('button', { name: 'Done' }).click();
-      await expect(page.getByText(/Saved shot-test-edited\.png/)).toBeVisible();
+      await expect(page.getByText(/shot-test-edited\.png was saved/)).toBeVisible();
       const files = readdirSync(folder).sort();
       expect(files).toEqual(['shot-test-edited.png', 'shot-test.png']);
       const edited = join(folder, 'shot-test-edited.png');

@@ -24,6 +24,17 @@ export class MediaRegistry {
     return this.roots().some((root) => isInsideRoot(resolve(root), target, this.caseInsensitive));
   }
 
+  /** The allowed folders as they are named now, for checking a real path against their real names. */
+  rootList(): readonly string[] {
+    return this.roots();
+  }
+
+  /** True when the file is inside one of the given folders, with the same folding as `allows`. */
+  allowsIn(file: string, folders: readonly string[]): boolean {
+    const target = resolve(file);
+    return folders.some((root) => isInsideRoot(resolve(root), target, this.caseInsensitive));
+  }
+
   /** An address for the file, or undefined when it is outside the allowed folders. */
   issue(file: string, label = 'file'): string | undefined {
     if (file.includes('\0') || !this.allows(file)) return undefined;

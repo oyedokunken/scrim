@@ -12,6 +12,7 @@ import {
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { projectsFor, runnerFlags } from './fixtures';
 
 /**
  * The area chooser for Record and for Screenshot, in the built app and in the PACKAGED app, with
@@ -55,7 +56,7 @@ async function launch(): Promise<Running> {
       destinationFolder: join(work, 'exports'),
     }),
   );
-  const flags = [`--user-data-dir=${userData}`, '--remote-debugging-port=0'];
+  const flags = [`--user-data-dir=${userData}`, '--remote-debugging-port=0', ...runnerFlags];
   const exe = PACKAGED
     ? (process.env['SCRIM_PACKAGED_EXE'] ?? join(APP_DIR, 'release', 'win-unpacked', 'Scrim.exe'))
     : electronPath;
@@ -66,10 +67,17 @@ async function launch(): Promise<Running> {
   });
   const portFile = join(userData, 'DevToolsActivePort');
   const deadline = Date.now() + 30_000;
-  while (!existsSync(portFile) && Date.now() < deadline) {
+  let port: string | undefined;
+  while (Date.now() < deadline) {
+    try {
+      // Chromium may still hold the file while it writes it, which Windows reports as EBUSY.
+      port = readFileSync(portFile, 'utf8').split(/\r?\n/)[0];
+      if (port !== undefined && port !== '') break;
+    } catch {
+      // Not there yet, or busy. Read it again.
+    }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
-  const port = readFileSync(portFile, 'utf8').split(/\r?\n/)[0];
   const browser = await chromium.connectOverCDP(`http://127.0.0.1:${port ?? ''}`);
   const context = browser.contexts()[0];
   if (context === undefined) throw new Error('The app exposed no browser context.');
@@ -77,7 +85,7 @@ async function launch(): Promise<Running> {
     context.pages().find((page) => page.url().includes('index.html')) ?? context.pages()[0];
   if (main === undefined) throw new Error('The app has no main page.');
   await main.waitForFunction(() => 'scrim' in window);
-  return { child, browser, main, context, work, shots, projects: join(local, 'Scrim', 'Projects') };
+  return { child, browser, main, context, work, shots, projects: projectsFor(local, userData) };
 }
 
 async function stop(running: Running | undefined): Promise<void> {

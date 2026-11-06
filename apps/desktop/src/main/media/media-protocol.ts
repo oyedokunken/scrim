@@ -71,8 +71,15 @@ export async function handleMediaRequest(
   if (file === undefined) return plain(403);
   const real = await fs.real(file);
   if (real === undefined) return plain(404);
-  // A link inside the folder that points outside it is not served.
-  if (!registry.allows(real)) return plain(403);
+  // A link inside the folder that points outside it is not served. The folders are compared by
+  // their real names as well as the names they were given, because Windows can hand out a short
+  // 8.3 name for a folder (RUNNER~1 for runneradmin) while the real path of a file has the long one.
+  if (!registry.allows(real)) {
+    const realRoots = (await Promise.all(registry.rootList().map((root) => fs.real(root)))).filter(
+      (root): root is string => root !== undefined,
+    );
+    if (!registry.allowsIn(real, realRoots)) return plain(403);
+  }
   const type = TYPES[extname(real).toLowerCase()];
   if (type === undefined) return plain(404);
 

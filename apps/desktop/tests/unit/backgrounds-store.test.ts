@@ -86,7 +86,7 @@ describe('sniffImage', () => {
 
 describe('the background store', () => {
   it('copies a picked image into its own folder and never links to the original', async () => {
-    const picked = { path: 'C:\\Users\\me\\Pictures\\wall paper.png', bytes: PNG };
+    const picked = { path: join(DIR, '..', 'Pictures', 'wall paper.png'), bytes: PNG };
     const { store, files } = setup(picked, [ID]);
     const outcome = await store.add();
     expect(outcome).toEqual({ ok: true, background: { id: ID, name: 'wall paper' } });

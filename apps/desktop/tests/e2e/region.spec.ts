@@ -1,9 +1,10 @@
 import { chromium, expect, test, type Page } from '@playwright/test';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { readPort, runnerFlags } from './fixtures';
 
 /**
  * The real area overlay in the built app, started by `SCRIM_DEV_TOOL=area-pick`, which asks for a
@@ -50,7 +51,7 @@ function killHard(child: ChildProcess): void {
 async function start(userData: string): Promise<Running> {
   const child = spawn(
     electronPath,
-    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0'],
+    [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0', ...runnerFlags],
     { env: { ...process.env, SCRIM_DEV_TOOL: 'area-pick' }, stdio: ['ignore', 'pipe', 'pipe'] },
   );
   const lines: string[] = [];
@@ -70,7 +71,7 @@ async function start(userData: string): Promise<Running> {
   let port = 0;
   while (Date.now() < deadline && port === 0) {
     if (child.exitCode !== null) throw new Error('Scrim exited early.');
-    if (existsSync(file)) port = Number(readFileSync(file, 'utf8').split(/\r?\n/)[0]);
+    if (existsSync(file)) port = readPort(file);
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   if (port === 0) throw new Error('No debugging port.');
