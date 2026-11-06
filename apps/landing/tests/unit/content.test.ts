@@ -151,8 +151,8 @@ describe('SYSTEMS', () => {
     expect(help('macOS')).toMatch(/Open Anyway/);
     expect(help('macOS')).toMatch(/Screen Recording/);
     expect(help('Linux')).toMatch(/Wayland/);
-    for (const name of ['macOS', 'Linux']) {
-      expect(help(name)).toMatch(/less testing than Windows/);
+    for (const name of ['Windows', 'macOS', 'Linux']) {
+      expect(help(name)).not.toMatch(/less testing|unsigned|until the installer/i);
     }
   });
 });
@@ -199,10 +199,10 @@ describe('copyText', () => {
 });
 
 describe('the Windows first run help', () => {
-  it('keeps the full SmartScreen walkthrough for an unsigned installer', () => {
+  it('gives the SmartScreen steps without calling the installer unsigned', () => {
     const help = windowsHelp(false);
-    expect(help).toHaveLength(2);
-    expect(help.join(' ')).toMatch(/Until the installer is signed/);
+    expect(help).toHaveLength(1);
+    expect(help.join(' ')).not.toMatch(/unsigned|until the installer/i);
     expect(help.join(' ')).toMatch(/More info, then Run anyway/);
   });
 
@@ -211,7 +211,6 @@ describe('the Windows first run help', () => {
     expect(help).toEqual([
       'Windows may still ask you to confirm while Scrim builds reputation. Choose More info, then Run anyway.',
     ]);
-    expect(help.join(' ')).not.toMatch(/Until the installer is signed/);
   });
 
   it('starts as unsigned, so the site never claims a signature before the first signed release', () => {

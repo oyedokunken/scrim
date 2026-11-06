@@ -13,8 +13,7 @@ export interface SystemInfo {
 }
 
 /**
- * First run help for Windows. An unsigned installer gets the full SmartScreen walkthrough. A signed
- * one only needs a line, because SmartScreen can still ask for a confirmation while the app builds
+ * First run help for Windows. Both get the same install steps. A signed one only needs a line, because SmartScreen can still ask for a confirmation while the app builds
  * reputation with Microsoft.
  */
 export function windowsHelp(signed: boolean): readonly string[] {
@@ -23,8 +22,7 @@ export function windowsHelp(signed: boolean): readonly string[] {
         'Windows may still ask you to confirm while Scrim builds reputation. Choose More info, then Run anyway.',
       ]
     : [
-        'Until the installer is signed, Windows SmartScreen may warn you before it runs.',
-        'Choose More info, then Run anyway.',
+        'Run the installer. If Windows SmartScreen asks you to confirm, choose More info, then Run anyway.',
       ];
 }
 
@@ -43,7 +41,6 @@ export const SYSTEMS: readonly SystemInfo[] = [
     help: [
       'If macOS says it cannot verify the app, open System Settings, then Privacy and Security, and choose Open Anyway.',
       'The first time you record, allow Scrim under Screen Recording, and under Accessibility so cursor effects can follow your mouse.',
-      'This build has had less testing than Windows. If something breaks, open an issue.',
     ],
   },
   {
@@ -54,7 +51,6 @@ export const SYSTEMS: readonly SystemInfo[] = [
       'Make the AppImage executable with chmod +x and run it, or install the deb package with your package manager. The deb also sets up the sandbox permission that Ubuntu 24.04 asks for.',
       'On Ubuntu 24.04 an AppImage needs one more step before it starts, because Ubuntu restricts the sandbox that Scrim keeps on. The commands are in the Linux help on the website.',
       'On X11 you get everything. On Wayland, auto zoom and cursor effects are off, because Wayland does not let apps watch the mouse. Recording goes through the system screen sharing portal, so your desktop asks which screen to share.',
-      'This build has had less testing than Windows. If something breaks, open an issue.',
     ],
   },
 ];

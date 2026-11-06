@@ -67,13 +67,13 @@ export const siteConfig = {
       { label: 'Download', href: '/#download' },
       { label: 'FAQ', href: '/#faq' },
       { label: 'Release notes', href: 'https://github.com/oyedokunken/scrim/releases' },
-      { label: 'Downloads', href: '/downloads' },
     ],
     Project: [
       { label: 'Source code', href: 'https://github.com/oyedokunken/scrim' },
       { label: 'Report an issue', href: 'https://github.com/oyedokunken/scrim/issues' },
       { label: 'Contribute', href: '/#contribute' },
       { label: 'Contact', href: '/#contact' },
+      { label: 'Downloads', href: '/downloads' },
     ],
     Trust: [
       { label: 'Privacy policy', href: '/privacy' },

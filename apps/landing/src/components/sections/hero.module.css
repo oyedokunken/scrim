@@ -11,21 +11,22 @@
 }
 
 .titleRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--scrim-space-3);
-}
-
-.titleRow > span {
-  margin-top: 0.75rem;
-}
-
-.title {
   max-width: 18ch;
   font-size: var(--scrim-text-display);
   line-height: var(--scrim-leading-display);
   letter-spacing: -0.035em;
+}
+
+.titleRow > span {
+  margin-left: var(--scrim-space-3);
+  letter-spacing: 0;
+}
+
+.title {
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
 }
 
 .aside {
@@ -56,7 +57,7 @@
     gap: var(--scrim-space-4);
   }
 
-  .title {
+  .titleRow {
     font-size: 2.5rem;
     line-height: 1.1;
   }

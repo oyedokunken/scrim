@@ -18,15 +18,13 @@ const linux = SYSTEMS.find((system) => system.os === 'linux');
 describe('the Linux first run help', () => {
   const help = linux?.help.join(' ') ?? '';
 
-  it('covers chmod, the Ubuntu 24.04 sandbox, X11, Wayland and the testing sentence', () => {
+  it('covers chmod, the Ubuntu 24.04 sandbox, X11 and Wayland', () => {
     expect(help).toContain('chmod +x');
     expect(help).toContain('Ubuntu 24.04');
     expect(help).toContain('On X11 you get everything.');
     expect(help).toMatch(/On Wayland, auto zoom and cursor effects are off/);
     expect(help).toMatch(/system screen sharing portal/);
-    expect(help).toContain(
-      'This build has had less testing than Windows. If something breaks, open an issue.',
-    );
+    expect(help).not.toMatch(/less testing/);
   });
 
   it('offers the AppImage and the deb', () => {

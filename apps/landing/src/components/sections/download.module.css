@@ -48,6 +48,7 @@
 }
 
 .system {
+  min-width: 0;
   display: grid;
   align-content: start;
   gap: var(--scrim-space-3);
@@ -132,6 +133,7 @@
 
 .help p {
   padding-bottom: var(--scrim-space-3);
+  overflow-wrap: anywhere;
   font-size: var(--scrim-text-small);
 }
 

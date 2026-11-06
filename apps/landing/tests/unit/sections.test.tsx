@@ -146,16 +146,6 @@ describe('the sections in detail', () => {
     expect(html.match(/<svg/g)?.length ?? 0).toBeGreaterThanOrEqual(6);
   });
 
-  it('the Need help text links "open an issue" once, with one outside arrow', () => {
-    const html = renderToStaticMarkup(<DownloadSection />);
-    const links = html.match(/<a [^>]*>open an issue.*?<\/a>/g) ?? [];
-    expect(links).toHaveLength(2);
-    for (const link of links) {
-      expect(link).toContain(`href="${siteConfig.issuesUrl}"`);
-      expect(link.match(/lucide-arrow-up-right/g)).toHaveLength(1);
-    }
-  });
-
   it('Faq renders twelve questions in two columns of six, in order', () => {
     const html = renderToStaticMarkup(<Faq />);
     expect(html.match(/<details/g)).toHaveLength(12);
