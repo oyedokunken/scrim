@@ -72,7 +72,7 @@ jobs:
           pnpm test:e2e
 
       - name: Package an unsigned Windows installer
-        run: pnpm package
+        run: pnpm package --publish never
 
       - name: Read the fuses back from the packaged binary
         run: pnpm verify:fuses release/win-unpacked/Scrim.exe
@@ -86,7 +86,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: scrim-windows-unsigned
-          path: apps/desktop/release/Scrim Setup *.exe
+          path: apps/desktop/release/Scrim-Setup-*.exe
           retention-days: 3
           if-no-files-found: error
 

@@ -25,6 +25,9 @@ export function hardenSession(options: { appOrigin: string; devCsp: string | und
   ses.setPermissionCheckHandler((_contents, permission, requestingOrigin) =>
     isPermissionAllowed(permission, requestingOrigin, appOrigin),
   );
+  // Chromium fetches a spelling dictionary from a Google address on Linux unless the spell checker
+  // is off for the session, and the app makes no network request while recording.
+  ses.setSpellCheckerEnabled(false);
 }
 
 /**

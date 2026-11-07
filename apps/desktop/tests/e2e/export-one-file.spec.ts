@@ -351,7 +351,8 @@ test('Cancel stops the render, removes the unfinished file and keeps the recordi
   const running = await launch();
   try {
     await startRecording(running.main);
-    await sleep(9000);
+    // A runner that encodes fast finishes a short clip before Cancel is clicked, so it records longer.
+    await sleep(process.platform === 'linux' ? 25_000 : 9000);
     const page = running.main;
     await stopRecording(page);
     await expect(page.getByRole('heading', { name: 'Review your recording' })).toBeVisible({

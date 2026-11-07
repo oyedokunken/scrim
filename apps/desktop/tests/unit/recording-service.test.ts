@@ -331,23 +331,30 @@ describe('warnings that do not stop the recording', () => {
     h.sendChunk('screen', 50);
     await flushWork();
     h.faults.freeBytes = 1000 * 1024 * 1024;
-    for (let i = 0; i < 10; i += 1) {
+    const lowWarnings = (): unknown[] =>
+      h.events.filter((event) => event.type === 'warning' && event.warning.code === 'disk-low');
+    // A beat that arrives while the last one is still writing is skipped, which happens on a slow
+    // runner, so beat until the warning shows and then check that more beats do not repeat it.
+    await waitUntil(async () => {
+      h.clock.time += 1000;
+      h.fireHeartbeat();
+      await flushWork();
+      return lowWarnings().length > 0;
+    });
+    for (let i = 0; i < 5; i += 1) {
       h.clock.time += 1000;
       h.fireHeartbeat();
       await flushWork();
     }
-    const lowWarnings = h.events.filter(
-      (event) => event.type === 'warning' && event.warning.code === 'disk-low',
-    );
-    expect(lowWarnings).toHaveLength(1);
+    expect(lowWarnings()).toHaveLength(1);
 
     h.faults.freeBytes = 100 * 1024 * 1024;
-    for (let i = 0; i < 10; i += 1) {
+    await waitUntil(async () => {
       h.clock.time += 1000;
       h.fireHeartbeat();
       await flushWork();
-    }
-    await waitUntil(() => h.events.some((event) => event.type === 'finished'));
+      return h.events.some((event) => event.type === 'finished');
+    });
     const error = h.events.find((event) => event.type === 'error');
     expect(error?.type === 'error' && error.error.code).toBe('disk-full');
     expect(h.events.some((event) => event.type === 'finished')).toBe(true);

@@ -35,6 +35,7 @@ test('window.open returns null and opens no page', async ({ page }) => {
 // Maximize and minimize are window states that only the main process can read, and the packaged
 // app hides the main process, so this one runs against the built app only.
 test('minimize, maximize and restore work', async ({ app }) => {
+  test.skip(process.platform === 'linux', 'The CI display has no window manager to minimize into');
   const state = (key: 'isMaximized' | 'isMinimized') =>
     app.evaluate(({ BrowserWindow }, k) => BrowserWindow.getAllWindows()[0]?.[k](), key);
   await expect
