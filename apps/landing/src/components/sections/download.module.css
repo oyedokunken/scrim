@@ -6,6 +6,7 @@
 
 .inner {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--scrim-space-7);
   padding-block: clamp(4rem, 3rem + 5vw, 8rem);
 }
@@ -44,6 +45,7 @@
 
 .systems {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--scrim-space-5);
 }
 
