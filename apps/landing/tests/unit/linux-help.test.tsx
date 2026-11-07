@@ -114,3 +114,15 @@ describe('verifying a download', () => {
     expect(siteConfig.linuxKeyUrl.endsWith('/docs/scrim-release-key.asc')).toBe(true);
   });
 });
+
+describe('the command blocks', () => {
+  const html = renderToStaticMarkup(<LinuxAppImageSteps />);
+
+  it('puts a Copy button under every block of commands', () => {
+    const blocks = html.match(/<pre /g) ?? [];
+    expect(blocks.length).toBeGreaterThan(5);
+    expect(html.match(/<button type="button"[^>]*>.*?Copy<\/span><\/button>/g)).toHaveLength(
+      blocks.length,
+    );
+  });
+});
