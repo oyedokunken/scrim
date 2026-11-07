@@ -43,9 +43,7 @@ export default async function DownloadsPage() {
       ) : (
         <>
           <section aria-labelledby="period-title">
-            <h2 id="period-title" className="visually-hidden">
-              Downloads over time
-            </h2>
+            <h2 id="period-title">Total downloads</h2>
             <ul className={styles.tiles}>
               {periods.map((item) => (
                 <li key={item.label}>
@@ -57,9 +55,7 @@ export default async function DownloadsPage() {
           </section>
 
           <section aria-labelledby="system-title">
-            <h2 id="system-title" className="visually-hidden">
-              Downloads by system
-            </h2>
+            <h2 id="system-title">By platform</h2>
             <ul className={`${styles.tiles} ${styles.three}`}>
               {summary.bySystem.map((item) => (
                 <li key={item.name}>
