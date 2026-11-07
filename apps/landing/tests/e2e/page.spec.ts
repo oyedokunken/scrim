@@ -502,3 +502,17 @@ test.describe('external links', () => {
     await expect(privacy).not.toHaveAttribute('target', '_blank');
   });
 });
+
+test('the page never scrolls sideways, even with every help block open', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    document.querySelectorAll('details').forEach((details) => {
+      details.open = true;
+    });
+  });
+  const { scroll, client } = await page.evaluate(() => ({
+    scroll: document.documentElement.scrollWidth,
+    client: document.documentElement.clientWidth,
+  }));
+  expect(scroll).toBeLessThanOrEqual(client);
+});

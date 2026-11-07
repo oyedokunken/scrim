@@ -154,3 +154,57 @@ textarea {
     scroll-behavior: auto !important;
   }
 }
+
+/* The 404 page. Kept here, not in a CSS module, so no extra stylesheet is preloaded on every page. */
+.notfound-logo {
+  color: var(--scrim-black);
+}
+
+.notfound-page {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  justify-items: center;
+  gap: var(--scrim-space-3);
+  padding: var(--scrim-space-6) 1rem;
+  text-align: center;
+}
+
+.notfound-code {
+  margin-top: var(--scrim-space-4);
+  color: var(--scrim-green);
+  font-size: var(--scrim-text-display);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.notfound-title {
+  font-size: var(--scrim-text-h3);
+  letter-spacing: -0.02em;
+}
+
+.notfound-text {
+  max-width: 28rem;
+  color: var(--scrim-text-secondary);
+}
+
+.notfound-button {
+  margin-top: var(--scrim-space-3);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--scrim-radius-pill);
+  background: var(--scrim-green);
+  color: var(--scrim-white);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.notfound-button:hover,
+.notfound-button:focus-visible {
+  background: var(--scrim-green-hover);
+  color: var(--scrim-white);
+}
+
+.notfound-button:focus-visible {
+  outline: 3px solid var(--scrim-green);
+  outline-offset: 3px;
+}
