@@ -72,7 +72,7 @@ jobs:
           pnpm test:e2e
 
       - name: Package an unsigned Windows installer
-        run: pnpm package
+        run: pnpm package --publish never
 
       - name: Read the fuses back from the packaged binary
         run: pnpm verify:fuses release/win-unpacked/Scrim.exe
