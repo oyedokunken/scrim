@@ -218,7 +218,7 @@ test.describe('the library', () => {
 
         await page.getByRole('button', { name: 'Open Take 1' }).click({ position: { x: 8, y: 8 } });
         const recording = await lines();
-        expect(recording.count).toBe(4);
+        expect(recording.count).toBe(shareSheet ? 4 : 3);
         expect(recording.singleLine).toBe(true);
         expect(recording.rows).toHaveLength(2);
         const detail = page.getByRole('region', { name: /Details for Take 1/ });

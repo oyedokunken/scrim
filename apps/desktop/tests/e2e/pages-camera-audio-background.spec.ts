@@ -46,12 +46,16 @@ test.describe('the Camera page', () => {
     await expect(bubble).toHaveClass(/bubble-top-left/);
 
     // Drag it to the bottom left corner of the frame.
+    await page.locator('.mock-frame').scrollIntoViewIfNeeded();
     const frame = await page.locator('.mock-frame').boundingBox();
     const from = await bubble.boundingBox();
     if (!frame || !from) throw new Error('no boxes');
+    // A pointer outside the window sends nothing, so the target stays inside the visible page.
+    const viewportHeight = page.viewportSize()?.height ?? frame.y + frame.height;
+    const targetY = Math.min(frame.y + frame.height - 20, viewportHeight - 4);
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
     await page.mouse.down();
-    await page.mouse.move(frame.x + 20, frame.y + frame.height - 20, { steps: 6 });
+    await page.mouse.move(frame.x + 20, targetY, { steps: 6 });
     await page.mouse.up();
     await expect(bubble).toHaveClass(/bubble-bottom-left/);
     await noSidewaysScroll(page);

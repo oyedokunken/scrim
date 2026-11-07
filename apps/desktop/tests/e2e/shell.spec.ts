@@ -53,6 +53,7 @@ test('a second launch with the same user data folder focuses the first window an
   app,
   userDataDir,
 }) => {
+  test.skip(process.platform === 'linux', 'The CI display has no window manager to minimize into');
   await expect
     .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.isVisible()))
     .toBe(true);
