@@ -140,11 +140,19 @@
   font-size: var(--scrim-text-small);
 }
 
-/* Commands to copy. They scroll sideways inside the card, so the page never does. */
-.commands {
+/* Commands to copy. The text wraps inside the card, so there is no scrollbar. */
+.commandBlock {
+  display: grid;
+  justify-items: start;
+  gap: var(--scrim-space-2);
   margin: 0 0 var(--scrim-space-3);
+  min-width: 0;
+}
+
+.commands {
+  width: 100%;
+  margin: 0;
   padding: var(--scrim-space-3);
-  overflow-x: auto;
   border-radius: var(--scrim-radius-sm);
   background: var(--scrim-fill-quiet-on-white);
   font-size: var(--scrim-text-small);
@@ -153,7 +161,28 @@
 
 .commands code {
   font-family: ui-monospace, 'Cascadia Code', 'DejaVu Sans Mono', monospace;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.copyCommand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: var(--scrim-radius-pill);
+  background: transparent;
+  color: var(--scrim-green);
+  font: inherit;
+  font-size: var(--scrim-text-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.copyCommand:hover {
+  background: var(--scrim-green-tint);
 }
 
 .help code {

@@ -7,14 +7,7 @@ import {
 } from '@/lib/linux-help';
 import { siteConfig } from '@/site.config';
 import styles from './download.module.css';
-
-function Commands({ lines }: { lines: readonly string[] }) {
-  return (
-    <pre className={styles.commands} tabIndex={0}>
-      <code>{lines.join('\n')}</code>
-    </pre>
-  );
-}
+import { CommandBlock as Commands } from './command-block';
 
 /** The extra steps for an AppImage, under the Linux help. */
 export function LinuxAppImageSteps() {
