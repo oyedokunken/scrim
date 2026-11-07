@@ -516,3 +516,26 @@ test('the page never scrolls sideways, even with every help block open', async (
   }));
   expect(scroll).toBeLessThanOrEqual(client);
 });
+
+test('nothing inside a download card is wider than the card', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    document.querySelectorAll('details').forEach((details) => {
+      details.open = true;
+    });
+  });
+  const outside = await page.evaluate(() => {
+    const found: string[] = [];
+    for (const card of document.querySelectorAll('[class*="_system"]')) {
+      const title = card.querySelector('h3')?.textContent;
+      if (title === undefined) continue;
+      const edge = card.getBoundingClientRect().right + 1;
+      for (const element of card.querySelectorAll('p, h3, summary, a, pre, details')) {
+        if (element.getBoundingClientRect().right > edge)
+          found.push(`${element.tagName} in ${title}`);
+      }
+    }
+    return found;
+  });
+  expect(outside).toEqual([]);
+});
