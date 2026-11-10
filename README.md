@@ -56,7 +56,7 @@ Scrim keeps recordings on your computer. Nothing is uploaded, there is no accoun
 
 ## Download
 
-Choose your system on [scrim.oyedokun.dev](https://scrim.oyedokun.dev), or take the installer from the [Releases page](https://github.com/oyedokunken/scrim/releases).
+Choose your system on [www.usescrim.app](https://www.usescrim.app), or take the installer from the [Releases page](https://github.com/oyedokunken/scrim/releases).
 
 | System  | File                                          | First run                                                                                         |
 | ------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -224,7 +224,7 @@ Team roles:
 
 Privacy: Scrim does not send recordings or recording data anywhere. The only network request the app
 can make is the update check, which asks GitHub Releases for the newest version, only when you press
-Check for updates or turn the check on at start. See the [privacy policy](https://scrim.oyedokun.dev/privacy).
+Check for updates or turn the check on at start. See the [privacy policy](https://www.usescrim.app/privacy).
 
 ## Developer
 
@@ -241,6 +241,6 @@ Scrim is available under the [MIT License](LICENSE).
 
 ## Links
 
-- Website: https://scrim.oyedokun.dev
+- Website: https://www.usescrim.app
 - Source: https://github.com/oyedokunken/scrim
 - Issues: https://github.com/oyedokunken/scrim/issues
