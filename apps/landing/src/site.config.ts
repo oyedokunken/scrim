@@ -17,7 +17,7 @@ export const siteConfig = {
   /** The owner's inbox. Only the privacy page links to it, for access and deletion requests. */
   contactInbox: 'oyedokunken@gmail.com',
   /** The address shown for email. It opens a message to the contact inbox above. */
-  contactEmailLabel: 'hello@scrim.app',
+  contactEmailLabel: 'hello@usescrim.app',
   /**
    * The address shown on the last card of the hero video. It is the official address of the site
    * (owner decision, 2026-11-10). Links and emails take the address from SITE_URL.

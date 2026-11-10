@@ -20,10 +20,11 @@ describe('the site address', () => {
     expect(OFFICIAL_ORIGIN).toBe(`https://${siteConfig.heroAddress}`);
   });
 
-  it('keeps the address in the config and the origin list only', () => {
+  it('keeps the address in the config, the origin list and the redirects only', () => {
     const users = files(SRC).filter((file) => /scrim\.app/.test(readFileSync(file, 'utf8')));
     expect(users.map((file) => file.slice(SRC.length + 1).replaceAll('\\', '/'))).toEqual([
       'lib/origins.ts',
+      'redirects.ts',
       'site.config.ts',
     ]);
   });

@@ -188,7 +188,7 @@ describe('the sections in detail', () => {
     const items = html.match(/<li>.*?<\/li>/g) ?? [];
     expect(items).toHaveLength(3);
     // The shown address and the address the mail opens to are different on purpose.
-    expect(items[0]).toContain('>hello@scrim.app<');
+    expect(items[0]).toContain('>hello@usescrim.app<');
     expect(items[0]).toContain(`href="mailto:${siteConfig.contactInbox}"`);
     expect(items[0]).not.toContain('target="_blank"');
     expect(items[1]).toContain(`href="${siteConfig.issuesUrl}"`);
