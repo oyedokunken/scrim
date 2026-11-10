@@ -15,7 +15,7 @@ describe('the old address redirect', () => {
   it('keeps the path and the query, and goes to the official address over https', () => {
     expect(rule?.source).toBe('/:path*');
     expect(rule?.destination).toBe(`${OFFICIAL_ORIGIN}/:path*`);
-    expect(OFFICIAL_ORIGIN.startsWith('https://')).toBe(true);
+    expect(OFFICIAL_ORIGIN).toBe('https://www.usescrim.app');
   });
 
   it('cannot loop, because the destination host is not the matched host', () => {
@@ -27,7 +27,7 @@ describe('the old address redirect', () => {
     expect(pattern.test('scriim.vercel.app')).toBe(true);
     expect(pattern.test('scriim-git-feat-x-oyedokunken.vercel.app')).toBe(false);
     expect(pattern.test('scriim-abc123.vercel.app')).toBe(false);
-    expect(pattern.test('scrim.oyedokun.dev')).toBe(false);
+    expect(pattern.test('www.usescrim.app')).toBe(false);
   });
 
   it('is wired into the Next config', async () => {

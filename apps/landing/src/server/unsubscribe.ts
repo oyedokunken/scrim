@@ -1,5 +1,6 @@
 import 'server-only';
 import { z } from 'zod';
+import { isOwnOrigin } from '@/lib/origins';
 
 export const unsubscribeSchema = z.strictObject({
   token: z.uuid('That unsubscribe link is not valid.'),
@@ -13,19 +14,6 @@ export interface UnsubscribeStore {
 export interface UnsubscribeResult {
   status: number;
   body: { ok: true } | { error: string };
-}
-
-function sameOrigin(headers: Headers, siteOrigin: string): boolean {
-  const origin = headers.get('origin');
-  if (origin === null) {
-    return false;
-  }
-  try {
-    const url = new URL(origin);
-    return url.origin === siteOrigin || url.host === headers.get('host');
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -43,7 +31,7 @@ export async function handleUnsubscribe(
   if (input.bodyText.length > 512) {
     return { status: 413, body: { error: 'That request is too large.' } };
   }
-  if (!sameOrigin(input.headers, deps.siteOrigin)) {
+  if (!isOwnOrigin(input.headers, deps.siteOrigin)) {
     return { status: 403, body: { error: 'This request must come from the Scrim website.' } };
   }
 

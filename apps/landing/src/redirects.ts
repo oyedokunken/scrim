@@ -1,8 +1,9 @@
+import { OFFICIAL_ORIGIN } from './lib/origins';
+
 /** The address the site used before it had its own domain. Only this exact host is redirected. */
 export const OLD_HOST = 'scriim.vercel.app';
 
-/** The one official address. */
-export const OFFICIAL_ORIGIN = 'https://scrim.oyedokun.dev';
+export { OFFICIAL_ORIGIN } from './lib/origins';
 
 /**
  * Sends every path on the old address, with its query string, to the same path on the official
