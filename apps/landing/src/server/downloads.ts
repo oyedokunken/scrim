@@ -2,6 +2,7 @@ import 'server-only';
 import { matchAsset } from '@/lib/asset-match';
 import { downloadRequestSchema, fieldErrors, type DownloadResponse } from '@/lib/download-request';
 import { resolveTimeZone } from '@/lib/email-date';
+import { isOwnOrigin } from '@/lib/origins';
 import { clientIp, hashIp, truncateUserAgent } from './ip';
 import type { LatestRelease } from './releases';
 
@@ -79,19 +80,6 @@ export interface HandlerResult {
   email?: EmailJob;
 }
 
-function sameOrigin(headers: Headers, siteOrigin: string): boolean {
-  const origin = headers.get('origin');
-  if (origin === null) {
-    return false;
-  }
-  try {
-    const url = new URL(origin);
-    return url.origin === siteOrigin || url.host === headers.get('host');
-  } catch {
-    return false;
-  }
-}
-
 /**
  * The download request, start to finish. It validates, refuses abuse and works out which file to
  * send the visitor to. Keeping the count and the record is bookkeeping: if the database fails,
@@ -110,7 +98,7 @@ export async function handleDownloadRequest(
   if (new TextEncoder().encode(bodyText).length > MAX_BODY_BYTES) {
     return { status: 413, body: { error: 'That request is too large.' } };
   }
-  if (!sameOrigin(headers, deps.siteOrigin)) {
+  if (!isOwnOrigin(headers, deps.siteOrigin)) {
     return { status: 403, body: { error: 'This request must come from the Scrim website.' } };
   }
 

@@ -492,11 +492,7 @@ export function HeroDemo() {
             </ul>
             <p className={styles.line}>{siteConfig.heroPlatformLine}</p>
           </div>
-          <div
-            className={`${styles.card} ${styles.lightCard}`}
-            data-card="address"
-            style={{ opacity: 'var(--on-address)' }}
-          >
+          <div className={styles.card} data-card="address" style={{ opacity: 'var(--on-address)' }}>
             <p className={styles.address}>{siteConfig.heroAddress}</p>
           </div>
         </div>

@@ -161,7 +161,7 @@ test.describe('the disclosures', () => {
     await page.goto('/');
     const links = page.locator('#contact li a');
     await expect(links).toHaveCount(3);
-    await expect(links.nth(0)).toHaveText('hello@scrim.app');
+    await expect(links.nth(0)).toHaveText('hello@usescrim.app');
     await expect(links.nth(0)).toHaveAttribute('href', 'mailto:oyedokunken@gmail.com');
     for (const index of [1, 2]) {
       await expect(links.nth(index)).toHaveAttribute('target', '_blank');

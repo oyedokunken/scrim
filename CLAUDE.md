@@ -31,7 +31,7 @@ Not done, or not verified:
 - No Lighthouse run and no bundle size check since react-hook-form and zod joined the lazy dialog.
 - No integration tests against a real database and no live SMTP send. Gmail needs an app password and rewrites From unless an alias exists.
 - Missing: `docs/testing.md`, `docs/releasing.md`, ADR 0003, the workflows `ci`, `landing-quality`, `commit-policy`, `secrets-scan` and `codeql`, and the pull request template. Issue templates, CODEOWNERS and the Dependabot config exist.
-- Open decisions below are unanswered. The site address is scrim.oyedokun.dev (owner decision, 2026-11-03). The address www.scrim.app is only shown on the last slide of the hero video and is not owned yet. The public contact email is unconfirmed. The Supabase project is shared between dev and prod.
+- Open decisions below are unanswered. The official site address is www.usescrim.app (owner decision, 2026-11-10), also shown on the last slide of the hero video. The earlier address scrim.oyedokun.dev still answers and may call the API. The public contact email is unconfirmed, and the label hello@scrim.app on the site points at a domain that is not owned. The Supabase project is shared between dev and prod.
 - The privacy page does not yet mention the owner notification email.
 
 ## Current phase

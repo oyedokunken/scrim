@@ -14,8 +14,9 @@ distribution, which a plain LGPL build does not.
 Ship a static, unmodified LGPL build of FFmpeg for Windows x64, taken from the BtbN FFmpeg-Builds
 project, release branch 8.1, and pin it exactly.
 
-- **Build.** `ffmpeg-n8.1.3-24-g92611900bb-win64-lgpl-8.1.zip` from the `autobuild-2026-10-27-18-38`
-  release. The pin, with its SHA-256, lives in `apps/desktop/scripts/ffmpeg-pin.mts`.
+- **Build.** `ffmpeg-n8.1.3-41-ga8029b6528-win64-lgpl-8.1.zip` from the `autobuild-2026-11-25-12-41`
+  release. The pin moved from `autobuild-2026-10-27-18-38` on 2026-11-26, because upstream had
+  deleted that tag and every download returned 404. The pin, with its SHA-256, lives in `apps/desktop/scripts/ffmpeg-pin.mts`.
 - **Licence.** The build's own configuration shows `--enable-version3` and no `--enable-gpl` and no
   `--enable-nonfree`, so it is LGPL v3. It was checked by reading `ffmpeg -version`.
 - **Encoders.** H.264 from Windows Media Foundation (`h264_mf`), which every Windows install has, with
