@@ -361,19 +361,30 @@ test('Cancel stops the render, removes the unfinished file and keeps the recordi
     await sleep(9000);
     const page = running.main;
     await stopRecording(page);
+    const stoppedAt = Date.now();
+    const marks: string[] = [];
+    const mark = (what: string): void => {
+      marks.push(`${what} +${String(Date.now() - stoppedAt)} ms`);
+    };
     await expect(page.getByRole('heading', { name: 'Review your recording' })).toBeVisible({
       timeout: 10_000,
     });
+    mark('review shown');
     const row = page.locator('.saved-export-row');
     await expect(row).toBeVisible({ timeout: 10_000 });
+    mark('row shown');
     await row.getByRole('button', { name: 'Cancel' }).click();
+    mark('row cancel clicked');
     const dialog = page.getByRole('dialog', { name: 'Cancel the export?' });
     await expect(
       dialog.getByText('The unfinished file is removed. Your recording is kept.'),
     ).toBeVisible();
+    mark('dialog shown');
     await dialog.getByRole('button', { name: 'Cancel export' }).click();
+    mark('cancel export clicked');
     const job = await waitForJob(page, ['cancelled', 'done']);
-    expect(job.phase, JSON.stringify(job)).toBe('cancelled');
+    const detail = [JSON.stringify(job), ...marks, recent()].join(String.fromCharCode(10));
+    expect(job.phase, detail).toBe('cancelled');
     await expect(page.getByRole('button', { name: 'Make video' })).toBeVisible();
     // No MP4 and no partial file, and the working folder still holds the recording.
     expect(mp4s(running.exports)).toEqual([]);
