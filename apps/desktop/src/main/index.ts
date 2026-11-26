@@ -20,6 +20,7 @@ import { currentPlatform } from './platform/platform';
 import { portalCapture } from './recording/portal-instance';
 import { buildCsp } from './csp';
 import { hardenSession, hardenWebContents } from './harden';
+import { trashWhenFree } from './recording/trash-folder';
 import { screenshotFolderOf } from './ipc/handlers';
 import { broadcastScreenshotTaken, createAppLogger, sendCloseRequest, startIpc } from './ipc/start';
 import { createCloseAsker } from './shell/close-asker';
@@ -245,7 +246,14 @@ if (!app.requestSingleInstanceLock()) {
           logger.info('pill', { message });
         },
       }),
-      trash: (folder) => electronShell.trashItem(folder),
+      trash: (folder) =>
+        trashWhenFree(folder, {
+          cancel: (path) => {
+            exporter.service.cancelFor(path);
+          },
+          busy: (path) => exporter.service.busyFor(path),
+          trash: (path) => electronShell.trashItem(path),
+        }),
       log: (message) => {
         logger.info('pill', { message });
       },

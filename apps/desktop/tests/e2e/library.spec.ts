@@ -250,7 +250,8 @@ test.describe('the library', () => {
             all.map((button) => Math.round(button.getBoundingClientRect().width)),
           );
         expect(widths[0]).toBe(widths[1]);
-        expect(widths[2]).toBe(widths[3]);
+        // Without a Share action there are three buttons, and the last one has its row to itself.
+        if (shareSheet) expect(widths[2]).toBe(widths[3]);
       } finally {
         disk.cleanup();
       }

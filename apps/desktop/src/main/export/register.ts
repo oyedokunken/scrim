@@ -75,6 +75,20 @@ export function previewFolder(): string {
  * Creates the export engine. Call once after the app is ready, then pass the recording service to
  * `autoRender` so every finished recording becomes one MP4 in the destination folder.
  */
+let frameDelayUsed = false;
+
+/**
+ * A pause per picture for the end to end tests, for the first render only, so a test can cancel it
+ * and then run a second one at full speed. A packaged app ignores the variable.
+ */
+function testFrameDelay(): number | undefined {
+  if (app.isPackaged || frameDelayUsed) return undefined;
+  const value = Number(process.env['SCRIM_E2E_EXPORT_FRAME_DELAY_MS']);
+  if (!Number.isFinite(value) || value <= 0) return undefined;
+  frameDelayUsed = true;
+  return Math.min(value, 1000);
+}
+
 export async function registerExport(options: RegisterOptions): Promise<ExportApi> {
   const pendingFile = join(app.getPath('userData'), 'pending-renders.json');
   const pending = createPendingRenders({
@@ -106,6 +120,8 @@ export async function registerExport(options: RegisterOptions): Promise<ExportAp
           log: options.log,
           spawnWorker: () => DrawingWorker({}),
           cores: availableParallelism(),
+          // The live preview renders first and would use up the hold, so only a real export gets it.
+          frameDelayMs: request.outputDir === previewFolder() ? undefined : testFrameDelay(),
         },
         request,
         run,
