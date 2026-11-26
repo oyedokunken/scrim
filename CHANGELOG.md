@@ -4,6 +4,23 @@ All notable changes to Scrim are documented here.
 
 ## Unreleased
 
+## 1.1.1 (2026-11-26)
+
+Fixes from the first user feedback, and security updates.
+
+### Fixed
+
+- A long recording no longer ends with "Scrim could not make your video". When the video encoder stops partway, Scrim starts over with the next encoder, ending with the software one, before it shows an error. An encoder that had already stopped could also leave the export waiting for ever, and it now fails at once
+- Tab now moves through every item in the left sidebar one at a time, instead of focusing the whole bar. The arrow keys still work
+- The sidebar is wider so "Background" fits, its items fit a short window, and the three buttons in the Settings credits wrap instead of running off the card
+- Linux no longer asks Google's servers for a spelling dictionary. Scrim makes no network request while you record
+- Discarding a recording from the recording bar right after it stops no longer fails on Windows with "Operation was aborted"
+
+### Security
+
+- Next.js 16.4.5, Nodemailer 10.1.4 and Electron 44.9.1, with patched versions of the packages the build tools use. This clears 24 of 27 open advisories. Two have no fix yet, in a download helper of the Lighthouse tool, and one needs a major version change in several tools
+- The bundled FFmpeg moves to a newer build of the same 8.1 release, still the LGPL build
+
 ## 1.1.0 (2026-11-05)
 
 Scrim for Linux, plus the fixes since 1.0.0.
