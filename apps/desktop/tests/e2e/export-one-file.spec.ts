@@ -62,7 +62,7 @@ function killHard(child: ChildProcess): void {
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function launch(destination?: string): Promise<Running> {
+async function launch(destination?: string, slowRender = false): Promise<Running> {
   const userData = join(work, 'user');
   // Working folders go to the projects folder, which follows LOCALAPPDATA. The chosen folder only
   // receives exports, so a recording must leave it empty.
@@ -85,7 +85,12 @@ async function launch(destination?: string): Promise<Running> {
     electronPath,
     [APP_DIR, `--user-data-dir=${userData}`, '--remote-debugging-port=0', ...runnerFlags],
     {
-      env: { ...process.env, SCRIM_E2E: '', LOCALAPPDATA: local },
+      env: {
+        ...process.env,
+        SCRIM_E2E: '',
+        LOCALAPPDATA: local,
+        ...(slowRender ? { SCRIM_E2E_EXPORT_FRAME_DELAY_MS: '40' } : {}),
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
@@ -348,11 +353,12 @@ test('Stop opens the page at once, renders the one MP4 in the background and say
 
 test('Cancel stops the render, removes the unfinished file and keeps the recording', async () => {
   test.setTimeout(240_000);
-  const running = await launch();
+  // A fast runner encodes a short clip before Cancel is clicked, so each picture is held back a
+  // little and the render is still running when the dialog opens.
+  const running = await launch(undefined, true);
   try {
     await startRecording(running.main);
-    // A runner that encodes fast finishes a short clip before Cancel is clicked, so it records longer.
-    await sleep(process.platform === 'linux' ? 25_000 : 9000);
+    await sleep(9000);
     const page = running.main;
     await stopRecording(page);
     await expect(page.getByRole('heading', { name: 'Review your recording' })).toBeVisible({

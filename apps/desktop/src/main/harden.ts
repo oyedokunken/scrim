@@ -25,9 +25,13 @@ export function hardenSession(options: { appOrigin: string; devCsp: string | und
   ses.setPermissionCheckHandler((_contents, permission, requestingOrigin) =>
     isPermissionAllowed(permission, requestingOrigin, appOrigin),
   );
-  // Chromium fetches a spelling dictionary from a Google address on Linux unless the spell checker
-  // is off for the session, and the app makes no network request while recording.
+  // Chromium fetches a spelling dictionary from a Google address on Linux when a language is set
+  // for the session, and the app makes no network request while recording. The language list is
+  // emptied, the checker is off, and a download that is somehow still asked for goes to an address
+  // inside the app instead of the network.
+  ses.setSpellCheckerLanguages([]);
   ses.setSpellCheckerEnabled(false);
+  ses.setSpellCheckerDictionaryDownloadURL(`${appOrigin}/dictionaries/`);
 }
 
 /**

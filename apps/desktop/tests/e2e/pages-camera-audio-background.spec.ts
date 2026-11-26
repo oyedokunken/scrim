@@ -32,6 +32,8 @@ test.describe('the Camera page', () => {
   test('size, shape and corner change the preview, and a dragged bubble snaps to a corner', async ({
     page,
   }) => {
+    // Tall enough that the whole frame is on screen, so the drop lands in its lower half.
+    await page.setViewportSize({ width: 1280, height: 900 });
     await open(page, 'Camera');
     await page.getByRole('switch', { name: 'Use camera' }).click();
     const bubble = page.locator('.bubble');

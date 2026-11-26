@@ -33,6 +33,8 @@ export interface ExporterDeps {
   spawnWorker?: (() => WorkerLike) | undefined;
   /** CPU cores, to size the pool. */
   cores?: number | undefined;
+  /** A pause after every picture. Only the end to end tests set it, so a render lasts long enough to cancel. */
+  frameDelayMs?: number | undefined;
 }
 
 const STDERR_TAIL = 6 * 1024;
@@ -555,6 +557,9 @@ export async function exportRecording(
     };
     for (let i = 0; i < model.frameCount; i += 1) {
       if (cancelled()) break;
+      if (deps.frameDelayMs !== undefined && deps.frameDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, deps.frameDelayMs));
+      }
       const description = model.describeFrame(i);
       const screenFrame = await screenCursor.at(
         Math.round((description.screenTimeMs * fps) / 1000),
