@@ -270,9 +270,12 @@ jobs:
             apps/desktop/release/*.blockmap
           if-no-files-found: error
 
+  # macOS has never shipped yet (1.0.0 and 1.1.0 are Windows and Linux only). It still builds, so the
+  # problems show up, but a failure here does not hold back the other systems.
   macos:
     needs: verify-tag
     if: github.event_name == 'push'
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -382,7 +385,8 @@ jobs:
 
   publish:
     needs: [windows, macos, linux]
-    if: github.event_name == 'push'
+    # always() lets this run when the optional macOS build failed. Windows and Linux must have passed.
+    if: ${{ always() && github.event_name == 'push' && needs.windows.result == 'success' && needs.linux.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -399,13 +403,21 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
+      - name: Leave the Mac files out unless both Mac builds worked
+        if: ${{ hashFiles('dist/latest-mac-arm64.part') == '' || hashFiles('dist/latest-mac-x64.part') == '' }}
+        run: rm -f dist/*.dmg dist/*-mac*.zip dist/*-mac*.blockmap dist/latest-mac-*.part
       - name: Join the two Mac update files into latest-mac.yml
+        if: ${{ hashFiles('dist/latest-mac-arm64.part') != '' && hashFiles('dist/latest-mac-x64.part') != '' }}
         run: node source/apps/desktop/scripts/merge-mac-update-info.mts dist/latest-mac.yml dist/latest-mac-arm64.part dist/latest-mac-x64.part
       - name: Check that the update files are present
         run: |
-          for file in latest.yml latest-mac.yml latest-linux.yml; do
+          for file in latest.yml latest-linux.yml; do
             test -f "dist/${file}" || { echo "${file} is missing, so the in-app updater would find nothing." >&2; exit 1; }
           done
+          # The Mac files are published only when both Mac builds worked, and then both are needed.
+          if ls dist/*.dmg >/dev/null 2>&1; then
+            test -f dist/latest-mac.yml || { echo "latest-mac.yml is missing next to the Mac files." >&2; exit 1; }
+          fi
           # The Linux update file must name the AppImage that is being published, because the AppImage
           # updates itself from it.
           names="$(sed -n -E 's/^[[:space:]-]*(url|path):[[:space:]]*//p' dist/latest-linux.yml)"
