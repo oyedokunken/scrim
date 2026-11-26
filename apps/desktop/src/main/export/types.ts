@@ -1,6 +1,6 @@
 import type { RenderStyle, ResolutionPreset } from '@scrim/core/render';
 import type { CursorPaint } from './compositor';
-import type { ExportQuality } from './encoders';
+import type { EncoderName, ExportQuality } from './encoders';
 
 /** What the person chooses in the export sheet. Automatic renders use the saved defaults. */
 export interface ExportSettings {
@@ -32,6 +32,8 @@ export interface ExportRequest {
   paint: CursorPaint;
   /** Use only the software encoder, for the retry with safer settings. */
   softwareOnly?: boolean | undefined;
+  /** Encoders that started and then died mid render. The next attempt skips them. */
+  avoidEncoders?: readonly EncoderName[] | undefined;
   /** Draw every picture on the calling thread. Used when the drawing threads stalled. */
   inlineOnly?: boolean | undefined;
 }

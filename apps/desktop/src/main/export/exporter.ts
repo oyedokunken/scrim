@@ -14,8 +14,7 @@ import { Compositor } from './compositor';
 import { createInlineBackend, createWorkerBackend, workerCount } from './render-pool';
 import type { WorkerLike } from './render-pool';
 import type { BubblePlacement } from './compositor';
-import { bitrateFor, encoderArgs, pickEncoder } from './encoders';
-import type { EncoderName } from './encoders';
+import { ENCODER_ORDER, bitrateFor, encoderArgs, pickEncoder } from './encoders';
 import { FrameCursor, FrameReader } from './frames';
 import { buildBase } from './raster';
 import type { Raster } from './raster';
@@ -34,6 +33,8 @@ export interface ExporterDeps {
   spawnWorker?: (() => WorkerLike) | undefined;
   /** CPU cores, to size the pool. */
   cores?: number | undefined;
+  /** A pause after every picture. Only the end to end tests set it, so a render lasts long enough to cancel. */
+  frameDelayMs?: number | undefined;
 }
 
 const STDERR_TAIL = 6 * 1024;
@@ -150,13 +151,14 @@ function writeAll(stream: NodeJS.WritableStream, data: Buffer): Promise<void> {
     };
     stream.once('error', onError);
     stream.once('close', onError);
-    const done = (): void => {
+    // The write callback also reports a stream that is already closed, which raises neither event
+    // again. Waiting for a drain on a dead encoder would hang the export for good.
+    stream.write(data, (error?: Error | null) => {
       stream.off('error', onError);
       stream.off('close', onError);
-      resolve();
-    };
-    if (stream.write(data)) done();
-    else stream.once('drain', done);
+      if (error) reject(error);
+      else resolve();
+    });
   });
 }
 
@@ -370,7 +372,10 @@ export async function exportRecording(
     width,
     height,
     fps,
-    ...(request.softwareOnly === true ? { candidates: ['libopenh264'] as EncoderName[] } : {}),
+    candidates:
+      request.softwareOnly === true
+        ? ['libopenh264']
+        : ENCODER_ORDER.filter((name) => request.avoidEncoders?.includes(name) !== true),
   });
   if (choice === undefined) {
     await rm(partial, { force: true });
@@ -552,6 +557,9 @@ export async function exportRecording(
     };
     for (let i = 0; i < model.frameCount; i += 1) {
       if (cancelled()) break;
+      if (deps.frameDelayMs !== undefined && deps.frameDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, deps.frameDelayMs));
+      }
       const description = model.describeFrame(i);
       const screenFrame = await screenCursor.at(
         Math.round((description.screenTimeMs * fps) / 1000),
@@ -619,6 +627,16 @@ export async function exportRecording(
   if (broken !== undefined || code !== 0 || written !== model.frameCount) {
     await rm(partial, { force: true });
     const missing = code === null && stderr.includes('ENOENT');
+    // The short probe passed but this encoder died on the real render, which is how a hardware
+    // encoder fails on a long or busy recording. Start over with the next one, software last.
+    if (!missing && choice.encoder !== 'libopenh264' && request.softwareOnly !== true) {
+      deps.log(`export: ${choice.encoder} stopped mid render, trying the next encoder`);
+      return exportRecording(
+        deps,
+        { ...request, avoidEncoders: [...(request.avoidEncoders ?? []), choice.encoder] },
+        options,
+      );
+    }
     return missing
       ? fail(
           'ffmpeg-missing',

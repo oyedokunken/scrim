@@ -69,7 +69,7 @@ export function Rail({ view, onView, updatePill = false, onUpdatePill }: RailPro
           type="button"
           className={selected ? 'rail-item selected' : 'rail-item'}
           aria-current={selected ? 'page' : undefined}
-          tabIndex={selected || (view === 'editor' && index === 0) ? 0 : -1}
+
           onClick={() => {
             onView(id);
           }}
