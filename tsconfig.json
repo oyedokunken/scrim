@@ -3,7 +3,8 @@
   "compilerOptions": {
     "types": ["node"],
     "lib": ["ES2023"],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "allowJs": true
   },
-  "include": ["tests", "tools", "vitest.config.ts"]
+  "include": ["tests", "tools", "vitest.config.ts", "*.js", "apps/landing/scripts/*.mjs"]
 }
