@@ -89,7 +89,7 @@ async function launch(destination?: string, slowRender = false): Promise<Running
         ...process.env,
         SCRIM_E2E: '',
         LOCALAPPDATA: local,
-        ...(slowRender ? { SCRIM_E2E_EXPORT_FRAME_DELAY_MS: '40' } : {}),
+        ...(slowRender ? { SCRIM_E2E_EXPORT_FRAME_DELAY_MS: '250' } : {}),
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
@@ -353,8 +353,8 @@ test('Stop opens the page at once, renders the one MP4 in the background and say
 
 test('Cancel stops the render, removes the unfinished file and keeps the recording', async () => {
   test.setTimeout(240_000);
-  // A fast runner encodes a short clip before Cancel is clicked, so each picture is held back a
-  // little and the render is still running when the dialog opens.
+  // A fast runner encodes a short clip before Cancel is clicked, so the first render holds back each
+  // picture and is still running when the dialog opens. The render after the cancel runs at speed.
   const running = await launch(undefined, true);
   try {
     await startRecording(running.main);

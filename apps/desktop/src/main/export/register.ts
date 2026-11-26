@@ -75,11 +75,18 @@ export function previewFolder(): string {
  * Creates the export engine. Call once after the app is ready, then pass the recording service to
  * `autoRender` so every finished recording becomes one MP4 in the destination folder.
  */
-/** A pause per picture for the end to end tests. A packaged app ignores the variable. */
+let frameDelayUsed = false;
+
+/**
+ * A pause per picture for the end to end tests, for the first render only, so a test can cancel it
+ * and then run a second one at full speed. A packaged app ignores the variable.
+ */
 function testFrameDelay(): number | undefined {
-  if (app.isPackaged) return undefined;
+  if (app.isPackaged || frameDelayUsed) return undefined;
   const value = Number(process.env['SCRIM_E2E_EXPORT_FRAME_DELAY_MS']);
-  return Number.isFinite(value) && value > 0 ? Math.min(value, 1000) : undefined;
+  if (!Number.isFinite(value) || value <= 0) return undefined;
+  frameDelayUsed = true;
+  return Math.min(value, 1000);
 }
 
 export async function registerExport(options: RegisterOptions): Promise<ExportApi> {
