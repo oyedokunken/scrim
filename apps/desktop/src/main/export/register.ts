@@ -120,7 +120,8 @@ export async function registerExport(options: RegisterOptions): Promise<ExportAp
           log: options.log,
           spawnWorker: () => DrawingWorker({}),
           cores: availableParallelism(),
-          frameDelayMs: testFrameDelay(),
+          // The live preview renders first and would use up the hold, so only a real export gets it.
+          frameDelayMs: request.outputDir === previewFolder() ? undefined : testFrameDelay(),
         },
         request,
         run,
