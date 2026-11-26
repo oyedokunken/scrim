@@ -9,11 +9,11 @@
  * pin before the tag disappears, or mirror the archive.
  */
 export const FFMPEG_PIN = {
-  tag: 'autobuild-2026-10-27-18-38',
-  file: 'ffmpeg-n8.1.3-24-g92611900bb-win64-lgpl-8.1.zip',
-  sha256: '4b999c5b938ee20dc1bd7be68cb09381ac425520e363a58b67e787402cb96022',
+  tag: 'autobuild-2026-11-25-12-41',
+  file: 'ffmpeg-n8.1.3-41-ga8029b6528-win64-lgpl-8.1.zip',
+  sha256: '7e85b9941c63c608cf68b8e84e35cb156dd060eb4442ab04eca325752757d248',
   /** The FFmpeg source commit this build was made from. */
-  sourceCommit: '92611900bb',
+  sourceCommit: 'a8029b6528',
 } as const;
 
 export const FFMPEG_URL = `https://github.com/BtbN/FFmpeg-Builds/releases/download/${FFMPEG_PIN.tag}/${FFMPEG_PIN.file}`;
