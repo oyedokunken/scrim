@@ -88,11 +88,10 @@ describe('the icon rail', () => {
     expect(html.match(/class="rail-item/g)).toHaveLength(9);
   });
 
-  it('marks the open view, and only that one is in the tab order', () => {
+  it('marks the open view, and every item stays in the tab order', () => {
     expect(html.match(/aria-current="page"/g)).toHaveLength(1);
     expect(html).toMatch(/rail-item selected" aria-current="page"[^>]*><svg[^>]*>.*?Zoom/s);
-    expect(html.match(/tabindex="0"/g)).toHaveLength(1);
-    expect(html.match(/tabindex="-1"/g)).toHaveLength(8);
+    expect(html).not.toContain('tabindex');
   });
 
   it('hides its icons from assistive technology, because each has a label', () => {

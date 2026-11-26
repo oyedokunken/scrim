@@ -368,7 +368,7 @@ svg {
 .shell {
   display: grid;
   height: 100%;
-  grid-template-columns: 72px minmax(0, 1fr) 320px;
+  grid-template-columns: 84px minmax(0, 1fr) 320px;
   grid-template-rows: 56px minmax(0, 1fr) 28px;
   grid-template-areas:
     'header header header'
@@ -377,7 +377,7 @@ svg {
 }
 
 .shell.no-panel {
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 84px minmax(0, 1fr);
   grid-template-areas:
     'header header'
     'rail main'
@@ -499,6 +499,8 @@ svg {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Room for the focus ring, which overflow would otherwise cut. */
+  padding: 2px;
 }
 
 /* The rail scrolls on a short window, but a scrollbar would cut the labels, so it stays hidden. */
@@ -541,6 +543,15 @@ svg {
 .rail-label {
   font-size: 11px;
   font-weight: 500;
+  white-space: nowrap;
+}
+
+/* A short window keeps every item in view instead of cutting the first one off. */
+@media (max-height: 760px) {
+  .rail-item {
+    height: 48px;
+    gap: 2px;
+  }
 }
 
 .shell-main {
@@ -1148,7 +1159,7 @@ input[type='checkbox'] {
 
 .shot-item {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 84px minmax(0, 1fr);
   grid-template-areas:
     'thumb name'
     'thumb when';
@@ -1737,13 +1748,13 @@ input[type='checkbox'] {
 .set-links {
   margin-top: auto;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .set-links .ui-button {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: max-content;
   padding: 0 12px;
   white-space: nowrap;
 }
