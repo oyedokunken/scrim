@@ -8,7 +8,7 @@ catalog:
   typescript: 6.0.3
   turbo: 2.11.8
   vite: 8.3.4
-  next: 16.4.2
+  next: 16.4.5
   react: 19.3.1
   react-dom: 19.3.1
   '@types/node': 24.19.2
@@ -23,7 +23,7 @@ catalog:
   prisma: 7.10.1
   '@prisma/client': 7.10.1
   '@prisma/adapter-pg': 7.10.1
-  nodemailer: 10.1.1
+  nodemailer: 10.1.4
   '@types/nodemailer': 8.0.2
   server-only: 0.0.1
   vitest: 5.0.5
@@ -45,7 +45,7 @@ catalog:
   knip: 6.41.0
   sharp: 0.35.5
   uiohook-napi: 1.5.5
-  electron: 44.7.2
+  electron: 44.9.1
   electron-vite: 6.0.0
   electron-builder: 26.17.0
   electron-updater: 6.8.11
@@ -68,3 +68,13 @@ allowBuilds:
   '@prisma/engines': true
   # Runs node-gyp-build, which loads the prebuilt binary shipped for each system.
   uiohook-napi: true
+
+# Patched versions of transitive dependencies with open security advisories. Each is pinned exactly
+# and is at least 7 days old. Remove an entry once the parent package asks for a fixed version.
+overrides:
+  effect: 3.22.1
+  fast-uri: 3.1.9
+  body-parser@<1.20.9: 1.20.9
+  basic-ftp@<6.2.4: 6.2.4
+  tmp@<0.2.6: 0.2.6
+  uuid@<11.1.1: 11.1.1

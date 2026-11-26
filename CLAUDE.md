@@ -155,9 +155,9 @@ Single source of truth is the pnpm catalog. Packages reference versions as `cata
 | Area | Pins |
 | --- | --- |
 | Toolchain | pnpm 12.15.0, Node 22 (engines `>=22.18.0`, Prisma 7 needs it), typescript 6.0.3, turbo 2.11.8, vite 8.3.4 |
-| Desktop | electron 44.7.2, electron-vite 6.0.0, electron-builder 26.17.0, @vitejs/plugin-react 6.1.2 |
-| Web and UI | react-hook-form 7.90.0, @hookform/resolvers 5.9.2, @fontsource/urbanist 5.3.0, next 16.4.2, react 19.3.1, react-dom 19.3.1, @types/react 19.3.0, @types/react-dom 19.3.0, lucide-react 1.57.0, @fontsource-variable/urbanist 5.3.0 |
-| Data and mail (landing) | prisma 7.10.1, @prisma/client 7.10.1, @prisma/adapter-pg 7.10.1, nodemailer 10.1.1, @types/nodemailer 8.0.2, server-only 0.0.1 |
+| Desktop | electron 44.9.1, electron-vite 6.0.0, electron-builder 26.17.0, @vitejs/plugin-react 6.1.2 |
+| Web and UI | react-hook-form 7.90.0, @hookform/resolvers 5.9.2, @fontsource/urbanist 5.3.0, next 16.4.5, react 19.3.1, react-dom 19.3.1, @types/react 19.3.0, @types/react-dom 19.3.0, lucide-react 1.57.0, @fontsource-variable/urbanist 5.3.0 |
+| Data and mail (landing) | prisma 7.10.1, @prisma/client 7.10.1, @prisma/adapter-pg 7.10.1, nodemailer 10.1.4, @types/nodemailer 8.0.2, server-only 0.0.1 |
 | Shared | zod 4.6.7, @types/node 24.19.2 |
 | Tests | vitest 5.0.5, @vitest/coverage-v8 5.0.5, fast-check 4.10.2, @playwright/test 1.64.1, @axe-core/playwright 4.14.0, @lhci/cli 0.15.1, serve 14.2.6 |
 | Quality | eslint 10.12.0, @eslint/js 10.0.1, typescript-eslint 8.71.2, eslint-plugin-react-hooks 7.1.1, globals 17.13.0, prettier 3.9.10, husky 9.1.7, lint-staged 17.6.0, @commitlint/cli 21.2.3, @commitlint/config-conventional 21.2.3, knip 6.41.0 |
