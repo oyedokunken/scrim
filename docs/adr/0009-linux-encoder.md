@@ -30,14 +30,14 @@ fraction of a second and the next encoder runs.
 
 The build is the BtbN static LGPL build already pinned for Linux x64
 (`apps/desktop/scripts/ffmpeg-targets.mts`, file
-`ffmpeg-n8.1.3-24-g92611900bb-linux64-lgpl-8.1.tar.xz`, from the same release tag as Windows). The
+`ffmpeg-n8.1.3-41-ga8029b6528-linux64-lgpl-8.1.tar.xz`, from the same release tag as Windows). The
 fetch script checks its SHA-256 and writes `LICENSE.txt` and `SOURCE.txt` (build page, archive,
 hash, the FFmpeg source commit) beside the binaries, and the installer ships them.
 
 ## What was verified (on a Windows machine, no Linux)
 
 - The pinned archive was downloaded and hashed with `certutil`: SHA-256
-  `75734a2604fbbf653256ac9d29bf88499d217b0c5c6d7c4a2a1f7b1f93073b55`, 137,850,376 bytes. It equals the
+  `16367473f103d5c0f58797928a59a1b731b062f3e07ceb3d52d2f9c23fcada8d`, 136,339,072 bytes. It equals the
   pin. The pin is real, so Linux packaging does not stop on a missing pin.
 - The `ffmpeg` binary was unpacked and its text read. The configuration has `--enable-version3`,
   `--enable-libopenh264`, `--enable-vaapi` and `--enable-libvpl`, `--enable-ffnvcodec`,

@@ -14,8 +14,8 @@ import { FFMPEG_PIN } from './ffmpeg-pin.mts';
 
 export const LINUX_X64_PIN = {
   tag: FFMPEG_PIN.tag,
-  file: 'ffmpeg-n8.1.3-24-g92611900bb-linux64-lgpl-8.1.tar.xz',
-  sha256: '75734a2604fbbf653256ac9d29bf88499d217b0c5c6d7c4a2a1f7b1f93073b55',
+  file: 'ffmpeg-n8.1.3-41-ga8029b6528-linux64-lgpl-8.1.tar.xz',
+  sha256: '16367473f103d5c0f58797928a59a1b731b062f3e07ceb3d52d2f9c23fcada8d',
   sourceCommit: FFMPEG_PIN.sourceCommit,
 } as const;
 
