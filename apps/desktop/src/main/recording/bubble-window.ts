@@ -1,3 +1,4 @@
+import { createBubbleVisibility } from './bubble-visibility';
 import { currentPlatform } from '../platform/platform';
 import { ipcMain } from 'electron';
 import { join } from 'node:path';
@@ -43,6 +44,7 @@ export function createBubbleWindow(options: {
   /** Moves made by the app itself, which must not count as the person dragging. */
   let placing = false;
   let placingTimer: ReturnType<typeof setTimeout> | undefined;
+  const visibility = createBubbleVisibility();
 
   const current = (): NonNullable<typeof window> | undefined =>
     window !== undefined && !window.isDestroyed() ? window : undefined;
@@ -73,6 +75,7 @@ export function createBubbleWindow(options: {
       if (current() !== undefined) return;
       side = input.side;
       look = { size: input.size, shape: input.shape };
+      visibility.reset();
       const origin = windowOrigin(input.circle, side);
       const created = createAppWindow(
         {
@@ -111,8 +114,8 @@ export function createBubbleWindow(options: {
       });
       created.once('ready-to-show', () => {
         // A camera switched off before the page was ready stays hidden.
-        const hidden = lastMedia?.type === 'media' && !lastMedia.cameraOn;
-        if (!created.isDestroyed() && !hidden) created.showInactive();
+        const cameraOff = lastMedia?.type === 'media' && !lastMedia.cameraOn;
+        if (!created.isDestroyed() && visibility.showWhenReady(cameraOff)) created.showInactive();
       });
       created.on('closed', () => {
         if (window === created) window = undefined;
@@ -134,6 +137,7 @@ export function createBubbleWindow(options: {
       });
     },
     setVisible(visible) {
+      visibility.want(visible);
       const target = current();
       if (target === undefined) return;
       if (visible) {

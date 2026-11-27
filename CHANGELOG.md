@@ -4,6 +4,10 @@ All notable changes to Scrim are documented here.
 
 ## Unreleased
 
+### Fixed
+
+- On Linux, a second camera bubble no longer shows in the middle of the recorded video. The live bubble window was told to hide before its page had loaded, then showed itself anyway while capture ran. A hide asked for early now holds
+
 ## 1.1.1 (2026-11-26)
 
 Fixes from the first user feedback, and security updates.
