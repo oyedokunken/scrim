@@ -4,6 +4,12 @@ All notable changes to Scrim are documented here.
 
 ## Unreleased
 
+## 1.1.3 (2026-11-27)
+
+### Changed
+
+- The Built by card now shows the website, GitHub, LinkedIn and WhatsApp, the same four links as the website. The Instagram and X links are gone from the site
+
 ## 1.1.2 (2026-11-27)
 
 A fix from a Linux user.
