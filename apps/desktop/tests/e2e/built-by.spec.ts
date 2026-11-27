@@ -16,7 +16,7 @@ test.describe('the Built by card on the welcome screen', () => {
 
     await handle.hover();
     await expect(panel).toBeVisible();
-    await expect(panel.locator('.built-by-link')).toHaveCount(3);
+    await expect(panel.locator('.built-by-link')).toHaveCount(4);
 
     const github = panel.getByRole('link', { name: /GitHub/ });
     await github.hover();
