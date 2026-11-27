@@ -493,7 +493,10 @@ describe('the release workflow, as text', () => {
   it('keeps the manual dispatch and the tag behaviour', () => {
     expect(workflow).toContain('workflow_dispatch');
     expect(linuxJob).toContain("if: github.event_name == 'push'");
-    expect(publishJob).toContain("if: github.event_name == 'push'");
+    // The publish job also runs when the optional macOS build failed, and needs Windows and Linux.
+    expect(publishJob).toContain("github.event_name == 'push'");
+    expect(publishJob).toContain("needs.windows.result == 'success'");
+    expect(publishJob).toContain("needs.linux.result == 'success'");
   });
 
   it('never puts a secret on a command line', () => {

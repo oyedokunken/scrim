@@ -52,7 +52,7 @@ describe('the release workflow', () => {
   it('reads the require variable and offers a dry run that publishes nothing', () => {
     expect(workflow).toContain('vars.REQUIRE_WINDOWS_SIGNING');
     expect(workflow).toContain('workflow_dispatch');
-    expect(workflow).toMatch(/publish:[\s\S]*?if: github\.event_name == 'push'/);
+    expect(workflow).toMatch(/publish:[\s\S]*?if: .*github\.event_name == 'push'/);
   });
 
   it('signs the app, builds the installer from it, then signs the installer', () => {
