@@ -49,8 +49,7 @@ export const siteConfig = {
     { id: 'website', name: 'Website', href: 'https://www.oyedokun.dev/' },
     { id: 'github', name: 'GitHub', href: 'https://github.com/oyedokunken/' },
     { id: 'linkedin', name: 'LinkedIn', href: 'https://www.linkedin.com/in/oyedokunken' },
-    { id: 'instagram', name: 'Instagram', href: 'https://www.instagram.com/oyedokunken/' },
-    { id: 'x', name: 'X', href: 'https://x.com/oyedokunken_' },
+    { id: 'whatsapp', name: 'WhatsApp', href: 'https://wa.me/2348028134942' },
   ],
   nav: [
     { label: 'Features', href: '#features' },

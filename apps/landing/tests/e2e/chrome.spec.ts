@@ -435,12 +435,12 @@ test.describe('the back to top button shows how far down the page you are', () =
 });
 
 test.describe('the Built by popover', () => {
-  test('shows the five icons in one row, green until hovered, then black', async ({ page }) => {
+  test('shows the four icons in one row, green until hovered, then black', async ({ page }) => {
     await page.goto('/');
     const footer = page.locator('body > footer');
     await footer.getByRole('button', { name: '@oyedokunken' }).click();
     const icons = footer.locator('[role="group"] a');
-    await expect(icons).toHaveCount(5);
+    await expect(icons).toHaveCount(4);
 
     const boxes = await icons.evaluateAll((links) =>
       links.map((link) => {

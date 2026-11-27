@@ -4,15 +4,14 @@ import { Globe } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { siteConfig } from '@/site.config';
 import styles from './built-by.module.css';
-import { GitHubIcon, InstagramIcon, LinkedInIcon, XIcon } from './social-icons';
+import { GitHubIcon, LinkedInIcon, WhatsAppIcon } from './social-icons';
 import { TooltipLink } from './tooltip';
 
 const ICONS: Record<(typeof siteConfig.socials)[number]['id'], ReactNode> = {
   website: <Globe aria-hidden="true" size={22} strokeWidth={2} />,
   github: <GitHubIcon size={22} />,
   linkedin: <LinkedInIcon size={22} />,
-  instagram: <InstagramIcon size={22} />,
-  x: <XIcon size={20} />,
+  whatsapp: <WhatsAppIcon size={22} />,
 };
 
 /**
