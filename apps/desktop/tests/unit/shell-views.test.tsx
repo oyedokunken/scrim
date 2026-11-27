@@ -220,12 +220,13 @@ describe('the welcome screen', () => {
     expect(html).not.toContain('Nothing leaves your computer');
   });
 
-  it('offers the website, GitHub and LinkedIn in the card, each with a tooltip name', () => {
+  it('offers the website, GitHub, LinkedIn and WhatsApp in the card, each with a tooltip name', () => {
     const html = welcome(true);
     for (const [name, href] of [
       ['Website', 'https://www.oyedokun.dev/'],
       ['GitHub', 'https://github.com/oyedokunken'],
       ['LinkedIn', 'https://www.linkedin.com/in/oyedokunken'],
+      ['WhatsApp', 'https://wa.me/2348028134942'],
     ] as const) {
       expect(html).toContain(`href="${href}"`);
       expect(html).toContain(`aria-label="${name} (opens in your browser)"`);
@@ -233,7 +234,7 @@ describe('the welcome screen', () => {
         `class="built-by-tip" data-visible="false" aria-hidden="true">${name}`,
       );
     }
-    expect(html.match(/class="built-by-link"/g)).toHaveLength(3);
+    expect(html.match(/class="built-by-link"/g)).toHaveLength(4);
   });
 
   it('has the main button and the Built by handle as its only buttons', () => {

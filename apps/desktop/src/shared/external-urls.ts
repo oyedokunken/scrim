@@ -3,16 +3,17 @@ const REPO_PATH = '/oyedokunken/scrim';
 // The owner's own site, root page only (owner decision, 2026-10-28).
 const OWNER_HOSTS: ReadonlySet<string> = new Set(['www.oyedokun.dev', 'oyedokun.dev']);
 // The owner's profile pages behind the "Built by" popover. Exact addresses only (owner decision,
-// 2026-10-28): the GitHub profile and the LinkedIn profile, with nothing before, after or around.
+// 2026-10-28): the GitHub profile, the LinkedIn profile and the WhatsApp chat link, with nothing before, after or around.
 const PROFILE_URLS: ReadonlySet<string> = new Set([
   'https://github.com/oyedokunken',
   'https://www.linkedin.com/in/oyedokunken',
+  'https://wa.me/2348028134942',
 ]);
 
 /**
  * The only URLs `shell.openExternal` may open, over https with no explicit port and no embedded
  * credentials: the Scrim repository on GitHub, the root page of the owner's site, and the owner's
- * GitHub and LinkedIn profiles.
+ * GitHub and LinkedIn profiles and the WhatsApp chat link.
  */
 export function isAllowedExternalUrl(url: string): boolean {
   try {

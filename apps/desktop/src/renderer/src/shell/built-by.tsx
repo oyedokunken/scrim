@@ -1,9 +1,9 @@
 import { ExternalLink, Globe } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { Glyph, GITHUB, LINKEDIN } from './brand-glyphs';
+import { Glyph, GITHUB, LINKEDIN, WHATSAPP } from './brand-glyphs';
 import './built-by.css';
 
-/** Where to find the builder. The same three places as the website's card, in the same order. */
+/** Where to find the builder. The same four places as the website's card, in the same order. */
 const BUILT_BY_LINKS: readonly {
   id: string;
   name: string;
@@ -27,6 +27,12 @@ const BUILT_BY_LINKS: readonly {
     name: 'LinkedIn',
     href: 'https://www.linkedin.com/in/oyedokunken',
     icon: <Glyph d={LINKEDIN} />,
+  },
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp',
+    href: 'https://wa.me/2348028134942',
+    icon: <Glyph d={WHATSAPP} />,
   },
 ];
 
@@ -87,7 +93,7 @@ function IconLink({
 
 /**
  * "Built by @oyedokunken", the same card as the website's footer: the handle opens a small white
- * card with round icon buttons for the builder's website, GitHub and LinkedIn, each with a green
+ * card with round icon buttons for the builder's website, GitHub, LinkedIn and WhatsApp, each with a green
  * tooltip. It opens on hover, on click and on keyboard focus, and closes on Escape, on a click
  * outside it and when focus leaves it. Escape returns focus to the handle.
  */
