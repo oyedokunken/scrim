@@ -125,13 +125,13 @@ describe('BuiltBy', () => {
     expect(html).toMatch(/<div[^>]*hidden=""[^>]*role="group"|role="group"[^>]*hidden=""/);
   });
 
-  it('shows only the five icons, with no name or handle caption in the card', () => {
+  it('shows only the four icons, with no name or handle caption in the card', () => {
     const card = html.slice(html.indexOf('role="group"'));
     expect(card).not.toContain('Oyedokun Kehinde');
-    expect(card.match(/<a /g)).toHaveLength(5);
+    expect(card.match(/<a /g)).toHaveLength(4);
   });
 
-  it('links the five profiles, in order, in new tabs', () => {
+  it('links the four profiles, in order, in new tabs', () => {
     const links = [...html.matchAll(/<a href="([^"]+)"[^>]*aria-label="([^"]+)"/g)].map((m) => [
       m[1],
       m[2],
@@ -140,14 +140,13 @@ describe('BuiltBy', () => {
       ['https://www.oyedokun.dev/', 'Website (opens in a new tab)'],
       ['https://github.com/oyedokunken/', 'GitHub (opens in a new tab)'],
       ['https://www.linkedin.com/in/oyedokunken', 'LinkedIn (opens in a new tab)'],
-      ['https://www.instagram.com/oyedokunken/', 'Instagram (opens in a new tab)'],
-      ['https://x.com/oyedokunken_', 'X (opens in a new tab)'],
+      ['https://wa.me/2348028134942', 'WhatsApp (opens in a new tab)'],
     ]);
-    expect(html.match(/rel="noopener noreferrer"/g)).toHaveLength(5);
+    expect(html.match(/rel="noopener noreferrer"/g)).toHaveLength(4);
   });
 
   it('puts each name and an external link icon in its tooltip', () => {
-    for (const name of ['Website', 'GitHub', 'LinkedIn', 'Instagram', 'X']) {
+    for (const name of ['Website', 'GitHub', 'LinkedIn', 'WhatsApp']) {
       expect(html).toMatch(new RegExp(`aria-hidden="true">${name}<svg`));
     }
   });
