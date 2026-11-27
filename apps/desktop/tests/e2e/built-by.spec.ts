@@ -69,7 +69,7 @@ test.describe('the Built by card on the welcome screen', () => {
     await expect(
       page.getByRole('link', { name: /Website/ }).locator('.built-by-tip'),
     ).toHaveAttribute('data-visible', 'true');
-    for (const name of ['Website', 'GitHub', 'LinkedIn']) {
+    for (const name of ['Website', 'GitHub', 'LinkedIn', 'WhatsApp']) {
       await expect(panel.getByRole('link', { name: new RegExp(name) })).toHaveAttribute(
         'href',
         /^https:\/\//,
